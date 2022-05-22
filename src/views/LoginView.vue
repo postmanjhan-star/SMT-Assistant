@@ -16,7 +16,7 @@ export default {
 
 <template>
     <form v-on:submit.prevent=" login ">
-        <input type="tel">
+        <input type="text">
         <input type="password">
         <button type="submit" @submit.prevent=" login ">登入</button>
     </form>
