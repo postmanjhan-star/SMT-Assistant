@@ -1,35 +1,33 @@
 <script setup>
 import { RouterLink, RouterView } from "vue-router";
+import { NConfigProvider } from 'naive-ui';
+import { zhTW, dateZhTW } from 'naive-ui';
 import HelloWorld from "@/components/HelloWorld.vue";
 </script>
 
 <template>
-  <header>
-    <img
-      alt="Vue logo"
-      class="logo"
-      src="@/assets/logo.svg"
-      width="125"
-      height="125"
-    />
+  <n-config-provider :locale=" zhTW " :date-locale=" dateZhTW ">
+    <header>
+      <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+      <div class="wrapper">
+        <HelloWorld msg="You did it!" />
 
-      <nav>
-        <RouterLink to="/">Login</RouterLink>
-        <RouterLink to="/register">Register</RouterLink>
-        <RouterLink to="/home">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
+        <nav>
+          <RouterLink to="/">Login</RouterLink>
+          <RouterLink to="/register">Register</RouterLink>
+          <RouterLink to="/home">Home</RouterLink>
+          <RouterLink to="/about">About</RouterLink>
+        </nav>
+      </div>
+    </header>
 
-  <RouterView />
+    <RouterView />
+  </n-config-provider>
 </template>
 
 <style>
-@import "@/assets/base.css";
+/* @import "@/assets/base.css"; */
 
 #app {
   max-width: 1280px;
