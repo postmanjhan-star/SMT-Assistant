@@ -1,7 +1,6 @@
 <script>
-import { OpenAPI, SessionService } from '../client';
-
-OpenAPI.BASE = import.meta.env.VITE_BACKEND_ORIGIN
+import OpenAPI from '../openapi.js';
+import { SessionService } from '../client';
 
 export default {
     data () {
