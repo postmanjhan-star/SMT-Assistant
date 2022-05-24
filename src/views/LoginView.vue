@@ -1,64 +1,97 @@
-<script>
-import { NForm, NFormItem, NInput, NButton } from 'naive-ui';
-import { zhTW, dateZhTW } from 'naive-ui';
+<script setup lang="ts">
+import { ref } from 'vue';
+import { NGrid, NGi, NCard, NForm, NFormItem, NInput, NButton } from 'naive-ui';
+import { useMessage } from 'naive-ui';
+import { FormInst, FormRules } from 'naive-ui';
 import OpenAPI from '../openapi.js';
-import { SessionService } from '../client';
+import { SessionService, Body_login_for_access_token } from '../client';
 
-export default {
-    components: {
-        NForm,
-        NFormItem,
-        NInput,
-        NButton,
+const message = useMessage();
+const formRef = ref<FormInst | null>( null );
+const formValue = ref<Body_login_for_access_token>( { username: null, password: null } );
+const rules: FormRules = {
+    username: {
+        required: true,
+        message: '请输入帳號',
+        trigger: [ 'blur' ],
     },
-    data () {
-        return {
-            username: null,
-            password: null,
+    password: {
+        required: true,
+        message: '请输入密碼',
+        trigger: [ 'input', 'blur' ],
+    }
+};
+
+async function handleLoginButtonClick ( event: Event ) {
+    formRef.value?.validate( async ( errors ) => {
+        if ( !errors ) {
+            login( formValue.value.username, formValue.value.password );
+        } else {
+            message.error( '請輸入帳號密碼' );
         }
-    },
-    created () { },
-    mounted () { },
-    unmounted () { },
-    methods: {
-        async login () {
-            try {
-                const res = await SessionService.loginForAccessToken( {
-                    username: this.username,
-                    password: this.password,
-                } );
-                console.log( res );
-            } catch ( e ) {
-                console.error( e )
-            }
-        },
-    },
+    } )
+}
+
+async function login ( username: string, password: string ) {
+    try {
+        const response = await SessionService.loginForAccessToken( {
+            username: username, password: password
+        } );
+        console.log( response );
+    } catch ( errors ) {
+        message.error( '登入失敗' );
+    }
 }
 </script>
 
 <template>
-    <form v-on:submit.prevent=" login ">
-        <label for="username">帳號</label>
-        <input type="text" id="username" v-model=" username " autofocus>
-        <label for="password">密碼</label>
-        <input type="password" id="password" v-model=" password ">
-        <button type="submit" @submit.prevent=" login ">登入</button>
-    </form>
-
-    <n-form>
-        <n-form-item label="帳號">
-            <n-input></n-input>
-        </n-form-item>
-        <n-form-item label="密碼">
-            <n-input type="password"></n-input>
-        </n-form-item>
-        <n-form-item>
-            <n-button @click=" login ">登入</n-button>
-        </n-form-item>
-    </n-form>
-
-
+    <n-grid cols="1 s:3" responsive="screen">
+        <n-gi></n-gi>
+        <n-gi>
+            <n-card size="huge" hoverable>
+                <!--<template #cover>
+                    <img alt="Sentec logo" class="logo" src="http://www.sentecgroup.com/assets/img/logo.png"/>
+                </template> -->
+                <n-form size="large" @keyup.enter=" handleLoginButtonClick( $event ) " :model=" formValue "
+                    :rules=" rules " ref="formRef">
+                    <n-form-item show-require-mark autofocus label="帳號" path="username">
+                        <n-input v-model:value.lazy=" formValue.username " autofocus></n-input>
+                    </n-form-item>
+                    <n-form-item show-require-mark label="密碼" path="password">
+                        <n-input type="password" v-model:value.lazy=" formValue.password "></n-input>
+                    </n-form-item>
+                    <n-form-item>
+                        <n-button type="primary" block @click=" handleLoginButtonClick( $event ) ">登入</n-button>
+                    </n-form-item>
+                </n-form>
+            </n-card>
+        </n-gi>
+        <n-gi></n-gi>
+    </n-grid>
 </template>
 
 <style scoped>
+.n-grid {
+    background: linear-gradient(180deg, hsla(0, 0%, 0%, 0.4), hsla(0, 0%, 0%, 0.4)), url(http://www.sentecgroup.com/assets/img/hero-bg.jpg);
+    background: linear-gradient(180deg, hsla(210, 100%, 40%, 0.4), hsla(50, 100%, 50%, 0.4)), url(http://www.sentecgroup.com/assets/img/hero-bg.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    min-height: 100vh;
+}
+
+.n-grid>div {
+    padding-top: 2rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.n-card {
+    background-color: hsla(0, 0%, 100%, 0.6);
+    backdrop-filter: blur(8px);
+}
+
+.n-card-cover {
+    padding: 20rem;
+}
 </style>
