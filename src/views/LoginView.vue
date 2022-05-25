@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { NGrid, NGi, NCard, NForm, NFormItem, NInput, NButton } from 'naive-ui';
 import { useMessage } from 'naive-ui';
 import { FormInst, FormRules } from 'naive-ui';
@@ -7,6 +8,8 @@ import OpenAPI from '../openapi.js';
 import { SessionService, Body_login_for_access_token } from '../client';
 
 const message = useMessage();
+const router = useRouter();
+const route = useRoute();
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<Body_login_for_access_token>( { username: null, password: null } );
 const rules: FormRules = {
@@ -37,8 +40,15 @@ async function login ( username: string, password: string ) {
         const response = await SessionService.loginForAccessToken( {
             username: username, password: password
         } );
-        console.log( response );
+        if ( response.access_token && response.token_type === 'bearer' ) {
+            localStorage.setItem( 'account', JSON.stringify( response ) );
+        } else {
+            throw Error;
+        }
+        // navigate to a protected resource
+        router.push( { name: 'home' } );
     } catch ( errors ) {
+        console.log( errors );
         message.error( '登入失敗' );
     }
 }
