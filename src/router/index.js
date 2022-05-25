@@ -22,9 +22,15 @@ const routes = [
     path: "/home",
     name: "Home",
     component: HomeView,
+    children: [
+      {
+        path: '/accounts',
+        component: () => import( "../components/TheWelcome.vue"),
+      },
+    ],
   },
   {
-    path: "/:pathMatch(.*)*",
+    path: "/:pathMatch(.*)",
     name: "NotFound",
     // route level code-splitting
     // this generates a separate chunk (About.[hash].js) for this route
