@@ -4,7 +4,6 @@ import { useRouter, useRoute } from 'vue-router';
 import { NGrid, NGi, NCard, NForm, NFormItem, NInput, NButton } from 'naive-ui';
 import { useMessage } from 'naive-ui';
 import { FormInst, FormRules } from 'naive-ui';
-import OpenAPI from '../openapi.js';
 import { SessionService, Body_login_for_access_token } from '../client';
 
 const message = useMessage();

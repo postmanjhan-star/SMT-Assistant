@@ -1,0 +1,16 @@
+{
+	# debug
+	email 102573@sentecgroup.com
+}
+
+http://localhost {
+	encode zstd gzip
+	handle_path /api/* {
+		reverse_proxy :8000
+	}
+
+	handle {
+		reverse_proxy :3000
+		# try_files {path} /
+	}
+}
