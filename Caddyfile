@@ -1,10 +1,16 @@
 {
-	# debug
+	debug
+	auto_https disable_redirects
 	email 102573@sentecgroup.com
 }
 
-http://localhost {
+http:// {
 	encode zstd gzip
+
+	log {
+		# output file /var/log/access.log
+	}
+
 	handle_path /api/* {
 		reverse_proxy :8000
 	}
