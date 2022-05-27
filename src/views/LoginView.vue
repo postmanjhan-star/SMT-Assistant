@@ -31,7 +31,7 @@ async function handleLoginButtonClick ( event: Event ) {
         } else {
             message.error( '請輸入帳號密碼' );
         }
-    } )
+    } );
 }
 
 async function login ( username: string, password: string ) {
@@ -64,10 +64,12 @@ async function login ( username: string, password: string ) {
                 <n-form size="large" @keyup.enter=" handleLoginButtonClick( $event ) " :model=" formValue "
                     :rules=" rules " ref="formRef">
                     <n-form-item show-require-mark autofocus label="帳號" path="username">
-                        <n-input v-model:value.lazy=" formValue.username " autofocus></n-input>
+                        <n-input v-model:value.lazy=" formValue.username " autofocus
+                            :input-props=" { autocomplete: 'username' } "></n-input>
                     </n-form-item>
                     <n-form-item show-require-mark label="密碼" path="password">
-                        <n-input type="password" v-model:value.lazy=" formValue.password "></n-input>
+                        <n-input type="password" v-model:value.lazy=" formValue.password "
+                            :input-props=" { autocomplete: 'current-password' } "></n-input>
                     </n-form-item>
                     <n-form-item>
                         <n-button type="primary" block @click=" handleLoginButtonClick( $event ) ">登入</n-button>

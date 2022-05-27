@@ -46,10 +46,18 @@ const router = createRouter( {
   routes: routes,
 } );
 
-const account = JSON.parse( localStorage.getItem( 'account' ) );
-const isAuthenticated = (account? true: false);
 
 router.beforeEach( async ( to, from ) => {
+  const account = JSON.parse( localStorage.getItem( 'account' ) );
+  console.debug( 'Account:\n', JSON.stringify( account ) );
+
+  const isAuthenticated = ( account ? true : false );
+  // const isAuthenticated = true;
+  console.debug( 'isAuthenticated:\n', isAuthenticated );
+
+  // const store = useStore();
+  // const isAuthenticated = store.isAuthenticated;
+
   if (
     to.meta.requiresAuth &&
     // 检查用户是否已登录
