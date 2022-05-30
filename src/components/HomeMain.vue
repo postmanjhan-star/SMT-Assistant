@@ -8,7 +8,7 @@ import backgroundImageUrl from '../assets/shapes-6393929_1920.jpg'
 
 <template>
   <main :style=" { backgroundImage: `url(${ backgroundImageUrl })` } "
-    style="padding: 1rem; min-height: calc(100vh - 88px); background-repeat: no-repeat; background-attachment: fixed; background-size: cover; background-position: center; ">
+    style="padding: 1rem; min-height: calc(100vh - 92px); background-repeat: no-repeat; background-attachment: fixed; background-size: cover; background-position: center; ">
     <n-grid cols="1 s:2 m:4 xl:5" responsive="screen" :x-gap=" 20 " :y-gap=" 20 ">
       <n-gi>
         <n-card class="main-card" title="物料管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
