@@ -1,5 +1,4 @@
 <script>
-import OpenAPI from '../openapi.js';
 import { AccountsService } from '../client';
 
 export default {

@@ -1,80 +1,100 @@
-<script setup lang="ts">
-import { h } from "vue";
+<script setup>
+import { h, ref } from "vue";
 import { RouterView, RouterLink } from "vue-router";
-import TheWelcome from "../components/TheWelcome.vue";
-import { NLayout, NLayoutSider, NLayoutHeader, NLayoutContent, NMenu, NIcon, NEmpty, NButton } from "naive-ui";
+import { NConfigProvider, darkTheme, NSpace, NLayoutHeader } from "naive-ui";
+import { NGrid, NGi } from "naive-ui";
+import { NPopover, NCard, NButton, NIcon, NH1, NA } from "naive-ui";
+import Switcher from '@carbon/icons-vue/es/switcher/32';
+import backgroundImageUrl from '../assets/shapes-6393929_1920.jpg'
 
-import type { MenuOption } from "naive-ui";
+const appTitle = import.meta.env.VITE_APP_TITLE;
 
-const menuOptions: MenuOption[] = [
+const systemMenuOptions = [
   {
     label: () =>
       h(
         RouterLink,
         {
-          to: {
-            path: '/accounts'
-          },
+          to: '/accounts',
         },
-        '且听风吟'
+        { default: () => '帳號管理' },
       ),
-    key: 'hear-the-wind-sing',
+    key: 'accounts'
   },
-  {
-    label: '寻羊冒险记',
-    key: 'a-wild-sheep-chase',
-    disabled: true
-  },
-  {
-    label: '舞，舞，舞',
-    key: 'dance-dance-dance',
-    children: [
-      {
-        type: 'group',
-        label: '人物',
-        key: 'people',
-        children: [
-          {
-            label: '叙事者',
-            key: 'narrator',
-          },
-        ]
-      },
-      {
-        label: '饮品',
-        key: 'beverage',
-        children: [
-          {
-            label: '威士忌',
-            key: 'whisky'
-          }
-        ]
-      },
-    ]
-  }
 ];
 </script>
 
 <template>
-  <n-layout has-sider>
-    <n-layout-sider collapse-mode="width" show-trigger="bar" content-style="padding: 24px;" inverted :collapsed-width="64">
-      <n-menu :options=" menuOptions " inverted/>
-    </n-layout-sider>
-    <n-layout content-style="padding-left: 28px; padding-right: 28px;">
-      <n-layout-header>
-        颐和园路
+  <header style="position: sticky; top: 0; z-index: 1;">
+    <n-config-provider :theme=" darkTheme ">
+      <n-layout-header style="padding: 16px;">
+        <n-space item-style="line-height: 0;">
+          <n-popover trigger="click" style="max-width: 80vw; max-height: 90vh;" scrollable>
+            <template #trigger>
+              <n-button style="font-size: 24px;" text>
+                <n-icon>
+                  <Switcher></Switcher>
+                </n-icon>
+              </n-button>
+            </template>
+            <n-space size="large">
+              <n-card title="物料管理" size="small" :bordered=" false "></n-card>
+              <n-card title="系統管理" size="small" :bordered=" false " header-style="padding-bottom: 0;"
+                content-style="padding-left: 0;">
+                <n-menu :options=" systemMenuOptions " :root-indent=" 16 " />
+              </n-card>
+            </n-space>
+          </n-popover>
+          <n-h1 style="display: inline-block; font-size: 1rem; font-weight: bolder; line-height: 150%; margin: 0;">
+            {{
+                appTitle
+            }}
+          </n-h1>
+        </n-space>
       </n-layout-header>
-      <n-layout-content>
-        <!-- <TheWelcome /> -->
-        <n-empty description="你什么也找不到" size="huge">
-          <template #extra>
-            <n-button size="large">
-              看看别的
-            </n-button>
-          </template>
-        </n-empty>
-        <router-view></router-view>
-      </n-layout-content>
-    </n-layout>
-  </n-layout>
+    </n-config-provider>
+  </header>
+
+  <main :style=" { backgroundImage: `url(${ backgroundImageUrl })` } "
+    style="padding: 1rem; min-height: calc(100vh - 88px); background-repeat: no-repeat; background-attachment: fixed; background-size: cover; background-position: center; ">
+    <n-grid cols="1 s:2 m:4 xl:5" responsive="screen" :x-gap=" 20 " :y-gap=" 20 ">
+      <n-gi>
+        <n-card class="main-card" title="物料管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
+        </n-card>
+      </n-gi>
+      <n-gi>
+        <n-card class="main-card" title="系統管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
+          <n-menu :options=" systemMenuOptions " />
+        </n-card>
+      </n-gi>
+    </n-grid>
+    <router-view></router-view>
+
+    <!-- <section>
+      <n-empty description="你什么也找不到" size="huge">
+        <template #extra>
+          <n-button size="large">
+            看看别的
+          </n-button>
+        </template>
+      </n-empty>
+    </section> -->
+  </main>
 </template>
+
+<style scoped>
+.n-card {
+  width: 200px;
+}
+
+main .n-card {
+  background-color: transparent;
+}
+
+.n-grid>div {
+  border: 1px solid lightgray;
+  border-radius: 4px;
+  background-color: hsla(0, 0%, 100%, 0.6);
+  backdrop-filter: blur(8px);
+}
+</style>
