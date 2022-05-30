@@ -23,6 +23,10 @@ const routes = [
     component: () => import( "../views/HomeView.vue" ),
     children: [
       {
+        path: '',
+        component: () => import( "../components/HomeMain.vue" ),
+      },
+      {
         path: '/accounts',
         component: () => import( "../components/TheWelcome.vue" ),
       },
