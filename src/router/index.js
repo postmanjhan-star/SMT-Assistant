@@ -29,6 +29,12 @@ const routes = [
     ],
   },
   {
+    path: "/playground",
+    name: "Playground",
+    meta: { requiresAuth: false },
+    component: () => import( "../views/PlaygroundView.vue" ),
+  },
+  {
     path: "/:pathMatch(.*)",
     name: "NotFound",
     meta: { requiresAuth: false },
