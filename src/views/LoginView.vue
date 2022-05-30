@@ -45,7 +45,7 @@ async function login ( username: string, password: string ) {
             throw Error;
         }
         // navigate to a protected resource
-        router.push( { name: 'Home' } );
+        router.push( '/home' );
     } catch ( errors ) {
         console.log( errors );
         message.error( '登入失敗' );

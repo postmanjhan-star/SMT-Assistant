@@ -39,7 +39,7 @@ main .n-card {
 }
 
 .n-grid>div {
-  border: 1px solid lightgray;
+  border: 1px solid white;
   border-radius: 4px;
   background-color: hsla(0, 0%, 100%, 0.6);
   backdrop-filter: blur(20px);
