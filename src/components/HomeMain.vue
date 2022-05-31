@@ -43,5 +43,6 @@ main .n-card {
   border-radius: 4px;
   background-color: hsla(0, 0%, 100%, 0.6);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 </style>

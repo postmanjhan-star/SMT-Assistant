@@ -2,10 +2,29 @@
 import { RouterLink, RouterView } from "vue-router";
 import { NConfigProvider, NMessageProvider } from 'naive-ui';
 import { zhTW, dateZhTW } from 'naive-ui';
+import Color from 'color';
+
+const borderColor = Color( 'hsla(0, 0%, 84%, 1.0)' );
+// console.debug(borderColor.rgb().string());
+
+/**
+ * js 文件下使用这个做类型提示
+ * @type import('naive-ui').GlobalThemeOverrides
+ */
+const themeOverrides = {
+  common: {
+    fontWeightStrong: "600",
+    dividerColor: borderColor.rgb().string(),
+  },
+  DataTable: {
+    borderColor: borderColor.rgb().string(),
+  },
+}
 </script>
 
 <template>
-  <n-config-provider :locale=" zhTW " :date-locale=" dateZhTW " inline-theme-disabled>
+  <n-config-provider :locale=" zhTW " :date-locale=" dateZhTW " inline-theme-disabled
+    :theme-overrides=" themeOverrides ">
     <n-message-provider>
       <header>
         <!-- <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" /> -->

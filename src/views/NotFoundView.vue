@@ -5,7 +5,7 @@ import { NResult, NButton } from 'naive-ui';
 const router = useRouter();
 
 function handleButtonClick () {
-  router.push( { name: 'Home' } );
+  router.push( '/home' );
 }
 </script>
 
