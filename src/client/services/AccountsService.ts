@@ -11,6 +11,18 @@ import { request as __request } from '../core/request';
 export class AccountsService {
 
     /**
+     * Get Recent Accounts
+     * @returns AccountRead Successful Response
+     * @throws ApiError
+     */
+    public static getRecentAccounts(): CancelablePromise<Array<AccountRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/accounts/',
+        });
+    }
+
+    /**
      * Create Account
      * @param requestBody
      * @returns AccountRead Successful Response

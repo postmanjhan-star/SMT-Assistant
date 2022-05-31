@@ -29,7 +29,7 @@ function handleAccountMenuSelect ( key ) {
 </script>
 
 <template>
-  <header style="position: sticky; top: 0; z-index: 1;">
+  <header style="position: sticky; top: 0; z-index: 2;">
     <n-config-provider :theme=" darkTheme ">
       <n-layout-header style="padding: 16px;">
         <n-space item-style="" justify="space-between">

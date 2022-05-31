@@ -28,7 +28,7 @@ const routes = [
       },
       {
         path: '/accounts',
-        component: () => import( "../components/TheWelcome.vue" ),
+        component: () => import( "../components/Accounts.vue" ),
       },
     ],
   },
