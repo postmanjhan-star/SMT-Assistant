@@ -1,11 +1,13 @@
 <script setup>
 import { reactive, onBeforeMount } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { NSpace } from 'naive-ui';
 import { NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
 import { NDataTable, NButton, NH1 } from 'naive-ui';
 import { NA } from 'naive-ui';
 import { AccountsService } from '../client';
+
+const router = useRouter();
 
 const columns = [
   {
@@ -23,6 +25,10 @@ onBeforeMount( async () => {
   }
   // console.debug( data );
 } );
+
+function handleCreateAccountButtonClick () {
+  router.push( '/accounts/create' );
+}
 </script>
 
 
@@ -44,11 +50,10 @@ onBeforeMount( async () => {
       <n-h1 prefix="bar" style="font-size: 1.4rem;">帳號管理</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
-        <n-button type="primary">建立新帳號</n-button>
+        <n-button type="primary" @click=" handleCreateAccountButtonClick ">建立新帳號</n-button>
         <n-data-table :columns=" columns " :data=" data " striped :single-line=" false "></n-data-table>
       </n-space>
     </div>
-
   </main>
 </template>
 

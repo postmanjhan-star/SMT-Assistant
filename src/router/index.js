@@ -30,6 +30,10 @@ const routes = [
         path: '/accounts',
         component: () => import( "../components/Accounts.vue" ),
       },
+      {
+        path: '/accounts/create',
+        component: () => import( "../components/AccountsCreate.vue" ),
+      },
     ],
   },
   {
