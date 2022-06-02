@@ -1,8 +1,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AccountCreate } from '../models/AccountCreate';
 import type { AccountRead } from '../models/AccountRead';
+import type { EmployeeAccountCreate } from '../models/EmployeeAccountCreate';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -23,14 +23,14 @@ export class AccountsService {
     }
 
     /**
-     * Create Account
-     * @param requestBody
+     * Create Employee Account
+     * @param requestBody 
      * @returns AccountRead Successful Response
      * @throws ApiError
      */
-    public static createAccount(
-        requestBody: AccountCreate,
-    ): CancelablePromise<AccountRead> {
+    public static createEmployeeAccount(
+requestBody: EmployeeAccountCreate,
+): CancelablePromise<AccountRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/',

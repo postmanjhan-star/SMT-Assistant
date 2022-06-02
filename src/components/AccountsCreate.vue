@@ -5,10 +5,10 @@ import { NBreadcrumb, NBreadcrumbItem, NA, NH1, NSpace } from 'naive-ui';
 import { NForm, NFormItem, NInput, NButton } from 'naive-ui';
 import { useMessage } from 'naive-ui';
 import { FormRules, FormInst } from 'naive-ui';
-import { AccountCreate, AccountsService, ApiError } from '../client';
+import { EmployeeAccountCreate, AccountsService, ApiError } from '../client';
 
 const message = useMessage();
-const formValue = ref<AccountCreate>( { username: null, password: null } );
+const formValue = ref<EmployeeAccountCreate>( { username: null, password: null } );
 const formRef = ref<FormInst | null>( null );
 
 const rules: FormRules = {
@@ -24,10 +24,10 @@ const rules: FormRules = {
   }
 };
 
-async function createAccount ( newAccountData: AccountCreate ) {
+async function createAccount ( newAccountData: EmployeeAccountCreate ) {
   try {
     // console.debug( newAccountData );
-    const response = await AccountsService.createAccount( newAccountData );
+    const response = await AccountsService.createEmployeeAccount( newAccountData )
     // console.debug( 'Response:\n', response );
     message.success( `${ response.username } 建立成功` );
   } catch ( error ) {
