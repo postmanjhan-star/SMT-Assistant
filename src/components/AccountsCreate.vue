@@ -6,6 +6,8 @@ import { NForm, NFormItem, NInput, NButton } from 'naive-ui';
 import { useMessage } from 'naive-ui';
 import { FormRules, FormInst } from 'naive-ui';
 import { EmployeeAccountCreate, AccountsService, ApiError } from '../client';
+import { OpenAPI } from '../opanApi';
+
 
 const message = useMessage();
 const formValue = ref<EmployeeAccountCreate>( { username: null, password: null } );
