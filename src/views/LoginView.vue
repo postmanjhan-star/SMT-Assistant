@@ -5,10 +5,12 @@ import { NGrid, NGi, NCard, NForm, NFormItem, NInput, NButton } from 'naive-ui';
 import { useMessage } from 'naive-ui';
 import { FormInst, FormRules } from 'naive-ui';
 import { SessionService, Body_login_for_access_token } from '../client';
+import { useAuthStore } from '../stores/auth';
 
 const message = useMessage();
 const router = useRouter();
 const route = useRoute();
+const authStore = useAuthStore();
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<Body_login_for_access_token>( { username: null, password: null } );
 const rules: FormRules = {
@@ -39,11 +41,11 @@ async function login ( username: string, password: string ) {
         const response = await SessionService.loginForAccessToken( {
             username: username, password: password
         } );
-        if ( response.access_token && response.token_type === 'bearer' ) {
-            localStorage.setItem( 'account', JSON.stringify( response ) );
-        } else {
-            throw Error;
-        }
+
+        // Save token to auth store and local storage
+        authStore.accountToken = JSON.stringify( response );
+        // console.debug( auth.accountToken );
+
         // navigate to a protected resource
         router.push( '/home' );
     } catch ( errors ) {

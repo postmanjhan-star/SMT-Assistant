@@ -6,10 +6,12 @@ import { NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
 import { NDataTable, NButton, NH1 } from 'naive-ui';
 import { NA } from 'naive-ui';
 import { AccountsService } from '../client';
-import { OpenAPI } from '../opanApi';
+import { OpenAPI } from '../client';
+import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
-
+const authStore = useAuthStore();
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const columns = [
   {
     title: '帳號',
@@ -24,7 +26,7 @@ onBeforeMount( async () => {
   for ( let row of AccountsData ) {
     data.push( row );
   }
-  // console.debug( data );
+  // console.debug( 'data:\n', data );
 } );
 
 function handleCreateAccountButtonClick () {

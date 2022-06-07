@@ -5,11 +5,13 @@ import { NPopover, NMenu, NDropdown, NCard, NButton, NIcon, NH1 } from "naive-ui
 import * as jose from 'jose';
 import { systemMenuOptions } from "../menuOptions";
 import Switcher from '@carbon/icons-vue/es/switcher/32';
+import { useAuthStore } from '../stores/auth';
 
 const appTitle = import.meta.env.VITE_APP_TITLE;
 const router = useRouter();
+const authStore = useAuthStore();
 
-const token = JSON.parse( localStorage.getItem( 'account' ) )[ 'access_token' ];
+const token = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const claims = jose.decodeJwt( token );
 
 const accountMenuOptions = [
@@ -22,7 +24,7 @@ const accountMenuOptions = [
 
 function handleAccountMenuSelect ( key ) {
   if ( key === 'logout' ) {
-    localStorage.removeItem( 'account' );
+    authStore.accountToken = null;
     router.push( { name: 'Login' } );
   }
 }
