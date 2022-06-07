@@ -63,11 +63,11 @@ const router = createRouter( {
 
 router.beforeEach( async ( to, from ) => {
   const account = JSON.parse( localStorage.getItem( 'account' ) );
-  console.debug( 'Account:\n', JSON.stringify( account ) );
+  // console.debug( 'Account:\n', JSON.stringify( account ) );
 
   const isAuthenticated = ( account ? true : false );
   // const isAuthenticated = true;
-  console.debug( 'isAuthenticated:\n', isAuthenticated );
+  // console.debug( 'isAuthenticated:\n', isAuthenticated );
 
   // const store = useStore();
   // const isAuthenticated = store.isAuthenticated;

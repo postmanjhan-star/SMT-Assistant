@@ -6,10 +6,13 @@ import { NForm, NFormItem, NInput, NButton } from 'naive-ui';
 import { useMessage } from 'naive-ui';
 import { FormRules, FormInst } from 'naive-ui';
 import { EmployeeAccountCreate, AccountsService, ApiError } from '../client';
-import { OpenAPI } from '../opanApi';
+import { OpenAPI } from '../client';
+import { useAuthStore } from '../stores/auth';
 
 
 const message = useMessage();
+const authStore = useAuthStore();
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const formValue = ref<EmployeeAccountCreate>( { username: null, password: null } );
 const formRef = ref<FormInst | null>( null );
 
