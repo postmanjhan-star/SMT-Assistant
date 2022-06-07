@@ -23,5 +23,6 @@ export { $Token } from './schemas/$Token';
 export { $ValidationError } from './schemas/$ValidationError';
 
 export { AccountsService } from './services/AccountsService';
+export { MeService } from './services/MeService';
 export { ReceivesService } from './services/ReceivesService';
 export { SessionService } from './services/SessionService';

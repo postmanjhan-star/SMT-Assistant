@@ -1,47 +1,31 @@
 <script setup>
-import { useAuthStore } from '../stores/auth';
-import backgroundImageUrl from '../assets/shapes-6393929_1920.jpg'
+import { onBeforeMount } from "vue";
+import { useAccountStore } from "../stores/account";
 
-const auth = useAuthStore();
-console.debug( auth.accountToken );
+const accountStore = useAccountStore();
 
-function handleInitializeButtonClick () {
-    auth.accountToken = 1;
-    console.debug( auth.accountToken );
-}
+accountStore.authorizedModules = 'A';
+console.debug( '1:\n', accountStore.authorizedModules );
 
-function handleAddButtonClick () {
-    auth.accountToken++;
-    console.debug( auth.accountToken );
-}
+onBeforeMount( async () => {
+    await accountStore.setAuthorizedModules();
+    console.debug( '2:\n', accountStore.authorizedModules );
+} );
 
-function handleResetButtonClick () {
-    auth.accountToken = null;
-    console.debug( auth.accountToken );
-}
+accountStore.authorizedModules = 'C';
+console.debug( '3:\n', accountStore.authorizedModules );
 </script>
 
 <template>
-    <main :style=" { backgroundImage: `url(${ backgroundImageUrl })` } "
-        style="padding: 1rem; background-repeat: no-repeat; background-attachment: fixed; background-size: cover; background-position: center; ">
-        <!-- <n-drawer v-model:show=" show " placement="left" :close-on-esc=" true " :show-mask=" false ">
-            <n-drawer-content title="斯通纳" closable>
-                《斯通纳》是美国作家约翰·威廉姆斯在 1965 年出版的小说。
-            </n-drawer-content>
-        </n-drawer> -->
-
-        <button @click=" handleInitializeButtonClick ">Initialize</button>
-        <button @click=" handleAddButtonClick ">++</button>
-        <button @click=" handleResetButtonClick ">Reset</button>
-        <p>content</p>
-        <p>content</p>
-        <p>content</p>
-        <p>content</p>
-        <p>content</p>
-        <p>content</p>
+    <main>
+        <div v-if=" accountStore.authorizedModules.includes( 'see_good_group' ) ">
+            D {{ accountStore.authorizedModules }} {{ typeof accountStore.authorizedModules }}
+        </div>
+        <div v-if=" accountStore.authorizedModules === 'A' ">
+            A {{ accountStore.authorizedModules }}
+        </div>
+        <div v-if=" accountStore.authorizedModules === 'B' ">
+            B {{ accountStore.authorizedModules }}
+        </div>
     </main>
-
 </template>
-
-<style scoped>
-</style>

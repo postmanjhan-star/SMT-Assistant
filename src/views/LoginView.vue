@@ -48,8 +48,8 @@ async function login ( username: string, password: string ) {
 
         // navigate to a protected resource
         router.push( '/home' );
-    } catch ( errors ) {
-        console.log( errors );
+    } catch ( error ) {
+        console.error( error );
         message.error( '登入失敗' );
     }
 }
