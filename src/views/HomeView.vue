@@ -27,6 +27,7 @@ const accountStore = useAccountStore();
 // console.debug( 'HomeView authorizedModules 1:\n', accountStore.authorizedModules );
 
 onBeforeMount( async () => {
+  // Could be omitted. Because it has been set by HomeMain.
   await accountStore.setAuthorizedModules();
 } );
 
