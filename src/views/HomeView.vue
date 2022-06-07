@@ -1,4 +1,5 @@
 <script setup>
+import { onBeforeMount } from "vue";
 import { RouterView, useRouter } from "vue-router";
 import { NConfigProvider, darkTheme, NSpace, NLayoutHeader } from "naive-ui";
 import { NPopover, NMenu, NDropdown, NCard, NButton, NIcon, NH1 } from "naive-ui";
@@ -6,11 +7,11 @@ import * as jose from 'jose';
 import { systemMenuOptions } from "../menuOptions";
 import Switcher from '@carbon/icons-vue/es/switcher/32';
 import { useAuthStore } from '../stores/auth';
+import { useAccountStore } from '../stores/account';
 
-const appTitle = import.meta.env.VITE_APP_TITLE;
 const router = useRouter();
+const appTitle = import.meta.env.VITE_APP_TITLE;
 const authStore = useAuthStore();
-
 const token = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const claims = jose.decodeJwt( token );
 
@@ -22,9 +23,17 @@ const accountMenuOptions = [
   },
 ]
 
+const accountStore = useAccountStore();
+// console.debug( 'HomeView authorizedModules 1:\n', accountStore.authorizedModules );
+
+onBeforeMount( async () => {
+  await accountStore.setAuthorizedModules();
+} );
+
 function handleAccountMenuSelect ( key ) {
   if ( key === 'logout' ) {
     authStore.accountToken = null;
+    accountStore.authorizedModules = [];
     router.push( { name: 'Login' } );
   }
 }
@@ -46,8 +55,9 @@ function handleAccountMenuSelect ( key ) {
               </template>
               <n-space size="large">
                 <n-card title="物料管理" size="small" :bordered=" false "></n-card>
-                <n-card title="系統管理" size="small" :bordered=" false " header-style="padding-bottom: 0;"
-                  content-style="padding-left: 0;">
+                <n-card title="系統管理" size="small" :bordered=" false "
+                  v-if=" accountStore.authorizedModules.includes( 'see_system_group' ) "
+                  header-style="padding-bottom: 0;" content-style="padding-left: 0;">
                   <n-menu :options=" systemMenuOptions " :root-indent=" 16 " />
                 </n-card>
               </n-space>
