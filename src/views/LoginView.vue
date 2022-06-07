@@ -6,11 +6,13 @@ import { useMessage } from 'naive-ui';
 import { FormInst, FormRules } from 'naive-ui';
 import { SessionService, Body_login_for_access_token } from '../client';
 import { useAuthStore } from '../stores/auth';
+import { useAccountStore } from '../stores/account';
 
 const message = useMessage();
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const accountStore = useAccountStore();
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<Body_login_for_access_token>( { username: null, password: null } );
 const rules: FormRules = {
@@ -26,16 +28,6 @@ const rules: FormRules = {
     }
 };
 
-async function handleLoginButtonClick ( event: Event ) {
-    formRef.value?.validate( async ( errors ) => {
-        if ( !errors ) {
-            login( formValue.value.username, formValue.value.password );
-        } else {
-            message.error( '請輸入帳號密碼' );
-        }
-    } );
-}
-
 async function login ( username: string, password: string ) {
     try {
         const response = await SessionService.loginForAccessToken( {
@@ -45,13 +37,36 @@ async function login ( username: string, password: string ) {
         // Save token to auth store and local storage
         authStore.accountToken = JSON.stringify( response );
         // console.debug( auth.accountToken );
-
-        // navigate to a protected resource
-        router.push( '/home' );
     } catch ( error ) {
         console.error( error );
         message.error( '登入失敗' );
     }
+}
+
+async function getAccountInformation() {
+    await accountStore.setAuthorizedModules();
+}
+
+function redirectToHome () {
+    router.push( '/home' );
+}
+
+async function handleLoginButtonClick ( event: Event ) {
+    formRef.value?.validate( async ( errors ) => {
+        if ( !errors ) {
+
+            // Login and get token
+            await login( formValue.value.username, formValue.value.password );
+
+            // Use token to get account information, authorized modules, etc...
+            await getAccountInformation();
+
+            // Navigate to a protected resource
+            redirectToHome();
+        } else {
+            message.error( '請輸入帳號密碼' );
+        }
+    } );
 }
 </script>
 

@@ -1,5 +1,4 @@
 <script setup>
-import { onBeforeMount } from "vue";
 import { RouterView, useRouter } from "vue-router";
 import { NConfigProvider, darkTheme, NSpace, NLayoutHeader } from "naive-ui";
 import { NPopover, NMenu, NDropdown, NCard, NButton, NIcon, NH1 } from "naive-ui";
@@ -12,6 +11,7 @@ import { useAccountStore } from '../stores/account';
 const router = useRouter();
 const appTitle = import.meta.env.VITE_APP_TITLE;
 const authStore = useAuthStore();
+const accountStore = useAccountStore();
 const token = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const claims = jose.decodeJwt( token );
 
@@ -23,13 +23,6 @@ const accountMenuOptions = [
   },
 ]
 
-const accountStore = useAccountStore();
-// console.debug( 'HomeView authorizedModules 1:\n', accountStore.authorizedModules );
-
-onBeforeMount( async () => {
-  // Could be omitted. Because it has been set by HomeMain.
-  await accountStore.setAuthorizedModules();
-} );
 
 function handleAccountMenuSelect ( key ) {
   if ( key === 'logout' ) {

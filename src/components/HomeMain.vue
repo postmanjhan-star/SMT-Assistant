@@ -1,5 +1,4 @@
 <script setup>
-import { onBeforeMount } from "vue";
 import { NGrid, NGi } from "naive-ui";
 import { NMenu } from "naive-ui";
 import { NCard } from "naive-ui";
@@ -8,12 +7,6 @@ import backgroundImageUrl from '../assets/shapes-6393929_1920.jpg'
 import { useAccountStore } from "../stores/account";
 
 const accountStore = useAccountStore();
-// console.debug( 'HomeMain authorizedModules 1:\n', accountStore.authorizedModules );
-
-onBeforeMount( async () => {
-  await accountStore.setAuthorizedModules();
-  // console.debug( 'HomeMain authorizedModules 2:\n', accountStore.authorizedModules );
-} );
 </script>
 
 <template>

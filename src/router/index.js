@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import { useAccountStore } from "../stores/account";
 
 // 2. 定义一些路由
 // 每个路由都需要映射到一个组件。
@@ -10,12 +11,6 @@ const routes = [
     name: "Login",
     meta: { requiresAuth: false },
     component: () => import( "../views/LoginView.vue" ),
-  },
-  {
-    path: "/register",
-    name: "Register",
-    meta: { requiresAuth: true },
-    component: () => import( "../views/RegisterView.vue" ),
   },
   {
     path: "/home",
@@ -29,10 +24,12 @@ const routes = [
       },
       {
         path: '/accounts',
+        meta: { requiredAuthModule: [ 'see_system_group' ] },
         component: () => import( "../components/Accounts.vue" ),
       },
       {
         path: '/accounts/create',
+        meta: { requiredAuthModule: [ 'see_system_group' ] },
         component: () => import( "../components/AccountsCreate.vue" ),
       },
     ],
@@ -42,6 +39,12 @@ const routes = [
     name: "Playground",
     meta: { requiresAuth: false },
     component: () => import( "../views/PlaygroundView.vue" ),
+  },
+  {
+    path: "/forbidden",
+    name: "Forbidden",
+    meta: { requiresAuth: false },
+    component: () => import( "../views/Forbidden.vue" ),
   },
   {
     path: "/:pathMatch(.*)",
@@ -64,6 +67,8 @@ const router = createRouter( {
 
 router.beforeEach( async ( to, from ) => {
   const authStore = useAuthStore();
+  const accountStore = useAccountStore();
+
   const account = JSON.parse( authStore.accountToken );
   // console.debug( 'Account:\n', JSON.stringify( account ) );
 
@@ -79,6 +84,14 @@ router.beforeEach( async ( to, from ) => {
   ) {
     // 将用户重定向到登录页面
     return { name: 'Login' };
+  }
+
+  if (
+    to.meta.requiredAuthModule &&
+    to.meta.requiredAuthModule.includes( 'see_system_group' ) &&
+    !accountStore.authorizedModules.includes( 'see_system_group' )
+  ) {
+    return { path: '/forbidden' }
   }
 } );
 
