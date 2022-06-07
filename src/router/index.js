@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 
 // 2. 定义一些路由
 // 每个路由都需要映射到一个组件。
@@ -62,15 +63,12 @@ const router = createRouter( {
 
 
 router.beforeEach( async ( to, from ) => {
-  const account = JSON.parse( localStorage.getItem( 'account' ) );
+  const authStore = useAuthStore();
+  const account = JSON.parse( authStore.accountToken );
   // console.debug( 'Account:\n', JSON.stringify( account ) );
 
   const isAuthenticated = ( account ? true : false );
-  // const isAuthenticated = true;
   // console.debug( 'isAuthenticated:\n', isAuthenticated );
-
-  // const store = useStore();
-  // const isAuthenticated = store.isAuthenticated;
 
   if (
     to.meta.requiresAuth &&
