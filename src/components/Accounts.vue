@@ -10,8 +10,10 @@ import { OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
+
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+
 const columns = [
   {
     title: '帳號',
@@ -19,7 +21,18 @@ const columns = [
   },
 ]
 
+const rowProps = ( row ) => {
+  return {
+    style: 'cursor: pointer;',
+    onclick: () => {
+      // console.debug( row.username );
+      router.push( `/accounts/${ row.username }` );
+    },
+  }
+};
+
 const data = reactive( [] );
+
 
 onBeforeMount( async () => {
   let AccountsData = await AccountsService.getRecentAccounts();
@@ -54,7 +67,8 @@ function handleCreateAccountButtonClick () {
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
         <n-button type="primary" @click=" handleCreateAccountButtonClick ">建立新帳號</n-button>
-        <n-data-table :columns=" columns " :data=" data " striped :single-line=" false "></n-data-table>
+        <n-data-table :columns=" columns " :data=" data " striped :single-line=" false " :row-props=" rowProps ">
+        </n-data-table>
       </n-space>
     </div>
   </main>
