@@ -32,6 +32,11 @@ const routes = [
         meta: { requiredAuthModule: [ 'see_system_group' ] },
         component: () => import( "../components/AccountsCreate.vue" ),
       },
+      {
+        path: '/accounts/:idno',
+        meta: { requiredAuthModule: [ 'see_system_group' ] },
+        component: () => import( "../components/AccountsItem.vue" ),
+      },
     ],
   },
   {
@@ -41,10 +46,16 @@ const routes = [
     component: () => import( "../views/PlaygroundView.vue" ),
   },
   {
-    path: "/forbidden",
+    path: "/403",
     name: "Forbidden",
     meta: { requiresAuth: false },
-    component: () => import( "../views/Forbidden.vue" ),
+    component: () => import( "../views/ForbiddenView.vue" ),
+  },
+  {
+    path: "/404",
+    name: "NotFound",
+    meta: { requiresAuth: false },
+    component: () => import( "../views/NotFoundView.vue" ),
   },
   {
     path: "/:pathMatch(.*)",
@@ -91,7 +102,7 @@ router.beforeEach( async ( to, from ) => {
     to.meta.requiredAuthModule.includes( 'see_system_group' ) &&
     !accountStore.authorizedModules.includes( 'see_system_group' )
   ) {
-    return { path: '/forbidden' }
+    return { path: '/403' }
   }
 } );
 

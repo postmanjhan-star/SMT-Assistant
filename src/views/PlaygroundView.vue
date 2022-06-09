@@ -1,31 +1,23 @@
-<script setup>
-import { onBeforeMount } from "vue";
-import { useAccountStore } from "../stores/account";
+<script setup lang="ts">
+import { useRouter, useRoute } from 'vue-router'
 
-const accountStore = useAccountStore();
+const router = useRouter()
+const route = useRoute()
 
-accountStore.authorizedModules = 'A';
-console.debug( '1:\n', accountStore.authorizedModules );
+// undefined 物件可能為「未定義」。
+const a = route.params;
 
-onBeforeMount( async () => {
-    await accountStore.setAuthorizedModules();
-    console.debug( '2:\n', accountStore.authorizedModules );
-} );
+// any 找不到名稱 '$route'。
+// const a = $route.params;
 
-accountStore.authorizedModules = 'C';
-console.debug( '3:\n', accountStore.authorizedModules );
+// const a = 'a';
+console.debug( a );
 </script>
 
 <template>
     <main>
-        <div v-if=" accountStore.authorizedModules.includes( 'see_good_group' ) ">
-            D {{ accountStore.authorizedModules }} {{ typeof accountStore.authorizedModules }}
-        </div>
-        <div v-if=" accountStore.authorizedModules === 'A' ">
-            A {{ accountStore.authorizedModules }}
-        </div>
-        <div v-if=" accountStore.authorizedModules === 'B' ">
-            B {{ accountStore.authorizedModules }}
+        <div>
+            {{ $route.params }}
         </div>
     </main>
 </template>

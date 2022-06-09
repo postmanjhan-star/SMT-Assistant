@@ -9,11 +9,11 @@ export const $EmployeeAccountCreate = {
     type: 'EmployeeRoleEnum',
 }],
 },
-        password: {
+        username: {
     type: 'string',
     isRequired: true,
 },
-        username: {
+        password: {
     type: 'string',
     isRequired: true,
 },
