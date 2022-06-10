@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, defineProps, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { NGrid, NGi, NCard, NForm, NFormItem, NInput, NButton } from 'naive-ui';
 import { useMessage } from 'naive-ui';
@@ -8,11 +8,15 @@ import { SessionService, Body_login_for_access_token } from '../client';
 import { useAuthStore } from '../stores/auth';
 import { useAccountStore } from '../stores/account';
 
+const props = defineProps( { message: String } );
 const message = useMessage();
+
 const router = useRouter();
 const route = useRoute();
+
 const authStore = useAuthStore();
 const accountStore = useAccountStore();
+
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<Body_login_for_access_token>( { username: null, password: null } );
 const rules: FormRules = {
@@ -27,6 +31,10 @@ const rules: FormRules = {
         trigger: [ 'input', 'blur' ],
     }
 };
+
+onMounted( () => {
+    if ( props.message ) message.warning( props.message );
+} );
 
 async function login ( username: string, password: string ) {
     try {
@@ -43,7 +51,7 @@ async function login ( username: string, password: string ) {
     }
 }
 
-async function getAccountInformation() {
+async function getAccountInformation () {
     await accountStore.setAuthorizedModules();
 }
 

@@ -21,9 +21,30 @@ export class SessionService {
     ): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/session',
+            url: '/session/',
             formData: formData,
             mediaType: 'application/x-www-form-urlencoded',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Refresh Tokens
+     * @param refreshToken
+     * @returns Token Successful Response
+     * @throws ApiError
+     */
+    public static refreshTokens(
+        refreshToken: any,
+    ): CancelablePromise<Token> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/session/refresh',
+            cookies: {
+                'refresh_token': refreshToken,
+            },
             errors: {
                 422: `Validation Error`,
             },
