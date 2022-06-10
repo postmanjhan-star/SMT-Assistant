@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useAccountStore } from "../stores/account";
+import { ApiError } from "../client";
 
 // 2. 定义一些路由
 // 每个路由都需要映射到一个组件。
@@ -11,6 +12,13 @@ const routes = [
     name: "Login",
     meta: { requiresAuth: false },
     component: () => import( "../views/LoginView.vue" ),
+  },
+  {
+    path: "/:message",
+    name: "LoginWithMessage",
+    meta: { requiresAuth: false },
+    component: () => import( "../views/LoginView.vue" ),
+    props: true,
   },
   {
     path: "/home",
@@ -83,18 +91,36 @@ router.beforeEach( async ( to, from ) => {
   const account = JSON.parse( authStore.accountToken );
   // console.debug( 'Account:\n', JSON.stringify( account ) );
 
-  const isAuthenticated = ( account ? true : false );
-  // console.debug( 'isAuthenticated:\n', isAuthenticated );
+  // Skip below logic
+  if ( to.params === '/' ) {
+    // console.debug( 'Go to login page for any reason!' );
+    return { path: '/' }
+  }
 
+  // For any routes except for login one
   if (
-    to.meta.requiresAuth &&
     // 检查用户是否已登录
-    !isAuthenticated &&
-    // ❗️ 避免无限重定向
-    to.name !== 'Login'
+    authStore.isAuthenticated === false && to.meta.requiresAuth
   ) {
+    // console.debug( 'Redirect un-authenticated user to login page' );
     // 将用户重定向到登录页面
     return { name: 'Login' };
+  }
+
+  // Refresh refresh token & access token on every request
+  if ( authStore.isAuthenticated === true ) {
+    // console.debug( 'isAuthenticated:\n', authStore.isAuthenticated );
+    try {
+      await authStore.refreshToken();
+    } catch ( error ) {
+      if ( error instanceof ApiError ) {
+        if ( error.status === 422 || error.status === 401 ) {
+          authStore.logout();
+          // console.debug( 'logged out' );
+          return { name: 'LoginWithMessage', params: { message: '登錄過期，請重新登入' } };
+        }
+      }
+    }
   }
 
   if (
