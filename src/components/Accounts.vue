@@ -52,7 +52,7 @@ function handleCreateAccountButtonClick () {
   <main
     style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
-      style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1;">
+      style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
         <router-link to="/home" #=" { navigate, href } " custom>
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
