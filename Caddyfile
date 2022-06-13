@@ -15,6 +15,10 @@ http:// {
 		reverse_proxy :8000
 	}
 
+	# handle /404 {
+	# 	respond 404
+	# }
+
 	handle {
 		reverse_proxy :3000
 		# try_files {path} /

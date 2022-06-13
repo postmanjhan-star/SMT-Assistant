@@ -12,12 +12,6 @@ const routes = [
     name: "Login",
     meta: { requiresAuth: false },
     component: () => import( "../views/LoginView.vue" ),
-  },
-  {
-    path: "/:message",
-    name: "LoginWithMessage",
-    meta: { requiresAuth: false },
-    component: () => import( "../views/LoginView.vue" ),
     props: true,
   },
   {
@@ -69,6 +63,7 @@ const routes = [
     path: "/:pathMatch(.*)",
     name: "NotFound",
     meta: { requiresAuth: false },
+    // beforeEnter(to, from) {window.location.href = '/404'},
     component: () => import( "../views/NotFoundView.vue" ),
   },
 ]
@@ -114,7 +109,7 @@ router.beforeEach( async ( to, from ) => {
         if ( error.status === 422 || error.status === 401 ) {
           authStore.logout();
           // console.debug( 'logged out' );
-          return { name: 'LoginWithMessage', params: { message: '登錄過期，請重新登入' } };
+          return { name: 'Login', params: { message: '登錄過期，請重新登入' } };
         }
       }
     }
