@@ -1,5 +1,5 @@
 <script setup>
-import { RouterLink, RouterView } from "vue-router";
+import { RouterView } from "vue-router";
 import { NConfigProvider, NMessageProvider } from 'naive-ui';
 import { zhTW, dateZhTW } from 'naive-ui';
 import Color from 'color';

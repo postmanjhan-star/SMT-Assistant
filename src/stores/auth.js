@@ -17,12 +17,8 @@ export const useAuthStore = defineStore( {
     actions: {
         async refreshToken () {
             OpenAPI.TOKEN = JSON.parse( this.accountToken )[ 'access_token' ];
-            try {
-                const response = await SessionService.refreshTokens();
-                this.accountToken = JSON.stringify( response );
-            } catch ( error ) {
-                throw error;
-            }
+            const response = await SessionService.refreshTokens(); // Handle error on caller, not here.
+            this.accountToken = JSON.stringify( response );
         },
         logout () {
             this.accountToken = null;

@@ -88,9 +88,6 @@ router.beforeEach( async ( to, from ) => {
   const authStore = useAuthStore();
   const accountStore = useAccountStore();
 
-  const account = JSON.parse( authStore.accountToken );
-  // console.debug( 'Account:\n', JSON.stringify( account ) );
-
   // Skip below logic
   if ( to.params === '/' ) {
     // console.debug( 'Go to login page for any reason!' );
