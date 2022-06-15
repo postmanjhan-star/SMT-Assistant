@@ -7,7 +7,7 @@ import { OpenAPI, SessionService } from "../client";
 export const useAuthStore = defineStore( {
     id: 'auth',
     state: () => ( {
-        accountToken: useStorage( 'account', null ),
+        accountToken: useStorage( 'account', '' ),
     } ),
     getters: {
         isAuthenticated () {

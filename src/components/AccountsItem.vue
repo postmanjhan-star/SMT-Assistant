@@ -8,6 +8,7 @@ import { NA, NH1 } from 'naive-ui';
 import { useMessage } from 'naive-ui';
 import { OpenAPI, AccountsService, EmployeeAccountRead, EmployeeAccountUpdate, ApiError } from '../client';
 import { useAuthStore } from '../stores/auth';
+import { EmployeeRoleEnum } from '../client';
 
 const message = useMessage();
 
@@ -17,11 +18,11 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const router = useRouter()
 const route = useRoute()
 
-const currentValue = ref<EmployeeAccountRead>( { username: null, full_name: null, idno: null, roles: [] } );
-const uiFormValue = ref( { username: null, full_name: null, idno: null, roles: [], password: null } );
-const updateValue = ref<EmployeeAccountUpdate>( { full_name: null, password: null, roles: [] } );
+const currentValue = ref<EmployeeAccountRead>( { username: '', full_name: '', idno: '', roles: [] } );
+const uiFormValue = ref( { username: '', full_name: '', idno: '', roles: [] as EmployeeRoleEnum[], password: '' } );
+const updateValue = ref<EmployeeAccountUpdate>( { full_name: '', password: '', roles: [] } );
 
-const formRef = ref<FormInst>( null );
+const formRef = ref<FormInst | null>( null );
 const rules: FormRules = {};
 
 const role_options = [
@@ -113,7 +114,7 @@ async function handleCreateAccountButtonClick ( event ) {
               <n-input v-model:value.lazy=" uiFormValue.full_name " :input-props=" { autocomplete: 'name' } "></n-input>
             </n-form-item-gi>
 
-            <n-form-item-gi label="密碼" path="full_name">
+            <n-form-item-gi label="新密碼" path="full_name">
               <n-input v-model:value.lazy=" uiFormValue.password " type="password"
                 :input-props=" { autocomplete: 'new-password' } "></n-input>
             </n-form-item-gi>

@@ -5,6 +5,7 @@ import { zhTW, dateZhTW } from 'naive-ui';
 import Color from 'color';
 
 const borderColor = Color( 'hsla(0, 0%, 84%, 1.0)' );
+const railColor = Color( 'hsla(0, 0%, 60%, 1.0)' )
 // console.debug(borderColor.rgb().string());
 
 /**
@@ -18,6 +19,9 @@ const themeOverrides = {
   },
   DataTable: {
     borderColor: borderColor.rgb().string(),
+  },
+  Switch: {
+    railColor: railColor.rgb().string(),
   },
 }
 </script>
