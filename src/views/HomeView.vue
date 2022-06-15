@@ -3,10 +3,10 @@ import { RouterView, useRouter } from "vue-router";
 import { NConfigProvider, darkTheme, NSpace, NLayoutHeader } from "naive-ui";
 import { NPopover, NMenu, NDropdown, NCard, NButton, NIcon, NH1 } from "naive-ui";
 import * as jose from 'jose';
-import { systemMenuOptions } from "../menuOptions";
 import Switcher from '@carbon/icons-vue/es/switcher/32';
 import { useAuthStore } from '../stores/auth';
 import { useAccountStore } from '../stores/account';
+import { systemMenuOptions, materialMenuOptions } from "../menuOptions";
 
 const router = useRouter();
 const appTitle = import.meta.env.VITE_APP_TITLE;
@@ -48,12 +48,18 @@ function handleAccountMenuSelect ( key ) {
                 </n-button>
               </template>
               <n-space size="large">
-                <n-card title="物料管理" size="small" :bordered=" false "></n-card>
-                <n-card title="系統管理" size="small" :bordered=" false "
-                  v-if=" accountStore.authorizedModules.includes( 'see_system_group' ) "
-                  header-style="padding-bottom: 0;" content-style="padding-left: 0;">
+
+                <n-card title="物料管理" size="small" :bordered=" false " header-style="padding-bottom: 0;"
+                  content-style="padding-left: 0;">
+                  <n-menu :options=" materialMenuOptions " :root-indent=" 16 " />
+                </n-card>
+
+                <n-card title="系統管理" size="small" :bordered=" false " header-style="padding-bottom: 0;"
+                  content-style="padding-left: 0;"
+                  v-if=" accountStore.authorizedModules.includes( 'see_system_group' ) ">
                   <n-menu :options=" systemMenuOptions " :root-indent=" 16 " />
                 </n-card>
+
               </n-space>
             </n-popover>
             <n-h1

@@ -39,6 +39,18 @@ const routes = [
         meta: { requiredAuthModule: [ 'see_system_group' ] },
         component: () => import( "../components/AccountsItem.vue" ),
       },
+      {
+        path: '/storages',
+        component: () => import( "../components/StoragesMain.vue" ),
+      },
+      {
+        path: '/storages/create',
+        component: () => import( "../components/StoragesCreate.vue" ),
+      },
+      {
+        path: '/storages/:idno',
+        component: () => import( "../components/StoragesItem.vue" ),
+      },
     ],
   },
   {

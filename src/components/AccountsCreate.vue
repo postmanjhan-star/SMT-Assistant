@@ -19,12 +19,12 @@ const formRef = ref<FormInst | null>( null );
 const rules: FormRules = {
   username: {
     required: true,
-    message: '请输入帳號',
+    message: '請输入帳號',
     trigger: [ 'blur' ],
   },
   password: {
     required: true,
-    message: '请输入密碼',
+    message: '請输入密碼',
     trigger: [ 'input', 'blur' ],
   }
 };

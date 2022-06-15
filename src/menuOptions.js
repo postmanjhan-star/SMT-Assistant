@@ -15,4 +15,20 @@ const systemMenuOptions = [
     },
 ];
 
-export { systemMenuOptions };
+const materialMenuOptions = [
+    {
+        label: () =>
+            h(
+                RouterLink,
+                { to: '/storages' },
+                { default: () => '倉位管理' },
+            ),
+        key: 'storages'
+    },
+];
+
+
+export {
+    systemMenuOptions,
+    materialMenuOptions,
+};
