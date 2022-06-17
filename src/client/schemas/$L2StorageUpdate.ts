@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $L1StorageRead = {
+export const $L2StorageUpdate = {
     properties: {
         id: {
     type: 'number',

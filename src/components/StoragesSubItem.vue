@@ -1,119 +1,142 @@
 <script setup lang="ts">
 // 儲位可以加，可以改，不能刪。
 
-import { reactive, h, defineComponent, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
-import { ref, onBeforeMount } from 'vue';
-import { NSpace, NH2, NDataTable, NButton, NInput } from 'naive-ui';
-import { StorageRead, StoragesService, L2StorageRead, L1StorageRead } from '../client';
-import type { DataTableColumns } from 'naive-ui';
+import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
+import { NButton, NH2, NSpace, useMessage } from 'naive-ui';
+import { onBeforeMount, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { L2StorageCreate, L2StorageRead, L2StorageUpdate, OpenAPI, StoragesService } from '../client';
+import { useAuthStore } from '../stores/auth';
+
+const message = useMessage();
+
+const authStore = useAuthStore();
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
 const route = useRoute();
+const router = useRouter();
 
-const currentValue = ref<StorageRead>( { id: 0, idno: '', name: '', l2_storages: [] } );
-// const updateValue = ref();
+let l1_storage_id: number;
+const rowData = ref<L2StorageRead[]>( [] );
 
-// const columns = [
-//   { title: '儲位代碼', key: 'idno' },
-//   { title: '儲位名稱', key: 'name' },
-//   { title: '操作', key: 'action' },
-// ]
+const gridApi = ref();
+const gridColumnApi = ref();
 
-async function ss ( rowData: L2StorageRead ) {
-  console.debug( 'ss', rowData.name );
+const defaultColDef = {
+  editable: true,
+  filter: true,
+  sortable: true,
+  flex: 1,
+  resizable: true,
 }
 
-const createColumns = (): DataTableColumns<L2StorageRead> => {
-  return [
-    { title: '儲位代碼', key: 'idno' },
-    { title: '儲位名稱', key: 'name' },
-    {
-      title: '操作', key: 'actions', align: 'right',
-      render ( row ) {
-        return h(
-          NButton,
-          { size: 'large', onClick: () => ss( row ) },
-          { default: () => '編輯' },
-        )
-      }
-    }
+const columnDefs = reactive( {
+  value: [
+    { field: "idno", headerName: '儲位代碼' },
+    { field: "name", headerName: '儲位名稱' },
   ]
+} );
+
+const gridOptions = {
+  columnDefs: columnDefs.value,
+  defaultColDef: defaultColDef,
+  stopEditingWhenCellsLoseFocus: true,
+  enterMovesDownAfterEdit: true,
+  undoRedoCellEditing: true,
+  debug: false,
+  pagination: true,
+  suppressColumnVirtualisation: true,
+  suppressRowTransform: true,
+  debounceVerticalScrollbar: true,
+
 }
 
-const columns = createColumns();
-
-onBeforeMount( async () => { currentValue.value = await StoragesService.getStorage( route.params.idno.toString() ); } );
-
-
-
-
-const ShowOrEdit = defineComponent( {
-  props: {
-    value: [ String, Number ],
-    onUpdateValue: [ Function, Array ]
-  },
-  setup ( props ) {
-    const isEdit = ref( false )
-    const inputRef = ref<typeof NInput>( NInput )
-    const inputValue = ref( props.value )
-    function handleOnClick () {
-      isEdit.value = true
-      nextTick( () => {
-        inputRef.value.focus()
-      } )
-    }
-    function handleChange () {
-      props.onUpdateValue( inputValue.value )
-      isEdit.value = false
-    }
-    return () =>
-      h(
-        'div',
-        {
-          onClick: handleOnClick
-        },
-        isEdit.value
-          ? h( NInput, {
-            ref: inputRef,
-            value: inputValue.value,
-            onUpdateValue: ( v ) => {
-              inputValue.value = v
-            },
-            onChange: handleChange,
-            onBlur: handleChange
-          } )
-          : props.value
-      )
+onBeforeMount( async () => {
+  try {
+    const response = await StoragesService.getStorage( route.params.idno.toString() );
+    rowData.value = response.l2_storages;
+    l1_storage_id = response.id;
+  } catch ( error ) {
+    console.error( error );
   }
 } )
 
+function getRowId ( params ) { return params.data.id; }
 
+function onGridReady ( params ) {
+  gridApi.value = params.api;
+  gridColumnApi.value = params.columnApi;
+};
 
+let newRowId = -1
+function handleCreateL2StorageButtonClick ( event: Event ) {
+  // console.debug( newRowId );
+  rowData.value.unshift( { id: newRowId, idno: '', name: '' } );
+  gridApi.value.setRowData( rowData.value );
+  newRowId--;
+  // console.debug( rowData.value );
+}
 
-const columns2 = [
-  {
-    title: 'idno', key: 'idno',
-    render ( row, index ) {
-      return h( ShowOrEdit, {
-        value: row.idno,
-        onUpdateValue ( v: string ) { currentValue.value.l2_storages[ index ].idno = v }
-      } )
+async function handleUpdateL2StorageButtonClick ( event: Event ) {
+  // Check all required fields
+  for ( let row of rowData.value ) {
+    if ( !row.id || !row.idno || !row.name ) {
+      message.error( '請輸入儲位' );
+      return false;
     }
-  },
-  {
-    title: 'name', key: 'name',
-    render ( row, index ) {
-      return h( ShowOrEdit, {
-        value: row.name,
-        onUpdateValue ( v: string ) { currentValue.value.l2_storages[ index ].name = v }
-      } )
+  }
+
+  // Convert all fields to uppercase
+  rowData.value.forEach( ( row, index ) => {
+    rowData.value[ index ].idno = row.idno.toUpperCase();
+    rowData.value[ index ].name = row.name.toUpperCase();
+  } )
+
+  // Check there is no duplicated idno
+  const idnoArr = rowData.value.map( ( row ) => row.idno );
+  const isDuplicate = idnoArr.some( ( idno, index ) => idnoArr.indexOf( idno ) != index )
+  if ( isDuplicate ) {
+    message.error( '儲位代碼不可重複' );
+    return false;
+  }
+
+  // Create and update
+  const to_update: L2StorageUpdate[] = [];
+  const to_create: L2StorageCreate[] = [];
+
+  for ( let entry of rowData.value ) {
+    if ( entry.id >= 0 ) { to_update.push( entry ); }
+    else { to_create.push( entry ); }
+  }
+  console.debug( to_update );
+  console.debug( to_create );
+
+  if ( to_update.length >= 1 ) {
+    for ( let row of to_update ) {
+      try { const response = await StoragesService.updateL2Storage( l1_storage_id, row.id, row ); }
+      catch ( error ) {
+        message.error( '儲位更新失敗' );
+        return false;
+      }
     }
-  },
-]
+    message.success( '儲位更新成功' );
+  }
 
+  if ( to_create.length >= 1 ) {
+    for ( let row of to_create ) {
+      try { const response = await StoragesService.createL2Storage( l1_storage_id, row ); }
+      catch ( error ) {
+        message.error( '儲位建立失敗' );
+        return false;
+      }
+    }
+    message.success( '儲位建立成功' );
+  }
 
-
-
+  router.push( '/storages' );
+}
 </script>
 
 <template>
@@ -125,10 +148,21 @@ const columns2 = [
     <n-space vertical size="large"
       style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-      <n-data-table :columns=" columns " :data=" currentValue.l2_storages " striped :single-line=" true ">
-      </n-data-table>
+      <n-space size="large">
+        <n-button type="primary" secondary strong size="large" @click=" handleCreateL2StorageButtonClick( $event ) "
+          attr-type="button">
+          建立新儲位
+        </n-button>
+      </n-space>
 
-      <n-data-table :key=" ( row ) => row.key " :columns=" columns2 " :data=" currentValue.l2_storages " />
+      <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
+        :getRowId=" getRowId " :onGridReady=" onGridReady ">
+      </ag-grid-vue>
+
+      <n-button type="primary" size="large" @click=" handleUpdateL2StorageButtonClick( $event ) " attr-type="submit"
+        block>
+        更新儲位
+      </n-button>
 
     </n-space>
   </div>

@@ -1,74 +1,88 @@
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { useRoute } from "vue-router";
 import { AgGridVue } from "ag-grid-vue3";  // the AG Grid Vue Component
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { OpenAPI, StoragesService } from "../client";
+import { OpenAPI, StoragesService, L2StorageRead } from "../client";
+import { useAuthStore } from '../stores/auth';
 
-const route = useRoute();
+const authStore = useAuthStore();
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref( null ); // Optional - for accessing Grid's API
-const gridColumnApi = ref( null ); // Optional - for accessing Grid's API
+const rowData = ref<L2StorageRead[]>( [] ); // Set rowData to Array of Objects, one Object per Row
+const gridApi = ref();
+const gridColumnApi = ref();
 
-// Obtain API from grid's onGridReady event
-const onGridReady = ( params ) => {
-    gridApi.value = params.api;
-    gridColumnApi.value = params.columnApi;
-};
-
-const rowData = reactive( {} ); // Set rowData to Array of Objects, one Object per Row
+// DefaultColDef sets props common to all Columns
+const defaultColDef = {
+    editable: true,
+    filter: true,
+    // floatingFilter: true,
+    sortable: true,
+    flex: 1,
+    resizable: true,
+}
 
 // Each Column Definition results in one Column.
 const columnDefs = reactive( {
     value: [
-        { field: "idno", editable: true },
-        { field: "name", editable: true },
+        { field: "idno", headerName: '儲位代碼' },
+        { field: "name", headerName: '儲位名稱' },
     ]
 } );
 
-// Example load data from sever
-const idno = 'C';
-onMounted( async () => {
-    const response = await StoragesService.getStorage( idno );
-    rowData.value = response.l2_storages;
-} );
-
-const cellWasClicked = ( event ) => { // Example of consuming Grid Event
-    console.log( "cell was clicked", event );
-}
-
 const gridOptions = {
-    // PROPERTIES
-    // Objects like myRowData and myColDefs would be created in your application
-    suppressClipboardPaste: true,
-
     columnDefs: columnDefs.value,
-    defaultColDef: { sortable: true, filter: true }, // DefaultColDef sets props common to all Columns
+    defaultColDef: defaultColDef,
     stopEditingWhenCellsLoseFocus: true,
-    enterMovesDown: true,
     enterMovesDownAfterEdit: true,
     undoRedoCellEditing: true,
     debug: false,
     pagination: true,
+    suppressColumnVirtualisation: true,
+    suppressRowTransform: true,
+    debounceVerticalScrollbar: true,
 
-    // EVENTS
-    // Add event handlers
-    onRowClicked: event => console.log( 'A row was clicked' ),
-    onColumnResized: event => console.log( 'A column was resized' ),
-    onGridReady: event => onGridReady(),
-    onCellClicked: event => cellWasClicked(),
+}
 
-    // CALLBACKS
-    // getRowHeight: ( params ) => 25
+const idno = 'C';
+onMounted( async () => {
+    // Handle error here
+    const response = await StoragesService.getStorage( idno );
+    rowData.value = response.l2_storages;
+} );
+
+function getRowId ( params ) { return params.data.id; }
+
+function onGridReady ( params ) {
+    gridApi.value = params.api;
+    gridColumnApi.value = params.columnApi;
+    console.debug( gridApi.value );
+    console.debug( gridColumnApi.value );
+};
+
+function test () {
+    const rowNode = gridApi.value.getRowNode( '5' );
+    console.debug( rowNode );
+}
+
+function test2 () {
+    rowData.value.unshift( { id: 7, idno: '', name: '' } );
+}
+
+function test3 () {
+    console.debug( rowData.value );
 }
 </script>
 
 
 <template>
-    <button @click=" gridApi.deselectAll() ">deselect rows</button>
+    <button @click=" test ">test</button>
+    <button @click=" test2 ">test2</button>
+    <button @click=" test3 ">test3</button>
 
-    <ag-grid-vue class="ag-theme-alpine" style="height: 400px" :rowData=" rowData.value " :gridOptions=" gridOptions ">
+    <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " :gridOptions=" gridOptions " :getRowId=" getRowId "
+        :onGridReady=" onGridReady " style="height: 400px;">
     </ag-grid-vue>
 </template>
  
