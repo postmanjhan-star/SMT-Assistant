@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { ref, onBeforeMount } from 'vue';
-import { RouterLink, useRouter, useRoute } from 'vue-router';
-import { NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
-import { NA, NH1 } from 'naive-ui';
-import { NSpace, NDivider } from 'naive-ui';
-import { NForm, NFormItemGi, NInput, NButton, NGrid } from 'naive-ui';
-import { FormRules, FormInst } from 'naive-ui';
-import { useMessage } from 'naive-ui';
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
+import { onBeforeMount, ref } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { ApiError, OpenAPI, StoragesService, L1StorageUpdate } from '../client';
 import { useAuthStore } from '../stores/auth';
-import { ApiError, OpenAPI } from '../client';
-import { StoragesService, L1StorageUpdate } from '../client';
 import StorageSubItem from "./StoragesSubItem.vue";
 
 const route = useRoute();
@@ -59,18 +53,11 @@ async function handleUpdateStorageButtonClick ( event ) {
   try {
     const response = await StoragesService.updateL1Storage( formValue.value.id, formValue.value )
     message.success( `更新成功` );
-    if ( response.idno != route.params.idno.toString() ) {
-      router.push( `/storages/${ response.idno }` )
-    }
+    router.push( '/storages' );
+
   } catch ( error ) {
-    if ( error instanceof ApiError ) {
-      if ( error.status === 409 ) {
-        message.error( '同名倉位已存在，請重新命名' );
-      } else { throw error; }
-    } else {
-      message.error( '建立失敗' );
-      throw error;
-    }
+    if ( error instanceof ApiError && error.status === 409 ) { message.error( '同名倉位已存在，請重新命名' ); }
+    else { message.error( '更新失敗' ); }
   }
 }
 </script>
