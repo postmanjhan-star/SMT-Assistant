@@ -51,6 +51,14 @@ const routes = [
         path: '/storages/:idno',
         component: () => import( "../components/StoragesItem.vue" ),
       },
+      {
+        path: '/materials',
+        component: () => import( "../components/MaterialsMain.vue" ),
+      },
+      {
+        path: '/materials/create',
+        component: () => import( "../components/MaterialsCreate.vue" ),
+      },
     ],
   },
   {
