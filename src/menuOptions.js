@@ -25,6 +25,15 @@ const materialMenuOptions = [
             ),
         key: 'storages'
     },
+    {
+        label: () =>
+            h(
+                RouterLink,
+                { to: '/materials' },
+                { default: () => '物料管理' },
+            ),
+        key: 'materials'
+    },
 ];
 
 
