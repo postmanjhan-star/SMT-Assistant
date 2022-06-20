@@ -59,6 +59,10 @@ const routes = [
         path: '/materials/create',
         component: () => import( "../components/MaterialsCreate.vue" ),
       },
+      {
+        path: '/materials/:idno',
+        component: () => import( "../components/MaterialsItem.vue" ),
+      },
     ],
   },
   {
