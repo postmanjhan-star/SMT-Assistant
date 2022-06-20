@@ -24,6 +24,9 @@ export type { StorageCreate } from './models/StorageCreate';
 export type { StorageRead } from './models/StorageRead';
 export type { Token } from './models/Token';
 export type { ValidationError } from './models/ValidationError';
+export type { VendorCreate } from './models/VendorCreate';
+export type { VendorRead } from './models/VendorRead';
+export type { VendorUpdate } from './models/VendorUpdate';
 
 export { $AccountRead } from './schemas/$AccountRead';
 export { $Body_login_for_access_token } from './schemas/$Body_login_for_access_token';
@@ -43,6 +46,9 @@ export { $StorageCreate } from './schemas/$StorageCreate';
 export { $StorageRead } from './schemas/$StorageRead';
 export { $Token } from './schemas/$Token';
 export { $ValidationError } from './schemas/$ValidationError';
+export { $VendorCreate } from './schemas/$VendorCreate';
+export { $VendorRead } from './schemas/$VendorRead';
+export { $VendorUpdate } from './schemas/$VendorUpdate';
 
 export { AccountsService } from './services/AccountsService';
 export { MaterialsService } from './services/MaterialsService';
@@ -50,3 +56,4 @@ export { MeService } from './services/MeService';
 export { ReceivesService } from './services/ReceivesService';
 export { SessionService } from './services/SessionService';
 export { StoragesService } from './services/StoragesService';
+export { VendorsService } from './services/VendorsService';

@@ -63,6 +63,10 @@ const routes = [
         path: '/materials/:idno',
         component: () => import( "../components/MaterialsItem.vue" ),
       },
+      {
+        path: '/vendors',
+        component: () => import( "../components/VendorsMain.vue" ),
+      },
     ],
   },
   {
