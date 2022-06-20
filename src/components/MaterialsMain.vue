@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RowDoubleClickedEvent } from "ag-grid-community";
+import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
@@ -55,9 +55,9 @@ onBeforeMount( async () => {
   rowData.value = await MaterialsService.getMaterials();
 } );
 
-function getRowId ( params ) { return params.data.id; }
+function getRowId ( params: GetRowIdParams ) { return params.data.id; }
 
-function onGridReady ( params ) {
+function onGridReady ( params: GridReadyEvent ) {
   gridApi.value = params.api;
   gridColumnApi.value = params.columnApi;
 };
