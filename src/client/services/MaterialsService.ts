@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { MaterialCreate } from '../models/MaterialCreate';
 import type { MaterialRead } from '../models/MaterialRead';
+import type { MaterialUpdate } from '../models/MaterialUpdate';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -12,13 +13,13 @@ export class MaterialsService {
 
     /**
      * Get Material
-     * @param idno
+     * @param idno 
      * @returns MaterialRead Successful Response
      * @throws ApiError
      */
     public static getMaterial(
-        idno: string,
-    ): CancelablePromise<MaterialRead> {
+idno: string,
+): CancelablePromise<MaterialRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{idno}',
@@ -32,17 +33,54 @@ export class MaterialsService {
     }
 
     /**
+     * Get Materials
+     * @returns MaterialRead Successful Response
+     * @throws ApiError
+     */
+    public static getMaterials(): CancelablePromise<Array<MaterialRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/materials/',
+        });
+    }
+
+    /**
      * Create Material
-     * @param requestBody
+     * @param requestBody 
      * @returns MaterialRead Successful Response
      * @throws ApiError
      */
     public static createMaterial(
-        requestBody: MaterialCreate,
-    ): CancelablePromise<MaterialRead> {
+requestBody: MaterialCreate,
+): CancelablePromise<MaterialRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/materials/',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update Material
+     * @param id 
+     * @param requestBody 
+     * @returns MaterialRead Successful Response
+     * @throws ApiError
+     */
+    public static updateMaterial(
+id: number,
+requestBody: MaterialUpdate,
+): CancelablePromise<MaterialRead> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/materials/{id}',
+            path: {
+                'id': id,
+            },
             body: requestBody,
             mediaType: 'application/json',
             errors: {

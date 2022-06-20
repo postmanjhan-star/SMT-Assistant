@@ -1,11 +1,12 @@
-<script setup>
-import { onBeforeMount, reactive } from 'vue';
+<script setup lang="ts">
+import { RowDoubleClickedEvent } from "ag-grid-community";
+import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace } from 'naive-ui';
+import { onBeforeMount, reactive, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
-import { NA, NH1, NButton, NDataTable } from 'naive-ui';
-import { NSpace } from 'naive-ui';
-import { StoragesService } from '../client';
-import { OpenAPI } from '../client';
+import { MaterialRead, MaterialsService, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -13,13 +14,53 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-onBeforeMount( async () => {
-  let storagesData = await StoragesService.getStorages();
-  for ( let row of storagesData ) {
-    data.push( row );
-  }
-  // console.debug( 'data:\n', data );
+const gridApi = ref();
+const gridColumnApi = ref();
+
+const rowData = ref<MaterialRead[]>( [] );
+
+const defaultColDef = {
+  filter: true,
+  sortable: true,
+  flex: 1,
+  resizable: true,
+}
+
+const columnDefs = reactive( {
+  value: [
+    { field: "idno", headerName: '物料代碼' },
+    { field: "name", headerName: '物料名稱' },
+  ]
 } );
+
+const gridOptions = {
+  columnDefs: columnDefs.value,
+  defaultColDef: defaultColDef,
+  stopEditingWhenCellsLoseFocus: true,
+  enterMovesDownAfterEdit: true,
+  undoRedoCellEditing: true,
+  debug: false,
+  pagination: true,
+  suppressColumnVirtualisation: true,
+  suppressRowTransform: true,
+  debounceVerticalScrollbar: true,
+
+  rowSelection: 'single',
+  suppressCellFocus: true,
+  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/materials/${event.data.idno}` ),
+  // onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => console.debug( event ),
+}
+
+onBeforeMount( async () => {
+  rowData.value = await MaterialsService.getMaterials();
+} );
+
+function getRowId ( params ) { return params.data.id; }
+
+function onGridReady ( params ) {
+  gridApi.value = params.api;
+  gridColumnApi.value = params.columnApi;
+};
 
 function handleCreateStoreageButtonClick () {
   router.push( '/materials/create' );
@@ -45,6 +86,10 @@ function handleCreateStoreageButtonClick () {
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
         <n-button type="primary" @click=" handleCreateStoreageButtonClick ">建立物料</n-button>
+
+        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
+          :getRowId=" getRowId " :onGridReady=" onGridReady ">
+        </ag-grid-vue>
 
       </n-space>
     </div>
