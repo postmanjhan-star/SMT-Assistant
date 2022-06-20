@@ -67,6 +67,14 @@ const routes = [
         path: '/vendors',
         component: () => import( "../components/VendorsMain.vue" ),
       },
+      {
+        path: '/vendors/create',
+        component: () => import( "../components/VendorsCreate.vue" ),
+      },
+      {
+        path: '/vendors/:idno',
+        component: () => import( "../components/VendorsItem.vue" ),
+      },
     ],
   },
   {
