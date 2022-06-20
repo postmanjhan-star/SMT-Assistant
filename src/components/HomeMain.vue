@@ -1,10 +1,8 @@
 <script setup>
-import { NGrid, NGi } from "naive-ui";
-import { NMenu } from "naive-ui";
-import { NCard } from "naive-ui";
-import backgroundImageUrl from '../assets/shapes-6393929_1920.jpg'
+import { NCard, NGi, NGrid, NMenu } from "naive-ui";
+import backgroundImageUrl from '../assets/shapes-6393929_1920.jpg';
+import { materialMenuOptions, purchaseMenuOptions, systemMenuOptions } from "../menuOptions";
 import { useAccountStore } from "../stores/account";
-import { systemMenuOptions, materialMenuOptions } from "../menuOptions";
 
 const accountStore = useAccountStore();
 </script>
@@ -13,6 +11,12 @@ const accountStore = useAccountStore();
   <main :style=" { backgroundImage: `url(${ backgroundImageUrl })` } "
     style="padding: 1rem; min-height: calc(100vh - 92px); background-repeat: no-repeat; background-attachment: fixed; background-size: cover; background-position: center; background-color: hsla(0, 0%, 84%, 1.0);">
     <n-grid cols="1 s:2 m:4 xl:5" responsive="screen" :x-gap=" 20 " :y-gap=" 20 ">
+
+      <n-gi>
+        <n-card class="main-card" title="採購管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
+          <n-menu :options=" purchaseMenuOptions " />
+        </n-card>
+      </n-gi>
 
       <n-gi>
         <n-card class="main-card" title="物料管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
