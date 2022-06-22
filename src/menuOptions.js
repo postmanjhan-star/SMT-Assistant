@@ -17,6 +17,10 @@ const materialMenuOptions = [
         label: () => h( RouterLink, { to: '/materials' }, { default: () => '物料管理' } ),
         key: 'materials'
     },
+    {
+        label: () => h( RouterLink, { to: '/epicor_receives' }, { default: () => 'Epicor 收料紀錄' } ),
+        key: 'epicor_receives'
+    },
 ];
 
 const purchaseMenuOptions = [

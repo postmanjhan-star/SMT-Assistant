@@ -75,6 +75,14 @@ const routes = [
         path: '/vendors/:idno',
         component: () => import( "../components/VendorsItem.vue" ),
       },
+      {
+        path: '/epicor_receives',
+        component: () => import( "../components/EpicorReceivesMain.vue" ),
+      },
+      {
+        path: '/epicor_receives/:vendor_num/:pack_slip',
+        component: () => import( "../components/EpicorReceivesItem.vue" ),
+      },
     ],
   },
   {
