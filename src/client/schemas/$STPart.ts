@@ -1,34 +1,35 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $MaterialUpdate = {
+export const $STPart = {
     properties: {
-        expiry_days: {
-    type: 'number',
+        idno: {
+    type: 'string',
     isRequired: true,
 },
-        idno: {
+        spec_1: {
+    type: 'string',
+    isRequired: true,
+},
+        spec_2: {
+    type: 'string',
+    isRequired: true,
+},
+        unit: {
+    type: 'string',
+    isRequired: true,
+},
+        base_storage_1: {
+    type: 'string',
+    isRequired: true,
+},
+        base_storage_2: {
     type: 'string',
     isRequired: true,
 },
         qty_per_pack: {
     type: 'number',
     isRequired: true,
-},
-        unit: {
-    type: 'UnitEnum',
-    isRequired: true,
-},
-        id: {
-    type: 'number',
-    isRequired: true,
-},
-        name: {
-    type: 'string',
-    isRequired: true,
-},
-        description: {
-    type: 'string',
 },
     },
 } as const;

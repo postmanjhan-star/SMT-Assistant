@@ -16,7 +16,6 @@ const routes = [
   },
   {
     path: "/home",
-    name: "Home",
     meta: { requiresAuth: true },
     component: () => import( "../views/HomeView.vue" ),
     children: [

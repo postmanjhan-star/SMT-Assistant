@@ -2,7 +2,7 @@
 import { FormInst, FormRules, NButton, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialsService, MaterialUpdate, OpenAPI } from '../client';
+import { ApiError, MaterialsService, MaterialUpdate, OpenAPI, UnitEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
@@ -13,19 +13,32 @@ const router = useRouter();
 const route = useRoute();
 
 const formRef = ref<FormInst | null>( null );
-const formValue = ref<MaterialUpdate>( { id: 0, idno: '', name: '', expiry_days: 0 } );
+const formValue = ref<MaterialUpdate>( {
+  id: 0,
+  idno: '',
+  name: '',
+  description: '',
+  unit: 'PIECE' as UnitEnum,
+  qty_per_pack: 1,
+  expiry_days: 365,
+} );
+
+const unit_options = [
+  { label: 'PIECE', value: 'PIECE' },
+  { label: 'ROLL', value: 'ROLL' },
+  { label: 'PLATE', value: 'PLATE' },
+  { label: 'CM', value: 'CM' },
+  { label: 'BOX', value: 'BOX' },
+  { label: 'PACK', value: 'PACK' },
+  { label: 'SHEET', value: 'SHEET' },
+  { label: 'BAG', value: 'BAG' },
+]
+
 const rules: FormRules = {
-  idno: {
-    required: true,
-    message: '請输入物料代碼',
-    trigger: [ 'blur' ],
-  },
-  name: {
-    required: true,
-    message: '請输入物料名稱',
-    trigger: [ 'input', 'blur' ],
-  },
+  idno: { required: true, message: '請输入物料代碼', trigger: [ 'blur' ] },
+  name: { required: true, message: '請输入物料名稱', trigger: [ 'input', 'blur' ] },
 }
+
 onBeforeMount( async () => {
   formValue.value = await MaterialsService.getMaterial( route.params.idno.toString() )
 } );
@@ -88,6 +101,21 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
 
             <n-form-item-gi show-require-mark label="物料名稱" path="name">
               <n-input v-model:value.lazy=" formValue.name "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="物料說明" path="description">
+              <n-input v-model:value.lazy=" formValue.description ">
+              </n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi show-require-mark label="基本單位" path="unit">
+              <n-select v-model:value.lazy=" formValue.unit " :options=" unit_options "></n-select>
+            </n-form-item-gi>
+
+            <n-form-item-gi show-require-mark label="基本包裝量">
+              <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
+                :precision=" 0 " :default-value=" 1 ">
+              </n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="有效期間">

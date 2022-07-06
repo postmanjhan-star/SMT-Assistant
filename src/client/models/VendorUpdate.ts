@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 export type VendorUpdate = {
-    name: string;
     idno: string;
+    name: string;
     id: number;
 };
