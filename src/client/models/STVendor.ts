@@ -2,8 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type VendorCreate = {
-    tax_idno?: string;
+export type STVendor = {
     idno: string;
     name: string;
+    tax_idno: string;
 };

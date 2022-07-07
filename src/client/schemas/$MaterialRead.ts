@@ -7,18 +7,6 @@ export const $MaterialRead = {
     type: 'number',
     isRequired: true,
 },
-        idno: {
-    type: 'string',
-    isRequired: true,
-},
-        qty_per_pack: {
-    type: 'number',
-    isRequired: true,
-},
-        unit: {
-    type: 'UnitEnum',
-    isRequired: true,
-},
         id: {
     type: 'number',
     isRequired: true,
@@ -28,6 +16,18 @@ export const $MaterialRead = {
 },
         description: {
     type: 'string',
+},
+        qty_per_pack: {
+    type: 'number',
+    isRequired: true,
+},
+        idno: {
+    type: 'string',
+    isRequired: true,
+},
+        unit: {
+    type: 'UnitEnum',
+    isRequired: true,
 },
     },
 } as const;

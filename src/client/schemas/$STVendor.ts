@@ -1,16 +1,17 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $VendorCreate = {
+export const $STVendor = {
     properties: {
-        tax_idno: {
-    type: 'string',
-},
         idno: {
     type: 'string',
     isRequired: true,
 },
         name: {
+    type: 'string',
+    isRequired: true,
+},
+        tax_idno: {
     type: 'string',
     isRequired: true,
 },

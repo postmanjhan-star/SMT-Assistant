@@ -5,6 +5,7 @@ import type { Printer } from '../models/Printer';
 import type { STPart } from '../models/STPart';
 import type { STReceiveBody } from '../models/STReceiveBody';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
+import type { STVendor } from '../models/STVendor';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -13,12 +14,12 @@ import { request as __request } from '../core/request';
 export class StErpService {
 
     /**
-     * Get Part
+     * Get St Part
      * @param partIdno 
      * @returns STPart Successful Response
      * @throws ApiError
      */
-    public static getPart(
+    public static getStPart(
 partIdno: string,
 ): CancelablePromise<STPart> {
         return __request(OpenAPI, {
@@ -85,6 +86,27 @@ printer?: Printer,
             },
             query: {
                 'printer': printer,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get St Vendor
+     * @param vendorIdno 
+     * @returns STVendor Successful Response
+     * @throws ApiError
+     */
+    public static getStVendor(
+vendorIdno: string,
+): CancelablePromise<STVendor> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/vendors/{vendor_idno}',
+            path: {
+                'vendor_idno': vendorIdno,
             },
             errors: {
                 422: `Validation Error`,

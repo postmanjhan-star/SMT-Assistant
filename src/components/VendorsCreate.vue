@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { FormInst, FormRules, NButton, NInput, NSpace, useMessage } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ApiError, OpenAPI, VendorCreate, VendorsService } from '../client';
+import { ApiError, OpenAPI, StErpService, VendorCreate, VendorsService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
@@ -12,7 +12,7 @@ const message = useMessage();
 const router = useRouter();
 
 const formRef = ref<FormInst | null>( null );
-const formValue = ref<VendorCreate>( { idno: '', name: ''} );
+const formValue = ref<VendorCreate>( { idno: '', name: '', tax_idno: '' } );
 const rules: FormRules = {
   idno: {
     required: true,
@@ -25,7 +25,6 @@ const rules: FormRules = {
     trigger: [ 'input', 'blur' ],
   },
 }
-onBeforeMount( async () => { } );
 
 async function handleCreateVendorButtonClick ( evnet: Event ) {
   // Check if any empyt fields
@@ -52,7 +51,25 @@ async function handleCreateVendorButtonClick ( evnet: Event ) {
   }
 }
 
+const loadingRef = ref( false );
+const loading = loadingRef;
 
+async function handleImportFromStErpButtonClick ( event: Event ) {
+  loadingRef.value = true;
+  if ( formValue.value.idno === '' ) {
+    message.error( '請輸入供應商代碼' );
+    loadingRef.value = false;
+    return false;
+  }
+  try {
+    const response = await StErpService.getStVendor( formValue.value.idno );
+    formValue.value.name = response.name;
+    formValue.value.tax_idno = response.tax_idno;
+  } catch ( error ) {
+    if ( error instanceof ApiError && error.status === 404 ) { message.error( '舊 ERP 無此供應商' ); }
+    else { message.error( '匯入失敗' ); }
+  } finally { loadingRef.value = false; }
+}
 </script>
 
 <template>
@@ -78,8 +95,16 @@ async function handleCreateVendorButtonClick ( evnet: Event ) {
       <n-h1 prefix="bar" style="font-size: 1.4rem;">建立供應商</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
+
+        <n-space size="large">
+          <n-button type="primary" secondary strong size="large" @click=" handleImportFromStErpButtonClick( $event ) "
+            attr-type="button" :loading=" loading ">
+            從舊 ERP 匯入
+          </n-button>
+        </n-space>
+
         <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
-          <n-grid cols="1 s:2" responsive="screen" x-gap="20">
+          <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi show-require-mark label="供應商代碼" path="idno" autofocus>
               <n-input v-model:value.lazy=" formValue.idno " autofocus
@@ -88,8 +113,11 @@ async function handleCreateVendorButtonClick ( evnet: Event ) {
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="供應商名稱" path="name">
-              <n-input v-model:value.lazy=" formValue.name ">
-              </n-input>
+              <n-input v-model:value.lazy=" formValue.name "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="供應商統一編號" path="tax_idno">
+              <n-input v-model:value.lazy=" formValue.tax_idno "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi span="3">

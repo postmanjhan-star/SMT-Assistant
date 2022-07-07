@@ -7,6 +7,9 @@ export const $VendorUpdate = {
     type: 'string',
     isRequired: true,
 },
+        tax_idno: {
+    type: 'string',
+},
         idno: {
     type: 'string',
     isRequired: true,

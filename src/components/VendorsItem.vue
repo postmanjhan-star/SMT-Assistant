@@ -13,7 +13,7 @@ const router = useRouter();
 const route = useRoute();
 
 const formRef = ref<FormInst | null>( null );
-const formValue = ref<VendorUpdate>( { id: 0, idno: '', name: '' } );
+const formValue = ref<VendorUpdate>( { id: 0, idno: '', name: '', tax_idno: '' } );
 const rules: FormRules = {
   idno: {
     required: true,
@@ -75,19 +75,23 @@ async function handleCreateVendorButtonClick ( evnet: Event ) {
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">物料 {{ $route.params.idno.toString().toUpperCase() }}</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">供應商 {{ $route.params.idno.toString().toUpperCase() }}</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
         <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
-          <n-grid cols="1 s:2" responsive="screen" x-gap="20">
+          <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi show-require-mark label="供應商代碼" path="idno" autofocus>
               <n-input v-model:value.lazy=" formValue.idno " autofocus
-                :input-props=" { style: 'text-transform: uppercase;' } "> </n-input>
+                :input-props=" { style: 'text-transform: uppercase;' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="供應商名稱" path="name">
               <n-input v-model:value.lazy=" formValue.name "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="供應商統一編號" path="tax_idno">
+              <n-input v-model:value.lazy=" formValue.tax_idno "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi span="3">
