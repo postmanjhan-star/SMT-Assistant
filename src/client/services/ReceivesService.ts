@@ -1,6 +1,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ReceiveCreate } from '../models/ReceiveCreate';
+import type { ReceiveRead } from '../models/ReceiveRead';
+
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -9,10 +12,10 @@ export class ReceivesService {
 
     /**
      * Get Recent Receives
-     * @returns any Successful Response
+     * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
-    public static getRecentReceives(): CancelablePromise<any> {
+    public static getRecentReceives(): CancelablePromise<Array<ReceiveRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/',
@@ -20,20 +23,19 @@ export class ReceivesService {
     }
 
     /**
-     * Print Labels Weasyprint
-     * @param idno 
-     * @returns any Successful Response
+     * Create Receive
+     * @param requestBody 
+     * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
-    public static printLabelsWeasyprint(
-idno: string,
-): CancelablePromise<any> {
+    public static createReceive(
+requestBody: ReceiveCreate,
+): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/receives/{idno}_labels/weasyprint',
-            path: {
-                'idno': idno,
-            },
+            method: 'POST',
+            url: '/receives/',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -41,17 +43,17 @@ idno: string,
     }
 
     /**
-     * Print Labels Playwright
+     * Get Receive
      * @param idno 
-     * @returns any Successful Response
+     * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
-    public static printLabelsPlaywright(
+    public static getReceive(
 idno: string,
-): CancelablePromise<any> {
+): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/receives/{idno}_labels/playwright',
+            url: '/receives/{idno}',
             path: {
                 'idno': idno,
             },

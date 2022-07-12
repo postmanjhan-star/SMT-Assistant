@@ -1,59 +1,60 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $STReceiveBody = {
+export const $ReceiveRead = {
     properties: {
-        idno: {
+        date: {
     type: 'string',
     isRequired: true,
+    format: 'date-time',
 },
-        st_erp_record_idno: {
+        st_recieve_idno: {
     type: 'string',
-    isRequired: true,
 },
-        st_purchase_idno: {
-    type: 'string',
-    isRequired: true,
-},
-        st_part_idno: {
-    type: 'string',
-    isRequired: true,
-},
-        st_vendor_idno: {
-    type: 'string',
-    isRequired: true,
-},
-        receive_date: {
-    type: 'string',
-    isRequired: true,
-    format: 'date',
-},
-        total_qty: {
-    type: 'number',
-    isRequired: true,
-},
-        qualify_qty: {
+        id: {
     type: 'number',
     isRequired: true,
 },
         st_mbr_idno: {
     type: 'string',
-    isRequired: true,
 },
-        spec_1: {
+        idno: {
     type: 'string',
     isRequired: true,
 },
-        unit: {
+        memo: {
+    type: 'string',
+},
+        st_record_idno: {
+    type: 'string',
+},
+        employee_id: {
+    type: 'number',
+    isRequired: true,
+},
+        vendor_id: {
+    type: 'number',
+    isRequired: true,
+},
+        vendor_shipping_idno: {
+    type: 'string',
+},
+        purchase_idno: {
+    type: 'string',
+},
+        vendor_idno: {
     type: 'string',
     isRequired: true,
 },
-        st_vendor_name: {
+        vendor_name: {
     type: 'string',
     isRequired: true,
 },
-        st_actor_employee_idno: {
-    type: 'string',
+        receive_items: {
+    type: 'array',
+    contains: {
+        type: 'ReceiveItemRead',
+    },
     isRequired: true,
 },
     },

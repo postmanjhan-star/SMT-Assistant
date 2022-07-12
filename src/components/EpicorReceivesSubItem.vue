@@ -61,7 +61,7 @@ const gridOptions = {
 
 onBeforeMount( async () => {
   try {
-    const response = await EpicorService.getReceive( parseInt( route.params.vendor_num.toString() ), route.params.pack_slip.toString() );
+    const response = await EpicorService.getEpicorReceive( parseInt( route.params.vendor_num.toString() ), route.params.pack_slip.toString() );
     rowData.value = response.ReceiveDetails;
   } catch ( error ) {
     console.error( error );
