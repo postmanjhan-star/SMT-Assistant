@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 export type L1StorageUpdate = {
-    idno: string;
-    id: number;
     name: string;
+    id: number;
+    idno: string;
 };

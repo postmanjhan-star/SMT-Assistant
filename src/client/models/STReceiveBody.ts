@@ -4,6 +4,7 @@
 
 export type STReceiveBody = {
     idno: string;
+    st_erp_record_idno: string;
     st_purchase_idno: string;
     st_part_idno: string;
     st_vendor_idno: string;

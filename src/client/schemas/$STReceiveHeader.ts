@@ -7,6 +7,10 @@ export const $STReceiveHeader = {
     type: 'string',
     isRequired: true,
 },
+        st_erp_record_idno: {
+    type: 'string',
+    isRequired: true,
+},
         st_purchase_idno: {
     type: 'string',
     isRequired: true,

@@ -10,11 +10,11 @@ import { request as __request } from '../core/request';
 export class EpicorService {
 
     /**
-     * Get Receives
+     * Get Epicor Receives
      * @returns EpicorReceive Successful Response
      * @throws ApiError
      */
-    public static getReceives(): CancelablePromise<Array<EpicorReceive>> {
+    public static getEpicorReceives(): CancelablePromise<Array<EpicorReceive>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/epicor/receives',
@@ -22,16 +22,16 @@ export class EpicorService {
     }
 
     /**
-     * Get Receive
-     * @param vendorNum 
-     * @param packSlip 
+     * Get Epicor Receive
+     * @param vendorNum
+     * @param packSlip
      * @returns EpicorReceive Successful Response
      * @throws ApiError
      */
-    public static getReceive(
-vendorNum: number,
-packSlip: string,
-): CancelablePromise<EpicorReceive> {
+    public static getEpicorReceive(
+        vendorNum: number,
+        packSlip: string,
+    ): CancelablePromise<EpicorReceive> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/epicor/receives/{vendor_num}/{pack_slip}',

@@ -82,6 +82,14 @@ const routes = [
         path: '/epicor_receives/:vendor_num/:pack_slip',
         component: () => import( "../components/EpicorReceivesItem.vue" ),
       },
+      {
+        path: '/receives',
+        component: () => import( "../components/ReceivesMain.vue" ),
+      },
+      {
+        path: '/receives/create',
+        component: () => import( "../components/ReceivesCreate.vue" ),
+      },
     ],
   },
   {

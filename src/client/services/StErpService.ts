@@ -36,13 +36,22 @@ partIdno: string,
 
     /**
      * Get St Receives
+     * @param page 
      * @returns STReceiveHeader Successful Response
      * @throws ApiError
      */
-    public static getStReceives(): CancelablePromise<Array<STReceiveHeader>> {
+    public static getStReceives(
+page: number = 1,
+): CancelablePromise<Array<STReceiveHeader>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/',
+            query: {
+                'page': page,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
 

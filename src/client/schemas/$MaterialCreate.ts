@@ -3,13 +3,6 @@
 /* eslint-disable */
 export const $MaterialCreate = {
     properties: {
-        expiry_days: {
-    type: 'number',
-},
-        idno: {
-    type: 'string',
-    isRequired: true,
-},
         qty_per_pack: {
     type: 'number',
     isRequired: true,
@@ -23,6 +16,13 @@ export const $MaterialCreate = {
 },
         description: {
     type: 'string',
+},
+        idno: {
+    type: 'string',
+    isRequired: true,
+},
+        expiry_days: {
+    type: 'number',
 },
     },
 } as const;

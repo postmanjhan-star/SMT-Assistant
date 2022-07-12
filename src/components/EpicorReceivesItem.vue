@@ -17,7 +17,7 @@ const formValue = ref<EpicorReceive>( { SysRevID: 0, VendorNum: 0, ReceiptDate: 
 
 
 onBeforeMount( async () => {
-  formValue.value = await EpicorService.getReceive( parseInt( route.params.vendor_num.toString() ), route.params.pack_slip.toString() );
+  formValue.value = await EpicorService.getEpicorReceive( parseInt( route.params.vendor_num.toString() ), route.params.pack_slip.toString() );
 } );
 </script>
 

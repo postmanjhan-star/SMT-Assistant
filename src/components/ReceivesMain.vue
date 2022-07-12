@@ -3,10 +3,10 @@ import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-c
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NA, NBreadcrumb, NBreadcrumbItem, NH1, NSpace } from 'naive-ui';
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace } from 'naive-ui';
 import { onBeforeMount, reactive, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { EpicorReceive, EpicorService, OpenAPI } from '../client';
+import { OpenAPI, ReceiveRead, ReceivesService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -17,7 +17,7 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const gridApi = ref();
 const gridColumnApi = ref();
 
-const rowData = ref<EpicorReceive[]>( [] );
+const rowData = ref<ReceiveRead[]>( [] );
 
 const defaultColDef = {
   filter: true,
@@ -28,10 +28,11 @@ const defaultColDef = {
 
 const columnDefs = reactive( {
   value: [
-    { field: "ReceiptDate", headerName: '收貨日期' },
-    { field: "PackSlip", headerName: '包裝單' },
-    { field: "PONum", headerName: 'PO' },
-    { field: "VendorNumName", headerName: '供應商名稱' },
+    { field: "idno", headerName: '收料單號' },
+    { field: "vendor_idno", headerName: '供應商代號' },
+    { field: "vendor_name", headerName: '供應商名稱' },
+    { field: "st_recieve_idno", headerName: '舊 ERP 收料單號' },
+    // { field: "st_mbr_idno", headerName: '舊 ERP 隨車交貨單號' },
   ]
 } );
 
@@ -49,20 +50,25 @@ const gridOptions = {
 
   rowSelection: 'single',
   suppressCellFocus: true,
-  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/epicor_receives/${ event.data.VendorNum }/${ event.data.PackSlip }` ),
+  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/receives/${ event.data.idno }` ),
 }
 
 onBeforeMount( async () => {
-  rowData.value = await EpicorService.getEpicorReceives();
+  rowData.value = await ReceivesService.getRecentReceives();
 } );
 
-function getRowId ( params: GetRowIdParams ) { return params.data.SysRevID; }
+function getRowId ( params: GetRowIdParams ) { return params.data.id; }
 
 function onGridReady ( params: GridReadyEvent ) {
   gridApi.value = params.api;
   gridColumnApi.value = params.columnApi;
 };
+
+function handleCreateReceiveButtonClick () {
+  router.push( '/receives/create' );
+}
 </script>
+
 
 <template>
   <main
@@ -75,13 +81,15 @@ function onGridReady ( params: GridReadyEvent ) {
         </router-link>
       </n-breadcrumb-item>
       <n-breadcrumb-item>物料管理</n-breadcrumb-item>
-      <n-breadcrumb-item>Epicore 收料紀錄</n-breadcrumb-item>
+      <n-breadcrumb-item>收料管理</n-breadcrumb-item>
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">Epicore 收料紀錄</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">收料管理</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
+
+        <n-button type="primary" @click=" handleCreateReceiveButtonClick ">建立收料單</n-button>
 
         <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
           :getRowId=" getRowId " :onGridReady=" onGridReady ">
@@ -89,6 +97,5 @@ function onGridReady ( params: GridReadyEvent ) {
 
       </n-space>
     </div>
-
   </main>
 </template>
