@@ -63,4 +63,30 @@ idno: string,
         });
     }
 
+    /**
+     * Update Receive
+     * @param idno 
+     * @param memo 
+     * @returns ReceiveRead Successful Response
+     * @throws ApiError
+     */
+    public static updateReceive(
+idno: string,
+memo: string,
+): CancelablePromise<ReceiveRead> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/receives/{idno}',
+            path: {
+                'idno': idno,
+            },
+            query: {
+                'memo': memo,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
 }

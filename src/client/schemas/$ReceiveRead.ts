@@ -3,44 +3,44 @@
 /* eslint-disable */
 export const $ReceiveRead = {
     properties: {
-        date: {
-    type: 'string',
-    isRequired: true,
-    format: 'date-time',
-},
-        st_recieve_idno: {
-    type: 'string',
-},
-        id: {
-    type: 'number',
-    isRequired: true,
-},
-        st_mbr_idno: {
-    type: 'string',
-},
         idno: {
     type: 'string',
-    isRequired: true,
-},
-        memo: {
-    type: 'string',
-},
-        st_record_idno: {
-    type: 'string',
-},
-        employee_id: {
-    type: 'number',
     isRequired: true,
 },
         vendor_id: {
     type: 'number',
     isRequired: true,
 },
-        vendor_shipping_idno: {
+        st_mbr_idno: {
     type: 'string',
+},
+        date: {
+    type: 'string',
+    isRequired: true,
+    format: 'date-time',
+},
+        st_record_idno: {
+    type: 'string',
+},
+        st_receive_idno: {
+    type: 'string',
+},
+        memo: {
+    type: 'string',
+},
+        employee_id: {
+    type: 'number',
+    isRequired: true,
 },
         purchase_idno: {
     type: 'string',
+},
+        vendor_shipping_idno: {
+    type: 'string',
+},
+        id: {
+    type: 'number',
+    isRequired: true,
 },
         vendor_idno: {
     type: 'string',

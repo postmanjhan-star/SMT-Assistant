@@ -6,7 +6,7 @@ import Color from 'color';
 
 const borderColor = Color( 'hsla(0, 0%, 84%, 1.0)' );
 const railColor = Color( 'hsla(0, 0%, 60%, 1.0)' )
-// console.debug(borderColor.rgb().string());
+const inputColor = Color(  'hsla(0, 0%, 96%, 1.0)' );
 
 /**
  * js 文件下使用这个做类型提示
@@ -16,6 +16,7 @@ const themeOverrides = {
   common: {
     fontWeightStrong: "600",
     dividerColor: borderColor.rgb().string(),
+    inputColor: inputColor.rgb().string(),
   },
   DataTable: {
     borderColor: borderColor.rgb().string(),
@@ -39,4 +40,15 @@ const themeOverrides = {
 </template>
 
 <style>
+/* .n-input {
+  box-shadow: inset 0px 0px 4px 0px hsla(0deg, 0%, 60% , 1.0);
+}
+
+.n-base-selection-label {
+  box-shadow: inset 0px 0px 4px 0px hsla(0deg, 0%, 60% , 1.0);
+}
+
+.n-base-selection-tags {
+  box-shadow: inset 0px 0px 4px 0px hsla(0deg, 0%, 60% , 1.0);
+} */
 </style>

@@ -22,6 +22,10 @@ const materialMenuOptions = [
         key: 'receives'
     },
     {
+        label: () => h( RouterLink, { to: '/st_erp_receives' }, { default: () => '舊 ERP 收料紀錄' } ),
+        key: 'st_erp_receives'
+    },
+    {
         label: () => h( RouterLink, { to: '/epicor_receives' }, { default: () => 'Epicor 收料紀錄' } ),
         key: 'epicor_receives'
     },
