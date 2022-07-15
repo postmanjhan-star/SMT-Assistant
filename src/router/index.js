@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { useAuthStore } from "../stores/auth";
-import { useAccountStore } from "../stores/account";
 import { ApiError } from "../client";
+import { useAccountStore } from "../stores/account";
+import { useAuthStore } from "../stores/auth";
 
 // 2. 定义一些路由
 // 每个路由都需要映射到一个组件。
@@ -89,6 +89,24 @@ const routes = [
       {
         path: '/receives/create',
         component: () => import( "../components/ReceivesCreate.vue" ),
+        props: route => ( {
+          st_receive_idno: route.query.st_receive_idno,
+          st_record_idno: route.query.st_record_idno,
+          st_vendor_id: Number( route.query.st_vendor_id ),
+          st_mbr_idno: route.query.st_mbr_idno,
+          st_purchase_idno: route.query.st_purchase_idno,
+          material_idno: route.query.material_idno,
+          total_qty: Number( route.query.total_qty ),
+          qualify_qty: Number( route.query.qualify_qty ),
+        } )
+      },
+      {
+        path: '/receives/:idno',
+        component: () => import( "../components/ReceivesItem.vue" ),
+      },
+      {
+        path: '/st_erp_receives',
+        component: () => import( "../components/StErpReceivesMain.vue" ),
       },
     ],
   },
@@ -123,11 +141,8 @@ const routes = [
 // 你可以在这里输入更多的配置，但我们在这里
 // 暂时保持简单
 
-const router = createRouter( {
-  // 4. 内部提供了 history 模式的实现。
-  history: createWebHistory(),
-  routes: routes,
-} );
+// 4. 内部提供了 history 模式的实现。
+const router = createRouter( { history: createWebHistory(), routes: routes, } );
 
 
 router.beforeEach( async ( to, from ) => {
@@ -135,16 +150,11 @@ router.beforeEach( async ( to, from ) => {
   const accountStore = useAccountStore();
 
   // Skip below logic
-  if ( to.params === '/' ) {
-    // console.debug( 'Go to login page for any reason!' );
-    return { path: '/' }
-  }
+  if ( to.params === '/' ) { return { path: '/' }; }
 
   // For any routes except for login one
-  if (
-    // 检查用户是否已登录
-    authStore.isAuthenticated === false && to.meta.requiresAuth
-  ) {
+  // 检查用户是否已登录
+  if ( authStore.isAuthenticated === false && to.meta.requiresAuth ) {
     // console.debug( 'Redirect un-authenticated user to login page' );
     // 将用户重定向到登录页面
     return { name: 'Login' };
@@ -153,13 +163,11 @@ router.beforeEach( async ( to, from ) => {
   // Refresh refresh token & access token on every request
   if ( authStore.isAuthenticated === true ) {
     // console.debug( 'isAuthenticated:\n', authStore.isAuthenticated );
-    try {
-      await authStore.refreshToken();
-    } catch ( error ) {
+    try { await authStore.refreshToken(); }
+    catch ( error ) {
       if ( error instanceof ApiError ) {
         if ( error.status === 422 || error.status === 401 ) {
           authStore.logout();
-          // console.debug( 'logged out' );
           return { name: 'Login', params: { message: '登錄過期，請重新登入' } };
         }
       }
@@ -170,9 +178,7 @@ router.beforeEach( async ( to, from ) => {
     to.meta.requiredAuthModule &&
     to.meta.requiredAuthModule.includes( 'see_system_group' ) &&
     !accountStore.authorizedModules.includes( 'see_system_group' )
-  ) {
-    return { path: '/403' }
-  }
+  ) { return { path: '/403' } }
 } );
 
 export default router;

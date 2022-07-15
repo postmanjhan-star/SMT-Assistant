@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { NGrid, NGi, NCard, NForm, NFormItem, NInput, NButton } from 'naive-ui';
-import { useMessage } from 'naive-ui';
-import { FormInst, FormRules } from 'naive-ui';
-import { SessionService, Body_login_for_access_token } from '../client';
-import { useAuthStore } from '../stores/auth';
+import { FormInst, FormRules, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, useMessage } from 'naive-ui';
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { Body_login_for_access_token, SessionService } from '../client';
 import { useAccountStore } from '../stores/account';
+import { useAuthStore } from '../stores/auth';
 
 const props = defineProps( { message: String } );
 const message = useMessage();
@@ -18,51 +16,30 @@ const authStore = useAuthStore();
 const accountStore = useAccountStore();
 
 const formRef = ref<FormInst | null>( null );
-const formValue = ref<Body_login_for_access_token>( { username: null, password: null } );
+const formValue = ref<Body_login_for_access_token>( { username: '', password: '' } );
 const rules: FormRules = {
-    username: {
-        required: true,
-        message: '请输入帳號',
-        trigger: [ 'blur' ],
-    },
-    password: {
-        required: true,
-        message: '请输入密碼',
-        trigger: [ 'input', 'blur' ],
-    }
+    username: { required: true, message: '请输入帳號', trigger: [ 'blur' ], },
+    password: { required: true, message: '请输入密碼', trigger: [ 'input', 'blur' ], }
 };
 
-onMounted( () => {
-    if ( props.message ) message.warning( props.message );
-} );
+onMounted( () => { if ( props.message ) message.warning( props.message ); } );
 
 async function login ( username: string, password: string ) {
     try {
-        const response = await SessionService.loginForAccessToken( {
-            username: username, password: password
-        } );
+        const response = await SessionService.loginForAccessToken( { username: username, password: password } );
 
         // Save token to auth store and local storage
         authStore.accountToken = JSON.stringify( response );
-        // console.debug( auth.accountToken );
-    } catch ( error ) {
-        console.error( error );
-        message.error( '登入失敗' );
-    }
+    } catch ( error ) { message.error( '登入失敗' ); }
 }
 
-async function getAccountInformation () {
-    await accountStore.setAuthorizedModules();
-}
+async function getAccountInformation () { await accountStore.setAuthorizedModules(); }
 
-function redirectToHome () {
-    router.push( '/home' );
-}
+function redirectToHome () { router.push( '/home' ); }
 
 async function handleLoginButtonClick ( event: Event ) {
     formRef.value?.validate( async ( errors ) => {
         if ( !errors ) {
-
             // Login and get token
             await login( formValue.value.username, formValue.value.password );
 
@@ -71,9 +48,7 @@ async function handleLoginButtonClick ( event: Event ) {
 
             // Navigate to a protected resource
             redirectToHome();
-        } else {
-            message.error( '請輸入帳號密碼' );
-        }
+        } else { message.error( '請輸入帳號密碼' ); }
     } );
 }
 </script>

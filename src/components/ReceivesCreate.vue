@@ -1,13 +1,232 @@
-<script setup>
-import { ref } from 'vue';
-import { RouterLink } from 'vue-router';
-import { NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
-import { NA, NH1 } from 'naive-ui';
-import { NSpace } from 'naive-ui';
-import { NForm, NFormItemGi, NInput, NButton, NGrid } from 'naive-ui';
+<script setup lang="ts">
+import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community";
+import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputGroup, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
+import { onBeforeMount, ref } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
+import { ApiError, MaterialsService, OpenAPI, ReceiveCreate, ReceiveItemCreate, ReceivesService, VendorsService } from '../client';
+import { useAuthStore } from '../stores/auth';
 
-const formValue = ref( { username: null, password: null } );
+const message = useMessage();
+const router = useRouter();
+const props = defineProps( {
+  st_receive_idno: String,
+  st_record_idno: String,
+  st_vendor_id: Number,
+  st_mbr_idno: String,
+  st_purchase_idno: String,
+  material_idno: String,
+  total_qty: Number,
+  qualify_qty: Number,
+} );
 
+const authStore = useAuthStore();
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+
+const gridApi = ref();
+const gridColumnApi = ref();
+
+const formRef = ref<FormInst | null>( null );
+const headerFormValue = ref( {
+  vendor_id: props.st_vendor_id as number,
+  vendor_shipping_idno: undefined,
+  purchase_idno: props.st_purchase_idno,
+  memo: undefined,
+  st_receive_idno: props.st_receive_idno as string,
+  st_mbr_idno: props.st_mbr_idno,
+  st_record_idno: props.st_record_idno,
+} );
+
+const materialIdnoInput = ref();
+
+type GridReceiveItem = ReceiveItemCreate & {
+  id: number
+  material_idno: string;
+  material_name: string | undefined;
+};
+
+const materialAdditionFormValue = ref<GridReceiveItem>( {
+  id: 1, // ag-grid row ID
+  material_id: 1,
+  material_idno: '',
+  material_name: '',
+  total_qty: 0,
+  qualify_qty: 0,
+} )
+
+const rowData = ref<GridReceiveItem[]>( [] );
+const columnDefs: ColDef[] = [
+  { field: "material_idno", headerName: '物料代碼', editable: false },
+  { field: "material_name", headerName: '物料名稱', editable: false },
+  { field: "total_qty", headerName: '來料數量' },
+  { field: "qualify_qty", headerName: '驗收數量' },
+];
+
+const defaultColDef = {
+  editable: true,
+  filter: true,
+  sortable: true,
+  flex: 1, // Every columns have the same portion of width
+  resizable: true,
+}
+
+const gridOptions: GridOptions = {
+  columnDefs: columnDefs,
+  defaultColDef: defaultColDef,
+  stopEditingWhenCellsLoseFocus: true,
+  enterMovesDownAfterEdit: true,
+  undoRedoCellEditing: true,
+  debug: false,
+  pagination: true,
+  suppressColumnVirtualisation: true,
+  suppressRowTransform: true,
+  debounceVerticalScrollbar: true,
+  enableCellTextSelection: false,
+
+  rowSelection: 'single',
+  suppressCellFocus: true,
+}
+
+type VendorIdnoOptions = {
+  label: string; // idno
+  value: number; // id
+};
+
+type VendorNameOptions = {
+  label: string; // name
+  value: number; // id
+};
+
+const vendor_idno_options = ref<VendorIdnoOptions[]>( [] );
+const vendor_name_options = ref<VendorNameOptions[]>( [] );
+
+const loadingRef = ref( false );
+const loading = loadingRef;
+
+onBeforeMount( async () => {
+  try {
+    const vendors = await VendorsService.getVendors();
+    for ( let vendor of vendors ) {
+      vendor_idno_options.value.push( { label: vendor.idno, value: vendor.id, } );
+      vendor_name_options.value.push( { label: vendor.name, value: vendor.id, } );
+    }
+  } catch ( error ) { message.error( '無法取得供應商清單' ); }
+} )
+
+function getRowId ( params: GetRowIdParams ) { return params.data.id; }
+
+async function onGridReady ( params: GridReadyEvent ) {
+  gridApi.value = params.api;
+  gridColumnApi.value = params.columnApi;
+
+  if ( props.material_idno && props.total_qty && props.qualify_qty ) {
+    const material = await MaterialsService.getMaterial(  props.material_idno );
+    console.debug( material );
+    const gridItem: GridReceiveItem = {
+      id: 1, // ag-grid row ID
+      material_id: material.id,
+      material_idno: material.idno,
+      material_name: material.name,
+      total_qty: props.total_qty,
+      qualify_qty: props.qualify_qty,
+    };
+    console.debug( gridItem );
+    addReceiveItemToGrid( gridItem );
+  }
+};
+
+// async function handleImportFromStErpButtonClick ( event: Event ) {
+//   const response = await StErpService.getStReceive( headerFormValue.value.st_receive_idno );
+//   console.debug( response );
+// }
+
+let newRowId = -1
+function addReceiveItemToGrid ( receiveItem: GridReceiveItem ) {
+  rowData.value.unshift( {
+    id: newRowId,
+    material_id: receiveItem.material_id,
+    material_idno: receiveItem.material_idno,
+    material_name: receiveItem.material_name,
+    total_qty: receiveItem.total_qty,
+    qualify_qty: receiveItem.qualify_qty,
+  } );
+  gridApi.value.setRowData( rowData.value );
+  newRowId--;
+}
+
+async function handleAddReceiveItemButtonClick ( event: Event ) {
+  // qualify_qty and total_qty should greater than zero
+  if ( materialAdditionFormValue.value.qualify_qty as number <= 0 || materialAdditionFormValue.value.total_qty as number <= 0 ) {
+    message.error( '數量應大於零' );
+    return false;
+  }
+
+  // Check if qualify_qty less or equeal to total_qty
+  if ( materialAdditionFormValue.value.qualify_qty as number > ( materialAdditionFormValue.value.total_qty as number ) ) {
+    message.error( '驗收數量不可大於來料數量' );
+    return false;
+  }
+
+  // `material_idno` cannot be empty
+  if ( materialAdditionFormValue.value.material_idno === '' ) {
+    message.error( '請填入物料代碼' );
+    return false;
+  }
+
+  // Check if the material exists
+  // Handle 404 and other errors
+  try {
+    const material = await MaterialsService.getMaterial( materialAdditionFormValue.value.material_idno );
+    materialAdditionFormValue.value.material_id = material.id;
+    materialAdditionFormValue.value.material_name = material.name;
+  } catch ( error ) {
+    if ( error instanceof ApiError && error.status === 404 ) {
+      message.error( '無此物料' );
+      return false;
+    }
+    else {
+      message.error( '物料讀取失敗' );
+      return false;
+    }
+  }
+
+  // Add the material into the grid
+  addReceiveItemToGrid( materialAdditionFormValue.value );
+
+  // Clear materialAdditionFormValue
+  materialAdditionFormValue.value.id = 1;
+  materialAdditionFormValue.value.material_idno = '';
+  materialAdditionFormValue.value.material_name = '';
+  materialAdditionFormValue.value.total_qty = 0;
+  materialAdditionFormValue.value.qualify_qty = 0;
+
+  // Focus at `material_idno` input field
+  materialIdnoInput.value.focus();
+}
+
+async function handleCreateReceiveButtonClick ( event: Event ) {
+  // Build request body
+  const submitValue: ReceiveCreate = {
+    vendor_id: headerFormValue.value.vendor_id,
+    vendor_shipping_idno: headerFormValue.value.vendor_shipping_idno,
+    purchase_idno: headerFormValue.value.purchase_idno,
+    memo: headerFormValue.value.memo,
+    st_receive_idno: headerFormValue.value.st_receive_idno,
+    st_record_idno: headerFormValue.value.st_record_idno,
+    st_mbr_idno: headerFormValue.value.st_mbr_idno,
+    receive_items: rowData.value,
+  };
+
+  // console.debug( submitValue );
+  // Create
+  try {
+    const response = await ReceivesService.createReceive( submitValue );
+    message.success( `收料單 ${ response.idno } 建立成功` );
+    router.push( '/receives' );
+  } catch ( error ) { message.error( '建立失敗' ); }
+}
 </script>
 
 
@@ -34,22 +253,95 @@ const formValue = ref( { username: null, password: null } );
       <n-h1 prefix="bar" style="font-size: 1.4rem;">建立收料單</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
-        <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
-          <n-grid cols="1 s:2" responsive="screen" x-gap="20">
 
-            <n-form-item-gi show-require-mark label="收料單號" path="username">
-              <n-input v-model:value.lazy=" formValue.username " :disabled=" true "
-                :input-props=" { autocomplete: 'username' } ">
-              </n-input>
+        <n-form size="large" :model=" headerFormValue " ref="formRef">
+          <n-grid cols="1 s:3" responsive="screen" x-gap="20">
+
+            <n-form-item-gi label="舊 ERP 收料單號" path="st_recieve_idno">
+              <n-input-group>
+
+                <n-input v-model:value.st_recieve_idno=" headerFormValue.st_receive_idno "></n-input>
+
+                <!-- <n-button @click=" handleImportFromStErpButtonClick( $event ) " :loading=" loading ">
+                  從舊 ERP 匯入
+                </n-button> -->
+
+              </n-input-group>
             </n-form-item-gi>
 
-            <n-form-item-gi show-require-mark label="收料日期" path="password" autofocus>
-              <n-input type="password" v-model:value.lazy=" formValue.password " autofocus
-                :input-props=" { autocomplete: 'new-password' } "></n-input>
+            <n-form-item-gi label="舊 ERP 隨車交貨單號">
+              <n-input v-model:value.st_mbr_idno=" headerFormValue.st_mbr_idno "></n-input>
             </n-form-item-gi>
 
-            <n-form-item-gi span="2">
-              <n-button type="primary" block @click=" handleCreateAccountButtonClick( $event ) " attr-type="submit">
+            <n-gi span="3">
+              <n-divider />
+            </n-gi>
+
+            <n-form-item-gi show-require-mark label="供應商">
+              <n-input-group>
+
+                <n-select v-model:value.lazy=" headerFormValue.vendor_id " :options=" vendor_idno_options " filterable
+                  :fallback-option=" false " placeholder="供應商代號"></n-select>
+
+                <n-select v-model:value.lazy=" headerFormValue.vendor_id " :options=" vendor_name_options " filterable
+                  :fallback-option=" false " placeholder="供應商名稱"></n-select>
+
+              </n-input-group>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="供應商出貨單號">
+              <n-input v-model:value.vendor_shipping_idno=" headerFormValue.vendor_shipping_idno "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="內部採購單號">
+              <n-input v-model:value.purchase_idno=" headerFormValue.purchase_idno "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="備註" span="3">
+              <n-input v-model:value.memo=" headerFormValue.memo "></n-input>
+            </n-form-item-gi>
+
+            <n-gi span="3">
+              <n-divider />
+            </n-gi>
+
+            <n-gi span="3">
+
+              <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">物料</n-h2>
+
+              <n-form size="large" :model=" materialAdditionFormValue ">
+                <n-space size="large" style="margin-bottom: 1rem; margin-top: 0.4rem;">
+
+                  <n-form-item label="物料代碼">
+                    <n-input v-model:value.vendor_shipping_idno=" materialAdditionFormValue.material_idno "
+                      ref="materialIdnoInput"></n-input>
+                  </n-form-item>
+
+                  <n-form-item label="來料數量">
+                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.total_qty " :show-button=" false "
+                      :min=" 0 " :precision=" 0 " :default-value=" 0 "></n-input-number>
+                  </n-form-item>
+
+                  <n-form-item label="驗收數量">
+                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.qualify_qty " :show-button=" false "
+                      :min=" 0 " :precision=" 0 " :default-value=" 0 "></n-input-number>
+                  </n-form-item>
+
+                  <n-form-item>
+                    <n-button type="primary" secondary strong @click=" handleAddReceiveItemButtonClick( $event ) "
+                      attr-type="submit">增加物料</n-button>
+                  </n-form-item>
+
+                </n-space>
+              </n-form>
+
+              <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; "
+                :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
+              </ag-grid-vue>
+            </n-gi>
+
+            <n-form-item-gi span="3">
+              <n-button type="primary" block @click=" handleCreateReceiveButtonClick( $event ) " attr-type="submit">
                 建立收料單
               </n-button>
             </n-form-item-gi>

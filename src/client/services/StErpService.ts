@@ -3,7 +3,6 @@
 /* eslint-disable */
 import type { Printer } from '../models/Printer';
 import type { STPart } from '../models/STPart';
-import type { STReceiveBody } from '../models/STReceiveBody';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STVendor } from '../models/STVendor';
 
@@ -58,12 +57,12 @@ page: number = 1,
     /**
      * Get St Receive
      * @param receiveIdno 
-     * @returns STReceiveBody Successful Response
+     * @returns STReceiveHeader Successful Response
      * @throws ApiError
      */
     public static getStReceive(
 receiveIdno: string,
-): CancelablePromise<STReceiveBody> {
+): CancelablePromise<STReceiveHeader> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{receive_idno}',

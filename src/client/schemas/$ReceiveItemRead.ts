@@ -3,7 +3,15 @@
 /* eslint-disable */
 export const $ReceiveItemRead = {
     properties: {
+        material_id: {
+    type: 'number',
+    isRequired: true,
+},
         receive_id: {
+    type: 'number',
+    isRequired: true,
+},
+        qualify_qty: {
     type: 'number',
     isRequired: true,
 },
@@ -15,12 +23,8 @@ export const $ReceiveItemRead = {
     type: 'number',
     isRequired: true,
 },
-        qualify_qty: {
-    type: 'number',
-    isRequired: true,
-},
-        material_id: {
-    type: 'number',
+        material_idno: {
+    type: 'string',
     isRequired: true,
 },
     },

@@ -63,6 +63,7 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
   }
   try {
     const response = await StErpService.getStVendor( formValue.value.idno );
+    formValue.value.idno = response.idno;
     formValue.value.name = response.name;
     formValue.value.tax_idno = response.tax_idno;
   } catch ( error ) {

@@ -20,9 +20,10 @@ const gridColumnApi = ref();
 const rowData = ref<MaterialRead[]>( [] );
 
 const defaultColDef = {
+  editable: false,
   filter: true,
   sortable: true,
-  flex: 1,
+  flex: 1, // Every columns have the same portion of width
   resizable: true,
 }
 
@@ -44,11 +45,11 @@ const gridOptions = {
   suppressColumnVirtualisation: true,
   suppressRowTransform: true,
   debounceVerticalScrollbar: true,
+  enableCellTextSelection: true,
 
   rowSelection: 'single',
   suppressCellFocus: true,
-  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/materials/${event.data.idno}` ),
-  // onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => console.debug( event ),
+  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/materials/${ event.data.idno }` ),
 }
 
 onBeforeMount( async () => {
@@ -88,8 +89,7 @@ function handleCreateStoreageButtonClick () {
         <n-button type="primary" @click=" handleCreateStoreageButtonClick ">建立物料</n-button>
 
         <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
-          :getRowId=" getRowId " :onGridReady=" onGridReady ">
-        </ag-grid-vue>
+          :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
 
       </n-space>
     </div>

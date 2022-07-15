@@ -31,8 +31,8 @@ const columnDefs = reactive( {
     { field: "idno", headerName: '收料單號' },
     { field: "vendor_idno", headerName: '供應商代號' },
     { field: "vendor_name", headerName: '供應商名稱' },
-    { field: "st_recieve_idno", headerName: '舊 ERP 收料單號' },
-    // { field: "st_mbr_idno", headerName: '舊 ERP 隨車交貨單號' },
+    { field: "st_receive_idno", headerName: '舊 ERP 收料單號' },
+    { field: "st_mbr_idno", headerName: '舊 ERP 隨車交貨單號' },
   ]
 } );
 
@@ -47,15 +47,14 @@ const gridOptions = {
   suppressColumnVirtualisation: true,
   suppressRowTransform: true,
   debounceVerticalScrollbar: true,
+  enableCellTextSelection: true,
 
   rowSelection: 'single',
   suppressCellFocus: true,
   onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/receives/${ event.data.idno }` ),
 }
 
-onBeforeMount( async () => {
-  rowData.value = await ReceivesService.getRecentReceives();
-} );
+onBeforeMount( async () => { rowData.value = await ReceivesService.getRecentReceives(); } );
 
 function getRowId ( params: GetRowIdParams ) { return params.data.id; }
 
@@ -64,9 +63,7 @@ function onGridReady ( params: GridReadyEvent ) {
   gridColumnApi.value = params.columnApi;
 };
 
-function handleCreateReceiveButtonClick () {
-  router.push( '/receives/create' );
-}
+function handleCreateReceiveButtonClick () { router.push( '/receives/create' ); }
 </script>
 
 
