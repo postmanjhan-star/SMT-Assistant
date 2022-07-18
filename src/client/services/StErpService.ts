@@ -77,20 +77,20 @@ receiveIdno: string,
 
     /**
      * Print St Receive Packs Label
-     * @param receiveIdno 
+     * @param stErpReceiveIdno 
      * @param printer 
      * @returns any Successful Response
      * @throws ApiError
      */
     public static printStReceivePacksLabel(
-receiveIdno: string,
+stErpReceiveIdno: string,
 printer?: Printer,
 ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/st_erp/receives/{receive_idno}/packs_label',
+            url: '/st_erp/receives/{st_erp_receive_idno}/packs_label',
             path: {
-                'receive_idno': receiveIdno,
+                'st_erp_receive_idno': stErpReceiveIdno,
             },
             query: {
                 'printer': printer,
