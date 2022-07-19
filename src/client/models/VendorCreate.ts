@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 export type VendorCreate = {
-    tax_idno?: string;
     idno: string;
     name: string;
+    tax_idno?: string;
 };

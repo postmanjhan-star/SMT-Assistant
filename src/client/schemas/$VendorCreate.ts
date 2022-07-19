@@ -3,9 +3,6 @@
 /* eslint-disable */
 export const $VendorCreate = {
     properties: {
-        tax_idno: {
-    type: 'string',
-},
         idno: {
     type: 'string',
     isRequired: true,
@@ -13,6 +10,9 @@ export const $VendorCreate = {
         name: {
     type: 'string',
     isRequired: true,
+},
+        tax_idno: {
+    type: 'string',
 },
     },
 } as const;

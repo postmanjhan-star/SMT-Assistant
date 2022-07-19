@@ -7,12 +7,15 @@ export const $MaterialCreate = {
     type: 'number',
     isRequired: true,
 },
+        name: {
+    type: 'string',
+},
         unit: {
     type: 'UnitEnum',
     isRequired: true,
 },
-        name: {
-    type: 'string',
+        expiry_days: {
+    type: 'number',
 },
         description: {
     type: 'string',
@@ -20,9 +23,6 @@ export const $MaterialCreate = {
         idno: {
     type: 'string',
     isRequired: true,
-},
-        expiry_days: {
-    type: 'number',
 },
     },
 } as const;

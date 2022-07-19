@@ -3,10 +3,10 @@
 /* eslint-disable */
 
 export type ReceiveItemRead = {
-    material_id: number;
     receive_id: number;
     qualify_qty: number;
-    total_qty: number;
+    material_id: number;
     id: number;
+    total_qty: number;
     material_idno: string;
 };

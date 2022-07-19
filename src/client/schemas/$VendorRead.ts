@@ -3,20 +3,23 @@
 /* eslint-disable */
 export const $VendorRead = {
     properties: {
-        name: {
+        id: {
+    type: 'number',
+    isRequired: true,
+},
+        idno: {
     type: 'string',
     isRequired: true,
 },
-        id: {
-    type: 'number',
+        name: {
+    type: 'string',
     isRequired: true,
 },
         tax_idno: {
     type: 'string',
 },
-        idno: {
-    type: 'string',
-    isRequired: true,
+        l1_storage_id: {
+    type: 'number',
 },
     },
 } as const;
