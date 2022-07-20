@@ -3,26 +3,11 @@
 /* eslint-disable */
 export const $ReceiveRead = {
     properties: {
-        idno: {
-    type: 'string',
-    isRequired: true,
-},
-        vendor_id: {
+        id: {
     type: 'number',
     isRequired: true,
 },
-        st_mbr_idno: {
-    type: 'string',
-},
-        date: {
-    type: 'string',
-    isRequired: true,
-    format: 'date-time',
-},
-        st_record_idno: {
-    type: 'string',
-},
-        st_receive_idno: {
+        vendor_shipping_idno: {
     type: 'string',
 },
         memo: {
@@ -32,14 +17,29 @@ export const $ReceiveRead = {
     type: 'number',
     isRequired: true,
 },
+        date: {
+    type: 'string',
+    isRequired: true,
+    format: 'date-time',
+},
+        vendor_id: {
+    type: 'number',
+    isRequired: true,
+},
+        st_mbr_idno: {
+    type: 'string',
+},
+        st_receive_idno: {
+    type: 'string',
+},
         purchase_idno: {
     type: 'string',
 },
-        vendor_shipping_idno: {
+        st_record_idno: {
     type: 'string',
 },
-        id: {
-    type: 'number',
+        idno: {
+    type: 'string',
     isRequired: true,
 },
         vendor_idno: {

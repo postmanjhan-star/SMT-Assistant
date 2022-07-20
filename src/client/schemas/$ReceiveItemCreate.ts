@@ -13,5 +13,11 @@ export const $ReceiveItemCreate = {
         qualify_qty: {
     type: 'number',
 },
+        st_barcodes: {
+    type: 'array',
+    contains: {
+    type: 'string',
+},
+},
     },
 } as const;

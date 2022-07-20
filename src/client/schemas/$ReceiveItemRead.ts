@@ -3,11 +3,7 @@
 /* eslint-disable */
 export const $ReceiveItemRead = {
     properties: {
-        receive_id: {
-    type: 'number',
-    isRequired: true,
-},
-        qualify_qty: {
+        id: {
     type: 'number',
     isRequired: true,
 },
@@ -15,11 +11,15 @@ export const $ReceiveItemRead = {
     type: 'number',
     isRequired: true,
 },
-        id: {
+        total_qty: {
     type: 'number',
     isRequired: true,
 },
-        total_qty: {
+        qualify_qty: {
+    type: 'number',
+    isRequired: true,
+},
+        receive_id: {
     type: 'number',
     isRequired: true,
 },
