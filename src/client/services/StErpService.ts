@@ -76,6 +76,27 @@ receiveIdno: string,
     }
 
     /**
+     * Get St Receive Pack Barcodes
+     * @param stErpReceiveIdno 
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getStReceivePackBarcodes(
+stErpReceiveIdno: string,
+): CancelablePromise<Array<any>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/receives/{st_erp_receive_idno}/barcodes',
+            path: {
+                'st_erp_receive_idno': stErpReceiveIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Print St Receive Packs Label
      * @param stErpReceiveIdno 
      * @param printer 

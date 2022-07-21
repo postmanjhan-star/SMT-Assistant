@@ -11,7 +11,7 @@ export const $ReceiveItemRead = {
     type: 'number',
     isRequired: true,
 },
-        total_qty: {
+        receive_id: {
     type: 'number',
     isRequired: true,
 },
@@ -19,7 +19,7 @@ export const $ReceiveItemRead = {
     type: 'number',
     isRequired: true,
 },
-        receive_id: {
+        total_qty: {
     type: 'number',
     isRequired: true,
 },

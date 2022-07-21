@@ -20,6 +20,7 @@ const props = defineProps( {
   material_idno: String,
   total_qty: Number,
   qualify_qty: Number,
+  st_barcodes: Array<string>,
 } );
 
 const authStore = useAuthStore();
@@ -102,9 +103,6 @@ type VendorNameOptions = {
 const vendor_idno_options = ref<VendorIdnoOptions[]>( [] );
 const vendor_name_options = ref<VendorNameOptions[]>( [] );
 
-const loadingRef = ref( false );
-const loading = loadingRef;
-
 onBeforeMount( async () => {
   try {
     const vendors = await VendorsService.getVendors();
@@ -122,8 +120,7 @@ async function onGridReady ( params: GridReadyEvent ) {
   gridColumnApi.value = params.columnApi;
 
   if ( props.material_idno && props.total_qty && props.qualify_qty ) {
-    const material = await MaterialsService.getMaterial(  props.material_idno );
-    console.debug( material );
+    const material = await MaterialsService.getMaterial( props.material_idno );
     const gridItem: GridReceiveItem = {
       id: 1, // ag-grid row ID
       material_id: material.id,
@@ -131,8 +128,8 @@ async function onGridReady ( params: GridReadyEvent ) {
       material_name: material.name,
       total_qty: props.total_qty,
       qualify_qty: props.qualify_qty,
+      st_barcodes: props.st_barcodes,
     };
-    console.debug( gridItem );
     addReceiveItemToGrid( gridItem );
   }
 };
@@ -151,6 +148,7 @@ function addReceiveItemToGrid ( receiveItem: GridReceiveItem ) {
     material_name: receiveItem.material_name,
     total_qty: receiveItem.total_qty,
     qualify_qty: receiveItem.qualify_qty,
+    st_barcodes: receiveItem.st_barcodes,
   } );
   gridApi.value.setRowData( rowData.value );
   newRowId--;
@@ -206,7 +204,13 @@ async function handleAddReceiveItemButtonClick ( event: Event ) {
   materialIdnoInput.value.focus();
 }
 
+
+const loadingRef = ref( false );
+const loading = loadingRef;
+
 async function handleCreateReceiveButtonClick ( event: Event ) {
+  loadingRef.value = true;
+
   // Build request body
   const submitValue: ReceiveCreate = {
     vendor_id: headerFormValue.value.vendor_id,
@@ -219,13 +223,14 @@ async function handleCreateReceiveButtonClick ( event: Event ) {
     receive_items: rowData.value,
   };
 
-  // console.debug( submitValue );
   // Create
   try {
     const response = await ReceivesService.createReceive( submitValue );
     message.success( `收料單 ${ response.idno } 建立成功` );
     router.push( '/receives' );
-  } catch ( error ) { message.error( '建立失敗' ); }
+  }
+  catch ( error ) { message.error( '建立失敗' ); }
+  finally { loadingRef.value = false; }
 }
 </script>
 
@@ -341,7 +346,8 @@ async function handleCreateReceiveButtonClick ( event: Event ) {
             </n-gi>
 
             <n-form-item-gi span="3">
-              <n-button type="primary" block @click=" handleCreateReceiveButtonClick( $event ) " attr-type="submit">
+              <n-button type="primary" block @click=" handleCreateReceiveButtonClick( $event ) " attr-type="submit"
+                :loading=" loading ">
                 建立收料單
               </n-button>
             </n-form-item-gi>

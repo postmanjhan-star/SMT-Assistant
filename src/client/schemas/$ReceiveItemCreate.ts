@@ -9,9 +9,11 @@ export const $ReceiveItemCreate = {
 },
         total_qty: {
     type: 'number',
+    isRequired: true,
 },
         qualify_qty: {
     type: 'number',
+    isRequired: true,
 },
         st_barcodes: {
     type: 'array',

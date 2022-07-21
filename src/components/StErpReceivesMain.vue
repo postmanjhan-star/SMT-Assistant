@@ -78,21 +78,30 @@ async function onGridReady ( params: GridReadyEvent ) {
   params.api.setDatasource( dataSource );
 }
 
+
+const loadingRef = ref( false );
+const loading = loadingRef;
+
 async function handleCreateReceiveButtonClick () {
+  loadingRef.value = true;
+
   let stReceive: STReceiveHeader;
   let vendor: VendorRead;
   let material: MaterialRead;
+  let barcodes: string[] = [];
 
   // Get selected row
   const selectedRows: STReceiveHeader[] = gridApi.value.getSelectedRows();
   if ( selectedRows.length === 0 ) {
     message.warning( '請選擇舊 ERP 收料單' );
+    loadingRef.value = false;
     return false;
   } else { stReceive = selectedRows[ 0 ]; }
 
   // Only allow qualify_qty > 0
   if ( stReceive.qualify_qty <= 0 ) {
     message.warning( '驗收數量為零，請驗收後重試' );
+    loadingRef.value = false;
     return false;
   }
 
@@ -103,18 +112,36 @@ async function handleCreateReceiveButtonClick () {
   } catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '請先建立 WMS 供應商與物料主檔' );
+      loadingRef.value = false;
       return false;
     }
     else {
       message.error( '建立失敗' );
+      loadingRef.value = false;
       return false;
     }
   }
 
+  // Get ST ERP packs barcode from ST ERP receive idno
+  try { barcodes = await StErpService.getStReceivePackBarcodes( stReceive.idno ); } catch ( error ) { }
+
   // Disable button unless a row has been selected
 
   // Send props to /receives/create
-  router.push( `/receives/create?st_receive_idno=${ stReceive.idno }&st_record_idno=${ stReceive.st_erp_record_idno }&st_mbr_idno=${ stReceive.st_mbr_idno }&st_vendor_id=${ vendor.id }&st_purchase_idno=${ stReceive.st_purchase_idno }&material_idno=${ material.idno }&total_qty=${ stReceive.total_qty }&qualify_qty=${ stReceive.qualify_qty }` );
+  router.push( {
+    name: `receivesCreate`,
+    params: {
+      st_receive_idno: stReceive.idno,
+      st_record_idno: stReceive.st_erp_record_idno,
+      st_mbr_idno: stReceive.st_mbr_idno,
+      st_vendor_id: vendor.id,
+      st_purchase_idno: stReceive.st_purchase_idno,
+      material_idno: material.idno,
+      total_qty: stReceive.total_qty,
+      qualify_qty: stReceive.qualify_qty,
+      st_barcodes: barcodes,
+    }
+  } );
 }
 </script>
 
@@ -140,7 +167,8 @@ async function handleCreateReceiveButtonClick () {
 
         <n-tooltip>
           <template #trigger>
-            <n-button type="primary" @click=" handleCreateReceiveButtonClick ">從舊 ERP 收料單建立 WMS 收料單</n-button>
+            <n-button type="primary" @click=" handleCreateReceiveButtonClick " :loading=" loading ">從舊 ERP 收料單建立 WMS 收料單
+            </n-button>
           </template>
           建立 WMS 收料單前務必先建立 WMS 之「供應商主檔」與「物料主檔」
         </n-tooltip>

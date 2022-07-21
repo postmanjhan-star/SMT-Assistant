@@ -88,17 +88,19 @@ const routes = [
       },
       {
         path: '/receives/create',
+        name: 'receivesCreate',
         component: () => import( "../components/ReceivesCreate.vue" ),
         props: route => ( {
-          st_receive_idno: route.query.st_receive_idno,
-          st_record_idno: route.query.st_record_idno,
-          st_vendor_id: Number( route.query.st_vendor_id ),
-          st_mbr_idno: route.query.st_mbr_idno,
-          st_purchase_idno: route.query.st_purchase_idno,
-          material_idno: route.query.material_idno,
-          total_qty: Number( route.query.total_qty ),
-          qualify_qty: Number( route.query.qualify_qty ),
-        } )
+          st_receive_idno: route.params.st_receive_idno,
+          st_record_idno: route.params.st_record_idno,
+          st_vendor_id: Number( route.params.st_vendor_id ),
+          st_mbr_idno: route.params.st_mbr_idno,
+          st_purchase_idno: route.params.st_purchase_idno,
+          material_idno: route.params.material_idno,
+          total_qty: Number( route.params.total_qty ),
+          qualify_qty: Number( route.params.qualify_qty ),
+          st_barcodes: route.params.st_barcodes,
+        } ),
       },
       {
         path: '/receives/:idno',
