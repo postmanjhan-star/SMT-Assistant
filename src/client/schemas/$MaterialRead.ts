@@ -3,12 +3,12 @@
 /* eslint-disable */
 export const $MaterialRead = {
     properties: {
-        expiry_days: {
+        id: {
     type: 'number',
     isRequired: true,
 },
-        id: {
-    type: 'number',
+        idno: {
+    type: 'string',
     isRequired: true,
 },
         name: {
@@ -17,16 +17,16 @@ export const $MaterialRead = {
         description: {
     type: 'string',
 },
+        unit: {
+    type: 'UnitEnum',
+    isRequired: true,
+},
         qty_per_pack: {
     type: 'number',
     isRequired: true,
 },
-        idno: {
-    type: 'string',
-    isRequired: true,
-},
-        unit: {
-    type: 'UnitEnum',
+        expiry_days: {
+    type: 'number',
     isRequired: true,
 },
     },

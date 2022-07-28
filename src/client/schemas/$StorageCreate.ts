@@ -11,6 +11,12 @@ export const $StorageCreate = {
     type: 'string',
     isRequired: true,
 },
+        type: {
+    type: 'all-of',
+    contains: [{
+    type: 'StorageTypeEnum',
+}],
+},
         l2_storages: {
     type: 'array',
     contains: {

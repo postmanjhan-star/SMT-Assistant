@@ -3,22 +3,7 @@
 /* eslint-disable */
 export const $MaterialUpdate = {
     properties: {
-        expiry_days: {
-    type: 'number',
-    isRequired: true,
-},
         id: {
-    type: 'number',
-    isRequired: true,
-},
-        name: {
-    type: 'string',
-    isRequired: true,
-},
-        description: {
-    type: 'string',
-},
-        qty_per_pack: {
     type: 'number',
     isRequired: true,
 },
@@ -26,8 +11,22 @@ export const $MaterialUpdate = {
     type: 'string',
     isRequired: true,
 },
+        name: {
+    type: 'string',
+},
+        description: {
+    type: 'string',
+},
         unit: {
     type: 'UnitEnum',
+    isRequired: true,
+},
+        qty_per_pack: {
+    type: 'number',
+    isRequired: true,
+},
+        expiry_days: {
+    type: 'number',
     isRequired: true,
 },
     },

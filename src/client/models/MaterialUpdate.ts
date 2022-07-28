@@ -5,11 +5,11 @@
 import type { UnitEnum } from './UnitEnum';
 
 export type MaterialUpdate = {
-    expiry_days: number;
     id: number;
-    name: string;
-    description?: string;
-    qty_per_pack: number;
     idno: string;
+    name?: string;
+    description?: string;
     unit: UnitEnum;
+    qty_per_pack: number;
+    expiry_days: number;
 };
