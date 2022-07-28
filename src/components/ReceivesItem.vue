@@ -65,7 +65,7 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
   suppressRowTransform: true,
   debounceVerticalScrollbar: true,
-  enableCellTextSelection: false,
+  enableCellTextSelection: true,
 
   rowSelection: 'single',
   suppressCellFocus: true,
@@ -222,8 +222,7 @@ async function handleUpdateReceiveButtonClick ( event: Event ) {
               <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">物料</n-h2>
 
               <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; "
-                :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
-              </ag-grid-vue>
+                :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
             </n-gi>
 
             <n-form-item-gi span="3">
