@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { MaterialCreate } from '../models/MaterialCreate';
 import type { MaterialRead } from '../models/MaterialRead';
+import type { MaterialStock } from '../models/MaterialStock';
 import type { MaterialStockRecord } from '../models/MaterialStockRecord';
 import type { MaterialUpdate } from '../models/MaterialUpdate';
 
@@ -65,7 +66,28 @@ idno: string,
 ): CancelablePromise<Array<MaterialStockRecord>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/materials{idno}/stock_records',
+            url: '/materials/{idno}/stock_records',
+            path: {
+                'idno': idno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Material Stock
+     * @param idno 
+     * @returns MaterialStock Successful Response
+     * @throws ApiError
+     */
+    public static getMaterialStock(
+idno: string,
+): CancelablePromise<Array<MaterialStock>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/materials/{idno}/stock',
             path: {
                 'idno': idno,
             },

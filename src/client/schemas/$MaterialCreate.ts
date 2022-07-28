@@ -3,16 +3,16 @@
 /* eslint-disable */
 export const $MaterialCreate = {
     properties: {
+        idno: {
+    type: 'string',
+    isRequired: true,
+},
         unit: {
     type: 'UnitEnum',
     isRequired: true,
 },
         description: {
     type: 'string',
-},
-        idno: {
-    type: 'string',
-    isRequired: true,
 },
         qty_per_pack: {
     type: 'number',
