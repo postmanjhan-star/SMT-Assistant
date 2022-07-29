@@ -6,7 +6,7 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, MaterialRead, MaterialsService, OpenAPI, StErpService, STReceiveHeader, VendorRead, VendorsService } from '../client';
+import { ApiError, MaterialRead, MaterialsService, OpenAPI, ReceiveRead, ReceivesService, StErpService, STReceiveHeader, VendorRead, VendorsService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -88,6 +88,7 @@ async function handleCreateReceiveButtonClick () {
   let stReceive: STReceiveHeader;
   let vendor: VendorRead;
   let material: MaterialRead;
+  let receive: ReceiveRead;
   let barcodes: string[] = [];
 
   // Get selected row
@@ -121,6 +122,9 @@ async function handleCreateReceiveButtonClick () {
       return false;
     }
   }
+
+  // If the ST receive idno is already in WMS receive idno, stop importing.
+  // receive = await ReceivesService.getReceive()
 
   // Get ST ERP packs barcode from ST ERP receive idno
   try { barcodes = await StErpService.getStReceivePackBarcodes( stReceive.idno ); } catch ( error ) { }
