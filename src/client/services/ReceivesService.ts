@@ -24,13 +24,13 @@ export class ReceivesService {
 
     /**
      * Create Receive
-     * @param requestBody 
+     * @param requestBody
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
     public static createReceive(
-requestBody: ReceiveCreate,
-): CancelablePromise<ReceiveRead> {
+        requestBody: ReceiveCreate,
+    ): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/receives/',
@@ -44,13 +44,13 @@ requestBody: ReceiveCreate,
 
     /**
      * Get Receive
-     * @param idno 
+     * @param idno Accept `RCV20220729001` and `RAN42204` two types of receving idno.
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
     public static getReceive(
-idno: string,
-): CancelablePromise<ReceiveRead> {
+        idno: string,
+    ): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/{idno}',
@@ -65,15 +65,15 @@ idno: string,
 
     /**
      * Update Receive
-     * @param idno 
-     * @param memo 
+     * @param idno
+     * @param memo
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
     public static updateReceive(
-idno: string,
-memo: string,
-): CancelablePromise<ReceiveRead> {
+        idno: string,
+        memo: string,
+    ): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/receives/{idno}',

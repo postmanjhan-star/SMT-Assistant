@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Body_login_for_access_token } from '../models/Body_login_for_access_token';
+import type { Body_login_for_access_token_session__post } from '../models/Body_login_for_access_token_session__post';
 import type { Token } from '../models/Token';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -17,7 +17,7 @@ export class SessionService {
      * @throws ApiError
      */
     public static loginForAccessToken(
-        formData: Body_login_for_access_token,
+        formData: Body_login_for_access_token_session__post,
     ): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -37,7 +37,7 @@ export class SessionService {
      * @throws ApiError
      */
     public static refreshTokens(
-        refreshToken: any,
+        refreshToken?: any,
     ): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'GET',

@@ -1,59 +1,53 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $EpicorReceiveDetail = {
+export const $MaterialInventoryRead = {
     properties: {
-        SysRevID: {
+        id: {
             type: 'number',
             isRequired: true,
         },
-        PartNum: {
+        idno: {
             type: 'string',
             isRequired: true,
         },
-        WareHouseCode: {
-            type: 'string',
-            isRequired: true,
-        },
-        BinNum: {
-            type: 'string',
-            isRequired: true,
-        },
-        OurQty: {
-            type: 'string',
-            isRequired: true,
-        },
-        IUM: {
-            type: 'string',
-            isRequired: true,
-        },
-        PartDescription: {
-            type: 'string',
-            isRequired: true,
-        },
-        RevisionNum: {
-            type: 'string',
-            isRequired: true,
-        },
-        ReceivedTo: {
-            type: 'string',
-            isRequired: true,
-        },
-        VenPartNum: {
-            type: 'string',
-            isRequired: true,
-        },
-        LotNum: {
-            type: 'string',
-            isRequired: true,
-        },
-        NumLabels: {
+        material_id: {
             type: 'number',
             isRequired: true,
         },
-        ReceivedQty: {
+        material_idno: {
+            type: 'string',
+            isRequired: true,
+        },
+        material_name: {
+            type: 'string',
+            isRequired: true,
+        },
+        l1_storage_id: {
             type: 'number',
             isRequired: true,
+        },
+        l1_storage_idno: {
+            type: 'string',
+            isRequired: true,
+        },
+        l2_storage_id: {
+            type: 'number',
+            isRequired: true,
+        },
+        l2_storage_idno: {
+            type: 'string',
+            isRequired: true,
+        },
+        latest_qty: {
+            type: 'number',
+            isRequired: true,
+        },
+        receive_item_id: {
+            type: 'number',
+        },
+        st_barcode: {
+            type: 'string',
         },
     },
 } as const;

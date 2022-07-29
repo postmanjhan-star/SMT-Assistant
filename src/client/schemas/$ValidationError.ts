@@ -6,12 +6,7 @@ export const $ValidationError = {
         loc: {
             type: 'array',
             contains: {
-                type: 'any-of',
-                contains: [{
-                    type: 'string',
-                }, {
-                    type: 'number',
-                }],
+                type: 'string',
             },
             isRequired: true,
         },

@@ -3,17 +3,17 @@
 /* eslint-disable */
 export const $L1StorageUpdate = {
     properties: {
-        idno: {
-    type: 'string',
-    isRequired: true,
-},
         id: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
+        idno: {
+            type: 'string',
+            isRequired: true,
+        },
         name: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
     },
 } as const;

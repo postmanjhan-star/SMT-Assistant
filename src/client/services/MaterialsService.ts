@@ -15,13 +15,13 @@ export class MaterialsService {
 
     /**
      * Get Material
-     * @param idno 
+     * @param idno
      * @returns MaterialRead Successful Response
      * @throws ApiError
      */
     public static getMaterial(
-idno: string,
-): CancelablePromise<MaterialRead> {
+        idno: string,
+    ): CancelablePromise<MaterialRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{idno}',
@@ -36,13 +36,13 @@ idno: string,
 
     /**
      * Get Material In Stock Balance
-     * @param idno 
+     * @param idno
      * @returns number Successful Response
      * @throws ApiError
      */
     public static getMaterialInStockBalance(
-idno: string,
-): CancelablePromise<number> {
+        idno: string,
+    ): CancelablePromise<number> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{idno}/stock_balance',
@@ -57,13 +57,13 @@ idno: string,
 
     /**
      * Get Material Stock Records
-     * @param idno 
+     * @param idno
      * @returns MaterialStockRecord Successful Response
      * @throws ApiError
      */
     public static getMaterialStockRecords(
-idno: string,
-): CancelablePromise<Array<MaterialStockRecord>> {
+        idno: string,
+    ): CancelablePromise<Array<MaterialStockRecord>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{idno}/stock_records',
@@ -78,13 +78,13 @@ idno: string,
 
     /**
      * Get Material Stock
-     * @param idno 
+     * @param idno
      * @returns MaterialStock Successful Response
      * @throws ApiError
      */
     public static getMaterialStock(
-idno: string,
-): CancelablePromise<Array<MaterialStock>> {
+        idno: string,
+    ): CancelablePromise<Array<MaterialStock>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{idno}/stock',
@@ -111,13 +111,13 @@ idno: string,
 
     /**
      * Create Material
-     * @param requestBody 
+     * @param requestBody
      * @returns MaterialRead Successful Response
      * @throws ApiError
      */
     public static createMaterial(
-requestBody: MaterialCreate,
-): CancelablePromise<MaterialRead> {
+        requestBody: MaterialCreate,
+    ): CancelablePromise<MaterialRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/materials/',
@@ -131,15 +131,15 @@ requestBody: MaterialCreate,
 
     /**
      * Update Material
-     * @param id 
-     * @param requestBody 
+     * @param id
+     * @param requestBody
      * @returns MaterialRead Successful Response
      * @throws ApiError
      */
     public static updateMaterial(
-id: number,
-requestBody: MaterialUpdate,
-): CancelablePromise<MaterialRead> {
+        id: number,
+        requestBody: MaterialUpdate,
+    ): CancelablePromise<MaterialRead> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/materials/{id}',

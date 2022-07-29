@@ -14,4 +14,8 @@ export enum UnitEnum {
     PACK = 'PACK',
     SHEET = 'SHEET',
     BAG = 'BAG',
+    SET = 'SET',
+    KG = 'KG',
+    GRAM = 'GRAM',
+    LITRE = 'LITRE',
 }

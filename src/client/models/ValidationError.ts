@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 export type ValidationError = {
-    loc: Array<(string | number)>;
+    loc: Array<string>;
     msg: string;
     type: string;
 };

@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $Body_login_for_access_token = {
+export const $Body_login_for_access_token_session__post = {
     properties: {
         grant_type: {
             type: 'string',

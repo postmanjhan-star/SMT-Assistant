@@ -4,32 +4,32 @@
 export const $STPart = {
     properties: {
         idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         spec_1: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         spec_2: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         unit: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         base_storage_1: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         base_storage_2: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         qty_per_pack: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
     },
 } as const;

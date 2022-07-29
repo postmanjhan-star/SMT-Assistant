@@ -26,13 +26,13 @@ export class AccountsService {
 
     /**
      * Create Employee Account
-     * @param requestBody 
+     * @param requestBody
      * @returns AccountRead Successful Response
      * @throws ApiError
      */
     public static createEmployeeAccount(
-requestBody: EmployeeAccountCreate,
-): CancelablePromise<AccountRead> {
+        requestBody: EmployeeAccountCreate,
+    ): CancelablePromise<AccountRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/',
@@ -46,13 +46,13 @@ requestBody: EmployeeAccountCreate,
 
     /**
      * Get Account Employee Information
-     * @param idno 
+     * @param idno
      * @returns EmployeeAccountRead Successful Response
      * @throws ApiError
      */
     public static getAccountEmployeeInformation(
-idno: string,
-): CancelablePromise<EmployeeAccountRead> {
+        idno: string,
+    ): CancelablePromise<EmployeeAccountRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/accounts/{idno}',
@@ -67,15 +67,15 @@ idno: string,
 
     /**
      * Update Account Employee
-     * @param idno 
-     * @param requestBody 
+     * @param idno
+     * @param requestBody
      * @returns EmployeeAccountRead Successful Response
      * @throws ApiError
      */
     public static updateAccountEmployee(
-idno: string,
-requestBody: EmployeeAccountUpdate,
-): CancelablePromise<EmployeeAccountRead> {
+        idno: string,
+        requestBody: EmployeeAccountUpdate,
+    ): CancelablePromise<EmployeeAccountRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/accounts/{idno}',

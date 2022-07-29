@@ -4,35 +4,35 @@
 export const $EpicorReceive = {
     properties: {
         SysRevID: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         VendorNum: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         ReceiptDate: {
-    type: 'string',
-    isRequired: true,
-    format: 'date-time',
-},
+            type: 'string',
+            isRequired: true,
+            format: 'date-time',
+        },
         PackSlip: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         PONum: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         VendorNumName: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         ReceiveDetails: {
-    type: 'array',
-    contains: {
-        type: 'EpicorReceiveDetail',
-    },
-},
+            type: 'array',
+            contains: {
+                type: 'EpicorReceiveDetail',
+            },
+        },
     },
 } as const;

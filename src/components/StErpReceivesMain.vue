@@ -124,7 +124,12 @@ async function handleCreateReceiveButtonClick () {
   }
 
   // If the ST receive idno is already in WMS receive idno, stop importing.
-  // receive = await ReceivesService.getReceive()
+  receive = await ReceivesService.getReceive( stReceive.idno );
+  if ( receive ) {
+    message.error( '此收料單已匯入過，不可重複匯入' );
+    loadingRef.value = false;
+    return false;
+  }
 
   // Get ST ERP packs barcode from ST ERP receive idno
   try { barcodes = await StErpService.getStReceivePackBarcodes( stReceive.idno ); } catch ( error ) { }
