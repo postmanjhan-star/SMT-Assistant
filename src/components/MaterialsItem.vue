@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ApiError, MaterialsService, MaterialUpdate, OpenAPI, UnitEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 import MaterialsItemInventory from "./MaterialsItemInventory.vue";
+import MaterialsItemStock from "./MaterialsItemStock.vue";
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
@@ -93,7 +94,7 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
 
         <n-tabs type="line" size="large">
 
-          <n-tab-pane name="propertie" tab="基本屬性">
+          <n-tab-pane name="properties" tab="基本屬性">
             <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
               <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
@@ -137,8 +138,12 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane name="the beatles" tab="料況統計">
+          <n-tab-pane name="inventories" tab="料況統計">
             <materials-item-inventory></materials-item-inventory>
+          </n-tab-pane>
+
+          <n-tab-pane name="stocks" tab="庫存明細">
+            <materials-item-stock></materials-item-stock>
           </n-tab-pane>
 
         </n-tabs>

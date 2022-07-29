@@ -31,5 +31,8 @@ export const $MaterialStock = {
     type: 'number',
     isRequired: true,
 },
+        st_barcode: {
+    type: 'string',
+},
     },
 } as const;
