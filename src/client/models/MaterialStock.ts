@@ -10,4 +10,5 @@ export type MaterialStock = {
     l2_storage_id: number;
     l2_storage_idno: string;
     quantity: number;
+    st_barcode?: string;
 };
