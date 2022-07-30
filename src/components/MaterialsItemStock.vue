@@ -6,20 +6,20 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NSpace } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { MaterialStock, MaterialsService } from '../client';
+import { MaterialInventoryRead, MaterialsService } from '../client';
 
 const route = useRoute();
 
 const gridApi = ref();
 const gridColumnApi = ref();
-const rowData = ref<MaterialStock[]>( [] );
+const rowData = ref<MaterialInventoryRead[]>( [] );
 
 const columnDefs: ColDef[] = [
-    { field: "material_inventory_idno", headerName: '單包代碼' },
+    { field: "idno", headerName: '單包代碼' },
     { field: "st_barcode", headerName: '舊 ERP 單包代碼'},
     { field: "l1_storage_idno", headerName: '倉位代碼' },
     { field: "l2_storage_idno", headerName: '儲位代碼' },
-    { field: "quantity", headerName: '數量' },
+    { field: "latest_qty", headerName: '數量' },
 ];
 
 const defaultColDef = {
@@ -48,9 +48,9 @@ const gridOptions: GridOptions = {
 }
 
 
-onBeforeMount( async () => { rowData.value = await MaterialsService.getMaterialStock( route.params.idno.toString() ) } );
+onBeforeMount( async () => { rowData.value = await MaterialsService.getMaterialInventories( route.params.idno.toString() ) } );
 
-function getRowId ( params: GetRowIdParams ) { return params.data.material_inventory_id; }
+function getRowId ( params: GetRowIdParams ) { return params.data.id; }
 
 async function onGridReady ( params: GridReadyEvent ) {
     gridApi.value = params.api;

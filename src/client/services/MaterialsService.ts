@@ -2,8 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { MaterialCreate } from '../models/MaterialCreate';
+import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialRead } from '../models/MaterialRead';
-import type { MaterialStock } from '../models/MaterialStock';
 import type { MaterialStockRecord } from '../models/MaterialStockRecord';
 import type { MaterialUpdate } from '../models/MaterialUpdate';
 
@@ -77,14 +77,14 @@ export class MaterialsService {
     }
 
     /**
-     * Get Material Stock
+     * Get Material Inventories
      * @param idno
-     * @returns MaterialStock Successful Response
+     * @returns MaterialInventoryRead Successful Response
      * @throws ApiError
      */
-    public static getMaterialStock(
+    public static getMaterialInventories(
         idno: string,
-    ): CancelablePromise<Array<MaterialStock>> {
+    ): CancelablePromise<Array<MaterialInventoryRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{idno}/stock',
