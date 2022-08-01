@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NButton, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui';
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ApiError, MaterialCreate, MaterialsService, OpenAPI, StErpService, UnitEnum } from '../client';
@@ -44,9 +44,7 @@ const rules: FormRules = {
 async function handleCreateMaterialButtonClick ( evnet: Event ) {
   // Check if any empyt fields
   try {
-    await formRef.value?.validate( async ( error ) => {
-      if ( error ) { throw error; }
-    } );
+    await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } );
   } catch ( error ) {
     message.error( '請輸入必填爛位' );
     return false;
@@ -88,7 +86,6 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
     else { message.error( '匯入失敗' ); }
   } finally { loadingRef.value = false; }
 }
-
 </script>
 
 <template>
@@ -127,18 +124,15 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
 
             <n-form-item-gi show-require-mark label="物料代碼" path="idno" autofocus>
               <n-input v-model:value.lazy=" formValue.idno " autofocus
-                :input-props=" { style: 'text-transform: uppercase;' } ">
-              </n-input>
+                :input-props=" { style: 'text-transform: uppercase;' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="物料名稱" path="name">
-              <n-input v-model:value.lazy=" formValue.name ">
-              </n-input>
+              <n-input v-model:value.lazy=" formValue.name "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi label="物料說明" path="description">
-              <n-input v-model:value.lazy=" formValue.description ">
-              </n-input>
+              <n-input v-model:value.lazy=" formValue.description "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本單位" path="unit">
@@ -147,17 +141,12 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
 
             <n-form-item-gi show-require-mark label="基本包裝量">
               <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 1 ">
-              </n-input-number>
+                :precision=" 0 " :default-value=" 1 "></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="有效期間">
               <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 365 ">
-                <template #suffix>
-                  日
-                </template>
-              </n-input-number>
+                :precision=" 0 " :default-value=" 365 "><template #suffix>日</template></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi span="3">
