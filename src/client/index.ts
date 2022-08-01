@@ -7,7 +7,7 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AccountRead } from './models/AccountRead';
-export type { Body_login_for_access_token_session__post } from './models/Body_login_for_access_token_session__post';
+export type { Body_login_for_access_token } from './models/Body_login_for_access_token';
 export type { EmployeeAccountCreate } from './models/EmployeeAccountCreate';
 export type { EmployeeAccountRead } from './models/EmployeeAccountRead';
 export type { EmployeeAccountUpdate } from './models/EmployeeAccountUpdate';
@@ -44,7 +44,7 @@ export type { VendorRead } from './models/VendorRead';
 export type { VendorUpdate } from './models/VendorUpdate';
 
 export { $AccountRead } from './schemas/$AccountRead';
-export { $Body_login_for_access_token_session__post } from './schemas/$Body_login_for_access_token_session__post';
+export { $Body_login_for_access_token } from './schemas/$Body_login_for_access_token';
 export { $EmployeeAccountCreate } from './schemas/$EmployeeAccountCreate';
 export { $EmployeeAccountRead } from './schemas/$EmployeeAccountRead';
 export { $EmployeeAccountUpdate } from './schemas/$EmployeeAccountUpdate';

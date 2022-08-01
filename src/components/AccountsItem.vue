@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import { ref, onBeforeMount } from 'vue';
-import { RouterLink, useRouter, useRoute } from 'vue-router';
-import { NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
-import { NSpace, NGrid } from 'naive-ui';
-import { NForm, NFormItemGi, NInput, NButton, FormInst, FormRules, NSelect } from 'naive-ui';
-import { NA, NH1 } from 'naive-ui';
-import { useMessage } from 'naive-ui';
-import { OpenAPI, AccountsService, EmployeeAccountRead, EmployeeAccountUpdate, ApiError } from '../client';
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSelect, NSpace, useMessage } from 'naive-ui';
+import { onBeforeMount, ref } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { AccountsService, ApiError, EmployeeAccountRead, EmployeeAccountUpdate, EmployeeRoleEnum, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
-import { EmployeeRoleEnum } from '../client';
 
 const message = useMessage();
 
@@ -26,52 +21,31 @@ const formRef = ref<FormInst | null>( null );
 const rules: FormRules = {};
 
 const role_options = [
-  {
-    label: '一般用戶',
-    value: 'NORMAL',
-  },
-  {
-    label: '管理員',
-    value: 'ADMIN',
-    // disabled: true,
-  },
-  {
-    label: '系統管理員',
-    value: 'SYSTEM_ADMIN',
-    disabled: true,
-  },
+  { label: '一般用戶', value: 'NORMAL' },
+  { label: '管理員', value: 'ADMIN' },
+  { label: '系統管理員', value: 'SYSTEM_ADMIN', disabled: true },
 ]
 
 onBeforeMount( async () => {
   try {
     currentValue.value = await AccountsService.getAccountEmployeeInformation( route.params.idno.toString() );
-    // console.debug( currentValue.value );
     uiFormValue.value.username = currentValue.value.username;
     uiFormValue.value.idno = currentValue.value.idno;
     uiFormValue.value.full_name = currentValue.value.full_name;
     uiFormValue.value.roles = currentValue.value.roles;
-  } catch ( error ) {
-    if ( error instanceof ApiError ) {
-      if ( error.status === 404 ) {
-        router.push( '/404' );
-      }
-    }
-  }
+  } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
 } );
 
-async function handleCreateAccountButtonClick ( event ) {
+async function handleCreateAccountButtonClick ( event: Event ) {
   updateValue.value.full_name = uiFormValue.value.full_name;
   if ( uiFormValue.value.password ) updateValue.value.password = uiFormValue.value.password;
   updateValue.value.roles = uiFormValue.value.roles;
-  // console.debug( updateValue.value );
 
   try {
     const response = await AccountsService.updateAccountEmployee( route.params.idno.toString(), updateValue.value );
     message.success( '更新成功' );
-  } catch ( error ) {
-    message.error( '更新失敗' );
-  }
+  } catch ( error ) { message.error( '更新失敗' ); }
 }
 
 </script>

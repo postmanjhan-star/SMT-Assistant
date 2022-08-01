@@ -1,12 +1,11 @@
 <script setup>
-import { RouterView } from "vue-router";
-import { NConfigProvider, NMessageProvider } from 'naive-ui';
-import { zhTW, dateZhTW } from 'naive-ui';
 import Color from 'color';
+import { dateZhTW, NConfigProvider, NMessageProvider, zhTW, NNotificationProvider } from 'naive-ui';
+import { RouterView } from "vue-router";
 
 const borderColor = Color( 'hsla(0, 0%, 84%, 1.0)' );
 const railColor = Color( 'hsla(0, 0%, 60%, 1.0)' )
-const inputColor = Color(  'hsla(0, 0%, 96%, 1.0)' );
+const inputColor = Color( 'hsla(0, 0%, 96%, 1.0)' );
 
 /**
  * js 文件下使用这个做类型提示
@@ -31,10 +30,12 @@ const themeOverrides = {
   <n-config-provider :locale=" zhTW " :date-locale=" dateZhTW " inline-theme-disabled
     :theme-overrides=" themeOverrides ">
     <n-message-provider>
-      <header>
-        <!-- <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" /> -->
-      </header>
-      <RouterView />
+      <n-notification-provider>
+        <header>
+          <!-- <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" /> -->
+        </header>
+        <RouterView />
+      </n-notification-provider>
     </n-message-provider>
   </n-config-provider>
 </template>

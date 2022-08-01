@@ -248,7 +248,7 @@ async function handleCreateReceiveButtonClick ( event: Event ) {
       <n-breadcrumb-item>物料管理</n-breadcrumb-item>
       <n-breadcrumb-item>
         <router-link to="/receives" #=" { navigate, href } " custom>
-          <n-a :href=" href " @click=" navigate ">收料管理</n-a>
+          <n-a :href=" href " @click=" navigate ">收料作業</n-a>
         </router-link>
       </n-breadcrumb-item>
       <n-breadcrumb-item>建立收料單</n-breadcrumb-item>

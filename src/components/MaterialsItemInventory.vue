@@ -51,7 +51,9 @@ const gridOptions: GridOptions = {
 function translateCause ( cause: InventoryChangeCauseEnum ) {
     switch ( cause ) {
         case InventoryChangeCauseEnum.RECEVING: return '收料';
+        case InventoryChangeCauseEnum.TRANSFERING: return '調撥';
     }
+    return '其他';
 }
 
 onBeforeMount( async () => {

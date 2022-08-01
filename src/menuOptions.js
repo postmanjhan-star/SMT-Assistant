@@ -18,8 +18,12 @@ const materialMenuOptions = [
         key: 'materials'
     },
     {
-        label: () => h( RouterLink, { to: '/receives' }, { default: () => '收料管理' } ),
+        label: () => h( RouterLink, { to: '/receives' }, { default: () => '收料作業' } ),
         key: 'receives'
+    },
+    {
+        label: () => h( RouterLink, { to: '/transfers' }, { default: () => '調撥作業' } ),
+        key: 'transfers'
     },
     {
         label: () => h( RouterLink, { to: '/st_erp_receives' }, { default: () => '舊 ERP 收料紀錄' } ),

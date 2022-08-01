@@ -1,11 +1,8 @@
 <script setup>
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NDataTable, NH1, NSpace } from 'naive-ui';
 import { onBeforeMount, reactive } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { NBreadcrumb, NBreadcrumbItem } from 'naive-ui';
-import { NA, NH1, NButton, NDataTable } from 'naive-ui';
-import { NSpace } from 'naive-ui';
-import { StoragesService } from '../client';
-import { OpenAPI } from '../client';
+import { OpenAPI, StoragesService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -16,36 +13,23 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const data = reactive( [] );
 
 const columns = [
-  {
-    title: '倉位代碼',
-    key: 'idno',
-  },
-  {
-    title: '倉位名稱',
-    key: 'name',
-  },
+  { title: '倉位代碼', key: 'idno' },
+  { title: '倉位名稱', key: 'name' },
 ]
 
 const rowProps = ( row ) => {
   return {
     style: 'cursor: pointer;',
-    onclick: () => {
-      router.push( `/storages/${ row.idno }` );
-    },
+    onclick: () => { router.push( `/storages/${ row.idno }` ); },
   }
 };
 
 onBeforeMount( async () => {
   let storagesData = await StoragesService.getStorages();
-  for ( let row of storagesData ) {
-    data.push( row );
-  }
-  // console.debug( 'data:\n', data );
+  for ( let row of storagesData ) { data.push( row ); }
 } );
 
-function handleCreateStoreageButtonClick () {
-  router.push( '/storages/create' );
-}
+function handleCreateStoreageButtonClick () { router.push( '/storages/create' ); }
 </script>
 
 <template>

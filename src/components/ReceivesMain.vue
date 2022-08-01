@@ -113,11 +113,11 @@ async function handleGenerateLabelsButtonClick () {
         </router-link>
       </n-breadcrumb-item>
       <n-breadcrumb-item>物料管理</n-breadcrumb-item>
-      <n-breadcrumb-item>收料管理</n-breadcrumb-item>
+      <n-breadcrumb-item>收料作業</n-breadcrumb-item>
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">收料管理</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">收料作業</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
