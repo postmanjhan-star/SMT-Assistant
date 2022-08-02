@@ -24,10 +24,7 @@ const columns = [
 const rowProps = ( row ) => {
   return {
     style: 'cursor: pointer;',
-    onclick: () => {
-      // console.debug( row.username );
-      router.push( `/accounts/${ row.username }` );
-    },
+    onclick: () => { router.push( `/accounts/${ row.username }` ); },
   }
 };
 

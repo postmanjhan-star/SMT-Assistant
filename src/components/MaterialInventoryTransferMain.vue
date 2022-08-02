@@ -230,8 +230,9 @@ async function handleGoToStep2ButtonClick () {
           <n-space size="large">
 
             <n-form-item label="單包代碼">
+              <!-- inputmode need to be dynamic controled by a button -->
               <n-input v-model:value.vendor_shipping_idno=" materialInventoryAdditionFormValue.idno "
-                ref="materialInventoryIdnoInput"></n-input>
+                ref="materialInventoryIdnoInput" autofocus clearable :input-props=" { inputmode: 'none' } "></n-input>
             </n-form-item>
 
             <n-form-item>
