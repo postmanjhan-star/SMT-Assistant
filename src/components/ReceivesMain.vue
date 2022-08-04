@@ -3,7 +3,7 @@ import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-c
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, useMessage } from 'naive-ui';
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
 import { onBeforeMount, reactive, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { OpenAPI, ReceiveRead, ReceivesService } from '../client';
@@ -74,31 +74,53 @@ async function handleGenerateLabelsButtonClick () {
 
   // Check if a row is selected
   if ( selectedRows.length === 0 ) {
-    message.info( '請選擇 ERP 收料單' );
+    message.info( '請選擇收料單' );
     return false;
   }
 
   // check if the row has a ST ERP receive_idno
   receive = selectedRows[ 0 ];
-  if ( receive.st_receive_idno === null ) {
-    message.warning( '此收料單非舊 ERP 收料單' );
-    return false;
+  for ( let receive_item of receive.receive_items ) {
+    // Direct to PDF URL
+    const url = `/api/receives/${ receive.idno }/${ receive_item.id }/labels`;
+    window.open( url, '_blank' );
   }
-
-  // Fetch PDF and download. Does not work. PDF gets no content, all empty.
-  // const pdf: Blob = await StErpService.printStReceivePacksLabel( receive.st_receive_idno as string, Printer.PLAYWRIGHT );
-  // const blob = new Blob( [ pdf ], { type: 'application/pdf' } )
-  // const fileAnchor = document.createElement( 'a' );
-  // fileAnchor.href = URL.createObjectURL( blob );
-  // fileAnchor.setAttribute( 'download', 'sample.pdf' );
-  // fileAnchor.click();
-  // URL.revokeObjectURL( fileAnchor.href );
-
-  // Direct to PDF URL
-  const url = `/api/st_erp/receives/${ receive.st_receive_idno }/packs_label`
-  // window.location.href = url;
-  window.open( url );
 }
+
+
+// async function handleGenerateStErpLabelsButtonClick () {
+//   let receive: ReceiveRead;
+
+//   // Get selected row
+//   const selectedRows: ReceiveRead[] = gridApi.value.getSelectedRows();
+
+//   // Check if a row is selected
+//   if ( selectedRows.length === 0 ) {
+//     message.info( '請選擇 ERP 收料單' );
+//     return false;
+//   }
+
+//   // check if the row has a ST ERP receive_idno
+//   receive = selectedRows[ 0 ];
+//   if ( receive.st_receive_idno === null ) {
+//     message.warning( '此收料單非舊 ERP 收料單' );
+//     return false;
+//   }
+
+//   // Fetch PDF and download. Does not work. PDF gets no content, all empty.
+//   // const pdf: Blob = await StErpService.printStReceivePacksLabel( receive.st_receive_idno as string, Printer.PLAYWRIGHT );
+//   // const blob = new Blob( [ pdf ], { type: 'application/pdf' } )
+//   // const fileAnchor = document.createElement( 'a' );
+//   // fileAnchor.href = URL.createObjectURL( blob );
+//   // fileAnchor.setAttribute( 'download', 'sample.pdf' );
+//   // fileAnchor.click();
+//   // URL.revokeObjectURL( fileAnchor.href );
+
+//   // Direct to PDF URL
+//   const url = `/api/st_erp/receives/${ receive.st_receive_idno }/packs_label`
+//   // window.location.href = url;
+//   window.open( url );
+// }
 </script>
 
 
@@ -125,7 +147,14 @@ async function handleGenerateLabelsButtonClick () {
 
           <n-button type="primary" @click=" handleCreateReceiveButtonClick ">建立收料單</n-button>
 
-          <n-button @click=" handleGenerateLabelsButtonClick ">產生舊 ERP 標籤貼紙</n-button>
+          <n-tooltip>
+            <template #trigger>
+              <n-button @click=" handleGenerateLabelsButtonClick ">產生 WMS 標籤貼紙</n-button>
+            </template>
+            請不要讓瀏覽器封鎖新視窗
+          </n-tooltip>
+
+          <!-- <n-button @click=" handleGenerateStErpLabelsButtonClick ">產生舊 ERP 標籤貼紙</n-button> -->
 
         </n-space>
 
