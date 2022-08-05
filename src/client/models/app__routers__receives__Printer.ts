@@ -5,8 +5,8 @@
 /**
  * An enumeration.
  */
-export enum Printer {
-    PLAYWRIGHT = 'playwright',
+export enum app__routers__receives__Printer {
     WEASYPRINT = 'weasyprint',
+    PLAYWRIGHT = 'playwright',
     BROWSER = 'browser',
 }

@@ -4,9 +4,9 @@
 
 export type ReceiveItemRead = {
     id: number;
-    material_id: number;
     receive_id: number;
-    qualify_qty: number;
-    total_qty: number;
+    material_id: number;
     material_idno: string;
+    total_qty: number;
+    qualify_qty: number;
 };

@@ -1,29 +1,21 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $ReceiveItemRead = {
+export const $IssuanceItemCreate = {
     properties: {
-        id: {
+        issuance_id: {
     type: 'number',
     isRequired: true,
 },
-        receive_id: {
+        material_inventory_id: {
     type: 'number',
     isRequired: true,
 },
-        material_id: {
+        issue_qty: {
     type: 'number',
     isRequired: true,
 },
-        material_idno: {
-    type: 'string',
-    isRequired: true,
-},
-        total_qty: {
-    type: 'number',
-    isRequired: true,
-},
-        qualify_qty: {
+        lend_qty: {
     type: 'number',
     isRequired: true,
 },
