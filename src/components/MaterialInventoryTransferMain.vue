@@ -176,13 +176,17 @@ async function handleGoToStep2ButtonClick () {
     }
 
     // Send transfer request
-    const transferRequest: MaterialInventoryTransferCreate = {
+    const transferRequests: MaterialInventoryTransferCreate[] = [ {
       to_l2_storage_id: storageValue.value,
       quantity: row.latest_qty,
-      cause: InventoryChangeCauseEnum.TRANSFERING,
-    }
+      major: true,
+    } ]
     try {
-      await MaterialInventoriesService.transferMaterialInventory( row.idno, transferRequest );
+      await MaterialInventoriesService.transferMaterialInventory(
+        row.idno,
+        InventoryChangeCauseEnum.TRANSFERING,
+        transferRequests,
+      );
       successList.push( row.idno );
     } catch ( error ) { errorList.push( row.idno ); };
   }

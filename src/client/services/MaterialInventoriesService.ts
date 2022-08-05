@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { InventoryChangeCauseEnum } from '../models/InventoryChangeCauseEnum';
 import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialInventoryTransferCreate } from '../models/MaterialInventoryTransferCreate';
 
@@ -13,19 +14,24 @@ export class MaterialInventoriesService {
     /**
      * Transfer Material Inventory
      * @param idno 
+     * @param cause 
      * @param requestBody 
      * @returns boolean Successful Response
      * @throws ApiError
      */
     public static transferMaterialInventory(
 idno: string,
-requestBody: MaterialInventoryTransferCreate,
+cause: InventoryChangeCauseEnum,
+requestBody: Array<MaterialInventoryTransferCreate>,
 ): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/material_inventories/{idno}/transfer',
             path: {
                 'idno': idno,
+            },
+            query: {
+                'cause': cause,
             },
             body: requestBody,
             mediaType: 'application/json',

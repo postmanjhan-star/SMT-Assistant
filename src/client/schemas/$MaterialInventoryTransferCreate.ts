@@ -9,10 +9,9 @@ export const $MaterialInventoryTransferCreate = {
 },
         quantity: {
     type: 'number',
-    isRequired: true,
 },
-        cause: {
-    type: 'InventoryChangeCauseEnum',
+        major: {
+    type: 'boolean',
     isRequired: true,
 },
     },
