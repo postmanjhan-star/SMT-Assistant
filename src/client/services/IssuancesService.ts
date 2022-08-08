@@ -2,8 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { IssuanceCreate } from '../models/IssuanceCreate';
-import type { IssuanceItem } from '../models/IssuanceItem';
 import type { IssuanceItemCreate } from '../models/IssuanceItemCreate';
+import type { IssuanceItemRead } from '../models/IssuanceItemRead';
 import type { IssuanceRead } from '../models/IssuanceRead';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -26,18 +26,18 @@ export class IssuancesService {
 
     /**
      * Get Issuance
-     * @param idno 
+     * @param issuanceIdno 
      * @returns IssuanceRead Successful Response
      * @throws ApiError
      */
     public static getIssuance(
-idno: string,
+issuanceIdno: string,
 ): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/issuances/{idno}',
+            url: '/issuances/{issuance_idno}',
             path: {
-                'idno': idno,
+                'issuance_idno': issuanceIdno,
             },
             errors: {
                 422: `Validation Error`,
@@ -66,21 +66,21 @@ requestBody: IssuanceCreate,
     }
 
     /**
-     * Create Issuance Item
-     * @param idno 
+     * Create Issuance Items
+     * @param issuanceIdno 
      * @param requestBody 
-     * @returns IssuanceItem Successful Response
+     * @returns IssuanceItemRead Successful Response
      * @throws ApiError
      */
-    public static createIssuanceItem(
-idno: string,
+    public static createIssuanceItems(
+issuanceIdno: string,
 requestBody: Array<IssuanceItemCreate>,
-): CancelablePromise<IssuanceItem> {
+): CancelablePromise<Array<IssuanceItemRead>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/issuances/{idno}/create',
+            url: '/issuances/{issuance_idno}/create',
             path: {
-                'idno': idno,
+                'issuance_idno': issuanceIdno,
             },
             body: requestBody,
             mediaType: 'application/json',

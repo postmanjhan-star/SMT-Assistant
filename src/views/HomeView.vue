@@ -14,13 +14,7 @@ const accountStore = useAccountStore();
 const token = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const claims = jose.decodeJwt( token );
 
-const accountMenuOptions = [
-  {
-    label: '登出',
-    key: 'logout',
-    disabled: false,
-  },
-]
+const accountMenuOptions = [ { label: '登出', key: 'logout', disabled: false } ]
 
 
 function handleAccountMenuSelect ( key ) {

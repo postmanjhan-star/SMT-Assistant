@@ -111,6 +111,10 @@ const routes = [
         component: () => import( "../components/MaterialInventoryTransferMain.vue" ),
       },
       {
+        path: '/issuances',
+        component: () => import( "../components/IssuancesMain.vue" ),
+      },
+      {
         path: '/st_erp_receives',
         component: () => import( "../components/StErpReceivesMain.vue" ),
       },
