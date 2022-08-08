@@ -1,58 +1,36 @@
 <script setup lang="ts">
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NH1, NInput, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { RouterLink } from 'vue-router';
-import { NBreadcrumb, NBreadcrumbItem, NA, NH1, NSpace } from 'naive-ui';
-import { NForm, NFormItem, NInput, NButton } from 'naive-ui';
-import { useMessage } from 'naive-ui';
-import { FormRules, FormInst } from 'naive-ui';
-import { EmployeeAccountCreate, AccountsService, ApiError } from '../client';
-import { OpenAPI } from '../client';
+import { AccountsService, ApiError, EmployeeAccountCreate, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 
 const message = useMessage();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
-const formValue = ref<EmployeeAccountCreate>( { username: null, password: null } );
+const formValue = ref<EmployeeAccountCreate>( { username: '', password: '' } );
 const formRef = ref<FormInst | null>( null );
 
 const rules: FormRules = {
-  username: {
-    required: true,
-    message: '請输入帳號',
-    trigger: [ 'blur' ],
-  },
-  password: {
-    required: true,
-    message: '請输入密碼',
-    trigger: [ 'input', 'blur' ],
-  }
+  username: { required: true, message: '請输入帳號', trigger: [ 'blur' ] },
+  password: { required: true, message: '請输入密碼', trigger: [ 'input', 'blur' ] }
 };
 
 async function createAccount ( newAccountData: EmployeeAccountCreate ) {
   try {
-    // console.debug( newAccountData );
     const response = await AccountsService.createEmployeeAccount( newAccountData )
-    // console.debug( 'Response:\n', response );
     message.success( `${ response.username } 建立成功` );
   } catch ( error ) {
-    if ( error instanceof ApiError ) {
-      // console.error( 'Error status:\n', error.status );
-      // console.error( 'Error status text: \n', error.statusText );
-      if ( error.status === 409 ) {
-        message.error( '帳號已存在，無法再次建立' );
-      } else { throw error; }
-    } else { throw error; }
+    if ( error instanceof ApiError && error.status === 409 ) { message.error( '帳號已存在，無法再次建立' ); }
+    else { throw error; }
   }
 }
 
 async function handleCreateAccountButtonClick ( event: Event ) {
   formRef.value?.validate( async ( errors ) => {
-    if ( !errors ) {
-      createAccount( formValue.value );
-    } else {
-      message.error( '請輸入帳號密碼' );
-    }
+    if ( !errors ) { createAccount( formValue.value ); }
+    else { message.error( '請輸入帳號密碼' ); }
   } );
 }
 </script>

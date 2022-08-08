@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { app__routers__receives__Printer } from '../models/app__routers__receives__Printer';
 import type { ReceiveCreate } from '../models/ReceiveCreate';
 import type { ReceiveRead } from '../models/ReceiveRead';
 
@@ -24,13 +25,13 @@ export class ReceivesService {
 
     /**
      * Create Receive
-     * @param requestBody
+     * @param requestBody 
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
     public static createReceive(
-        requestBody: ReceiveCreate,
-    ): CancelablePromise<ReceiveRead> {
+requestBody: ReceiveCreate,
+): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/receives/',
@@ -49,8 +50,8 @@ export class ReceivesService {
      * @throws ApiError
      */
     public static getReceive(
-        idno: string,
-    ): CancelablePromise<ReceiveRead> {
+idno: string,
+): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/{idno}',
@@ -65,15 +66,15 @@ export class ReceivesService {
 
     /**
      * Update Receive
-     * @param idno
-     * @param memo
+     * @param idno 
+     * @param memo 
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
     public static updateReceive(
-        idno: string,
-        memo: string,
-    ): CancelablePromise<ReceiveRead> {
+idno: string,
+memo: string,
+): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/receives/{idno}',
@@ -82,6 +83,35 @@ export class ReceivesService {
             },
             query: {
                 'memo': memo,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Receive Item Labels
+     * @param idno 
+     * @param receiveItemId 
+     * @param printer 
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getReceiveItemLabels(
+idno: string,
+receiveItemId: number,
+printer?: app__routers__receives__Printer,
+): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/receives/{idno}/{receive_item_id}/labels',
+            path: {
+                'idno': idno,
+                'receive_item_id': receiveItemId,
+            },
+            query: {
+                'printer': printer,
             },
             errors: {
                 422: `Validation Error`,

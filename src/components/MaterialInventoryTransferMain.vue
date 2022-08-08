@@ -6,7 +6,7 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { CascaderOption, NA, NBreadcrumb, NBreadcrumbItem, NButton, NCascader, NForm, NFormItem, NH1, NInput, NSpace, useMessage, useNotification } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, InventoryChangeCauseEnum, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService } from '../client';
+import { ApiError, InventoryChangeCauseEnum, MaterialInventoriesService, MaterialInventoryRead, MaterialInventoryTransferCreate, OpenAPI, StoragesService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -111,19 +111,18 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
   // Check duplication
   for ( let row of rowData.value ) {
     // By material inventory's idno
-    if ( materialInventoryAdditionFormValue.value.idno === row.idno ) {
+    if ( materialInventoryAdditionFormValue.value.idno.trim() === row.idno ) {
       message.info( '此單包已加入' );
       clearMaterialInventoryAdditionFormAndFocus();
       return false;
     }
 
     // By material inventory's ST barcode
-    if ( materialInventoryAdditionFormValue.value.idno === row.st_barcode ) {
+    if ( materialInventoryAdditionFormValue.value.idno.trim() === row.st_barcode ) {
       message.info( '此單包已加入' );
       clearMaterialInventoryAdditionFormAndFocus();
       return false;
     }
-
   }
 
   // Check if the material inventory exists
@@ -177,8 +176,17 @@ async function handleGoToStep2ButtonClick () {
     }
 
     // Send transfer request
+    const transferRequests: MaterialInventoryTransferCreate[] = [ {
+      to_l2_storage_id: storageValue.value,
+      quantity: row.latest_qty,
+      major: true,
+    } ]
     try {
-      await MaterialInventoriesService.transferMaterialInventory( row.idno, storageValue.value, row.latest_qty, InventoryChangeCauseEnum.TRANSFERING );
+      await MaterialInventoriesService.transferMaterialInventory(
+        row.idno,
+        InventoryChangeCauseEnum.TRANSFERING,
+        transferRequests,
+      );
       successList.push( row.idno );
     } catch ( error ) { errorList.push( row.idno ); };
   }
@@ -230,8 +238,9 @@ async function handleGoToStep2ButtonClick () {
           <n-space size="large">
 
             <n-form-item label="單包代碼">
+              <!-- inputmode need to be dynamic controled by a button -->
               <n-input v-model:value.vendor_shipping_idno=" materialInventoryAdditionFormValue.idno "
-                ref="materialInventoryIdnoInput"></n-input>
+                ref="materialInventoryIdnoInput" autofocus clearable :input-props=" { inputmode: 'none' } "></n-input>
             </n-form-item>
 
             <n-form-item>

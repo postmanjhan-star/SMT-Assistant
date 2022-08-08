@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { InventoryChangeCauseEnum } from '../models/InventoryChangeCauseEnum';
 import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
+import type { MaterialInventoryTransferCreate } from '../models/MaterialInventoryTransferCreate';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -13,17 +14,15 @@ export class MaterialInventoriesService {
     /**
      * Transfer Material Inventory
      * @param idno 
-     * @param toL2StorageId 
-     * @param quantity 
      * @param cause 
+     * @param requestBody 
      * @returns boolean Successful Response
      * @throws ApiError
      */
     public static transferMaterialInventory(
 idno: string,
-toL2StorageId: number,
-quantity: number,
 cause: InventoryChangeCauseEnum,
+requestBody: Array<MaterialInventoryTransferCreate>,
 ): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -32,10 +31,10 @@ cause: InventoryChangeCauseEnum,
                 'idno': idno,
             },
             query: {
-                'to_l2_storage_id': toL2StorageId,
-                'quantity': quantity,
                 'cause': cause,
             },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
