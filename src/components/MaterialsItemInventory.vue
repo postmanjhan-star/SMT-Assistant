@@ -52,6 +52,7 @@ function translateCause ( cause: InventoryChangeCauseEnum ) {
     switch ( cause ) {
         case InventoryChangeCauseEnum.RECEVING: return '收料';
         case InventoryChangeCauseEnum.TRANSFERING: return '調撥';
+        case InventoryChangeCauseEnum.ISSUING: return '發料';
     }
     return '其他';
 }
