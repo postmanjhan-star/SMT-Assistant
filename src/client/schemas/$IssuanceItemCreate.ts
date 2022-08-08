@@ -3,10 +3,6 @@
 /* eslint-disable */
 export const $IssuanceItemCreate = {
     properties: {
-        issuance_id: {
-    type: 'number',
-    isRequired: true,
-},
         material_inventory_id: {
     type: 'number',
     isRequired: true,
