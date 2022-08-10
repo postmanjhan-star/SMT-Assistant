@@ -10,7 +10,8 @@ import { InventoryChangeCauseEnum, MaterialsService, MaterialStockRecord } from 
 
 const route = useRoute();
 
-const balance = ref<Number>( 0 );
+const inStockBalance = ref<Number>( 0 );
+const inProductionBalacne = ref<number>( 0 );
 
 const gridApi = ref();
 const gridColumnApi = ref();
@@ -58,7 +59,8 @@ function translateCause ( cause: InventoryChangeCauseEnum ) {
 }
 
 onBeforeMount( async () => {
-    balance.value = await MaterialsService.getMaterialInStockBalance( route.params.idno.toString() );
+    inStockBalance.value = await MaterialsService.getMaterialInStockBalance( route.params.idno.toString() );
+    inProductionBalacne.value = await MaterialsService.getMaterialInProductionBalance( route.params.idno.toString() );
     materialStockRecords.value = await MaterialsService.getMaterialStockRecords( route.params.idno.toString() )
 
     let rowId = 1
@@ -85,8 +87,9 @@ async function onGridReady ( params: GridReadyEvent ) {
 <template>
     <n-space size="large" vertical>
         <n-space size="large">
-            <n-statistic label="可用庫存" tabular-nums>{{ balance.toLocaleString() }}</n-statistic>
-            <!-- 借出庫存 -->
+            <n-statistic label="可用數量" tabular-nums>{{ inStockBalance.toLocaleString() }}</n-statistic>
+            <n-statistic label="在製數量" tabular-nums>{{ inProductionBalacne.toLocaleString() }}</n-statistic>
+            <!-- 借出數量 -->
         </n-space>
 
         <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
