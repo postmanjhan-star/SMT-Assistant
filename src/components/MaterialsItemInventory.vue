@@ -85,7 +85,8 @@ async function onGridReady ( params: GridReadyEvent ) {
 <template>
     <n-space size="large" vertical>
         <n-space size="large">
-            <n-statistic label="在庫數量" tabular-nums>{{ balance.toLocaleString() }}</n-statistic>
+            <n-statistic label="可用庫存" tabular-nums>{{ balance.toLocaleString() }}</n-statistic>
+            <!-- 借出庫存 -->
         </n-space>
 
         <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
