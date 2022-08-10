@@ -115,6 +115,10 @@ const routes = [
         component: () => import( "../components/IssuancesMain.vue" ),
       },
       {
+        path: '/issuances/create',
+        component: () => import( "../components/IssuancesCreate.vue" ),
+      },
+      {
         path: '/st_erp_receives',
         component: () => import( "../components/StErpReceivesMain.vue" ),
       },
