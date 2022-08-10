@@ -36,18 +36,18 @@ idno: string,
 
     /**
      * Get Material In Stock Balance
-     * @param idno 
+     * @param materialIdno 
      * @returns number Successful Response
      * @throws ApiError
      */
     public static getMaterialInStockBalance(
-idno: string,
+materialIdno: string,
 ): CancelablePromise<number> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/materials/{idno}/stock_balance',
+            url: '/materials/{material_idno}/balance/in-stock',
             path: {
-                'idno': idno,
+                'material_idno': materialIdno,
             },
             errors: {
                 422: `Validation Error`,
