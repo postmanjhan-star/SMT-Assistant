@@ -77,6 +77,27 @@ materialIdno: string,
     }
 
     /**
+     * Get Material In Lending Balance
+     * @param materialIdno 
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static getMaterialInLendingBalance(
+materialIdno: string,
+): CancelablePromise<number> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/materials{material_idno}/balance/in-lending',
+            path: {
+                'material_idno': materialIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Get Material Stock Records
      * @param idno 
      * @returns MaterialStockRecord Successful Response
