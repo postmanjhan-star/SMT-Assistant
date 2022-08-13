@@ -98,7 +98,7 @@ async function handleGenerateIssuanceForPrintButtonClick () {
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">發料作業</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">發料備料作業</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
@@ -108,7 +108,7 @@ async function handleGenerateIssuanceForPrintButtonClick () {
 
           <n-tooltip>
             <template #trigger>
-              <n-button @click=" handleGenerateIssuanceForPrintButtonClick ">產生紙本發料單</n-button>
+              <n-button @click=" handleGenerateIssuanceForPrintButtonClick ">產生紙本備料單</n-button>
             </template>
             請不要讓瀏覽器封鎖新視窗
           </n-tooltip>
