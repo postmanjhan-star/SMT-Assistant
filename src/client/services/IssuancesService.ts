@@ -5,6 +5,7 @@ import type { IssuanceCreate } from '../models/IssuanceCreate';
 import type { IssuanceItemCreate } from '../models/IssuanceItemCreate';
 import type { IssuanceItemRead } from '../models/IssuanceItemRead';
 import type { IssuanceRead } from '../models/IssuanceRead';
+import type { IssuanceUpdate } from '../models/IssuanceUpdate';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -39,6 +40,31 @@ issuanceIdno: string,
             path: {
                 'issuance_idno': issuanceIdno,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update Issuance
+     * @param issuanceIdno 
+     * @param requestBody 
+     * @returns IssuanceRead Successful Response
+     * @throws ApiError
+     */
+    public static updateIssuance(
+issuanceIdno: string,
+requestBody: IssuanceUpdate,
+): CancelablePromise<IssuanceRead> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/issuances/{issuance_idno}',
+            path: {
+                'issuance_idno': issuanceIdno,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
