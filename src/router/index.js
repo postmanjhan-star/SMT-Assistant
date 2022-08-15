@@ -125,6 +125,11 @@ const routes = [
     ],
   },
   {
+    path: "/issuances/:idno/picking/print",
+    meta: { requiresAuth: true },
+    component: () => import( "../views/IssuancesPickingUpPrintView.vue" ),
+  },
+  {
     path: "/playground",
     name: "Playground",
     meta: { requiresAuth: false },
