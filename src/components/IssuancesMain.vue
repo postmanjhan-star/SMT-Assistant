@@ -63,12 +63,9 @@ function onGridReady ( params: GridReadyEvent ) {
 
 function handleCreateReceiveButtonClick () { router.push( '/issuances/create' ); }
 
-// 發料單還是揀貨單？
 async function handleGenerateIssuanceForPrintButtonClick () {
-  let receive: ReceiveRead;
-
   // Get selected row
-  const selectedRows: ReceiveRead[] = gridApi.value.getSelectedRows();
+  const selectedRows: IssuanceRead[] = gridApi.value.getSelectedRows();
 
   // Check if a row is selected
   if ( selectedRows.length === 0 ) {
@@ -76,9 +73,11 @@ async function handleGenerateIssuanceForPrintButtonClick () {
     return false;
   }
 
-  // Genereate a HTML page for printing for a selected issuance
-  // Get barcode image from a backend API
-  // Open in a new window
+  const issuance: IssuanceRead = selectedRows[ 0 ];
+
+  // Open a new window to show a HTML page for printing for a selected issuance
+  let routerData = router.resolve( `/issuances/${ issuance.idno }/picking/print` );
+  window.open( routerData.href, '_blank' );
 }
 </script>
 

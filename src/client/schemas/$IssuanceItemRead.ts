@@ -15,6 +15,10 @@ export const $IssuanceItemRead = {
     type: 'number',
     isRequired: true,
 },
+        material_invnetory_idno: {
+    type: 'string',
+    isRequired: true,
+},
         issue_qty: {
     type: 'number',
     isRequired: true,
