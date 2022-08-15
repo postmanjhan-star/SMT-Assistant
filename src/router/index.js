@@ -119,6 +119,10 @@ const routes = [
         component: () => import( "../components/IssuancesCreate.vue" ),
       },
       {
+        path: '/issuances/:idno',
+        component: () => import( "../components/IssuancesItem.vue" ),
+      },
+      {
         path: '/st_erp_receives',
         component: () => import( "../components/StErpReceivesMain.vue" ),
       },
