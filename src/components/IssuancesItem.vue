@@ -70,11 +70,10 @@ onBeforeMount( async () => {
   headerFormValue.value.memo = issuance.memo;
   console.debug( issuance );
   for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
-    const materialInventory = await MaterialInventoriesService.getMaterialInventory( issuanceItem.material_invnetory_idno );
     rowData.value.push( {
-      material_idno: materialInventory.material_idno,
-      material_inventory_id: materialInventory.id,
-      material_inventory_idno: materialInventory.idno,
+      material_idno: issuanceItem.material_idno,
+      material_inventory_id: issuanceItem.material_inventory_id,
+      material_inventory_idno: issuanceItem.material_inventory_idno,
       issue_qty: issuanceItem.issue_qty,
       lend_qty: issuanceItem.lend_qty,
     } )

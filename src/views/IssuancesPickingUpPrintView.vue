@@ -17,29 +17,13 @@ const issuance = ref<IssuanceRead>( {
     memo: '',
 } );
 
-type Picking = IssuanceItemRead & {
-    material_inventory: MaterialInventoryRead,
-    material: MaterialRead,
-}
+type Picking = IssuanceItemRead & {}
 
 const pickings = ref<Picking[]>( [] );
 
 onMounted( async () => {
     issuance.value = await IssuancesService.getIssuance( route.params.idno.toString() );
-    for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
-        const materialInventory = await MaterialInventoriesService.getMaterialInventory( issuanceItem.material_invnetory_idno );
-        const material = await MaterialsService.getMaterial( materialInventory.material_idno );
-        pickings.value.push( {
-            id: issuanceItem.id,
-            issuance_id: issuanceItem.issuance_id,
-            material_inventory_id: issuanceItem.material_inventory_id,
-            material_invnetory_idno: issuanceItem.material_invnetory_idno,
-            issue_qty: issuanceItem.issue_qty,
-            lend_qty: issuanceItem.lend_qty,
-            material_inventory: materialInventory,
-            material: material,
-        } )
-    }
+    for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) { pickings.value.push( issuanceItem ) }
 } );
 </script>
 
@@ -66,13 +50,13 @@ onMounted( async () => {
             <tbody>
                 <tr v-for="( item, index ) in pickings">
                     <td class="row-index">{{ index + 1 }}</td>
-                    <td class="inventory-idno">{{ item.material_invnetory_idno }}</td>
-                    <td class="material-idno">{{ item.material.idno }}</td>
+                    <td class="inventory-idno">{{ item.material_inventory_idno }}</td>
+                    <td class="material-idno">{{ item.material_idno }}</td>
                     <td class="material-information">
-                        <div>{{ item.material.name }}</div>
-                        <div>{{ item.material.description }}</div>
+                        <div>{{ item.material_name }}</div>
+                        <div>{{ item.material_description }}</div>
                     </td>
-                    <td>{{ item.material_inventory.l1_storage_idno }} / {{ item.material_inventory.l2_storage_idno }}
+                    <td>{{ item.l1_storage_idno }} / {{ item.l2_storage_idno }}
                     </td>
                 </tr>
             </tbody>
