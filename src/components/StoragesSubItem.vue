@@ -55,7 +55,7 @@ const gridOptions = {
 
 onBeforeMount( async () => {
   try {
-    const response = await StoragesService.getStorage( route.params.idno.toString() );
+    const response = await StoragesService.getStorage( Number( route.params.id ) );
     rowData.value = response.l2_storages;
     l1_storage_id = response.id;
   } catch ( error ) { console.error( error ); }

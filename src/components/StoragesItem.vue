@@ -2,7 +2,7 @@
 import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, OpenAPI, StoragesService, L1StorageUpdate } from '../client';
+import { ApiError, L1StorageUpdate, OpenAPI, StoragesService } from '../client';
 import { useAuthStore } from '../stores/auth';
 import StorageSubItem from "./StoragesSubItem.vue";
 
@@ -29,7 +29,7 @@ const rules: FormRules = {
 }
 
 
-onBeforeMount( async () => { formValue.value = await StoragesService.getStorage( route.params.idno.toString() ); } );
+onBeforeMount( async () => { formValue.value = await StoragesService.getStorage( Number( route.params.id ) ); } );
 
 
 async function handleUpdateStorageButtonClick ( event: Event ) {
@@ -74,11 +74,11 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
           <n-a :href=" href " @click=" navigate ">倉位管理</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>{{ $route.params.idno.toString().toUpperCase() }}</n-breadcrumb-item>
+      <n-breadcrumb-item>{{ formValue.idno.toUpperCase() }}</n-breadcrumb-item>
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">倉位 {{ $route.params.idno.toString().toUpperCase() }}</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">倉位 {{ formValue.idno.toUpperCase() }}</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
         <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">

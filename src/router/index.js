@@ -47,7 +47,7 @@ const routes = [
         component: () => import( "../components/StoragesCreate.vue" ),
       },
       {
-        path: '/storages/:idno',
+        path: '/storages/:id',
         component: () => import( "../components/StoragesItem.vue" ),
       },
       {

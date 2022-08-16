@@ -45,10 +45,10 @@ const gridOptions = {
 
 }
 
-const idno = 'C';
+const id = 1;
 onMounted( async () => {
     // Handle error here
-    const response = await StoragesService.getStorage( idno );
+    const response = await StoragesService.getStorage( id );
     rowData.value = response.l2_storages;
 } );
 

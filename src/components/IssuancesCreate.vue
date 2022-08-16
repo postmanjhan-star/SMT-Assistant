@@ -227,7 +227,7 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
   }
 
   // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( materialInventory.l1_storage_idno )
+  const storage = await StoragesService.getStorage( materialInventory.l1_storage_id )
   if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE) {
     message.error( '此單包已無可用庫存' );
     return false;

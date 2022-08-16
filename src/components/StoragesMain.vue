@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NDataTable, NH1, NSpace } from 'naive-ui';
 import { onBeforeMount, reactive } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { OpenAPI, StoragesService } from '../client';
+import { OpenAPI, StorageRead, StoragesService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -10,17 +10,17 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const data = reactive( [] );
+const data = reactive<StorageRead[]>( [] );
 
 const columns = [
   { title: '倉位代碼', key: 'idno' },
   { title: '倉位名稱', key: 'name' },
 ]
 
-const rowProps = ( row ) => {
+const rowProps = ( row: StorageRead ) => {
   return {
     style: 'cursor: pointer;',
-    onclick: () => { router.push( `/storages/${ row.idno }` ); },
+    onclick: () => { router.push( `/storages/${ row.id }` ); },
   }
 };
 
