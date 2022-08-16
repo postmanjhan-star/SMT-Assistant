@@ -58,9 +58,7 @@ onBeforeMount( async () => {
     const response = await StoragesService.getStorage( route.params.idno.toString() );
     rowData.value = response.l2_storages;
     l1_storage_id = response.id;
-  } catch ( error ) {
-    console.error( error );
-  }
+  } catch ( error ) { console.error( error ); }
 } )
 
 function getRowId ( params ) { return params.data.id; }
@@ -72,11 +70,9 @@ function onGridReady ( params ) {
 
 let newRowId = -1
 function handleCreateL2StorageButtonClick ( event: Event ) {
-  // console.debug( newRowId );
   rowData.value.unshift( { id: newRowId, idno: '', name: '' } );
   gridApi.value.setRowData( rowData.value );
   newRowId--;
-  // console.debug( rowData.value );
 }
 
 async function handleUpdateL2StorageButtonClick ( event: Event ) {

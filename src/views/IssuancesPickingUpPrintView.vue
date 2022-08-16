@@ -89,8 +89,7 @@ onMounted( async () => {
 @media print {
 
     html,
-    body,
-    div {
+    body {
         outline-width: 0px !important;
         background-color: white !important;
         box-shadow: none !important;

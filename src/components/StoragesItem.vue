@@ -29,17 +29,13 @@ const rules: FormRules = {
 }
 
 
-onBeforeMount( async () => {
-  formValue.value = await StoragesService.getStorage( route.params.idno.toString() );
-} );
+onBeforeMount( async () => { formValue.value = await StoragesService.getStorage( route.params.idno.toString() ); } );
 
 
-async function handleUpdateStorageButtonClick ( event ) {
+async function handleUpdateStorageButtonClick ( event: Event ) {
   // Check if any empyt fields
   try {
-    await formRef.value?.validate( async ( error ) => {
-      if ( error ) { throw error; }
-    } );
+    await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } );
   } catch ( error ) {
     message.error( '請輸入必填爛位' );
     return false;

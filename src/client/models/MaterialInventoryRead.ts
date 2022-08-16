@@ -14,5 +14,6 @@ export type MaterialInventoryRead = {
     l2_storage_idno: string;
     latest_qty: number;
     receive_item_id?: number;
+    issuing_locked: boolean;
     st_barcode?: string;
 };

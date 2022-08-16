@@ -6,7 +6,7 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI } from '../client';
+import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const message = useMessage();
@@ -56,8 +56,8 @@ const rowData = ref<GridItem[]>( [] );
 const columnDefs: ColDef[] = [
   { field: "material_idno", headerName: '物料代碼', editable: false },
   { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
-  { field: "issue_qty", headerName: '發出數量' },
-  { field: "lend_qty", headerName: '借出數量' },
+  { field: "issue_qty", headerName: '發出數量', editable: false },
+  { field: "lend_qty", headerName: '借出數量', editable: false },
 ];
 
 const defaultColDef = {
@@ -160,7 +160,7 @@ async function handleAddMaterialButtonClick ( event: Event ) {
   let askedQuantity = materialAdditionFormValue.value.quantity;
   let issuedQuantity = 0;
   let issuedMaterialInventories: MaterialInventoryRead[] = [];
-  const materialInventories = await MaterialsService.getMaterialInventoriesInStock( materialAdditionFormValue.value.material_idno.trim() );
+  const materialInventories = await MaterialsService.getMaterialInventoriesInStock( materialAdditionFormValue.value.material_idno.trim(), true );
   while ( issuedQuantity < askedQuantity ) {
     const materialInventory = materialInventories.shift();
     issuedQuantity += materialInventory?.latest_qty as number;
@@ -220,10 +220,15 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
     }
   }
 
+  // Check if the material inventory available (not locked) for issuing
+  if ( materialInventory.issuing_locked === true) {
+    message.error( '此單包已被其他發料單使用' );
+    return false;
+  }
+
   // Check if the material inventory is in-stock
-  let materialInventoriesInStock = await MaterialsService.getMaterialInventoriesInStock( materialInventory.material_idno );
-  materialInventoriesInStock = materialInventoriesInStock.filter( inventoryInStock => inventoryInStock.id === materialInventory.id );
-  if ( materialInventoriesInStock.length === 0 ) {
+  const storage = await StoragesService.getStorage( materialInventory.l1_storage_idno )
+  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE) {
     message.error( '此單包已無可用庫存' );
     return false;
   }

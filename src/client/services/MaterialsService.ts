@@ -87,7 +87,7 @@ materialIdno: string,
 ): CancelablePromise<number> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/materials{material_idno}/balance/in-lending',
+            url: '/materials/{material_idno}/balance/in-lending',
             path: {
                 'material_idno': materialIdno,
             },
@@ -142,17 +142,22 @@ materialIdno: string,
     /**
      * Get Material Inventories In Stock
      * @param materialIdno 
+     * @param onlyIssuable 
      * @returns MaterialInventoryRead Successful Response
      * @throws ApiError
      */
     public static getMaterialInventoriesInStock(
 materialIdno: string,
+onlyIssuable: boolean = false,
 ): CancelablePromise<Array<MaterialInventoryRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{material_idno}/inventories/in-stock',
             path: {
                 'material_idno': materialIdno,
+            },
+            query: {
+                'only_issuable': onlyIssuable,
             },
             errors: {
                 422: `Validation Error`,
