@@ -13,22 +13,22 @@ export class MaterialInventoriesService {
 
     /**
      * Transfer Material Inventory
-     * @param idno 
+     * @param id 
      * @param cause 
      * @param requestBody 
      * @returns boolean Successful Response
      * @throws ApiError
      */
     public static transferMaterialInventory(
-idno: string,
+id: number,
 cause: InventoryChangeCauseEnum,
 requestBody: Array<MaterialInventoryTransferCreate>,
 ): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/material_inventories/{idno}/transfer',
+            url: '/material_inventories/{id}/transfer',
             path: {
-                'idno': idno,
+                'id': id,
             },
             query: {
                 'cause': cause,
