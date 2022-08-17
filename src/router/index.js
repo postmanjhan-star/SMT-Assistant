@@ -129,7 +129,7 @@ const routes = [
     ],
   },
   {
-    path: "/issuances/:idno/picking/print",
+    path: "/issuances/:idno/print",
     meta: { requiresAuth: true },
     component: () => import( "../views/IssuancesPickingUpPrintView.vue" ),
   },

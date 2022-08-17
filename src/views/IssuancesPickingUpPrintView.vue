@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
-import { IssuanceItemRead, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialRead, MaterialsService, OpenAPI } from "../client";
+import { useRoute, useRouter } from "vue-router";
+import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, OpenAPI } from "../client";
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
+const router = useRouter();
 const route = useRoute();
 
 const issuance = ref<IssuanceRead>( {
@@ -22,7 +23,9 @@ type Picking = IssuanceItemRead & {}
 const pickings = ref<Picking[]>( [] );
 
 onMounted( async () => {
-    issuance.value = await IssuancesService.getIssuance( route.params.idno.toString() );
+    try { issuance.value = await IssuancesService.getIssuance( route.params.idno.toString() ); }
+    catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
+
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) { pickings.value.push( issuanceItem ) }
 } );
 </script>

@@ -6,7 +6,7 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, OpenAPI } from '../client';
+import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const message = useMessage();
@@ -20,9 +20,7 @@ const gridApi = ref();
 const gridColumnApi = ref();
 
 const formRef = ref<FormInst | null>( null );
-const headerFormValue = ref( {
-  memo: '',
-} );
+const headerFormValue = ref( { memo: '' } );
 
 type GridItem = {
   material_idno: string,
@@ -66,19 +64,21 @@ const gridOptions: GridOptions = {
 }
 
 onBeforeMount( async () => {
-  const issuance = await IssuancesService.getIssuance( route.params.idno.toString() );
-  headerFormValue.value.memo = issuance.memo;
-  console.debug( issuance );
-  for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
-    rowData.value.push( {
-      material_idno: issuanceItem.material_idno,
-      material_inventory_id: issuanceItem.material_inventory_id,
-      material_inventory_idno: issuanceItem.material_inventory_idno,
-      issue_qty: issuanceItem.issue_qty,
-      lend_qty: issuanceItem.lend_qty,
-    } )
-  }
-  gridApi.value.setRowData( rowData.value );
+  let issuance: IssuanceRead;
+  try {
+    issuance = await IssuancesService.getIssuance( route.params.idno.toString() );
+    headerFormValue.value.memo = issuance.memo;
+    for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
+      rowData.value.push( {
+        material_idno: issuanceItem.material_idno,
+        material_inventory_id: issuanceItem.material_inventory_id,
+        material_inventory_idno: issuanceItem.material_inventory_idno,
+        issue_qty: issuanceItem.issue_qty,
+        lend_qty: issuanceItem.lend_qty,
+      } )
+    }
+    gridApi.value.setRowData( rowData.value );
+  } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 } );
 
 function getRowId ( params: GetRowIdParams ) { return params.data.material_inventory_id; }

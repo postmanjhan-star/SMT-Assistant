@@ -76,7 +76,7 @@ async function handleGenerateIssuanceForPrintButtonClick () {
   const issuance: IssuanceRead = selectedRows[ 0 ];
 
   // Open a new window to show a HTML page for printing for a selected issuance
-  let routerData = router.resolve( `/issuances/${ issuance.idno }/picking/print` );
+  let routerData = router.resolve( `/issuances/${ issuance.idno }/print` );
   window.open( routerData.href, '_blank' );
 }
 </script>
