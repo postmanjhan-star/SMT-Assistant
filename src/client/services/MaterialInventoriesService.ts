@@ -43,18 +43,18 @@ requestBody: Array<MaterialInventoryTransferCreate>,
 
     /**
      * Get Material Inventory
-     * @param idno Accept `MINV20220729001` and `A3628191` types.
+     * @param materialInventoryIdno Accept `MINV20220729001` and `A3628191` types.
      * @returns MaterialInventoryRead Successful Response
      * @throws ApiError
      */
     public static getMaterialInventory(
-idno: string,
+materialInventoryIdno: string,
 ): CancelablePromise<MaterialInventoryRead> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/material_inventories/{idno}',
+            url: '/material_inventories/{material_inventory_idno}',
             path: {
-                'idno': idno,
+                'material_inventory_idno': materialInventoryIdno,
             },
             errors: {
                 422: `Validation Error`,
