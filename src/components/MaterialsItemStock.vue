@@ -68,6 +68,12 @@ async function handleSplitButtonClick ( event: Event ) {
         return false;
     }
 
+    // Check if only one row is selected
+    if ( selectedRows.length > 1 ) {
+        message.info( '請選擇單包' );
+        return false;
+    }
+
     const selectedRow = selectedRows[ 0 ];
 
     // Many checks
