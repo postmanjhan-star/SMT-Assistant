@@ -66,8 +66,6 @@ onBeforeMount( async () => {
     inLendingBalance.value = await MaterialsService.getMaterialInLendingBalance( route.params.idno.toString() );
     materialStockRecords.value = await MaterialsService.getMaterialStockRecords( route.params.idno.toString() )
 
-    console.debug( materialStockRecords.value );
-
     let rowId = 1
     for ( let materialStockRecord of materialStockRecords.value ) {
         const row = {
