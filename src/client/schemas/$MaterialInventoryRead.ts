@@ -11,6 +11,9 @@ export const $MaterialInventoryRead = {
     type: 'string',
     isRequired: true,
 },
+        parent_material_inventory_id: {
+    type: 'number',
+},
         material_id: {
     type: 'number',
     isRequired: true,

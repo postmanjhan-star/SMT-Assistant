@@ -5,6 +5,7 @@
 export type MaterialInventoryRead = {
     id: number;
     idno: string;
+    parent_material_inventory_id?: number;
     material_id: number;
     material_idno: string;
     material_name: string;

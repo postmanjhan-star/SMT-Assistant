@@ -3,12 +3,13 @@ import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-com
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NSpace } from 'naive-ui';
+import { NButton, NSpace, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { MaterialInventoryRead, MaterialsService } from '../client';
+import { ApiError, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, StoragesService, StorageTypeEnum } from '../client';
 
 const route = useRoute();
+const message = useMessage();
 
 const gridApi = ref();
 const gridColumnApi = ref();
@@ -16,7 +17,7 @@ const rowData = ref<MaterialInventoryRead[]>( [] );
 
 const columnDefs: ColDef[] = [
     { field: "idno", headerName: '單包代碼' },
-    { field: "st_barcode", headerName: '舊 ERP 單包代碼'},
+    { field: "st_barcode", headerName: '舊 ERP 單包代碼' },
     { field: "l1_storage_idno", headerName: '倉位代碼' },
     { field: "l2_storage_idno", headerName: '儲位代碼' },
     { field: "latest_qty", headerName: '數量' },
@@ -55,12 +56,78 @@ function getRowId ( params: GetRowIdParams ) { return params.data.id; }
 async function onGridReady ( params: GridReadyEvent ) {
     gridApi.value = params.api;
     gridColumnApi.value = params.columnApi;
-};
+}
+
+async function handleSplitButtonClick ( event: Event ) {
+    // Get selected row
+    const selectedRows: MaterialInventoryRead[] = gridApi.value.getSelectedRows();
+
+    // Check if a row is selected
+    if ( selectedRows.length === 0 ) {
+        message.info( '請選擇單包' );
+        return false;
+    }
+
+    const selectedRow = selectedRows[ 0 ];
+
+    // Many checks
+    // Locked?
+    if ( selectedRow.issuing_locked ) {
+        message.warning( '此包已被發料單鎖定不可分割' );
+        return false;
+    }
+
+    // Parent's quantity enough?
+    if ( selectedRow.latest_qty <= 1 ) {
+        message.warning( '此包數量不足以分割' );
+        return false;
+    }
+
+    // Splitting only applies to parent inventories
+    if ( selectedRow.parent_material_inventory_id !== null ) {
+        message.warning( '此包已為子包不可再分割' );
+        return false;
+    }
+
+    // Parent's stored in interal warehouse?
+    const storage = await StoragesService.getStorage( selectedRow.l1_storage_id );
+    if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
+        message.warning( '此包不存在倉庫內不可分割' );
+        return false;
+    }
+
+    const childQuantity: number = Number( prompt( '請輸入子包數量', '0' ) );
+
+    // Input a qualify number?
+    if ( Number.isNaN( childQuantity ) || childQuantity <= 0 ) {
+        message.warning( '請輸入數量' );
+        return false;
+    }
+
+    // Child's quantity must less than parent's quantity
+    if ( childQuantity >= selectedRow.latest_qty ) {
+        message.warning( '子包數量必須小於母包數量' );
+        return false;
+    }
+
+    try {
+        const childMaterialInventory = await MaterialInventoriesService.splitMaterialInventory( selectedRow.idno, childQuantity );
+        rowData.value.unshift( childMaterialInventory );
+        gridApi.value.setRowData( rowData.value );
+    } catch ( error ) {
+        message.error( '分割失敗' );
+        return false;
+    }
+}
 </script>
 
 <template>
     <n-space size="large" vertical>
         <n-space size="large">
+        </n-space>
+
+        <n-space size="large" vertical>
+            <n-button type="primary" secondary strong @click=" handleSplitButtonClick ">分割單包</n-button>
         </n-space>
 
         <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
