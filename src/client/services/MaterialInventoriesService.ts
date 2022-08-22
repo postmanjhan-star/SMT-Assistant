@@ -13,22 +13,24 @@ export class MaterialInventoriesService {
 
     /**
      * Transfer Material Inventory
-     * @param id 
+     * This function is not responsible for updating material inventory's quantity.
+ * It is just for making transfer records and update material inventory's storage location.
+     * @param materialInventoryId 
      * @param cause 
      * @param requestBody 
      * @returns boolean Successful Response
      * @throws ApiError
      */
     public static transferMaterialInventory(
-id: number,
+materialInventoryId: number,
 cause: InventoryChangeCauseEnum,
 requestBody: Array<MaterialInventoryTransferCreate>,
 ): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/material_inventories/{id}/transfer',
+            url: '/material_inventories/{material_inventory_id}/transfer',
             path: {
-                'id': id,
+                'material_inventory_id': materialInventoryId,
             },
             query: {
                 'cause': cause,
@@ -55,6 +57,32 @@ materialInventoryIdno: string,
             url: '/material_inventories/{material_inventory_idno}',
             path: {
                 'material_inventory_idno': materialInventoryIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Split Material Inventory
+     * @param materialInventoryIdno 
+     * @param childQuantity 
+     * @returns MaterialInventoryRead Successful Response
+     * @throws ApiError
+     */
+    public static splitMaterialInventory(
+materialInventoryIdno: string,
+childQuantity: number,
+): CancelablePromise<MaterialInventoryRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/material_inventories/{material_inventory_idno}/split',
+            path: {
+                'material_inventory_idno': materialInventoryIdno,
+            },
+            query: {
+                'child_quantity': childQuantity,
             },
             errors: {
                 422: `Validation Error`,

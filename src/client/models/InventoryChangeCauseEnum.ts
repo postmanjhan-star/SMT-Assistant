@@ -7,6 +7,7 @@
  */
 export enum InventoryChangeCauseEnum {
     RECEVING = 'RECEVING',
-    TRANSFERING = 'TRANSFERING',
+    TRANSFERRING = 'TRANSFERRING',
     ISSUING = 'ISSUING',
+    SPLITTING = 'SPLITTING',
 }

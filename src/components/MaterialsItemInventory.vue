@@ -53,8 +53,9 @@ const gridOptions: GridOptions = {
 function translateCause ( cause: InventoryChangeCauseEnum ) {
     switch ( cause ) {
         case InventoryChangeCauseEnum.RECEVING: return '收料';
-        case InventoryChangeCauseEnum.TRANSFERING: return '調撥';
+        case InventoryChangeCauseEnum.TRANSFERRING: return '調撥';
         case InventoryChangeCauseEnum.ISSUING: return '發料';
+        case InventoryChangeCauseEnum.SPLITTING: return '分割';
     }
     return '其他';
 }
@@ -64,6 +65,8 @@ onBeforeMount( async () => {
     inProductionBalacne.value = await MaterialsService.getMaterialInProductionBalance( route.params.idno.toString() );
     inLendingBalance.value = await MaterialsService.getMaterialInLendingBalance( route.params.idno.toString() );
     materialStockRecords.value = await MaterialsService.getMaterialStockRecords( route.params.idno.toString() )
+
+    console.debug( materialStockRecords.value );
 
     let rowId = 1
     for ( let materialStockRecord of materialStockRecords.value ) {

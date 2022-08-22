@@ -184,7 +184,7 @@ async function handleGoToStep2ButtonClick () {
     try {
       await MaterialInventoriesService.transferMaterialInventory(
         row.id,
-        InventoryChangeCauseEnum.TRANSFERING,
+        InventoryChangeCauseEnum.TRANSFERRING,
         transferRequests,
       );
       successList.push( row.idno );
