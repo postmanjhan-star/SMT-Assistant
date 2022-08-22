@@ -7,7 +7,7 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AccountRead } from './models/AccountRead';
-export { app__routers__receives__Printer } from './models/app__routers__receives__Printer';
+export { app__routers__material_inventories__Printer } from './models/app__routers__material_inventories__Printer';
 export { app__st_erp__st_receives__Printer } from './models/app__st_erp__st_receives__Printer';
 export type { Body_login_for_access_token } from './models/Body_login_for_access_token';
 export type { EmployeeAccountCreate } from './models/EmployeeAccountCreate';
@@ -51,7 +51,7 @@ export type { VendorRead } from './models/VendorRead';
 export type { VendorUpdate } from './models/VendorUpdate';
 
 export { $AccountRead } from './schemas/$AccountRead';
-export { $app__routers__receives__Printer } from './schemas/$app__routers__receives__Printer';
+export { $app__routers__material_inventories__Printer } from './schemas/$app__routers__material_inventories__Printer';
 export { $app__st_erp__st_receives__Printer } from './schemas/$app__st_erp__st_receives__Printer';
 export { $Body_login_for_access_token } from './schemas/$Body_login_for_access_token';
 export { $EmployeeAccountCreate } from './schemas/$EmployeeAccountCreate';

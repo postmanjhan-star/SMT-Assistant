@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { app__routers__receives__Printer } from '../models/app__routers__receives__Printer';
+import type { app__routers__material_inventories__Printer } from '../models/app__routers__material_inventories__Printer';
 import type { ReceiveCreate } from '../models/ReceiveCreate';
 import type { ReceiveRead } from '../models/ReceiveRead';
 
@@ -45,18 +45,18 @@ requestBody: ReceiveCreate,
 
     /**
      * Get Receive
-     * @param idno Accept `RCV20220729001` and `RAN42204` two types of receving idno.
+     * @param receiveIdno Accept `RCV20220729001` and `RAN42204` two types of receving idno.
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
     public static getReceive(
-idno: string,
+receiveIdno: string,
 ): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/receives/{idno}',
+            url: '/receives/{receive_idno}',
             path: {
-                'idno': idno,
+                'receive_idno': receiveIdno,
             },
             errors: {
                 422: `Validation Error`,
@@ -66,20 +66,20 @@ idno: string,
 
     /**
      * Update Receive
-     * @param idno 
+     * @param receiveIdno 
      * @param memo 
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
     public static updateReceive(
-idno: string,
+receiveIdno: string,
 memo: string,
 ): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/receives/{idno}',
+            url: '/receives/{receive_idno}',
             path: {
-                'idno': idno,
+                'receive_idno': receiveIdno,
             },
             query: {
                 'memo': memo,
@@ -92,22 +92,22 @@ memo: string,
 
     /**
      * Get Receive Item Labels
-     * @param idno 
+     * @param receiveIdno 
      * @param receiveItemId 
      * @param printer 
      * @returns any Successful Response
      * @throws ApiError
      */
     public static getReceiveItemLabels(
-idno: string,
+receiveIdno: string,
 receiveItemId: number,
-printer?: app__routers__receives__Printer,
+printer?: app__routers__material_inventories__Printer,
 ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/receives/{idno}/{receive_item_id}/labels',
+            url: '/receives/{receive_idno}/{receive_item_id}/labels',
             path: {
-                'idno': idno,
+                'receive_idno': receiveIdno,
                 'receive_item_id': receiveItemId,
             },
             query: {
