@@ -9,6 +9,8 @@ import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, MaterialRead, MaterialsService, OpenAPI, ReceiveRead, ReceivesService, StErpService, STReceiveHeader, VendorRead, VendorsService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
+
+
 const router = useRouter();
 const message = useMessage();
 
@@ -61,7 +63,9 @@ const gridOptions: GridOptions = {
 }
 
 
+
 function getRowId ( params: GetRowIdParams ) { return params.data.idno; }
+
 
 
 async function onGridReady ( params: GridReadyEvent ) {
@@ -79,8 +83,11 @@ async function onGridReady ( params: GridReadyEvent ) {
 }
 
 
+
 const loadingRef = ref( false );
 const loading = loadingRef;
+
+
 
 async function handleCreateReceiveButtonClick () {
   loadingRef.value = true;
@@ -157,6 +164,7 @@ async function handleCreateReceiveButtonClick () {
   } );
 }
 </script>
+
 
 
 <template>
