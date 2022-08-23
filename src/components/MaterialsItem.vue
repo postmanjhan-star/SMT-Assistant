@@ -41,7 +41,10 @@ const rules: FormRules = {
   name: { required: true, message: '請输入物料名稱', trigger: [ 'input', 'blur' ] },
 }
 
-onBeforeMount( async () => { formValue.value = await MaterialsService.getMaterial( route.params.idno.toString() ); } );
+onBeforeMount( async () => {
+  try { formValue.value = await MaterialsService.getMaterial( route.params.idno.toString() ); }
+  catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
+} );
 
 async function handleCreateMaterialButtonClick ( evnet: Event ) {
   // Check if any empyt fields

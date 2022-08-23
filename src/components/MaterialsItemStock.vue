@@ -6,16 +6,25 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NButton, NSpace, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { ApiError, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, StoragesService, StorageTypeEnum } from '../client';
+import { MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
+import { useAuthStore } from '../stores/auth';
+
+const authStore = useAuthStore();
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
 const route = useRoute();
 const message = useMessage();
+
+const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL;
 
 const gridApi = ref();
 const gridColumnApi = ref();
 const rowData = ref<MaterialInventoryRead[]>( [] );
 
+
+
 const columnDefs: ColDef[] = [
+    // { checkboxSelection: true, flex: 1 }, // Do not use checkbox for multiple rows selection to save space on mobile devices.
     { field: "idno", headerName: '單包代碼' },
     { field: "st_barcode", headerName: '舊 ERP 單包代碼' },
     { field: "l1_storage_idno", headerName: '倉位代碼' },
@@ -23,13 +32,17 @@ const columnDefs: ColDef[] = [
     { field: "latest_qty", headerName: '數量' },
 ];
 
-const defaultColDef = {
+
+
+const defaultColDef: ColDef = {
     editable: false,
     filter: true,
     sortable: true,
-    flex: 1, // Every columns have the same portion of width
+    flex: 6, // Every columns have the same portion of width
     resizable: true,
 }
+
+
 
 const gridOptions: GridOptions = {
     columnDefs: columnDefs,
@@ -44,22 +57,31 @@ const gridOptions: GridOptions = {
     debounceVerticalScrollbar: true,
     enableCellTextSelection: true,
 
-    rowSelection: 'single',
+    rowSelection: 'multiple',
+    rowMultiSelectWithClick: true,
     suppressCellFocus: true,
 }
 
 
+
+
 onBeforeMount( async () => { rowData.value = await MaterialsService.getMaterialInventories( route.params.idno.toString() ) } );
 
+
+
 function getRowId ( params: GetRowIdParams ) { return params.data.id; }
+
+
 
 async function onGridReady ( params: GridReadyEvent ) {
     gridApi.value = params.api;
     gridColumnApi.value = params.columnApi;
 }
 
+
+
 async function handleSplitButtonClick ( event: Event ) {
-    // Get selected row
+    // Get selected rows
     const selectedRows: MaterialInventoryRead[] = gridApi.value.getSelectedRows();
 
     // Check if a row is selected
@@ -125,15 +147,37 @@ async function handleSplitButtonClick ( event: Event ) {
         return false;
     }
 }
+
+
+
+async function handleGenerateLabelsButtonClick ( event: Event ) {
+    // Get selected rows
+    const selectedRows: MaterialInventoryRead[] = gridApi.value.getSelectedRows();
+
+    // Check if at least one row is selected
+    if ( selectedRows.length === 0 ) {
+        message.info( '請選擇單包' );
+        return false;
+    }
+
+    const url = new URL( backendBaseUrl + '/material_inventories/labels' );
+    for ( let row of selectedRows ) { url.searchParams.append( 'material_inventory_idnos', row.idno ); }
+
+    console.debug( url );
+    window.open( url, '_blank' );
+}
 </script>
+
+
 
 <template>
     <n-space size="large" vertical>
         <n-space size="large">
         </n-space>
 
-        <n-space size="large" vertical>
+        <n-space size="large">
             <n-button type="primary" secondary strong @click=" handleSplitButtonClick ">分割單包</n-button>
+            <n-button type="primary" secondary strong @click=" handleGenerateLabelsButtonClick ">產生 WMS 標籤貼紙</n-button>
         </n-space>
 
         <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "

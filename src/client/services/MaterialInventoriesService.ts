@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { app__routers__material_inventories__Printer } from '../models/app__routers__material_inventories__Printer';
 import type { InventoryChangeCauseEnum } from '../models/InventoryChangeCauseEnum';
 import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialInventoryTransferCreate } from '../models/MaterialInventoryTransferCreate';
@@ -37,6 +38,31 @@ requestBody: Array<MaterialInventoryTransferCreate>,
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Material Inventories Label
+     * @param materialInventoryIdnos 
+     * @param printer 
+     * @returns any Successful Response
+     * @returns binary Created
+     * @throws ApiError
+     */
+    public static getMaterialInventoriesLabel(
+materialInventoryIdnos: Array<string>,
+printer?: app__routers__material_inventories__Printer,
+): CancelablePromise<any | Blob> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/material_inventories/labels',
+            query: {
+                'material_inventory_idnos': materialInventoryIdnos,
+                'printer': printer,
+            },
             errors: {
                 422: `Validation Error`,
             },
