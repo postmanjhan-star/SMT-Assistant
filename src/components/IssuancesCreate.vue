@@ -69,7 +69,7 @@ const defaultColDef = {
   sortable: true,
   flex: 1, // Every columns have the same portion of width
   resizable: true,
-}
+};
 
 const gridOptions: GridOptions = {
   columnDefs: columnDefs,
@@ -86,7 +86,7 @@ const gridOptions: GridOptions = {
 
   rowSelection: 'single',
   suppressCellFocus: true,
-}
+};
 
 
 
