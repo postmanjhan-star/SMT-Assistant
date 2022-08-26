@@ -116,4 +116,53 @@ requestBody: Array<IssuanceItemCreate>,
         });
     }
 
+    /**
+     * Add Issuance Item
+     * @param issuanceIdno 
+     * @param requestBody 
+     * @returns IssuanceItemRead Successful Response
+     * @throws ApiError
+     */
+    public static addIssuanceItem(
+issuanceIdno: string,
+requestBody: IssuanceItemCreate,
+): CancelablePromise<IssuanceItemRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/issuances/{issuance_idno}/add_item',
+            path: {
+                'issuance_idno': issuanceIdno,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Remove Issuance Item
+     * @param issuanceIdno 
+     * @param issuanceItemId 
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static removeIssuanceItem(
+issuanceIdno: string,
+issuanceItemId: number,
+): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/issuances/{issuance_idno}/{issuance_item_id}',
+            path: {
+                'issuance_idno': issuanceIdno,
+                'issuance_item_id': issuanceItemId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
 }
