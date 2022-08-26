@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community";
+import { ColDef, GetRowIdParams, GridApi, GridOptions, GridReadyEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
@@ -9,6 +9,8 @@ import { useRoute } from 'vue-router';
 import { MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
+
+
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
@@ -17,7 +19,7 @@ const message = useMessage();
 
 const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL;
 
-const gridApi = ref();
+const gridApi = ref<GridApi>();
 const gridColumnApi = ref();
 const rowData = ref<MaterialInventoryRead[]>( [] );
 
@@ -139,7 +141,13 @@ async function handleSplitButtonClick ( event: Event ) {
     }
 
     try {
+        // Create child inventory. Backend also handles parent inventory's quantity substracting.
         const childMaterialInventory = await MaterialInventoriesService.splitMaterialInventory( selectedRow.idno, childQuantity );
+
+        // Substract the parent inventory's queantiy value in frontend
+        rowData.value.forEach( ( row, index, array ) => { if ( row.idno == selectedRow.idno ) { array[ index ].latest_qty -= childQuantity; } } );
+
+        // Insert a new row of the child inventory
         rowData.value.unshift( childMaterialInventory );
         gridApi.value.setRowData( rowData.value );
     } catch ( error ) {
