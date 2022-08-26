@@ -9,6 +9,8 @@ import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
+
+
 const message = useMessage();
 const router = useRouter();
 
@@ -26,6 +28,7 @@ const headerFormValue = ref( {
 const materialIdnoInput = ref();
 const materialUnit = ref();
 const materialInventoryIdnoInput = ref();
+
 
 
 type GridItem = {
@@ -46,11 +49,11 @@ const materialAdditionFormValue = ref<MaterialAdditionFormValue>( {
   material_idno: '',
   in_stock_balance: 0,
   quantity: 0,
-} )
+} );
 
 const materialInventoryFormValue = ref( {
   material_inventory_idno: '',
-} )
+} );
 
 const rowData = ref<GridItem[]>( [] );
 const columnDefs: ColDef[] = [
@@ -85,12 +88,18 @@ const gridOptions: GridOptions = {
   suppressCellFocus: true,
 }
 
+
+
 function getRowId ( params: GetRowIdParams ) { return params.data.material_inventory_id; }
+
+
 
 async function onGridReady ( params: GridReadyEvent ) {
   gridApi.value = params.api;
   gridColumnApi.value = params.columnApi;
 };
+
+
 
 async function getMaterialUnit () {
   if ( materialAdditionFormValue.value.material_idno.trim() ) {
@@ -103,6 +112,8 @@ async function getMaterialUnit () {
     } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { materialUnit.value = ''; } }
   }
 }
+
+
 
 function addItemToGrid ( item: GridItem ) {
   // Remove old, duplicated one
@@ -118,6 +129,8 @@ function addItemToGrid ( item: GridItem ) {
   } );
   gridApi.value.setRowData( rowData.value );
 }
+
+
 
 async function handleAddMaterialButtonClick ( event: Event ) {
   // Quantity should greater than zero
@@ -199,7 +212,8 @@ async function handleAddMaterialButtonClick ( event: Event ) {
 }
 
 
-async function handleAddMaterialInventoryButtonClick ( event: Event ) {
+
+async function onClickAddInventoryButton ( event: Event ) {
   // `material_inventory_idno` cannot be empty
   if ( materialInventoryFormValue.value.material_inventory_idno.trim() === '' ) {
     message.error( '請填入單包代碼' );
@@ -226,15 +240,15 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
     return false;
   }
 
-  // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( materialInventory.l1_storage_id )
-  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE) {
+  // Check if the material inventory's quantity is larger than 0
+  if ( materialInventory.latest_qty <= 0 ) {
     message.error( '此單包已無可用庫存' );
     return false;
   }
 
-  // Check if the material inventory's quantity is larger than 0
-  if ( materialInventory.latest_qty <= 0 ) {
+  // Check if the material inventory is in-stock
+  const storage = await StoragesService.getStorage( materialInventory.l1_storage_id )
+  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
     message.error( '此單包已無可用庫存' );
     return false;
   }
@@ -256,7 +270,8 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
 }
 
 
-function handleRemoveRowButtonClick ( event: Event ) {
+
+function onClickRemoveRowButton ( event: Event ) {
   // Get selected row
   const selectedRows: GridItem[] = gridApi.value.getSelectedRows();
   rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno );
@@ -264,8 +279,11 @@ function handleRemoveRowButtonClick ( event: Event ) {
 }
 
 
+
 const loadingRef = ref( false );
 const loading = loadingRef;
+
+
 
 async function handleCreateIssuanceButtonClick ( event: Event ) {
   loadingRef.value = true;
@@ -304,6 +322,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
   router.push( '/issuances' );
 }
 </script>
+
 
 
 <template>
@@ -385,7 +404,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
                   </n-form-item>
 
                   <n-form-item>
-                    <n-button type="primary" secondary strong @click=" handleAddMaterialInventoryButtonClick( $event ) "
+                    <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
                       attr-type="submit">+</n-button>
                   </n-form-item>
 
@@ -394,7 +413,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
               <n-space size="large" style="margin-bottom: 1rem;">
 
-                <n-button type="error" tertiary @click=" handleRemoveRowButtonClick( $event ) " attr-type="button">刪除單列
+                <n-button type="error" tertiary @click=" onClickRemoveRowButton( $event ) " attr-type="button">刪除單列
                 </n-button>
 
               </n-space>
