@@ -17,6 +17,7 @@
     "@carbon/icons-vue": "^10.49.1",
     "@chenfengyuan/vue-barcode": "^2.0.0",
     "@revolist/vue3-datagrid": "^3.1.0",
+    "@vicons/ionicons5": "^0.12.0",
     "@vueuse/core": "^8.6.0",
     "ag-grid-community": "^27.3.0",
     "ag-grid-vue3": "^27.3.0",

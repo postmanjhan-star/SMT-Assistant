@@ -233,7 +233,7 @@ async function onClickRemoveRowButton ( event: Event ) {
     // Remove the row from grid
     rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno );
     gridApi.value.setRowData( rowData.value );
-  } catch ( error: Error ) {
+  } catch ( error ) {
     message.error( '刪除失敗' );
     return false;
   }
