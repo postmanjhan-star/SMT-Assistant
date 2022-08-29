@@ -165,4 +165,28 @@ issuanceItemId: number,
         });
     }
 
+    /**
+     * Pick Material Inventory
+     * @param materialInventoryIdno 
+     * @param issuanceIdno 
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static pickMaterialInventory(
+materialInventoryIdno: string,
+issuanceIdno: string,
+): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/issuances/{issuance_idno}/pick_material_inventory/{material_inventory_idno}',
+            path: {
+                'material_inventory_idno': materialInventoryIdno,
+                'issuance_idno': issuanceIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
 }
