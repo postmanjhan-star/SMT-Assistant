@@ -16,6 +16,7 @@ const issuance = ref<IssuanceRead>( {
     date: '',
     employee_id: 0,
     memo: '',
+    issuing_completed: false,
 } );
 
 type Picking = IssuanceItemRead & {}

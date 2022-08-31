@@ -10,5 +10,6 @@ export type IssuanceRead = {
     date: string;
     employee_id: number;
     memo: string;
+    issuing_completed: boolean;
     issuance_items?: Array<IssuanceItemRead>;
 };

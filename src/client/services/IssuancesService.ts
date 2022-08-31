@@ -73,6 +73,7 @@ requestBody: IssuanceUpdate,
 
     /**
      * Create Issuance
+     * Do not make transfers on issuance creating. Make transfers on `pick_issuance()`.
      * @param requestBody 
      * @returns IssuanceRead Successful Response
      * @throws ApiError
@@ -167,6 +168,7 @@ issuanceItemId: number,
 
     /**
      * Pick Material Inventory
+     * Make issuance `picked` to `True`. Does not make actual transfer. To make actual transfer, call `pick_issuance()`.
      * @param materialInventoryIdno 
      * @param issuanceIdno 
      * @returns boolean Successful Response
@@ -181,6 +183,27 @@ issuanceIdno: string,
             url: '/issuances/{issuance_idno}/pick_material_inventory/{material_inventory_idno}',
             path: {
                 'material_inventory_idno': materialInventoryIdno,
+                'issuance_idno': issuanceIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Pick Issuance
+     * @param issuanceIdno 
+     * @returns IssuanceRead Successful Response
+     * @throws ApiError
+     */
+    public static pickIssuance(
+issuanceIdno: string,
+): CancelablePromise<IssuanceRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/issuances/{issuance_idno}/pick_issuance',
+            path: {
                 'issuance_idno': issuanceIdno,
             },
             errors: {

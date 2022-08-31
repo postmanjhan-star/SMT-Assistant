@@ -278,7 +278,7 @@ async function onClickRemoveRowButton ( event: Event ) {
             <n-form-item-gi span="3">
               <n-button type="primary" block @click=" handleUpdateIssuanceButtonClick( $event ) " attr-type="submit"
                 :loading=" loading ">
-                更新發料單
+                更新備註
               </n-button>
             </n-form-item-gi>
 

@@ -59,5 +59,9 @@ export const $IssuanceItemRead = {
     type: 'number',
     isRequired: true,
 },
+        picked: {
+    type: 'boolean',
+    isRequired: true,
+},
     },
 } as const;

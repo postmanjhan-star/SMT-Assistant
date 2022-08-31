@@ -123,6 +123,10 @@ const routes = [
         component: () => import( "../components/IssuancesItem.vue" ),
       },
       {
+        path: '/issuances/:idno/pick',
+        component: () => import( "../components/IssuancesPick.vue" ),
+      },
+      {
         path: '/st_erp_receives',
         component: () => import( "../components/StErpReceivesMain.vue" ),
       },
