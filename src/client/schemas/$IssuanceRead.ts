@@ -4,31 +4,35 @@
 export const $IssuanceRead = {
     properties: {
         id: {
-            type: 'number',
-            isRequired: true,
-        },
+    type: 'number',
+    isRequired: true,
+},
         idno: {
-            type: 'string',
-            isRequired: true,
-        },
+    type: 'string',
+    isRequired: true,
+},
         date: {
-            type: 'string',
-            isRequired: true,
-            format: 'date',
-        },
+    type: 'string',
+    isRequired: true,
+    format: 'date',
+},
         employee_id: {
-            type: 'number',
-            isRequired: true,
-        },
+    type: 'number',
+    isRequired: true,
+},
         memo: {
-            type: 'string',
-            isRequired: true,
-        },
+    type: 'string',
+    isRequired: true,
+},
+        issuing_completed: {
+    type: 'boolean',
+    isRequired: true,
+},
         issuance_items: {
-            type: 'array',
-            contains: {
-                type: 'IssuanceItemRead',
-            },
-        },
+    type: 'array',
+    contains: {
+        type: 'IssuanceItemRead',
+    },
+},
     },
 } as const;

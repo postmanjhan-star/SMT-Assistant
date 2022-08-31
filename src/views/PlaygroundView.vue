@@ -1,88 +1,328 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { AgGridVue } from "ag-grid-vue3";  // the AG Grid Vue Component
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { OpenAPI, StoragesService, L2StorageRead } from "../client";
-import { useAuthStore } from '../stores/auth';
-
-const authStore = useAuthStore();
-OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
-
-const rowData = ref<L2StorageRead[]>( [] ); // Set rowData to Array of Objects, one Object per Row
-const gridApi = ref();
-const gridColumnApi = ref();
-
-// DefaultColDef sets props common to all Columns
-const defaultColDef = {
-    editable: true,
-    filter: true,
-    // floatingFilter: true,
-    sortable: true,
-    flex: 1,
-    resizable: true,
-}
-
-// Each Column Definition results in one Column.
-const columnDefs = reactive( {
-    value: [
-        { field: "idno", headerName: '儲位代碼' },
-        { field: "name", headerName: '儲位名稱' },
+    import NumberColumnType from '@revolist/revogrid-column-numeral';
+    import VGrid from "@revolist/vue3-datagrid";
+    import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, useMessage } from 'naive-ui';
+    import { onBeforeMount, ref } from 'vue';
+    import { RouterLink, useRoute, useRouter } from 'vue-router';
+    import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
+    import { useAuthStore } from '../stores/auth';
+    
+    const message = useMessage();
+    const router = useRouter();
+    const route = useRoute();
+    
+    const authStore = useAuthStore();
+    OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+    
+    const gridApi = ref();
+    
+    const formRef = ref<FormInst | null>( null );
+    const headerFormValue = ref( { memo: '' } );
+    
+    const plugin = { 'numeric': new NumberColumnType( '4,0' ) };
+    
+    
+    const columns = [
+      {
+        prop: "picked", name: '已備料', autoSize: true, sortable: true, size: 120,
+        columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
+        cellProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
+      },
+      {
+        prop: "materialInventoryIdno", name: '單包代碼', autoSize: true, sortable: true, size: 120,
+        columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
+        cellProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
+      },
+      {
+        prop: "materialIdno", name: '物料代碼', autoSize: true, sortable: true, size: 120,
+        columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
+        cellProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
+      },
+      {
+        prop: "issueQty", name: '發出數量', autoSize: true, sortable: true, filter: 'number', size: 120, columnType: 'numeric',
+        columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
+        cellProperties: ( { prop, model, data, column } ) => { return { style: { textAlign: 'right', paddingRight: '1em', border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
+      },
+      {
+        prop: "lendQty", name: '借出數量', autoSize: true, sortable: true, filter: 'number', size: 120, columnType: 'numeric',
+        columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
+        cellProperties: ( { prop, model, data, column } ) => { return { style: { textAlign: 'right', paddingRight: '1em', border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
+      },
     ]
-} );
-
-const gridOptions = {
-    columnDefs: columnDefs.value,
-    defaultColDef: defaultColDef,
-    stopEditingWhenCellsLoseFocus: true,
-    enterMovesDownAfterEdit: true,
-    undoRedoCellEditing: true,
-    debug: false,
-    pagination: true,
-    suppressColumnVirtualisation: true,
-    suppressRowTransform: true,
-    debounceVerticalScrollbar: true,
-
-}
-
-const id = 1;
-onMounted( async () => {
-    // Handle error here
-    const response = await StoragesService.getStorage( id );
-    rowData.value = response.l2_storages;
-} );
-
-function getRowId ( params ) { return params.data.id; }
-
-function onGridReady ( params ) {
-    gridApi.value = params.api;
-    gridColumnApi.value = params.columnApi;
-    console.debug( gridApi.value );
-    console.debug( gridColumnApi.value );
-};
-
-function test () {
-    const rowNode = gridApi.value.getRowNode( '5' );
-    console.debug( rowNode );
-}
-
-function test2 () {
-    rowData.value.unshift( { id: 7, idno: '', name: '' } );
-}
-
-function test3 () {
-    console.debug( rowData.value );
-}
-</script>
-
-
-<template>
-    <button @click=" test ">test</button>
-    <button @click=" test2 ">test2</button>
-    <button @click=" test3 ">test3</button>
-
-    <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " :gridOptions=" gridOptions " :getRowId=" getRowId "
-        :onGridReady=" onGridReady " style="height: 400px;">
-    </ag-grid-vue>
-</template>
- 
+    
+    const rows = [
+      { picked: true, materialInventoryIdno: "Item 1", materialIdno: 'Material001', issueQty: 20, lendQty: 30 },
+      { picked: true, materialInventoryIdno: "Item 2", materialIdno: 'Material002', issueQty: 40, lendQty: 70 },
+    ]
+    
+    
+    
+    type GridItem = {
+      id: number,
+      material_idno: string,
+      material_inventory_id: number,
+      material_inventory_idno: string,
+      issue_qty: number,
+      lend_qty: number,
+    };
+    
+    
+    
+    const rowData = ref<GridItem[]>( [] );
+    
+    
+    
+    onBeforeMount( async () => {
+      let issuance: IssuanceRead;
+      try {
+        // issuance = await IssuancesService.getIssuance( route.params.idno.toString() );
+        headerFormValue.value.memo = issuance.memo;
+        for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
+          rowData.value.push( {
+            id: issuanceItem.id,
+            material_idno: issuanceItem.material_idno,
+            material_inventory_id: issuanceItem.material_inventory_id,
+            material_inventory_idno: issuanceItem.material_inventory_idno,
+            issue_qty: issuanceItem.issue_qty,
+            lend_qty: issuanceItem.lend_qty,
+          } )
+        }
+        gridApi.value.setRowData( rowData.value );
+      } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
+    } );
+    
+    
+    
+    const loadingRef = ref( false );
+    const loading = loadingRef;
+    
+    
+    
+    async function handleUpdateIssuanceButtonClick ( event: Event ) {
+      loadingRef.value = true;
+    
+      // Build issuance body
+      const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo };
+    
+      // Create issuance
+      let issuance: IssuanceRead;
+      try { issuance = await IssuancesService.updateIssuance( route.params.idno.toString(), issuanceUpdate ); }
+      catch ( error ) {
+        message.error( '更新失敗' );
+        loadingRef.value = false;
+        return false;
+      }
+    
+      message.success( `發料單 ${ issuance.idno } 更新成功` );
+      router.push( '/issuances' );
+    }
+    
+    
+    
+    const inventoryAdditionFormValue = ref( { inventoryIdno: '' } );
+    const inventoryIdnoInput = ref();
+    
+    
+    
+    async function onClickAddInventoryButton ( event: Event ) {
+      // Input field cannot be empty
+      if ( inventoryAdditionFormValue.value.inventoryIdno.trim() === '' ) {
+        message.error( '請填入單包代碼' );
+        return false;
+      }
+    
+      let inventory: MaterialInventoryRead;
+    
+      // Check if the material inventory exists
+      // Handle 404 and other errors
+      try { inventory = await MaterialInventoriesService.getMaterialInventory( inventoryAdditionFormValue.value.inventoryIdno.trim() ); }
+      catch ( error ) {
+        if ( error instanceof ApiError && error.status === 404 ) {
+          message.error( '無此單包' );
+          return false;
+        } else {
+          message.error( '讀取失敗' );
+          return false;
+        }
+      }
+    
+      // Check if the material inventory available (not locked) for issuing
+      if ( inventory.issuing_locked === true ) {
+        message.error( '此單包已被其他發料單使用' );
+        return false;
+      }
+    
+      // Check if the material inventory's quantity is larger than 0
+      if ( inventory.latest_qty <= 0 ) {
+        message.error( '此單包已無可用庫存' );
+        return false;
+      }
+    
+      // Check if the material inventory is in-stock
+      const storage = await StoragesService.getStorage( inventory.l1_storage_id )
+      if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
+        message.error( '此單包已無可用庫存' );
+        return false;
+      }
+    
+    
+      try {
+        // Request adding item with backend
+        const item = await IssuancesService.addIssuanceItem( route.params.idno.toString(), {
+          material_inventory_id: inventory.id,
+          issue_qty: inventory.latest_qty,
+          lend_qty: 0,
+        } )
+    
+        // Add the responsed issuance item to grid
+        rowData.value.unshift( {
+          id: item.id,
+          material_idno: item.material_idno,
+          material_inventory_id: item.material_inventory_id,
+          material_inventory_idno: item.material_inventory_idno,
+          issue_qty: item.issue_qty,
+          lend_qty: item.lend_qty,
+        } )
+        gridApi.value.setRowData( rowData.value );
+    
+        message.success( '已增加成功 👍' );
+    
+        // Clear materialAdditionFormValue
+        inventoryAdditionFormValue.value.inventoryIdno = '';
+    
+        // Focus at `material_idno` input field
+        inventoryIdnoInput.value.focus();
+      } catch ( error ) {
+        message.error( '增加失敗' );
+        return false;
+      }
+    }
+    
+    
+    
+    async function onClickRemoveRowButton ( event: Event ) {
+      // Get selected rows
+      const selectedRows: GridItem[] = gridApi.value.getSelectedRows();
+      if ( selectedRows.length === 0 ) { return false; }
+      if ( selectedRows.length > 1 ) {
+        message.warning( '請選擇單列' );
+        return false;
+      }
+    
+      const selectedRow = selectedRows[ 0 ];
+    
+      try {
+        const success = await IssuancesService.removeIssuanceItem( route.params.idno.toString(), selectedRow.id )
+        message.success( '已刪除 🗑️' );
+    
+        // Remove the row from grid
+        rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno );
+        gridApi.value.setRowData( rowData.value );
+      } catch ( error ) {
+        message.error( '刪除失敗' );
+        return false;
+      }
+    }
+    </script>
+    
+    
+    
+    <template>
+      <main
+        style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+        <n-breadcrumb
+          style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
+          <n-breadcrumb-item>
+            <router-link to="/home" #=" { navigate, href } " custom>
+              <n-a :href=" href " @click=" navigate ">首頁</n-a>
+            </router-link>
+          </n-breadcrumb-item>
+          <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+          <n-breadcrumb-item>
+            <router-link to="/issuances" #=" { navigate, href } " custom>
+              <n-a :href=" href " @click=" navigate ">發料備料作業</n-a>
+            </router-link>
+          </n-breadcrumb-item>
+        </n-breadcrumb>
+    
+    
+    
+        <div style="padding: 1rem;">
+          <n-space vertical size="large"
+            style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
+    
+            <n-form size="large" :model=" headerFormValue " ref="formRef">
+              <n-grid cols="1 s:3" responsive="screen" x-gap="20">
+    
+                <n-form-item-gi label="備註" span="3">
+                  <n-input v-model:value.memo=" headerFormValue.memo "></n-input>
+                </n-form-item-gi>
+    
+                <n-form-item-gi span="3">
+                  <n-button type="primary" block @click=" handleUpdateIssuanceButtonClick( $event ) " attr-type="submit"
+                    :loading=" loading ">
+                    更新備註
+                  </n-button>
+                </n-form-item-gi>
+    
+              </n-grid>
+            </n-form>
+    
+          </n-space>
+        </div>
+    
+    
+    
+        <div style="padding: 1rem;">
+          <n-space size="large" item-style="height: 40px; vertical-align: center" :align=" 'center' ">
+            <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">備料項目</n-h2>
+          </n-space>
+    
+          <n-space vertical size="large"
+            style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
+    
+            <n-form size="large" :model=" inventoryAdditionFormValue ">
+              <n-space size="large">
+    
+                <n-form-item label="單包代碼">
+                  <n-input ref="inventoryIdnoInput" v-model:value.lazy=" inventoryAdditionFormValue.inventoryIdno ">
+                  </n-input>
+                </n-form-item>
+    
+                <n-form-item>
+                  <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
+                    attr-type="submit">
+                    +</n-button>
+                </n-form-item>
+    
+              </n-space>
+            </n-form>
+    
+            <n-grid cols="1 s:3" responsive="screen" x-gap="20">
+    
+              <n-gi span="3">
+                <n-space size="large" vertical>
+    
+                  <n-space size="large" style="margin-bottom: 1rem;">
+                    <n-button type="error" tertiary @click=" onClickRemoveRowButton( $event ) " attr-type="button">刪除單列
+                    </n-button>
+                  </n-space>
+    
+                  <v-grid theme="compact" :columns=" columns " :source=" rows " :autoSizeColumn=" true " resize filter readonly stretch
+                    row-headers :columnTypes=" plugin " style="height: 400px; border: 1px solid hsla(0, 0%, 80%, 1.0);">
+                  </v-grid>
+    
+                  <n-button type="primary" block size="large" @click=" handleUpdateIssuanceButtonClick( $event ) "
+                    attr-type="submit" :loading=" loading ">
+                    確定備料
+                  </n-button>
+                </n-space>
+    
+              </n-gi>
+    
+            </n-grid>
+          </n-space>
+        </div>
+      </main>
+    </template>
+    
