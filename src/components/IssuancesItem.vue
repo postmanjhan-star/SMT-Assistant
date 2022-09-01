@@ -3,7 +3,7 @@ import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-com
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, useMessage } from 'naive-ui';
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
@@ -74,14 +74,13 @@ const gridOptions: GridOptions = {
   suppressCellFocus: true,
 }
 
-
+const issuance = ref<IssuanceRead>();
 
 onBeforeMount( async () => {
-  let issuance: IssuanceRead;
   try {
-    issuance = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
-    headerFormValue.value.memo = issuance.memo;
-    for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
+    issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
+    headerFormValue.value.memo = issuance.value.memo;
+    for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       rowData.value.push( {
         id: issuanceItem.id,
         material_idno: issuanceItem.material_idno,
@@ -114,21 +113,23 @@ const loading = loadingRef;
 
 
 async function handleUpdateIssuanceButtonClick ( event: Event ) {
+  // Block updating for a completed issuance
+  if ( issuance.value?.issuing_completed ) { return false; }
+  
   loadingRef.value = true;
 
   // Build issuance body
   const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo };
 
   // Create issuance
-  let issuance: IssuanceRead;
-  try { issuance = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
+  try { issuance.value = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
   catch ( error ) {
     message.error( '更新失敗' );
     loadingRef.value = false;
     return false;
   }
 
-  message.success( `發料單 ${ issuance.idno } 更新成功` );
+  message.success( `發料單 ${ issuance.value.idno } 更新成功` );
   router.push( '/issuances' );
 }
 
@@ -140,6 +141,9 @@ const inventoryIdnoInput = ref();
 
 
 async function onClickAddInventoryButton ( event: Event ) {
+  // Block updating for a completed issuance
+  if ( issuance.value?.issuing_completed ) { return false; }
+
   // Input field cannot be empty
   if ( inventoryAdditionFormValue.value.inventoryIdno.trim() === '' ) {
     message.error( '請填入單包代碼' );
@@ -215,6 +219,9 @@ async function onClickAddInventoryButton ( event: Event ) {
 
 
 async function onClickRemoveRowButton ( event: Event ) {
+  // Block updating for a completed issuance
+  if ( issuance.value?.issuing_completed ) { return false; }
+  
   // Get selected rows
   const selectedRows: GridItem[] = gridApi.value.getSelectedRows();
   if ( selectedRows.length === 0 ) { return false; }
@@ -263,11 +270,14 @@ async function onClickRemoveRowButton ( event: Event ) {
 
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">發料單 {{ $route.params.idno.toString().toUpperCase() }}</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">
+        發料單 {{ $route.params.idno.toString().toUpperCase() }}
+        <n-tag type="success" size="large" strong v-if=" issuance?.issuing_completed ">已發料</n-tag>
+      </n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-form size="large" :model=" headerFormValue " ref="formRef">
+        <n-form size="large" :model=" headerFormValue " ref="formRef" :disabled=" issuance?.issuing_completed ">
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi label="備註" span="3">
@@ -276,7 +286,7 @@ async function onClickRemoveRowButton ( event: Event ) {
 
             <n-form-item-gi span="3">
               <n-button type="primary" block @click=" handleUpdateIssuanceButtonClick( $event ) " attr-type="submit"
-                :loading=" loading ">
+                :disabled=" issuance?.issuing_completed " :loading=" loading ">
                 更新備註
               </n-button>
             </n-form-item-gi>
@@ -297,7 +307,7 @@ async function onClickRemoveRowButton ( event: Event ) {
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-form size="large" :model=" inventoryAdditionFormValue ">
+        <n-form size="large" :model=" inventoryAdditionFormValue " :disabled=" issuance?.issuing_completed ">
           <n-space size="large">
 
             <n-form-item label="單包代碼">
@@ -307,7 +317,7 @@ async function onClickRemoveRowButton ( event: Event ) {
 
             <n-form-item>
               <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                attr-type="submit">
+                :disabled=" issuance?.issuing_completed " attr-type="submit">
                 +</n-button>
             </n-form-item>
 
@@ -318,7 +328,8 @@ async function onClickRemoveRowButton ( event: Event ) {
 
           <n-gi span="3">
             <n-space size="large" style="margin-bottom: 1rem;">
-              <n-button type="error" tertiary @click=" onClickRemoveRowButton( $event ) " attr-type="button">刪除單列
+              <n-button type="error" tertiary @click=" onClickRemoveRowButton( $event ) "
+                :disabled=" issuance?.issuing_completed " attr-type="button">刪除單列
               </n-button>
             </n-space>
 

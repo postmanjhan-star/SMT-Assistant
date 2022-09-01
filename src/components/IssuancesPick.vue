@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDescriptions, NDescriptionsItem, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NThing, useMessage } from 'naive-ui';
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDescriptions, NDescriptionsItem, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, NThing, useMessage } from 'naive-ui';
 import { onBeforeMount, reactive, ref } from 'vue';
 import { Dataset, DatasetInfo, DatasetItem, DatasetPager, DatasetSearch, DatasetShow } from 'vue-dataset';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
@@ -31,16 +31,16 @@ type IssuanceItem = {
 };
 
 
-let issuance: IssuanceRead;
+let issuance = ref<IssuanceRead>();
 let issuanceItemData = reactive<IssuanceItem[]>( [] );
 
 
 
 onBeforeMount( async () => {
   try {
-    issuance = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
-    headerFormValue.value.memo = issuance.memo;
-    for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
+    issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
+    headerFormValue.value.memo = issuance.value.memo;
+    for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       issuanceItemData.push( {
         id: issuanceItem.id,
         material_idno: issuanceItem.material_idno,
@@ -63,20 +63,23 @@ const loading = loadingRef;
 
 
 async function handleUpdateIssuanceButtonClick ( event: Event ) {
+  // Block updating for a completed issuance
+  if ( issuance.value?.issuing_completed ) { return false; }
+
   loadingRef.value = true;
 
   // Build issuance body
   const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo };
 
   // Update issuance
-  try { issuance = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
+  try { issuance.value = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
   catch ( error ) {
     message.error( '更新失敗' );
     loadingRef.value = false;
     return false;
   }
 
-  message.success( `發料單 ${ issuance.idno } 更新成功` );
+  message.success( `發料單 ${ issuance.value.idno } 更新成功` );
   router.push( '/issuances' );
 }
 
@@ -94,6 +97,9 @@ function clearAndFocusInventoryInput () {
 }
 
 async function onClickAddInventoryButton ( event: Event ) {
+  // Block updating for a completed issuance
+  if ( issuance.value?.issuing_completed ) { return false; }
+  
   // Input field cannot be empty
   if ( inventoryAdditionFormValue.value.inventoryIdno.trim() === '' ) {
     message.error( '請填入單包代碼' );
@@ -155,7 +161,7 @@ async function onClickAddInventoryButton ( event: Event ) {
           // Make the item card green.
           issuanceItemData[ i ].picked = true;
           // Ask backend to pick this item.
-          await IssuancesService.pickMaterialInventory( { materialInventoryIdno: inventory.idno, issuanceIdno: issuance.idno } );
+          await IssuancesService.pickMaterialInventory( { materialInventoryIdno: inventory.idno, issuanceIdno: issuance.value.idno } );
         }
       }
     } );
@@ -167,10 +173,10 @@ async function onClickAddInventoryButton ( event: Event ) {
 
 async function onClickConfirmPickingButton ( event: Event ) {
   // Refresh issuance.
-  issuance = await IssuancesService.getIssuance( { issuanceIdno: issuance.idno } );
+  issuance.value = await IssuancesService.getIssuance( { issuanceIdno: issuance.value.idno } );
 
   // Check all issuance items' `picked` state.
-  issuance.issuance_items.forEach( ( item, i ) => {
+  issuance.value.issuance_items.forEach( ( item, i ) => {
     if ( item.picked === false ) {
       message.error( `${ item.material_inventory_idno } 尚未備齊` );
       return false;
@@ -179,9 +185,9 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
   // Request backend to confirm the issuance. Make transfers for issuance items.
   try {
-    issuance = await IssuancesService.pickIssuance( { issuanceIdno: issuance.idno } );
-    if ( issuance.issuing_completed ) { message.success( `發料完成` ); }
-    if ( issuance.issuing_completed === false ) { throw Error; }
+    issuance.value = await IssuancesService.pickIssuance( { issuanceIdno: issuance.value.idno } );
+    if ( issuance.value.issuing_completed ) { message.success( `發料完成` ); }
+    if ( issuance.value.issuing_completed === false ) { throw Error; }
   } catch ( error ) {
     message.error( `發料失敗` );
     return false;
@@ -215,11 +221,14 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">{{ $route.params.idno.toString().toUpperCase() }} 備料作業</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">
+        {{ $route.params.idno.toString().toUpperCase() }} 備料作業
+        <n-tag type="success" size="large" strong v-if=" issuance?.issuing_completed ">已發料</n-tag>
+      </n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-form size="large" :model=" headerFormValue " ref="formRef">
+        <n-form size="large" :model=" headerFormValue " ref="formRef" :disabled=" issuance?.issuing_completed ">
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi label="備註" span="3">
@@ -228,7 +237,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
             <n-form-item-gi span="3">
               <n-button type="primary" block @click=" handleUpdateIssuanceButtonClick( $event ) " attr-type="submit"
-                :loading=" loading ">
+                :disabled=" issuance?.issuing_completed " :loading=" loading ">
                 更新備註
               </n-button>
             </n-form-item-gi>
@@ -249,7 +258,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-form size="large" :model=" inventoryAdditionFormValue ">
+        <n-form size="large" :model=" inventoryAdditionFormValue " :disabled=" issuance?.issuing_completed ">
           <n-space size="large">
 
             <n-form-item label="單包代碼">
@@ -259,7 +268,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
             <n-form-item>
               <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                attr-type="submit">
+                :disabled=" issuance?.issuing_completed " attr-type="submit">
                 +</n-button>
             </n-form-item>
 
@@ -331,7 +340,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
               </div>
 
               <n-button type="primary" block size="large" @click=" onClickConfirmPickingButton( $event ) "
-                attr-type="submit" :loading=" loading ">
+                :disabled=" issuance?.issuing_completed " attr-type="submit" :loading=" loading ">
                 確定發料
               </n-button>
             </n-space>
