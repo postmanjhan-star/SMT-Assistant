@@ -115,7 +115,7 @@ async function handleGenerateIssuanceForPrintButtonClick () {
 
 function onClickPickButton ( event: Event ) {
   // Get selected rows
-  const selectedRows: IssuanceRead[] = gridApi.value.getSelectedRows();
+  const selectedRows: Row[] = gridApi.value.getSelectedRows();
 
   // Check if any row is selected
   if ( selectedRows.length === 0 ) {
@@ -124,7 +124,7 @@ function onClickPickButton ( event: Event ) {
   }
 
   // Get selected row
-  const issuance: IssuanceRead = selectedRows[ 0 ];
+  const issuance: Row = selectedRows[ 0 ];
 
   router.push( `/issuances/${ issuance.idno }/pick` );
 }

@@ -4,6 +4,9 @@ import { useRoute, useRouter } from "vue-router";
 import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, OpenAPI } from "../client";
 import { useAuthStore } from '../stores/auth';
 
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDescriptions, NDescriptionsItem, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, NThing, useMessage } from 'naive-ui';
+
+
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
@@ -23,6 +26,8 @@ type Picking = IssuanceItemRead & {}
 
 const pickings = ref<Picking[]>( [] );
 
+
+
 onMounted( async () => {
     try { issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } ); }
     catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
@@ -32,19 +37,25 @@ onMounted( async () => {
 </script>
 
 
+
 <template>
     <main>
         <table>
             <!-- `thead` repeats on every printed page -->
             <thead>
                 <tr>
-                    <th colspan="5">
-                        <h1>發料備料單 {{ issuance.idno }}</h1>
+                    <th colspan="6">
+                        <h1 style="vertical-align: middle;">
+                            <span>發料備料單 {{ issuance.idno }}</span>
+                            <n-tag size="large" strong v-if=" issuance?.issuing_completed " style="float: right;">已發料
+                            </n-tag>
+                        </h1>
                         <!-- <vue-barcode value="5901234123457" :options=" { format: 'EAN13' } "></vue-barcode> -->
                     </th>
                 </tr>
                 <tr>
                     <th class="row-index">項次</th>
+                    <th></th>
                     <th>單包代碼</th>
                     <th>物料</th>
                     <th></th>
@@ -54,19 +65,23 @@ onMounted( async () => {
             <tbody>
                 <tr v-for="( item, index ) in pickings">
                     <td class="row-index">{{ index + 1 }}</td>
-                    <td class="inventory-idno">{{ item.material_inventory_idno }}</td>
+                    <td>
+                        <n-tag size="large" strong v-if=" item?.picked ">已備料</n-tag>
+                    </td>
+                    <td class="inventory-idno"> {{ item.material_inventory_idno }}</td>
                     <td class="material-idno">{{ item.material_idno }}</td>
                     <td class="material-information">
                         <div>{{ item.material_name }}</div>
                         <div>{{ item.material_description }}</div>
                     </td>
-                    <td>{{ item.l1_storage_idno }} / {{ item.l2_storage_idno }}
-                    </td>
+                    <td><span v-if=" !item?.picked ">{{ item.l1_storage_idno }} / {{ item.l2_storage_idno }}</span></td>
                 </tr>
             </tbody>
         </table>
     </main>
 </template>
+
+
 
 <style>
 @page {
