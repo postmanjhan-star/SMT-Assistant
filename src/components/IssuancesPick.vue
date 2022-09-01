@@ -38,7 +38,7 @@ let issuanceItemData = reactive<IssuanceItem[]>( [] );
 
 onBeforeMount( async () => {
   try {
-    issuance = await IssuancesService.getIssuance( route.params.idno.toString() );
+    issuance = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
     headerFormValue.value.memo = issuance.memo;
     for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
       issuanceItemData.push( {
@@ -69,7 +69,7 @@ async function handleUpdateIssuanceButtonClick ( event: Event ) {
   const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo };
 
   // Update issuance
-  try { issuance = await IssuancesService.updateIssuance( route.params.idno.toString(), issuanceUpdate ); }
+  try { issuance = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
   catch ( error ) {
     message.error( '更新失敗' );
     loadingRef.value = false;
@@ -104,7 +104,7 @@ async function onClickAddInventoryButton ( event: Event ) {
 
   // Check if the material inventory exists
   // Handle 404 and other errors
-  try { inventory = await MaterialInventoriesService.getMaterialInventory( inventoryAdditionFormValue.value.inventoryIdno.trim() ); }
+  try { inventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: inventoryAdditionFormValue.value.inventoryIdno.trim() } ); }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       clearAndFocusInventoryInput();
@@ -140,7 +140,7 @@ async function onClickAddInventoryButton ( event: Event ) {
   // }
 
   // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( inventory.l1_storage_id )
+  const storage = await StoragesService.getStorage( { l1Id: inventory.l1_storage_id } );
   if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
     clearAndFocusInventoryInput();
     message.error( '此單包已無可用庫存' );
@@ -155,7 +155,7 @@ async function onClickAddInventoryButton ( event: Event ) {
           // Make the item card green.
           issuanceItemData[ i ].picked = true;
           // Ask backend to pick this item.
-          await IssuancesService.pickMaterialInventory( inventory.idno, issuance.idno );
+          await IssuancesService.pickMaterialInventory( { materialInventoryIdno: inventory.idno, issuanceIdno: issuance.idno } );
         }
       }
     } );
@@ -167,7 +167,7 @@ async function onClickAddInventoryButton ( event: Event ) {
 
 async function onClickConfirmPickingButton ( event: Event ) {
   // Refresh issuance.
-  issuance = await IssuancesService.getIssuance( issuance.idno );
+  issuance = await IssuancesService.getIssuance( { issuanceIdno: issuance.idno } );
 
   // Check all issuance items' `picked` state.
   issuance.issuance_items.forEach( ( item, i ) => {
@@ -179,7 +179,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
   // Request backend to confirm the issuance. Make transfers for issuance items.
   try {
-    issuance = await IssuancesService.pickIssuance( issuance.idno );
+    issuance = await IssuancesService.pickIssuance( { issuanceIdno: issuance.idno } );
     if ( issuance.issuing_completed ) { message.success( `發料完成` ); }
     if ( issuance.issuing_completed === false ) { throw Error; }
   } catch ( error ) {
@@ -187,7 +187,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
     return false;
   }
 
-  router.push('/issuances');
+  router.push( '/issuances' );
 }
 </script>
 
@@ -209,13 +209,13 @@ async function onClickConfirmPickingButton ( event: Event ) {
           <n-a :href=" href " @click=" navigate ">發料備料作業</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>{{  $route.params.idno.toString().toUpperCase()  }} 備料作業</n-breadcrumb-item>
+      <n-breadcrumb-item>{{ $route.params.idno.toString().toUpperCase() }} 備料作業</n-breadcrumb-item>
     </n-breadcrumb>
 
 
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">{{  $route.params.idno.toString().toUpperCase()  }} 備料作業</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">{{ $route.params.idno.toString().toUpperCase() }} 備料作業</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
@@ -292,19 +292,19 @@ async function onClickConfirmPickingButton ( event: Event ) {
                           <template #header>
                             <n-descriptions :bordered=" false " :column=" 1 " size="large" label-placement="top"
                               label-style="font-size: xx-small;">
-                              <n-descriptions-item label="單包代碼">{{  row.material_inventory_idno  }}</n-descriptions-item>
+                              <n-descriptions-item label="單包代碼">{{ row.material_inventory_idno }}</n-descriptions-item>
                             </n-descriptions>
                           </template>
                           <template #description>
                             <n-descriptions :bordered=" false " :column=" 1 " size="large" label-placement="top"
                               label-style="font-size: xx-small;">
-                              <n-descriptions-item label="物料代碼">{{  row.material_idno  }}</n-descriptions-item>
+                              <n-descriptions-item label="物料代碼">{{ row.material_idno }}</n-descriptions-item>
                             </n-descriptions>
                           </template>
                           <n-descriptions :bordered=" false " :column=" 2 " size="large" label-placement="top"
                             label-style="font-size: xx-small;">
-                            <n-descriptions-item label="發出數量">{{  row.issue_qty  }}</n-descriptions-item>
-                            <n-descriptions-item label="借出數量">{{  row.lend_qty  }}</n-descriptions-item>
+                            <n-descriptions-item label="發出數量">{{ row.issue_qty }}</n-descriptions-item>
+                            <n-descriptions-item label="借出數量">{{ row.lend_qty }}</n-descriptions-item>
                           </n-descriptions>
                           <!-- Not implement yet!
                           <template #action>

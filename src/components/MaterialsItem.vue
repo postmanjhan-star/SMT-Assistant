@@ -42,7 +42,7 @@ const rules: FormRules = {
 }
 
 onBeforeMount( async () => {
-  try { formValue.value = await MaterialsService.getMaterial( route.params.idno.toString() ); }
+  try { formValue.value = await MaterialsService.getMaterial( { idno: route.params.idno.toString() } ); }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 } );
 
@@ -59,7 +59,7 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
 
   // Update Material
   try {
-    const response = await MaterialsService.updateMaterial( formValue.value.id, formValue.value )
+    const response = await MaterialsService.updateMaterial( { id: formValue.value.id, requestBody: formValue.value } );
     message.success( `更新成功` );
     router.push( '/materials' );
   } catch ( error ) {

@@ -12,13 +12,14 @@ export class SessionService {
 
     /**
      * Login For Access Token
-     * @param formData 
      * @returns Token Successful Response
      * @throws ApiError
      */
-    public static loginForAccessToken(
+    public static loginForAccessToken({
+formData,
+}: {
 formData: Body_login_for_access_token,
-): CancelablePromise<Token> {
+}): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/session/',
@@ -32,13 +33,14 @@ formData: Body_login_for_access_token,
 
     /**
      * Refresh Tokens
-     * @param refreshToken 
      * @returns Token Successful Response
      * @throws ApiError
      */
-    public static refreshTokens(
+    public static refreshTokens({
+refreshToken,
+}: {
 refreshToken?: any,
-): CancelablePromise<Token> {
+}): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/session/refresh',

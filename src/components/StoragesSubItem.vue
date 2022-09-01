@@ -55,7 +55,7 @@ const gridOptions = {
 
 onBeforeMount( async () => {
   try {
-    const response = await StoragesService.getStorage( Number( route.params.id ) );
+    const response = await StoragesService.getStorage( { l1Id: Number( route.params.id ) } );
     rowData.value = response.l2_storages;
     l1_storage_id = response.id;
   } catch ( error ) { console.error( error ); }
@@ -111,7 +111,7 @@ async function handleUpdateL2StorageButtonClick ( event: Event ) {
 
   if ( to_update.length >= 1 ) {
     for ( let row of to_update ) {
-      try { const response = await StoragesService.updateL2Storage( l1_storage_id, row.id, row ); }
+      try { const response = await StoragesService.updateL2Storage( { l1Id: l1_storage_id, l2Id: row.id, requestBody: row } ); }
       catch ( error ) {
         message.error( '儲位更新失敗' );
         return false;
@@ -122,7 +122,7 @@ async function handleUpdateL2StorageButtonClick ( event: Event ) {
 
   if ( to_create.length >= 1 ) {
     for ( let row of to_create ) {
-      try { const response = await StoragesService.createL2Storage( l1_storage_id, row ); }
+      try { const response = await StoragesService.createL2Storage( { l1Id: l1_storage_id, requestBody: row } ); }
       catch ( error ) {
         message.error( '儲位建立失敗' );
         return false;

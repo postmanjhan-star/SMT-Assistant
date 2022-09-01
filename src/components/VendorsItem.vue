@@ -26,9 +26,7 @@ const rules: FormRules = {
     trigger: [ 'input', 'blur' ],
   },
 }
-onBeforeMount( async () => {
-  formValue.value = await VendorsService.getVendor( route.params.idno.toString() )
-} );
+onBeforeMount( async () => { formValue.value = await VendorsService.getVendor( { idno: route.params.idno.toString() } ); } );
 
 async function handleCreateVendorButtonClick ( evnet: Event ) {
   // Check if any empyt fields
@@ -44,7 +42,7 @@ async function handleCreateVendorButtonClick ( evnet: Event ) {
 
   // Update
   try {
-    const response = await VendorsService.updateVendor( formValue.value.id, formValue.value )
+    const response = await VendorsService.updateVendor( { id: formValue.value.id, requestBody: formValue.value } );
     message.success( `更新成功` );
     router.push( '/vendors' );
   } catch ( error ) {

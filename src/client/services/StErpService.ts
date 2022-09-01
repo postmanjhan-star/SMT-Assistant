@@ -14,13 +14,14 @@ export class StErpService {
 
     /**
      * Get St Part
-     * @param partIdno 
      * @returns STPart Successful Response
      * @throws ApiError
      */
-    public static getStPart(
+    public static getStPart({
+partIdno,
+}: {
 partIdno: string,
-): CancelablePromise<STPart> {
+}): CancelablePromise<STPart> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/parts/{part_idno}',
@@ -35,13 +36,14 @@ partIdno: string,
 
     /**
      * Get St Receives
-     * @param page 
      * @returns STReceiveHeader Successful Response
      * @throws ApiError
      */
-    public static getStReceives(
-page: number = 1,
-): CancelablePromise<Array<STReceiveHeader>> {
+    public static getStReceives({
+page = 1,
+}: {
+page?: number,
+}): CancelablePromise<Array<STReceiveHeader>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/',
@@ -56,13 +58,14 @@ page: number = 1,
 
     /**
      * Get St Receive
-     * @param receiveIdno 
      * @returns STReceiveHeader Successful Response
      * @throws ApiError
      */
-    public static getStReceive(
+    public static getStReceive({
+receiveIdno,
+}: {
 receiveIdno: string,
-): CancelablePromise<STReceiveHeader> {
+}): CancelablePromise<STReceiveHeader> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{receive_idno}',
@@ -77,13 +80,14 @@ receiveIdno: string,
 
     /**
      * Get St Receive Pack Barcodes
-     * @param stErpReceiveIdno 
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getStReceivePackBarcodes(
+    public static getStReceivePackBarcodes({
+stErpReceiveIdno,
+}: {
 stErpReceiveIdno: string,
-): CancelablePromise<Array<any>> {
+}): CancelablePromise<Array<any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{st_erp_receive_idno}/barcodes',
@@ -99,15 +103,16 @@ stErpReceiveIdno: string,
     /**
      * @deprecated
      * Print St Receive Packs Label
-     * @param stErpReceiveIdno 
-     * @param printer 
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static printStReceivePacksLabel(
+    public static printStReceivePacksLabel({
+stErpReceiveIdno,
+printer,
+}: {
 stErpReceiveIdno: string,
 printer?: app__st_erp__st_receives__Printer,
-): CancelablePromise<any> {
+}): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{st_erp_receive_idno}/packs_label',
@@ -125,13 +130,14 @@ printer?: app__st_erp__st_receives__Printer,
 
     /**
      * Get St Vendor
-     * @param vendorIdno 
      * @returns STVendor Successful Response
      * @throws ApiError
      */
-    public static getStVendor(
+    public static getStVendor({
+vendorIdno,
+}: {
 vendorIdno: string,
-): CancelablePromise<STVendor> {
+}): CancelablePromise<STVendor> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/vendors/{vendor_idno}',

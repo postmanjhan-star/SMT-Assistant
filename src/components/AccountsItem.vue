@@ -28,7 +28,7 @@ const role_options = [
 
 onBeforeMount( async () => {
   try {
-    currentValue.value = await AccountsService.getAccountEmployeeInformation( route.params.idno.toString() );
+    currentValue.value = await AccountsService.getAccountEmployeeInformation( { idno: route.params.idno.toString() } );
     uiFormValue.value.username = currentValue.value.username;
     uiFormValue.value.idno = currentValue.value.idno;
     uiFormValue.value.full_name = currentValue.value.full_name;
@@ -43,7 +43,7 @@ async function handleCreateAccountButtonClick ( event: Event ) {
   updateValue.value.roles = uiFormValue.value.roles;
 
   try {
-    const response = await AccountsService.updateAccountEmployee( route.params.idno.toString(), updateValue.value );
+    const response = await AccountsService.updateAccountEmployee( { idno: route.params.idno.toString(), requestBody: updateValue.value } );
     message.success( '更新成功' );
   } catch ( error ) { message.error( '更新失敗' ); }
 }

@@ -29,7 +29,7 @@ const rules: FormRules = {
 }
 
 
-onBeforeMount( async () => { formValue.value = await StoragesService.getStorage( Number( route.params.id ) ); } );
+onBeforeMount( async () => { formValue.value = await StoragesService.getStorage( { l1Id: Number( route.params.id ) } ); } );
 
 
 async function handleUpdateStorageButtonClick ( event: Event ) {
@@ -47,7 +47,7 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
 
   // Send request to backend
   try {
-    const response = await StoragesService.updateL1Storage( formValue.value.id, formValue.value )
+    const response = await StoragesService.updateL1Storage( { l1Id: formValue.value.id, requestBody: formValue.value } );
     message.success( `更新成功` );
     router.push( '/storages' );
 

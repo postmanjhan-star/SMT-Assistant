@@ -26,7 +26,7 @@ onMounted( () => { if ( props.message ) message.warning( props.message ); } );
 
 async function login ( username: string, password: string ) {
     try {
-        const response = await SessionService.loginForAccessToken( { username: username, password: password } );
+        const response = await SessionService.loginForAccessToken( { formData: { username: username, password: password } } );
 
         // Save token to auth store and local storage
         authStore.accountToken = JSON.stringify( response );

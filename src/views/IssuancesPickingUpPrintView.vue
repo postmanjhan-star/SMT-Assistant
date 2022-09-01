@@ -24,7 +24,7 @@ type Picking = IssuanceItemRead & {}
 const pickings = ref<Picking[]>( [] );
 
 onMounted( async () => {
-    try { issuance.value = await IssuancesService.getIssuance( route.params.idno.toString() ); }
+    try { issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } ); }
     catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) { pickings.value.push( issuanceItem ) }

@@ -52,9 +52,7 @@ const gridOptions = {
   onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/epicor_receives/${ event.data.VendorNum }/${ event.data.PackSlip }` ),
 }
 
-onBeforeMount( async () => {
-  rowData.value = await EpicorService.getEpicorReceives();
-} );
+onBeforeMount( async () => { rowData.value = await EpicorService.getEpicorReceives(); } );
 
 function getRowId ( params: GetRowIdParams ) { return params.data.SysRevID; }
 

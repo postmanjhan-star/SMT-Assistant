@@ -120,7 +120,7 @@ async function onGridReady ( params: GridReadyEvent ) {
   gridColumnApi.value = params.columnApi;
 
   if ( props.material_idno && props.total_qty && props.qualify_qty ) {
-    const material = await MaterialsService.getMaterial( props.material_idno );
+    const material = await MaterialsService.getMaterial( { idno: props.material_idno } );
     const gridItem: GridReceiveItem = {
       id: 1, // ag-grid row ID
       material_id: material.id,
@@ -176,7 +176,7 @@ async function handleAddReceiveItemButtonClick ( event: Event ) {
   // Check if the material exists
   // Handle 404 and other errors
   try {
-    const material = await MaterialsService.getMaterial( materialAdditionFormValue.value.material_idno );
+    const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno } );
     materialAdditionFormValue.value.material_id = material.id;
     materialAdditionFormValue.value.material_name = material.name;
   } catch ( error ) {
@@ -225,7 +225,7 @@ async function handleCreateReceiveButtonClick ( event: Event ) {
 
   // Create
   try {
-    const response = await ReceivesService.createReceive( submitValue );
+    const response = await ReceivesService.createReceive( { requestBody: submitValue } );
     message.success( `收料單 ${ response.idno } 建立成功` );
     router.push( '/receives' );
   }

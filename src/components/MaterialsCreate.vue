@@ -55,7 +55,7 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
 
   // Create Material
   try {
-    const response = await MaterialsService.createMaterial( formValue.value )
+    const response = await MaterialsService.createMaterial( { requestBody: formValue.value } );
     message.success( `物料 ${ response.idno } 建立成功` );
     router.push( '/materials' );
   } catch ( error ) {
@@ -76,7 +76,7 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
     return false;
   }
   try {
-    const response = await StErpService.getStPart( formValue.value.idno );
+    const response = await StErpService.getStPart( { partIdno: formValue.value.idno } );
     formValue.value.idno = response.idno;
     formValue.value.name = response.spec_1;
     formValue.value.description = response.spec_2;

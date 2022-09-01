@@ -16,9 +16,7 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const formValue = ref<EpicorReceive>( { SysRevID: 0, VendorNum: 0, ReceiptDate: '', PackSlip: '', PONum: '', VendorNumName: '' } );
 
 
-onBeforeMount( async () => {
-  formValue.value = await EpicorService.getEpicorReceive( parseInt( route.params.vendor_num.toString() ), route.params.pack_slip.toString() );
-} );
+onBeforeMount( async () => { formValue.value = await EpicorService.getEpicorReceive( { vendorNum: parseInt( route.params.vendor_num.toString() ), packSlip: route.params.pack_slip.toString() } ); } );
 </script>
 
 <template>

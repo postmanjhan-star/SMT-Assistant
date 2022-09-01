@@ -26,13 +26,14 @@ export class AccountsService {
 
     /**
      * Create Employee Account
-     * @param requestBody
      * @returns AccountRead Successful Response
      * @throws ApiError
      */
-    public static createEmployeeAccount(
-        requestBody: EmployeeAccountCreate,
-    ): CancelablePromise<AccountRead> {
+    public static createEmployeeAccount({
+requestBody,
+}: {
+requestBody: EmployeeAccountCreate,
+}): CancelablePromise<AccountRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/',
@@ -46,13 +47,14 @@ export class AccountsService {
 
     /**
      * Get Account Employee Information
-     * @param idno
      * @returns EmployeeAccountRead Successful Response
      * @throws ApiError
      */
-    public static getAccountEmployeeInformation(
-        idno: string,
-    ): CancelablePromise<EmployeeAccountRead> {
+    public static getAccountEmployeeInformation({
+idno,
+}: {
+idno: string,
+}): CancelablePromise<EmployeeAccountRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/accounts/{idno}',
@@ -67,15 +69,16 @@ export class AccountsService {
 
     /**
      * Update Account Employee
-     * @param idno
-     * @param requestBody
      * @returns EmployeeAccountRead Successful Response
      * @throws ApiError
      */
-    public static updateAccountEmployee(
-        idno: string,
-        requestBody: EmployeeAccountUpdate,
-    ): CancelablePromise<EmployeeAccountRead> {
+    public static updateAccountEmployee({
+idno,
+requestBody,
+}: {
+idno: string,
+requestBody: EmployeeAccountUpdate,
+}): CancelablePromise<EmployeeAccountRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/accounts/{idno}',

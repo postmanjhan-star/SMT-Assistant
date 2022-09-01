@@ -128,7 +128,7 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
   // Check if the material inventory exists
   // Handle 404 and other errors
   let materialInventory: MaterialInventoryRead;
-  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( materialInventoryAdditionFormValue.value.idno ); }
+  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialInventoryAdditionFormValue.value.idno } ); }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '無此單包代碼' );
@@ -182,11 +182,11 @@ async function handleGoToStep2ButtonClick () {
       major: true,
     } ]
     try {
-      await MaterialInventoriesService.transferMaterialInventory(
-        row.id,
-        InventoryChangeCauseEnum.TRANSFERRING,
-        transferRequests,
-      );
+      await MaterialInventoriesService.transferMaterialInventory( {
+        materialInventoryId: row.id,
+        cause: InventoryChangeCauseEnum.TRANSFERRING,
+        requestBody: transferRequests,
+      } );
       successList.push( row.idno );
     } catch ( error ) { errorList.push( row.idno ); };
   }

@@ -16,17 +16,18 @@ export class MaterialInventoriesService {
      * Transfer Material Inventory
      * This function is not responsible for updating material inventory's quantity.
  * It is just for making transfer records and update material inventory's storage location.
-     * @param materialInventoryId 
-     * @param cause 
-     * @param requestBody 
      * @returns boolean Successful Response
      * @throws ApiError
      */
-    public static transferMaterialInventory(
+    public static transferMaterialInventory({
+materialInventoryId,
+cause,
+requestBody,
+}: {
 materialInventoryId: number,
 cause: InventoryChangeCauseEnum,
 requestBody: Array<MaterialInventoryTransferCreate>,
-): CancelablePromise<boolean> {
+}): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/material_inventories/{material_inventory_id}/transfer',
@@ -46,16 +47,17 @@ requestBody: Array<MaterialInventoryTransferCreate>,
 
     /**
      * Get Material Inventories Label
-     * @param materialInventoryIdnos 
-     * @param printer 
      * @returns any Successful Response
      * @returns binary Created
      * @throws ApiError
      */
-    public static getMaterialInventoriesLabel(
+    public static getMaterialInventoriesLabel({
+materialInventoryIdnos,
+printer,
+}: {
 materialInventoryIdnos: Array<string>,
 printer?: app__routers__material_inventories__Printer,
-): CancelablePromise<any | Blob> {
+}): CancelablePromise<any | Blob> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/labels',
@@ -71,13 +73,17 @@ printer?: app__routers__material_inventories__Printer,
 
     /**
      * Get Material Inventory
-     * @param materialInventoryIdno Accept `MINV20220729001` and `A3628191` types.
      * @returns MaterialInventoryRead Successful Response
      * @throws ApiError
      */
-    public static getMaterialInventory(
+    public static getMaterialInventory({
+materialInventoryIdno,
+}: {
+/**
+ * Accept `MINV20220729001` and `A3628191` types.
+ */
 materialInventoryIdno: string,
-): CancelablePromise<MaterialInventoryRead> {
+}): CancelablePromise<MaterialInventoryRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/{material_inventory_idno}',
@@ -92,15 +98,16 @@ materialInventoryIdno: string,
 
     /**
      * Split Material Inventory
-     * @param materialInventoryIdno 
-     * @param childQuantity 
      * @returns MaterialInventoryRead Successful Response
      * @throws ApiError
      */
-    public static splitMaterialInventory(
+    public static splitMaterialInventory({
+materialInventoryIdno,
+childQuantity,
+}: {
 materialInventoryIdno: string,
 childQuantity: number,
-): CancelablePromise<MaterialInventoryRead> {
+}): CancelablePromise<MaterialInventoryRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/material_inventories/{material_inventory_idno}/split',

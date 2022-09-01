@@ -42,7 +42,7 @@ async function handleCreateVendorButtonClick ( evnet: Event ) {
 
   // Create
   try {
-    const response = await VendorsService.createVendor( formValue.value )
+    const response = await VendorsService.createVendor( { requestBody: formValue.value } )
     message.success( `供應商 ${ response.idno } 建立成功` );
     router.push( '/vendors' );
   } catch ( error ) {
@@ -62,7 +62,7 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
     return false;
   }
   try {
-    const response = await StErpService.getStVendor( formValue.value.idno );
+    const response = await StErpService.getStVendor( { vendorIdno: formValue.value.idno } );
     formValue.value.idno = response.idno;
     formValue.value.name = response.name;
     formValue.value.tax_idno = response.tax_idno;
