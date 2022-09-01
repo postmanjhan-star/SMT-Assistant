@@ -105,7 +105,7 @@ requestBody: Array<IssuanceItemCreate>,
 ): CancelablePromise<Array<IssuanceItemRead>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/issuances/{issuance_idno}/create',
+            url: '/issuances/{issuance_idno}/create_items',
             path: {
                 'issuance_idno': issuanceIdno,
             },
@@ -144,21 +144,21 @@ requestBody: IssuanceItemCreate,
 
     /**
      * Remove Issuance Item
-     * @param issuanceIdno 
      * @param issuanceItemId 
+     * @param issuanceIdno 
      * @returns boolean Successful Response
      * @throws ApiError
      */
-    public static removeIssuanceItem(
-issuanceIdno: string,
+    public static removeItem(
 issuanceItemId: number,
+issuanceIdno: string,
 ): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/issuances/{issuance_idno}/{issuance_item_id}',
             path: {
-                'issuance_idno': issuanceIdno,
                 'issuance_item_id': issuanceItemId,
+                'issuance_idno': issuanceIdno,
             },
             errors: {
                 422: `Validation Error`,

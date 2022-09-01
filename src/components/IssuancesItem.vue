@@ -227,7 +227,10 @@ async function onClickRemoveRowButton ( event: Event ) {
   const selectedRow = selectedRows[ 0 ];
 
   try {
-    const success = await IssuancesService.removeIssuanceItem(  route.params.idno.toString(), selectedRow.id )
+    const success = await IssuancesService.removeItem(
+      selectedRow.id,
+      route.params.idno.toString(),
+    )
     message.success( '已刪除 🗑️' );
 
     // Remove the row from grid
