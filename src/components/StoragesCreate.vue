@@ -53,9 +53,7 @@ async function handleCreateStorageButtonClick ( event ) {
   }
 
   // Copy l2FormValue to formValue
-  for ( let l2FormEntry of l2FormValue.value ) {
-    formValue.value.l2_storages.push( { idno: l2FormEntry.key, name: l2FormEntry.value } )
-  }
+  for ( let l2FormEntry of l2FormValue.value ) { formValue.value.l2_storages.push( { idno: l2FormEntry.key, name: l2FormEntry.value } ); }
 
   // Check if any empyt fields
   formRef.value?.validate( async ( error ) => {
@@ -78,7 +76,7 @@ async function handleCreateStorageButtonClick ( event ) {
 
   // Send request to backend, and redirect to /storages
   try {
-    const response = await StoragesService.createStorage( formValue.value )
+    const response = await StoragesService.createStorage( { requestBody: formValue.value } );
     message.success( `倉位 ${ response.idno } 建立成功` );
     router.push( '/storages' );
   } catch ( error ) {

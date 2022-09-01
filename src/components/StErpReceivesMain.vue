@@ -75,7 +75,7 @@ async function onGridReady ( params: GridReadyEvent ) {
   const dataSource: IDatasource = {
     getRows: async ( params: IGetRowsParams ) => {
       let page = params.endRow / pageRows;
-      let response = await StErpService.getStReceives( page );
+      let response = await StErpService.getStReceives( { page: page } );
       params.successCallback( response );
     }
   }
@@ -115,8 +115,8 @@ async function handleCreateReceiveButtonClick () {
 
   // Check if vendor and material exist in WMS
   try {
-    vendor = await VendorsService.getVendor( stReceive.st_vendor_idno )
-    material = await MaterialsService.getMaterial( stReceive.st_part_idno );
+    vendor = await VendorsService.getVendor( { idno: stReceive.st_vendor_idno } );
+    material = await MaterialsService.getMaterial( { idno: stReceive.st_part_idno } );
   } catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '請先建立 WMS 供應商與物料主檔' );
@@ -132,7 +132,7 @@ async function handleCreateReceiveButtonClick () {
 
   // If the ST receive idno is already in WMS receive idno, stop importing.
   try {
-    receive = await ReceivesService.getReceive( stReceive.idno );
+    receive = await ReceivesService.getReceive( { receiveIdno: stReceive.idno } );
   } catch ( error ) { receive = null; }
 
   if ( receive ) {
@@ -142,7 +142,7 @@ async function handleCreateReceiveButtonClick () {
   }
 
   // Get ST ERP packs barcode from ST ERP receive idno
-  try { barcodes = await StErpService.getStReceivePackBarcodes( stReceive.idno ); }
+  try { barcodes = await StErpService.getStReceivePackBarcodes( { stErpReceiveIdno: stReceive.idno } ); }
   catch ( error ) { console.error( error ); }
 
   // Disable button unless a row has been selected

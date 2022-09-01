@@ -25,13 +25,14 @@ export class ReceivesService {
 
     /**
      * Create Receive
-     * @param requestBody 
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
-    public static createReceive(
+    public static createReceive({
+requestBody,
+}: {
 requestBody: ReceiveCreate,
-): CancelablePromise<ReceiveRead> {
+}): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/receives/',
@@ -45,13 +46,17 @@ requestBody: ReceiveCreate,
 
     /**
      * Get Receive
-     * @param receiveIdno Accept `RCV20220729001` and `RAN42204` two types of receving idno.
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
-    public static getReceive(
+    public static getReceive({
+receiveIdno,
+}: {
+/**
+ * Accept `RCV20220729001` and `RAN42204` two types of receving idno.
+ */
 receiveIdno: string,
-): CancelablePromise<ReceiveRead> {
+}): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/{receive_idno}',
@@ -66,15 +71,16 @@ receiveIdno: string,
 
     /**
      * Update Receive
-     * @param receiveIdno 
-     * @param memo 
      * @returns ReceiveRead Successful Response
      * @throws ApiError
      */
-    public static updateReceive(
+    public static updateReceive({
+receiveIdno,
+memo,
+}: {
 receiveIdno: string,
 memo: string,
-): CancelablePromise<ReceiveRead> {
+}): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/receives/{receive_idno}',
@@ -92,17 +98,18 @@ memo: string,
 
     /**
      * Get Receive Item Labels
-     * @param receiveIdno 
-     * @param receiveItemId 
-     * @param printer 
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static getReceiveItemLabels(
+    public static getReceiveItemLabels({
+receiveIdno,
+receiveItemId,
+printer,
+}: {
 receiveIdno: string,
 receiveItemId: number,
 printer?: app__routers__material_inventories__Printer,
-): CancelablePromise<any> {
+}): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/{receive_idno}/{receive_item_id}/labels',

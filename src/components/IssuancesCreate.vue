@@ -105,8 +105,8 @@ async function getMaterialUnit () {
   if ( materialAdditionFormValue.value.material_idno.trim() ) {
     try {
       // Update in-stock value and unit
-      const material = await MaterialsService.getMaterial( materialAdditionFormValue.value.material_idno.trim() );
-      const inStockBalance = await MaterialsService.getMaterialInStockBalance( materialAdditionFormValue.value.material_idno.trim() );
+      const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } );
+      const inStockBalance = await MaterialsService.getMaterialInStockBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
       materialUnit.value = material.unit;
       materialAdditionFormValue.value.in_stock_balance = inStockBalance;
     } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { materialUnit.value = ''; } }
@@ -147,7 +147,7 @@ async function handleAddMaterialButtonClick ( event: Event ) {
 
   // Check if the material exists
   // Handle 404 and other errors
-  try { const material = await MaterialsService.getMaterial( materialAdditionFormValue.value.material_idno.trim() ); }
+  try { const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } ); }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '無此物料' );
@@ -159,7 +159,7 @@ async function handleAddMaterialButtonClick ( event: Event ) {
   }
 
   // Check if quantity in-stock is enough
-  const materialInStockBalance = await MaterialsService.getMaterialInStockBalance( materialAdditionFormValue.value.material_idno.trim() );
+  const materialInStockBalance = await MaterialsService.getMaterialInStockBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
   if ( materialAdditionFormValue.value.quantity > materialInStockBalance ) {
     message.error( `庫存數量 ${ materialInStockBalance.toLocaleString() }，需求數量不可大於庫存數量` );
     return false;
@@ -173,7 +173,7 @@ async function handleAddMaterialButtonClick ( event: Event ) {
   let askedQuantity = materialAdditionFormValue.value.quantity;
   let issuedQuantity = 0;
   let issuedMaterialInventories: MaterialInventoryRead[] = [];
-  const materialInventories = await MaterialsService.getMaterialInventoriesInStock( materialAdditionFormValue.value.material_idno.trim(), true );
+  const materialInventories = await MaterialsService.getMaterialInventoriesInStock( { materialIdno: materialAdditionFormValue.value.material_idno.trim(), onlyIssuable: true } );
   while ( issuedQuantity < askedQuantity ) {
     const materialInventory = materialInventories.shift();
     issuedQuantity += materialInventory?.latest_qty as number;
@@ -223,7 +223,7 @@ async function onClickAddInventoryButton ( event: Event ) {
   // Check if the material inventory exists
   // Handle 404 and other errors
   let materialInventory: MaterialInventoryRead;
-  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( materialInventoryFormValue.value.material_inventory_idno.trim() ); }
+  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialInventoryFormValue.value.material_inventory_idno.trim() } ); }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '無此單包' );
@@ -235,7 +235,7 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory available (not locked) for issuing
-  if ( materialInventory.issuing_locked === true) {
+  if ( materialInventory.issuing_locked === true ) {
     message.error( '此單包已被其他發料單使用' );
     return false;
   }
@@ -247,7 +247,7 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( materialInventory.l1_storage_id )
+  const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } );
   if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
     message.error( '此單包已無可用庫存' );
     return false;
@@ -293,7 +293,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
   // Create issuance
   let issuance: IssuanceRead;
-  try { issuance = await IssuancesService.createIssuance( issuanceCreate ); }
+  try { issuance = await IssuancesService.createIssuance( { requestBody: issuanceCreate } ); }
   catch ( error ) {
     message.error( '建立失敗' );
     loadingRef.value = false;
@@ -311,7 +311,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
   }
 
   // Create issuance items
-  try { const issuanceItems = await IssuancesService.createIssuanceItems( issuance.idno, issuanceItemsCreate ) }
+  try { const issuanceItems = await IssuancesService.createIssuanceItems( { issuanceIdno: issuance.idno, requestBody: issuanceItemsCreate } ); }
   catch ( error ) {
     message.error( '建立失敗' );
     loadingRef.value = false;

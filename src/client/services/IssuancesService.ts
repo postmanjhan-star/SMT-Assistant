@@ -27,13 +27,14 @@ export class IssuancesService {
 
     /**
      * Get Issuance
-     * @param issuanceIdno 
      * @returns IssuanceRead Successful Response
      * @throws ApiError
      */
-    public static getIssuance(
+    public static getIssuance({
+issuanceIdno,
+}: {
 issuanceIdno: string,
-): CancelablePromise<IssuanceRead> {
+}): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/issuances/{issuance_idno}',
@@ -48,15 +49,16 @@ issuanceIdno: string,
 
     /**
      * Update Issuance
-     * @param issuanceIdno 
-     * @param requestBody 
      * @returns IssuanceRead Successful Response
      * @throws ApiError
      */
-    public static updateIssuance(
+    public static updateIssuance({
+issuanceIdno,
+requestBody,
+}: {
 issuanceIdno: string,
 requestBody: IssuanceUpdate,
-): CancelablePromise<IssuanceRead> {
+}): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/issuances/{issuance_idno}',
@@ -74,13 +76,14 @@ requestBody: IssuanceUpdate,
     /**
      * Create Issuance
      * Do not make transfers on issuance creating. Make transfers on `pick_issuance()`.
-     * @param requestBody 
      * @returns IssuanceRead Successful Response
      * @throws ApiError
      */
-    public static createIssuance(
+    public static createIssuance({
+requestBody,
+}: {
 requestBody: IssuanceCreate,
-): CancelablePromise<IssuanceRead> {
+}): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/create',
@@ -94,15 +97,16 @@ requestBody: IssuanceCreate,
 
     /**
      * Create Issuance Items
-     * @param issuanceIdno 
-     * @param requestBody 
      * @returns IssuanceItemRead Successful Response
      * @throws ApiError
      */
-    public static createIssuanceItems(
+    public static createIssuanceItems({
+issuanceIdno,
+requestBody,
+}: {
 issuanceIdno: string,
 requestBody: Array<IssuanceItemCreate>,
-): CancelablePromise<Array<IssuanceItemRead>> {
+}): CancelablePromise<Array<IssuanceItemRead>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/create_items',
@@ -119,15 +123,16 @@ requestBody: Array<IssuanceItemCreate>,
 
     /**
      * Add Issuance Item
-     * @param issuanceIdno 
-     * @param requestBody 
      * @returns IssuanceItemRead Successful Response
      * @throws ApiError
      */
-    public static addIssuanceItem(
+    public static addIssuanceItem({
+issuanceIdno,
+requestBody,
+}: {
 issuanceIdno: string,
 requestBody: IssuanceItemCreate,
-): CancelablePromise<IssuanceItemRead> {
+}): CancelablePromise<IssuanceItemRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/add_item',
@@ -144,15 +149,16 @@ requestBody: IssuanceItemCreate,
 
     /**
      * Remove Issuance Item
-     * @param issuanceItemId 
-     * @param issuanceIdno 
      * @returns boolean Successful Response
      * @throws ApiError
      */
-    public static removeItem(
+    public static removeItem({
+issuanceItemId,
+issuanceIdno,
+}: {
 issuanceItemId: number,
 issuanceIdno: string,
-): CancelablePromise<boolean> {
+}): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/issuances/{issuance_idno}/{issuance_item_id}',
@@ -169,15 +175,16 @@ issuanceIdno: string,
     /**
      * Pick Material Inventory
      * Make issuance `picked` to `True`. Does not make actual transfer. To make actual transfer, call `pick_issuance()`.
-     * @param materialInventoryIdno 
-     * @param issuanceIdno 
      * @returns boolean Successful Response
      * @throws ApiError
      */
-    public static pickMaterialInventory(
+    public static pickMaterialInventory({
+materialInventoryIdno,
+issuanceIdno,
+}: {
 materialInventoryIdno: string,
 issuanceIdno: string,
-): CancelablePromise<boolean> {
+}): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/pick_material_inventory/{material_inventory_idno}',
@@ -193,13 +200,14 @@ issuanceIdno: string,
 
     /**
      * Pick Issuance
-     * @param issuanceIdno 
      * @returns IssuanceRead Successful Response
      * @throws ApiError
      */
-    public static pickIssuance(
+    public static pickIssuance({
+issuanceIdno,
+}: {
 issuanceIdno: string,
-): CancelablePromise<IssuanceRead> {
+}): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/pick_issuance',

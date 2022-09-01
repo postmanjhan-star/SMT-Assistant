@@ -61,10 +61,10 @@ function translateCause ( cause: InventoryChangeCauseEnum ) {
 }
 
 onBeforeMount( async () => {
-    inStockBalance.value = await MaterialsService.getMaterialInStockBalance( route.params.idno.toString() );
-    inProductionBalacne.value = await MaterialsService.getMaterialInProductionBalance( route.params.idno.toString() );
-    inLendingBalance.value = await MaterialsService.getMaterialInLendingBalance( route.params.idno.toString() );
-    materialStockRecords.value = await MaterialsService.getMaterialStockRecords( route.params.idno.toString() )
+    inStockBalance.value = await MaterialsService.getMaterialInStockBalance( { materialIdno: route.params.idno.toString() } );
+    inProductionBalacne.value = await MaterialsService.getMaterialInProductionBalance( { materialIdno: route.params.idno.toString() } );
+    inLendingBalance.value = await MaterialsService.getMaterialInLendingBalance( { materialIdno: route.params.idno.toString() } );
+    materialStockRecords.value = await MaterialsService.getMaterialStockRecords( { idno: route.params.idno.toString() } );
 
     let rowId = 1
     for ( let materialStockRecord of materialStockRecords.value ) {

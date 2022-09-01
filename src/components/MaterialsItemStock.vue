@@ -67,7 +67,7 @@ const gridOptions: GridOptions = {
 
 
 
-onBeforeMount( async () => { rowData.value = await MaterialsService.getMaterialInventories( route.params.idno.toString() ) } );
+onBeforeMount( async () => { rowData.value = await MaterialsService.getMaterialInventories( { materialIdno: route.params.idno.toString() } ) } );
 
 
 
@@ -120,7 +120,7 @@ async function handleSplitButtonClick ( event: Event ) {
     }
 
     // Parent's stored in interal warehouse?
-    const storage = await StoragesService.getStorage( selectedRow.l1_storage_id );
+    const storage = await StoragesService.getStorage( { l1Id: selectedRow.l1_storage_id } );
     if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
         message.warning( '此包不存在倉庫內不可分割' );
         return false;
@@ -142,7 +142,7 @@ async function handleSplitButtonClick ( event: Event ) {
 
     try {
         // Create child inventory. Backend also handles parent inventory's quantity substracting.
-        const childMaterialInventory = await MaterialInventoriesService.splitMaterialInventory( selectedRow.idno, childQuantity );
+        const childMaterialInventory = await MaterialInventoriesService.splitMaterialInventory( { materialInventoryIdno: selectedRow.idno, childQuantity: childQuantity } );
 
         // Substract the parent inventory's queantiy value in frontend
         rowData.value.forEach( ( row, index, array ) => { if ( row.idno == selectedRow.idno ) { array[ index ].latest_qty -= childQuantity; } } );

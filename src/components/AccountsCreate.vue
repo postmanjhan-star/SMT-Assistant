@@ -19,7 +19,7 @@ const rules: FormRules = {
 
 async function createAccount ( newAccountData: EmployeeAccountCreate ) {
   try {
-    const response = await AccountsService.createEmployeeAccount( newAccountData )
+    const response = await AccountsService.createEmployeeAccount( { requestBody: newAccountData } );
     message.success( `${ response.username } 建立成功` );
   } catch ( error ) {
     if ( error instanceof ApiError && error.status === 409 ) { message.error( '帳號已存在，無法再次建立' ); }

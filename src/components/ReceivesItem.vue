@@ -86,10 +86,10 @@ const vendor_name_options = ref<VendorNameOptions[]>( [] );
 
 onBeforeMount( async () => {
   try {
-    receiveForm.value = await ReceivesService.getReceive( route.params.idno.toString() );
+    receiveForm.value = await ReceivesService.getReceive( { receiveIdno: route.params.idno.toString() } );
     if ( receiveForm.value.receive_items.length >= 1 ) {
       for ( let item of receiveForm.value.receive_items ) {
-        const material = await MaterialsService.getMaterial( item.material_idno );
+        const material = await MaterialsService.getMaterial( { idno: item.material_idno } );
         const gridItem: GridReceiveItem = {
           id: material.id, // ag-grid row ID
           material_id: material.id,
@@ -136,7 +136,7 @@ function addReceiveItemToGrid ( receiveItem: GridReceiveItem ) {
 
 async function handleUpdateReceiveButtonClick ( event: Event ) {
   try {
-    const response = await ReceivesService.updateReceive( receiveForm.value.idno, receiveForm.value.memo as string );
+    const response = await ReceivesService.updateReceive( { receiveIdno: receiveForm.value.idno, memo: receiveForm.value.memo as string } );
     message.success( `收料單 ${ response.idno } 更新成功` );
     router.push( '/receives' );
   } catch ( error ) { message.error( '更新失敗' ); }

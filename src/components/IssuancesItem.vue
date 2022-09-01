@@ -79,7 +79,7 @@ const gridOptions: GridOptions = {
 onBeforeMount( async () => {
   let issuance: IssuanceRead;
   try {
-    issuance = await IssuancesService.getIssuance( route.params.idno.toString() );
+    issuance = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
     headerFormValue.value.memo = issuance.memo;
     for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
       rowData.value.push( {
@@ -121,7 +121,7 @@ async function handleUpdateIssuanceButtonClick ( event: Event ) {
 
   // Create issuance
   let issuance: IssuanceRead;
-  try { issuance = await IssuancesService.updateIssuance( route.params.idno.toString(), issuanceUpdate ); }
+  try { issuance = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
   catch ( error ) {
     message.error( '更新失敗' );
     loadingRef.value = false;
@@ -150,7 +150,7 @@ async function onClickAddInventoryButton ( event: Event ) {
 
   // Check if the material inventory exists
   // Handle 404 and other errors
-  try { inventory = await MaterialInventoriesService.getMaterialInventory( inventoryAdditionFormValue.value.inventoryIdno.trim() ); }
+  try { inventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: inventoryAdditionFormValue.value.inventoryIdno.trim() } ); }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '無此單包' );
@@ -174,7 +174,7 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( inventory.l1_storage_id )
+  const storage = await StoragesService.getStorage( { l1Id: inventory.l1_storage_id } )
   if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
     message.error( '此單包已無可用庫存' );
     return false;
@@ -183,11 +183,10 @@ async function onClickAddInventoryButton ( event: Event ) {
 
   try {
     // Request adding item with backend
-    const item = await IssuancesService.addIssuanceItem( route.params.idno.toString(), {
-      material_inventory_id: inventory.id,
-      issue_qty: inventory.latest_qty,
-      lend_qty: 0,
-    } )
+    const item = await IssuancesService.addIssuanceItem( {
+      issuanceIdno: route.params.idno.toString(),
+      requestBody: { material_inventory_id: inventory.id, issue_qty: inventory.latest_qty, lend_qty: 0, },
+    } );
 
     // Add the responsed issuance item to grid
     rowData.value.unshift( {
@@ -227,10 +226,7 @@ async function onClickRemoveRowButton ( event: Event ) {
   const selectedRow = selectedRows[ 0 ];
 
   try {
-    const success = await IssuancesService.removeItem(
-      selectedRow.id,
-      route.params.idno.toString(),
-    )
+    const success = await IssuancesService.removeItem( { issuanceItemId: selectedRow.id, issuanceIdno: route.params.idno.toString(), } );
     message.success( '已刪除 🗑️' );
 
     // Remove the row from grid

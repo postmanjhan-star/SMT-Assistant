@@ -47,7 +47,7 @@ const gridOptions = {
 
   rowSelection: 'single',
   suppressCellFocus: true,
-  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/vendors/${event.data.idno}` ),
+  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/vendors/${ event.data.idno }` ),
 }
 
 onBeforeMount( async () => {
@@ -61,9 +61,7 @@ function onGridReady ( params: GridReadyEvent ) {
   gridColumnApi.value = params.columnApi;
 };
 
-function handleCreateStoreageButtonClick () {
-  router.push( '/vendors/create' );
-}
+function handleCreateStoreageButtonClick () { router.push( '/vendors/create' ); }
 </script>
 
 <template>
