@@ -42,14 +42,19 @@ idno: string,
      */
     public static getMaterialInStockBalance({
 materialIdno,
+onlyIssuable = false,
 }: {
 materialIdno: string,
+onlyIssuable?: boolean,
 }): CancelablePromise<number> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{material_idno}/balance/in-stock',
             path: {
                 'material_idno': materialIdno,
+            },
+            query: {
+                'only_issuable': onlyIssuable,
             },
             errors: {
                 422: `Validation Error`,

@@ -41,13 +41,13 @@ type GridItem = {
 
 type MaterialAdditionFormValue = {
   material_idno: string,
-  in_stock_balance: number,
+  issuable_balance: number,
   quantity: number,
 };
 
 const materialAdditionFormValue = ref<MaterialAdditionFormValue>( {
   material_idno: '',
-  in_stock_balance: 0,
+  issuable_balance: 0,
   quantity: 0,
 } );
 
@@ -101,14 +101,17 @@ async function onGridReady ( params: GridReadyEvent ) {
 
 
 
-async function getMaterialUnit () {
+async function getMaterialUnitAndQuantity () {
   if ( materialAdditionFormValue.value.material_idno.trim() ) {
     try {
       // Update in-stock value and unit
       const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } );
-      const inStockBalance = await MaterialsService.getMaterialInStockBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
+      const issuableBalance = await MaterialsService.getMaterialInStockBalance( {
+        materialIdno: materialAdditionFormValue.value.material_idno.trim(),
+        onlyIssuable: true,
+      } );
       materialUnit.value = material.unit;
-      materialAdditionFormValue.value.in_stock_balance = inStockBalance;
+      materialAdditionFormValue.value.issuable_balance = issuableBalance;
     } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { materialUnit.value = ''; } }
   }
 }
@@ -204,7 +207,7 @@ async function handleAddMaterialButtonClick ( event: Event ) {
 
   // Clear materialAdditionFormValue
   materialAdditionFormValue.value.material_idno = '';
-  materialAdditionFormValue.value.in_stock_balance = 0;
+  materialAdditionFormValue.value.issuable_balance = 0;
   materialAdditionFormValue.value.quantity = 0;
 
   // Focus at `material_idno` input field
@@ -369,12 +372,12 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
                   <n-form-item label="物料代碼">
                     <n-input v-model:value.lazy=" materialAdditionFormValue.material_idno " ref="materialIdnoInput"
-                      @blur=" getMaterialUnit() ">
+                      @blur=" getMaterialUnitAndQuantity() ">
                     </n-input>
                   </n-form-item>
 
                   <n-form-item label="可用庫存">
-                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.in_stock_balance "
+                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.issuable_balance "
                       :show-button=" false " :min=" 0 " :precision=" 0 " :default-value=" 0 " disabled>
                       <template #suffix> {{ materialUnit }} </template>
                     </n-input-number>
