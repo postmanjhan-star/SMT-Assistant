@@ -26,7 +26,8 @@ const rowData = ref<MaterialInventoryRead[]>( [] );
 
 
 const columnDefs: ColDef[] = [
-    // { checkboxSelection: true, flex: 1 }, // Do not use checkbox for multiple rows selection to save space on mobile devices.
+    // { checkboxSelection: true }, // Do not use checkbox for multiple rows selection to save space on mobile devices.
+    { field: 'issuing_locked', headerName: '', refData: { true: '🔒' } },
     { field: "idno", headerName: '單包代碼' },
     { field: "st_barcode", headerName: '舊 ERP 單包代碼' },
     { field: "l1_storage_idno", headerName: '倉位代碼' },
@@ -40,7 +41,6 @@ const defaultColDef: ColDef = {
     editable: false,
     filter: true,
     sortable: true,
-    flex: 6, // Every columns have the same portion of width
     resizable: true,
 }
 
@@ -67,7 +67,11 @@ const gridOptions: GridOptions = {
 
 
 
-onBeforeMount( async () => { rowData.value = await MaterialsService.getMaterialInventories( { materialIdno: route.params.idno.toString() } ) } );
+onBeforeMount( async () => {
+    rowData.value = await MaterialsService.getMaterialInventories( { materialIdno: route.params.idno.toString() } );
+    gridApi.value.setRowData( rowData.value );
+    gridColumnApi.value.autoSizeAllColumns();
+} );
 
 
 
@@ -188,8 +192,11 @@ async function handleGenerateLabelsButtonClick ( event: Event ) {
             <n-button type="primary" secondary strong @click=" handleGenerateLabelsButtonClick ">產生 WMS 標籤貼紙</n-button>
         </n-space>
 
-        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
-            :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+        <div style="height: 600px; overflow-x: scroll; width: 100%;">
+            <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%;" :gridOptions=" gridOptions "
+                :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+        </div>
+
     </n-space>
 
 </template>
