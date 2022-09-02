@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import NumberColumnType from '@revolist/revogrid-column-numeral';
 import VGrid from "@revolist/vue3-datagrid";
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, useMessage } from 'naive-ui';
+import { NButton, NGi, NGrid, NSpace, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
+import { useRoute, useRouter } from 'vue-router';
+import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const message = useMessage();
@@ -15,9 +15,6 @@ const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
 const gridApi = ref();
-
-const formRef = ref<FormInst | null>( null );
-const headerFormValue = ref( { memo: '' } );
 
 const plugin = { 'numeric': new NumberColumnType( '4,0' ) };
 
@@ -76,7 +73,6 @@ onBeforeMount( async () => {
   let issuance: IssuanceRead;
   try {
     // issuance = await IssuancesService.getIssuance( route.params.idno.toString() );
-    headerFormValue.value.memo = issuance.memo;
     for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
       rowData.value.push( {
         id: issuanceItem.id,
@@ -87,116 +83,18 @@ onBeforeMount( async () => {
         lend_qty: issuanceItem.lend_qty,
       } )
     }
-    gridApi.value.setRowData( rowData.value );
   } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 } );
 
 
 
-const loadingRef = ref( false );
-const loading = loadingRef;
-
-
-
 async function handleUpdateIssuanceButtonClick ( event: Event ) {
-  loadingRef.value = true;
-
-  // Build issuance body
-  const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo };
-
   // Create issuance
   let issuance: IssuanceRead;
-  try { issuance = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
-  catch ( error ) {
-    message.error( '更新失敗' );
-    loadingRef.value = false;
-    return false;
-  }
 
   message.success( `發料單 ${ issuance.idno } 更新成功` );
   router.push( '/issuances' );
 }
-
-
-
-const inventoryAdditionFormValue = ref( { inventoryIdno: '' } );
-const inventoryIdnoInput = ref();
-
-
-
-async function onClickAddInventoryButton ( event: Event ) {
-  // Input field cannot be empty
-  if ( inventoryAdditionFormValue.value.inventoryIdno.trim() === '' ) {
-    message.error( '請填入單包代碼' );
-    return false;
-  }
-
-  let inventory: MaterialInventoryRead;
-
-  // Check if the material inventory exists
-  // Handle 404 and other errors
-  try { inventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: inventoryAdditionFormValue.value.inventoryIdno.trim() } ); }
-  catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '無此單包' );
-      return false;
-    } else {
-      message.error( '讀取失敗' );
-      return false;
-    }
-  }
-
-  // Check if the material inventory available (not locked) for issuing
-  if ( inventory.issuing_locked === true ) {
-    message.error( '此單包已被其他發料單使用' );
-    return false;
-  }
-
-  // Check if the material inventory's quantity is larger than 0
-  if ( inventory.latest_qty <= 0 ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
-  }
-
-  // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( { l1Id: inventory.l1_storage_id } )
-  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
-  }
-
-
-  try {
-    // Request adding item with backend
-    const item = await IssuancesService.addIssuanceItem( {
-      issuanceIdno: route.params.idno.toString(),
-      requestBody: { material_inventory_id: inventory.id, issue_qty: inventory.latest_qty, lend_qty: 0, },
-    } )
-
-    // Add the responsed issuance item to grid
-    rowData.value.unshift( {
-      id: item.id,
-      material_idno: item.material_idno,
-      material_inventory_id: item.material_inventory_id,
-      material_inventory_idno: item.material_inventory_idno,
-      issue_qty: item.issue_qty,
-      lend_qty: item.lend_qty,
-    } )
-    gridApi.value.setRowData( rowData.value );
-
-    message.success( '已增加成功 👍' );
-
-    // Clear materialAdditionFormValue
-    inventoryAdditionFormValue.value.inventoryIdno = '';
-
-    // Focus at `material_idno` input field
-    inventoryIdnoInput.value.focus();
-  } catch ( error ) {
-    message.error( '增加失敗' );
-    return false;
-  }
-}
-
 
 
 async function onClickRemoveRowButton ( event: Event ) {
@@ -229,73 +127,11 @@ async function onClickRemoveRowButton ( event: Event ) {
 <template>
   <main
     style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
-    <n-breadcrumb
-      style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
-      <n-breadcrumb-item>
-        <router-link to="/home" #=" { navigate, href } " custom>
-          <n-a :href=" href " @click=" navigate ">首頁</n-a>
-        </router-link>
-      </n-breadcrumb-item>
-      <n-breadcrumb-item>物料管理</n-breadcrumb-item>
-      <n-breadcrumb-item>
-        <router-link to="/issuances" #=" { navigate, href } " custom>
-          <n-a :href=" href " @click=" navigate ">發料備料作業</n-a>
-        </router-link>
-      </n-breadcrumb-item>
-    </n-breadcrumb>
-
-
 
     <div style="padding: 1rem;">
-      <n-space vertical size="large"
-        style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
-
-        <n-form size="large" :model=" headerFormValue " ref="formRef">
-          <n-grid cols="1 s:3" responsive="screen" x-gap="20">
-
-            <n-form-item-gi label="備註" span="3">
-              <n-input v-model:value.memo=" headerFormValue.memo "></n-input>
-            </n-form-item-gi>
-
-            <n-form-item-gi span="3">
-              <n-button type="primary" block @click=" handleUpdateIssuanceButtonClick( $event ) " attr-type="submit"
-                :loading=" loading ">
-                更新備註
-              </n-button>
-            </n-form-item-gi>
-
-          </n-grid>
-        </n-form>
-
-      </n-space>
-    </div>
-
-
-
-    <div style="padding: 1rem;">
-      <n-space size="large" item-style="height: 40px; vertical-align: center" :align=" 'center' ">
-        <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">備料項目</n-h2>
-      </n-space>
 
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
-
-        <n-form size="large" :model=" inventoryAdditionFormValue ">
-          <n-space size="large">
-
-            <n-form-item label="單包代碼">
-              <n-input ref="inventoryIdnoInput" v-model:value.lazy=" inventoryAdditionFormValue.inventoryIdno ">
-              </n-input>
-            </n-form-item>
-
-            <n-form-item>
-              <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                attr-type="submit">
-                +</n-button>
-            </n-form-item>
-
-          </n-space>
-        </n-form>
 
         <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
@@ -313,7 +149,7 @@ async function onClickRemoveRowButton ( event: Event ) {
               </v-grid>
 
               <n-button type="primary" block size="large" @click=" handleUpdateIssuanceButtonClick( $event ) "
-                attr-type="submit" :loading=" loading ">
+                attr-type="submit">
                 確定備料
               </n-button>
             </n-space>
