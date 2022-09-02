@@ -13,7 +13,6 @@ export const $IssuanceRead = {
 },
         date: {
     type: 'string',
-    isRequired: true,
     format: 'date',
 },
         employee_id: {

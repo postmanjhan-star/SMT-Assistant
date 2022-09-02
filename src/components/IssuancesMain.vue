@@ -25,7 +25,7 @@ let issuances: IssuanceRead[];
 type Row = {
   'id': number,
   'idno': string,
-  'date': string,
+  'date': string | null,
   'issuingCompleted': string,
 }
 
@@ -41,7 +41,7 @@ const defaultColDef = {
 const columnDefs = reactive( {
   value: [
     { field: "idno", headerName: '發料單號' },
-    { field: "date", headerName: '日期' },
+    { field: "date", headerName: '發料日期' },
     { field: "issuingCompleted", headerName: '已發料完成' },
   ]
 } );

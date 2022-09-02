@@ -7,7 +7,7 @@ import type { IssuanceItemRead } from './IssuanceItemRead';
 export type IssuanceRead = {
     id: number;
     idno: string;
-    date: string;
+    date?: string;
     employee_id: number;
     memo: string;
     issuing_completed: boolean;
