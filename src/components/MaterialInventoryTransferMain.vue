@@ -9,6 +9,8 @@ import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, InventoryChangeCauseEnum, MaterialInventoriesService, MaterialInventoryRead, MaterialInventoryTransferCreate, OpenAPI, StoragesService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
+
+
 const router = useRouter();
 const message = useMessage();
 const notification = useNotification();
@@ -32,7 +34,6 @@ const defaultColDef = {
   editable: false,
   filter: true,
   sortable: true,
-  flex: 1, // Every columns have the same portion of width
   resizable: true,
 }
 
@@ -66,6 +67,8 @@ const gridOptions: GridOptions = {
 
 function getRowId ( params: GetRowIdParams ) { return params.data.idno; }
 
+
+
 onBeforeMount( async () => {
   const storages = await StoragesService.getStorages();
   for ( let storage of storages ) {
@@ -86,20 +89,29 @@ onBeforeMount( async () => {
   }
 } );
 
+
+
 async function onGridReady ( params: GridReadyEvent ) {
   gridApi.value = params.api;
   gridColumnApi.value = params.columnApi;
 }
 
+
+
 function addItemToGrid ( item: MaterialInventoryRead ) {
   rowData.value.unshift( item );
   gridApi.value.setRowData( rowData.value );
+  gridColumnApi.value.autoSizeAllColumns();
 }
+
+
 
 function clearMaterialInventoryAdditionFormAndFocus () {
   materialInventoryAdditionFormValue.value.idno = '';
   materialInventoryIdnoInput.value.focus();
 }
+
+
 
 async function handleAddMaterialInventoryButtonClick ( event: Event ) {
   // `idno` cannot be empty
@@ -148,6 +160,7 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
   // Clear materialAdditionFormValue
   clearMaterialInventoryAdditionFormAndFocus();
 }
+
 
 
 async function handleGoToStep2ButtonClick () {
@@ -214,6 +227,7 @@ async function handleGoToStep2ButtonClick () {
 </script>
 
 
+
 <template>
   <main
     style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
@@ -251,8 +265,10 @@ async function handleGoToStep2ButtonClick () {
           </n-space>
         </n-form>
 
-        <ag-grid-vue class="ag-theme-alpine" style="height: 400px; " :gridOptions=" gridOptions " :getRowId=" getRowId "
+        <div style="height: 400px; overflow-x: scroll; width: 100%;">
+          <ag-grid-vue class="ag-theme-alpine" style="height: 100%;" :gridOptions=" gridOptions " :getRowId=" getRowId "
           :onGridReady=" onGridReady " :rowData=" rowData "></ag-grid-vue>
+        </div>
 
         <n-form size="large">
           <n-form-item label="目的儲位">
