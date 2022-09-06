@@ -5,6 +5,7 @@ import type { IssuanceCreate } from '../models/IssuanceCreate';
 import type { IssuanceItemCreate } from '../models/IssuanceItemCreate';
 import type { IssuanceItemRead } from '../models/IssuanceItemRead';
 import type { IssuanceRead } from '../models/IssuanceRead';
+import type { IssuanceReturnCreate } from '../models/IssuanceReturnCreate';
 import type { IssuanceUpdate } from '../models/IssuanceUpdate';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -214,6 +215,27 @@ issuanceIdno: string,
             path: {
                 'issuance_idno': issuanceIdno,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Create Issuance Return
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static createIssuanceReturn({
+requestBody,
+}: {
+requestBody: IssuanceReturnCreate,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/issuance_returns/',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

@@ -9,6 +9,7 @@ export const $MaterialInventoryTransferCreate = {
 },
         quantity: {
     type: 'number',
+    isRequired: true,
 },
         major: {
     type: 'boolean',

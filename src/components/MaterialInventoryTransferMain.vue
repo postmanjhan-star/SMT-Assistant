@@ -6,7 +6,7 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { CascaderOption, NA, NBreadcrumb, NBreadcrumbItem, NButton, NCascader, NForm, NFormItem, NH1, NInput, NSpace, useMessage, useNotification } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, InventoryChangeCauseEnum, MaterialInventoriesService, MaterialInventoryRead, MaterialInventoryTransferCreate, OpenAPI, StoragesService } from '../client';
+import { ApiError, InventoryChangeCauseEnum, MaterialInventoriesService, MaterialInventoryRead, MaterialInventoryTransferCreate, OpenAPI, StoragesService, StorageTypeEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 
@@ -113,7 +113,7 @@ function clearMaterialInventoryAdditionFormAndFocus () {
 
 
 
-async function handleAddMaterialInventoryButtonClick ( event: Event ) {
+async function onClickAddMaterialInventoryButton ( event: Event ) {
   // `idno` cannot be empty
   if ( materialInventoryAdditionFormValue.value.idno === '' ) {
     message.info( '請填入單包代碼' );
@@ -154,6 +154,15 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
     }
   }
 
+  // Check if the inventory is in warehouse
+  const inventoryStorage = await StoragesService.getStorage( {l1Id: materialInventory.l1_storage_id });
+
+  if ( inventoryStorage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
+    message.error( '此包不在庫內不可調撥' );
+    clearMaterialInventoryAdditionFormAndFocus();
+    return false;
+  }
+
   // Add the material into the grid
   addItemToGrid( materialInventory );
 
@@ -163,7 +172,7 @@ async function handleAddMaterialInventoryButtonClick ( event: Event ) {
 
 
 
-async function handleGoToStep2ButtonClick () {
+async function onClickMakeTransferButton ( event: Event ) {
   // Check if ag-grid is empty
   if ( rowData.value.length === 0 ) {
     message.info( '請輸入單包代碼' );
@@ -197,7 +206,9 @@ async function handleGoToStep2ButtonClick () {
     try {
       await MaterialInventoriesService.transferMaterialInventory( {
         materialInventoryId: row.id,
+        fromL2StorageId: row.l2_storage_id,
         cause: InventoryChangeCauseEnum.TRANSFERRING,
+        checkSourceBalance: true,
         requestBody: transferRequests,
       } );
       successList.push( row.idno );
@@ -258,7 +269,7 @@ async function handleGoToStep2ButtonClick () {
             </n-form-item>
 
             <n-form-item>
-              <n-button type="primary" secondary strong @click=" handleAddMaterialInventoryButtonClick( $event ) "
+              <n-button type="primary" secondary strong @click=" onClickAddMaterialInventoryButton( $event ) "
                 attr-type="submit">+</n-button>
             </n-form-item>
 
@@ -278,8 +289,7 @@ async function handleGoToStep2ButtonClick () {
           </n-form-item>
 
           <n-form-item>
-            <n-button type="primary" @click=" handleGoToStep2ButtonClick " attr-type="submit" block size="large">調撥
-            </n-button>
+            <n-button type="primary" @click=" onClickMakeTransferButton( $event ) " attr-type="submit" block size="large">調撥</n-button>
           </n-form-item>
 
         </n-form>

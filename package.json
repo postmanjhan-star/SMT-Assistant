@@ -17,7 +17,6 @@
     "@carbon/icons-vue": "^10.49.1",
     "@chenfengyuan/vue-barcode": "^2.0.0",
     "@revolist/revogrid-column-numeral": "^1.0.2",
-    "@revolist/revogrid": "3.2.11",
     "@revolist/vue3-datagrid": "^3.1.0",
     "@vueuse/core": "^8.6.0",
     "ag-grid-community": "^27.3.0",
