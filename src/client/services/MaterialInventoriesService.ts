@@ -14,6 +14,32 @@ import { request as __request } from '../core/request';
 export class MaterialInventoriesService {
 
     /**
+     * Get Material Inventories Label
+     * @returns any Successful Response
+     * @returns binary Created
+     * @throws ApiError
+     */
+    public static getMaterialInventoriesLabel({
+materialInventoryIdnos,
+printer,
+}: {
+materialInventoryIdnos: Array<string>,
+printer?: app__routers__material_inventories__Printer,
+}): CancelablePromise<any | Blob> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/material_inventories/labels',
+            query: {
+                'material_inventory_idnos': materialInventoryIdnos,
+                'printer': printer,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Get Material Inventory
      * @returns MaterialInventoryRead Successful Response
      * @throws ApiError
@@ -29,6 +55,55 @@ materialInventoryIdno: string,
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/{material_inventory_idno}',
+            path: {
+                'material_inventory_idno': materialInventoryIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Material Inventory In Stock Balance
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static getMaterialInventoryInStockBalance({
+materialInventoryId,
+onlyIssuable = false,
+}: {
+materialInventoryId: number,
+onlyIssuable?: boolean,
+}): CancelablePromise<number> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/material_inventories/{material_inventory_id}/balance/in-stock',
+            path: {
+                'material_inventory_id': materialInventoryId,
+            },
+            query: {
+                'only_issuable': onlyIssuable,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Material Inventory Balances
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getMaterialInventoryBalances({
+materialInventoryIdno,
+}: {
+materialInventoryIdno: string,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/material_inventories/{material_inventory_idno}/balances',
             path: {
                 'material_inventory_idno': materialInventoryIdno,
             },
@@ -71,32 +146,6 @@ checkSourceBalance?: boolean,
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Material Inventories Label
-     * @returns any Successful Response
-     * @returns binary Created
-     * @throws ApiError
-     */
-    public static getMaterialInventoriesLabel({
-materialInventoryIdnos,
-printer,
-}: {
-materialInventoryIdnos: Array<string>,
-printer?: app__routers__material_inventories__Printer,
-}): CancelablePromise<any | Blob> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/material_inventories/labels',
-            query: {
-                'material_inventory_idnos': materialInventoryIdnos,
-                'printer': printer,
-            },
             errors: {
                 422: `Validation Error`,
             },

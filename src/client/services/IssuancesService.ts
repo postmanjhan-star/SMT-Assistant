@@ -223,6 +223,9 @@ issuanceIdno: string,
 
     /**
      * Create Issuance Return
+     * 如果原發料記錄有借料，則更新借料值，發起 transfer 從 lending 到 warehouse。
+ * 如果原發料記錄沒有借料，則無需更新借料值，發起 transfer 從 production 到 warehouse。
+ * 技術債在此，能用，但邏輯混亂，最好重構。除了基本的輸入值檢查外，主要邏輯參考 https://gitlab.com/Sentec/soda/-/issues/43/designs/305966311_10159841337723361_661989610074485707_n.jpg 以五種情境重構。
      * @returns any Successful Response
      * @throws ApiError
      */

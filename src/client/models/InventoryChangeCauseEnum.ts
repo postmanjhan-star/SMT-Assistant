@@ -10,4 +10,5 @@ export enum InventoryChangeCauseEnum {
     TRANSFERRING = 'TRANSFERRING',
     ISSUING = 'ISSUING',
     SPLITTING = 'SPLITTING',
+    ISSUE_RETURNING = 'ISSUE_RETURNING',
 }

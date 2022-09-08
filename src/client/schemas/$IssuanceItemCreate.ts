@@ -13,7 +13,6 @@ export const $IssuanceItemCreate = {
 },
         lend_qty: {
     type: 'number',
-    isRequired: true,
 },
     },
 } as const;
