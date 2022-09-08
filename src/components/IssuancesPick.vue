@@ -124,7 +124,11 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory's quantity is larger than 0
-  if ( inventory.latest_qty <= 0 ) {
+  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance({
+    materialInventoryId: inventory.id,
+    onlyIssuable: true,
+  })
+  if ( balance <= 0 ) {
     clearAndFocusInventoryInput();
     message.error( '此單包已無可用庫存' );
     return false;

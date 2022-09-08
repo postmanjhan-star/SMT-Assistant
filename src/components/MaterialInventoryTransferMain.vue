@@ -155,7 +155,7 @@ async function onClickAddMaterialInventoryButton ( event: Event ) {
   }
 
   // Check if the inventory is in warehouse
-  const inventoryStorage = await StoragesService.getStorage( {l1Id: materialInventory.l1_storage_id });
+  const inventoryStorage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } );
 
   if ( inventoryStorage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
     message.error( '此包不在庫內不可調撥' );
@@ -198,9 +198,10 @@ async function onClickMakeTransferButton ( event: Event ) {
     }
 
     // Send transfer request
+    const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: row.id } );
     const transferRequests: MaterialInventoryTransferCreate[] = [ {
       to_l2_storage_id: storageValue.value,
-      quantity: row.latest_qty,
+      quantity: balance,
       major: true,
     } ]
     try {
@@ -278,7 +279,7 @@ async function onClickMakeTransferButton ( event: Event ) {
 
         <div style="height: 400px; overflow-x: scroll; width: 100%;">
           <ag-grid-vue class="ag-theme-alpine" style="height: 100%;" :gridOptions=" gridOptions " :getRowId=" getRowId "
-          :onGridReady=" onGridReady " :rowData=" rowData "></ag-grid-vue>
+            :onGridReady=" onGridReady " :rowData=" rowData "></ag-grid-vue>
         </div>
 
         <n-form size="large">
@@ -289,7 +290,8 @@ async function onClickMakeTransferButton ( event: Event ) {
           </n-form-item>
 
           <n-form-item>
-            <n-button type="primary" @click=" onClickMakeTransferButton( $event ) " attr-type="submit" block size="large">調撥</n-button>
+            <n-button type="primary" @click=" onClickMakeTransferButton( $event ) " attr-type="submit" block
+              size="large">調撥</n-button>
           </n-form-item>
 
         </n-form>

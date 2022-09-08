@@ -172,7 +172,11 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory's quantity is larger than 0
-  if ( inventory.latest_qty <= 0 ) {
+  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance({
+    materialInventoryId: inventory.id,
+    onlyIssuable: true,
+  })
+  if ( balance <= 0 ) {
     message.error( '此單包已無可用庫存' );
     return false;
   }
@@ -189,7 +193,7 @@ async function onClickAddInventoryButton ( event: Event ) {
     // Request adding item with backend
     const item = await IssuancesService.addIssuanceItem( {
       issuanceIdno: route.params.idno.toString(),
-      requestBody: { material_inventory_id: inventory.id, issue_qty: inventory.latest_qty, lend_qty: 0, },
+      requestBody: { material_inventory_id: inventory.id, issue_qty: balance, lend_qty: 0, },
     } );
 
     // Add the responsed issuance item to grid
