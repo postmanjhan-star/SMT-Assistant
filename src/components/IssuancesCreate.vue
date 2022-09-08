@@ -101,7 +101,7 @@ async function onGridReady ( params: GridReadyEvent ) {
 
 
 
-async function getMaterialUnitAndQuantity () {
+async function onBlurMaterialIdnoInputField () {
   if ( materialAdditionFormValue.value.material_idno.trim() ) {
     try {
       // Update in-stock value and unit
@@ -135,7 +135,7 @@ function addItemToGrid ( item: GridItem ) {
 
 
 
-async function handleAddMaterialButtonClick ( event: Event ) {
+async function onClickAddMaterialButton ( event: Event ) {
   // Quantity should greater than zero
   if ( materialAdditionFormValue.value.quantity <= 0 ) {
     message.error( '數量應大於零' );
@@ -172,27 +172,29 @@ async function handleAddMaterialButtonClick ( event: Event ) {
   rowData.value = rowData.value.filter( row => row.material_idno !== materialAdditionFormValue.value.material_idno.trim() );
   gridApi.value.setRowData( rowData.value );
 
-  // Take needed inventories
+  // Take demand inventories
   let askedQuantity = materialAdditionFormValue.value.quantity;
   let issuedQuantity = 0;
   let issuedMaterialInventories: MaterialInventoryRead[] = [];
   const materialInventories = await MaterialsService.getMaterialInventoriesInStock( { materialIdno: materialAdditionFormValue.value.material_idno.trim(), onlyIssuable: true } );
   while ( issuedQuantity < askedQuantity ) {
     const materialInventory = materialInventories.shift();
-    issuedQuantity += materialInventory?.latest_qty as number;
+    const materialInventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: materialInventory.id } );
+    issuedQuantity += materialInventoryBalance;
     issuedMaterialInventories.push( materialInventory as MaterialInventoryRead );
   }
   let lendQuantity = issuedQuantity - askedQuantity;
   issuedQuantity -= lendQuantity;
 
   // Build grid row data
-  issuedMaterialInventories.forEach( ( inventory, i ) => {
-    let issue_qty = inventory.latest_qty;
+  issuedMaterialInventories.forEach( async ( inventory, i ) => {
+    const inventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: inventory.id } );
+    let issue_qty = inventoryBalance;
     let lend_qty = 0;
 
     if ( i == issuedMaterialInventories.length - 1 ) {
       lend_qty = lendQuantity;
-      issue_qty = inventory.latest_qty - lend_qty;
+      issue_qty = inventoryBalance - lend_qty;
     }
 
     // Add material inventories into the grid
@@ -244,7 +246,11 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory's quantity is larger than 0
-  if ( materialInventory.latest_qty <= 0 ) {
+  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance({
+    materialInventoryId: materialInventory.id,
+    onlyIssuable: true,
+  })
+  if ( balance <= 0 ) {
     message.error( '此單包已無可用庫存' );
     return false;
   }
@@ -261,7 +267,7 @@ async function onClickAddInventoryButton ( event: Event ) {
     material_idno: materialInventory.material_idno,
     material_inventory_id: materialInventory.id,
     material_inventory_idno: materialInventory.idno,
-    issue_qty: materialInventory.latest_qty,
+    issue_qty: balance,
     lend_qty: 0,
   } );
 
@@ -372,7 +378,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
                   <n-form-item label="物料代碼">
                     <n-input v-model:value.lazy=" materialAdditionFormValue.material_idno " ref="materialIdnoInput"
-                      @blur=" getMaterialUnitAndQuantity() ">
+                      @blur=" onBlurMaterialIdnoInputField() ">
                     </n-input>
                   </n-form-item>
 
@@ -391,7 +397,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
                   </n-form-item>
 
                   <n-form-item>
-                    <n-button type="primary" secondary strong @click=" handleAddMaterialButtonClick( $event ) "
+                    <n-button type="primary" secondary strong @click=" onClickAddMaterialButton( $event ) "
                       attr-type="submit">+</n-button>
                   </n-form-item>
 

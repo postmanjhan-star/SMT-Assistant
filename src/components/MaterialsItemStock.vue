@@ -86,7 +86,7 @@ async function onGridReady ( params: GridReadyEvent ) {
 
 
 
-async function handleSplitButtonClick ( event: Event ) {
+async function onClickSplitButton ( event: Event ) {
     // Get selected rows
     const selectedRows: MaterialInventoryRead[] = gridApi.value.getSelectedRows();
 
@@ -112,7 +112,8 @@ async function handleSplitButtonClick ( event: Event ) {
     }
 
     // Parent's quantity enough?
-    if ( selectedRow.latest_qty <= 1 ) {
+    const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: selectedRow.id } );
+    if ( balance <= 1 ) {
         message.warning( '此包數量不足以分割' );
         return false;
     }
@@ -139,7 +140,7 @@ async function handleSplitButtonClick ( event: Event ) {
     }
 
     // Child's quantity must less than parent's quantity
-    if ( childQuantity >= selectedRow.latest_qty ) {
+    if ( childQuantity >= balance ) {
         message.warning( '子包數量必須小於母包數量' );
         return false;
     }
@@ -188,8 +189,9 @@ async function handleGenerateLabelsButtonClick ( event: Event ) {
         </n-space>
 
         <n-space size="large">
-            <n-button type="primary" secondary strong @click=" handleSplitButtonClick ">分割單包</n-button>
-            <n-button type="primary" secondary strong @click=" handleGenerateLabelsButtonClick ">產生 WMS 標籤貼紙</n-button>
+            <n-button type="primary" secondary strong @click=" onClickSplitButton() ">分割單包</n-button>
+            <n-button type="primary" secondary strong @click=" handleGenerateLabelsButtonClick() ">產生 WMS 標籤貼紙
+            </n-button>
         </n-space>
 
         <div style="height: 600px; overflow-x: scroll; width: 100%;">
