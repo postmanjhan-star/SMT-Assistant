@@ -1,0 +1,33 @@
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+export const $IssuanceReturnItemRead = {
+    properties: {
+        id: {
+    type: 'number',
+    isRequired: true,
+},
+        issuance_return_id: {
+    type: 'number',
+    isRequired: true,
+},
+        material_inventory_records: {
+    type: 'array',
+    contains: {
+        type: 'MaterialInventoryRecordRead',
+    },
+},
+        from_l2_storage_id: {
+    type: 'number',
+    isRequired: true,
+},
+        to_l2_storage_id: {
+    type: 'number',
+    isRequired: true,
+},
+        quantity: {
+    type: 'number',
+    isRequired: true,
+},
+    },
+} as const;

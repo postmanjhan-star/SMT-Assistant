@@ -28,19 +28,15 @@ export const $MaterialInventoryRead = {
 },
         l1_storage_id: {
     type: 'number',
-    isRequired: true,
 },
         l1_storage_idno: {
     type: 'string',
-    isRequired: true,
 },
         l2_storage_id: {
     type: 'number',
-    isRequired: true,
 },
         l2_storage_idno: {
     type: 'string',
-    isRequired: true,
 },
         latest_qty: {
     type: 'number',

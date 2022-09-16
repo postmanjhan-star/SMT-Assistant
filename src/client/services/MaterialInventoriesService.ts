@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { app__routers__material_inventories__Printer } from '../models/app__routers__material_inventories__Printer';
 import type { InventoryChangeCauseEnum } from '../models/InventoryChangeCauseEnum';
+import type { MaterialInventoryBalancesRead } from '../models/MaterialInventoryBalancesRead';
 import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialInventoryRecordRead } from '../models/MaterialInventoryRecordRead';
 import type { MaterialInventoryTransferCreate } from '../models/MaterialInventoryTransferCreate';
@@ -93,14 +94,14 @@ onlyIssuable?: boolean,
 
     /**
      * Get Material Inventory Balances
-     * @returns any Successful Response
+     * @returns MaterialInventoryBalancesRead Successful Response
      * @throws ApiError
      */
     public static getMaterialInventoryBalances({
 materialInventoryIdno,
 }: {
 materialInventoryIdno: string,
-}): CancelablePromise<any> {
+}): CancelablePromise<Array<MaterialInventoryBalancesRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/{material_inventory_idno}/balances',
@@ -115,8 +116,6 @@ materialInventoryIdno: string,
 
     /**
      * Transfer Material Inventory
-     * This function is not responsible for updating material inventory's quantity.
- * It is just for making transfer records and update material inventory's storage location.
      * @returns MaterialInventoryRecordRead Successful Response
      * @throws ApiError
      */

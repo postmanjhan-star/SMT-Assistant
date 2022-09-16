@@ -1,0 +1,23 @@
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+export const $MaterialInventoryBalancesRead = {
+    properties: {
+        l1_storage_id: {
+    type: 'number',
+    isRequired: true,
+},
+        l1_storage_type: {
+    type: 'StorageTypeEnum',
+    isRequired: true,
+},
+        l2_storage_id: {
+    type: 'number',
+    isRequired: true,
+},
+        quantity: {
+    type: 'number',
+    isRequired: true,
+},
+    },
+} as const;

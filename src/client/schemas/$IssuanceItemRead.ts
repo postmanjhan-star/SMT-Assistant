@@ -37,19 +37,15 @@ export const $IssuanceItemRead = {
 },
         l1_storage_id: {
     type: 'number',
-    isRequired: true,
 },
         l1_storage_idno: {
     type: 'string',
-    isRequired: true,
 },
         l2_storage_id: {
     type: 'number',
-    isRequired: true,
 },
         l2_storage_idno: {
     type: 'string',
-    isRequired: true,
 },
         issue_qty: {
     type: 'number',

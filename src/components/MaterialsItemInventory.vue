@@ -56,6 +56,7 @@ function translateCause ( cause: InventoryChangeCauseEnum ) {
         case InventoryChangeCauseEnum.TRANSFERRING: return '調撥';
         case InventoryChangeCauseEnum.ISSUING: return '發料';
         case InventoryChangeCauseEnum.SPLITTING: return '分割';
+        case InventoryChangeCauseEnum.ISSUE_RETURNING: return '發料退回';
     }
     return '其他';
 }
