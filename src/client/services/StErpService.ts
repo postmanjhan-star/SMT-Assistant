@@ -5,6 +5,8 @@ import type { app__st_erp__st_receives__Printer } from '../models/app__st_erp__s
 import type { STPart } from '../models/STPart';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STVendor } from '../models/STVendor';
+import type { STWorkOrder } from '../models/STWorkOrder';
+import type { STWorkOrderItem } from '../models/STWorkOrderItem';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -18,10 +20,10 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStPart({
-partIdno,
-}: {
-partIdno: string,
-}): CancelablePromise<STPart> {
+        partIdno,
+    }: {
+        partIdno: string,
+    }): CancelablePromise<STPart> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/parts/{part_idno}',
@@ -40,10 +42,10 @@ partIdno: string,
      * @throws ApiError
      */
     public static getStReceives({
-page = 1,
-}: {
-page?: number,
-}): CancelablePromise<Array<STReceiveHeader>> {
+        page = 1,
+    }: {
+        page?: number,
+    }): CancelablePromise<Array<STReceiveHeader>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/',
@@ -62,10 +64,10 @@ page?: number,
      * @throws ApiError
      */
     public static getStReceive({
-receiveIdno,
-}: {
-receiveIdno: string,
-}): CancelablePromise<STReceiveHeader> {
+        receiveIdno,
+    }: {
+        receiveIdno: string,
+    }): CancelablePromise<STReceiveHeader> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{receive_idno}',
@@ -84,10 +86,10 @@ receiveIdno: string,
      * @throws ApiError
      */
     public static getStReceivePackBarcodes({
-stErpReceiveIdno,
-}: {
-stErpReceiveIdno: string,
-}): CancelablePromise<Array<any>> {
+        stErpReceiveIdno,
+    }: {
+        stErpReceiveIdno: string,
+    }): CancelablePromise<Array<any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{st_erp_receive_idno}/barcodes',
@@ -107,12 +109,12 @@ stErpReceiveIdno: string,
      * @throws ApiError
      */
     public static printStReceivePacksLabel({
-stErpReceiveIdno,
-printer,
-}: {
-stErpReceiveIdno: string,
-printer?: app__st_erp__st_receives__Printer,
-}): CancelablePromise<any> {
+        stErpReceiveIdno,
+        printer,
+    }: {
+        stErpReceiveIdno: string,
+        printer?: app__st_erp__st_receives__Printer,
+    }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{st_erp_receive_idno}/packs_label',
@@ -134,15 +136,49 @@ printer?: app__st_erp__st_receives__Printer,
      * @throws ApiError
      */
     public static getStVendor({
-vendorIdno,
-}: {
-vendorIdno: string,
-}): CancelablePromise<STVendor> {
+        vendorIdno,
+    }: {
+        vendorIdno: string,
+    }): CancelablePromise<STVendor> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/vendors/{vendor_idno}',
             path: {
                 'vendor_idno': vendorIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get St Work Orders
+     * @returns STWorkOrder Successful Response
+     * @throws ApiError
+     */
+    public static getStWorkOrders(): CancelablePromise<Array<STWorkOrder>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/work_orders/',
+        });
+    }
+
+    /**
+     * Get St Work Order
+     * @returns STWorkOrderItem Successful Response
+     * @throws ApiError
+     */
+    public static getStWorkOrder({
+        workOrderIdno,
+    }: {
+        workOrderIdno: string,
+    }): CancelablePromise<Array<STWorkOrderItem>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/work_orders/{work_order_idno}',
+            path: {
+                'work_order_idno': workOrderIdno,
             },
             errors: {
                 422: `Validation Error`,
