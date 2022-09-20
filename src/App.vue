@@ -1,39 +1,39 @@
-<script setup>
-import Color from 'color';
-import { dateZhTW, NConfigProvider, NMessageProvider, zhTW, NNotificationProvider } from 'naive-ui';
+<script setup lang="ts">
+import * as Color from 'color';
+import { dateZhTW, NConfigProvider, NMessageProvider, zhTW, NNotificationProvider, GlobalThemeOverrides, GlobalTheme } from 'naive-ui';
 import { RouterView } from "vue-router";
 
-const borderColor = Color( 'hsla(0, 0%, 84%, 1.0)' );
-const railColor = Color( 'hsla(0, 0%, 60%, 1.0)' )
-const inputColor = Color( 'hsla(0, 0%, 96%, 1.0)' );
+const lightThemeBorderColor = Color( 'hsla(0, 0%, 84%, 1.0)' );
+const lightThemeRailColor = Color( 'hsla(0, 0%, 60%, 1.0)' );
+const lightThemeInputColor = Color( 'hsla(0, 0%, 96%, 1.0)' );
 
 /**
  * js 文件下使用这个做类型提示
  * @type import('naive-ui').GlobalThemeOverrides
  */
-const themeOverrides = {
+const lightThemeOverrides: GlobalThemeOverrides = {
   common: {
     fontWeightStrong: "600",
-    dividerColor: borderColor.rgb().string(),
-    inputColor: inputColor.rgb().string(),
+    dividerColor: lightThemeBorderColor.rgb().string(),
+    inputColor: lightThemeInputColor.rgb().string(),
   },
   DataTable: {
-    borderColor: borderColor.rgb().string(),
+    borderColor: lightThemeBorderColor.rgb().string(),
   },
   Switch: {
-    railColor: railColor.rgb().string(),
+    railColor: lightThemeRailColor.rgb().string(),
   },
 }
 </script>
 
 <template>
   <n-config-provider :locale=" zhTW " :date-locale=" dateZhTW " inline-theme-disabled
-    :theme-overrides=" themeOverrides ">
+    :theme-overrides=" lightThemeOverrides ">
     <n-message-provider>
       <n-notification-provider>
-        <header>
-          <!-- <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" /> -->
-        </header>
+        <!-- <header>
+          <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+        </header> -->
         <RouterView />
       </n-notification-provider>
     </n-message-provider>

@@ -1,164 +1,108 @@
 <script setup lang="ts">
-import NumberColumnType from '@revolist/revogrid-column-numeral';
-import VGrid from "@revolist/vue3-datagrid";
-import { NButton, NGi, NGrid, NSpace, useMessage } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, OpenAPI } from '../client';
-import { useAuthStore } from '../stores/auth';
+import { darkTheme, GlobalThemeOverrides, NButton, NConfigProvider, NForm, NFormItemGi, NGi, NGrid, NInput, NMenu, NSpace, useMessage, FormRules, FormInst, InputInst } from 'naive-ui';
+import { h, onMounted, ref } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
+import { ApiError, StErpService } from '../client';
+
 
 const message = useMessage();
 const router = useRouter();
-const route = useRoute();
-
-const authStore = useAuthStore();
-OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
-
-const gridApi = ref();
-
-const plugin = { 'numeric': new NumberColumnType( '4,0' ) };
 
 
-const columns = [
-  {
-    prop: "picked", name: '已備料', autoSize: true, sortable: true, size: 120,
-    columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
-    cellProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
+const darkThemeOverrides: GlobalThemeOverrides = {
+  common: {
+    fontWeightStrong: "600",
+    inputColor: 'rgba(255, 255, 255, 0.1)'
   },
-  {
-    prop: "materialInventoryIdno", name: '單包代碼', autoSize: true, sortable: true, size: 120,
-    columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
-    cellProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
-  },
-  {
-    prop: "materialIdno", name: '物料代碼', autoSize: true, sortable: true, size: 120,
-    columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
-    cellProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
-  },
-  {
-    prop: "issueQty", name: '發出數量', autoSize: true, sortable: true, filter: 'number', size: 120, columnType: 'numeric',
-    columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
-    cellProperties: ( { prop, model, data, column } ) => { return { style: { textAlign: 'right', paddingRight: '1em', border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
-  },
-  {
-    prop: "lendQty", name: '借出數量', autoSize: true, sortable: true, filter: 'number', size: 120, columnType: 'numeric',
-    columnProperties: ( { prop, model, data, column } ) => { return { style: { border: '1px solid hsla(0, 0%, 90%, 1.0)', backgroundColor: 'hsla(0, 0%, 90%, 1.0)' } } },
-    cellProperties: ( { prop, model, data, column } ) => { return { style: { textAlign: 'right', paddingRight: '1em', border: '1px solid hsla(0, 0%, 90%, 1.0)' } } },
-  },
-]
-
-const rows = [
-  { picked: true, materialInventoryIdno: "Item 1", materialIdno: 'Material001', issueQty: 20, lendQty: 30 },
-  { picked: true, materialInventoryIdno: "Item 2", materialIdno: 'Material002', issueQty: 40, lendQty: 70 },
-]
-
-
-
-type GridItem = {
-  id: number,
-  material_idno: string,
-  material_inventory_id: number,
-  material_inventory_idno: string,
-  issue_qty: number,
-  lend_qty: number,
 };
 
 
 
-const rowData = ref<GridItem[]>( [] );
+const activeKey = ref<string | null>( 'smt-home' );
 
 
 
-onBeforeMount( async () => {
-  let issuance: IssuanceRead;
-  try {
-    // issuance = await IssuancesService.getIssuance( route.params.idno.toString() );
-    for ( let issuanceItem of issuance.issuance_items as IssuanceItemRead[] ) {
-      rowData.value.push( {
-        id: issuanceItem.id,
-        material_idno: issuanceItem.material_idno,
-        material_inventory_id: issuanceItem.material_inventory_id,
-        material_inventory_idno: issuanceItem.material_inventory_idno,
-        issue_qty: issuanceItem.issue_qty,
-        lend_qty: issuanceItem.lend_qty,
-      } )
-    }
-  } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
+const menuOptions = [
+  { label: () => h( RouterLink, { to: '/accounts' }, { default: () => 'Home' } ), key: 'smt-home' },
+  { label: () => h( RouterLink, { to: '/accounts' }, { default: () => 'Settings' } ), key: 'smt-settings' },
+];
+
+
+
+const formRef = ref<FormInst | null>( null )
+const formValue = ref( { workOrderIdno: '' } );
+const workOrderIdnoInput = ref<InputInst>();
+
+
+
+onMounted( async () => {
+  workOrderIdnoInput.value.focus();
+  // const workOrders = await StErpService.getStWorkOrders();
 } );
 
 
 
-async function handleUpdateIssuanceButtonClick ( event: Event ) {
-  // Create issuance
-  let issuance: IssuanceRead;
-
-  message.success( `發料單 ${ issuance.idno } 更新成功` );
-  router.push( '/issuances' );
-}
-
-
-async function onClickRemoveRowButton ( event: Event ) {
-  // Get selected rows
-  const selectedRows: GridItem[] = gridApi.value.getSelectedRows();
-  if ( selectedRows.length === 0 ) { return false; }
-  if ( selectedRows.length > 1 ) {
-    message.warning( '請選擇單列' );
+async function onClickSubmitButton ( event: Event ) {
+  if ( !!formValue.value.workOrderIdno === false ) {
+    message.warning( '請輸入工單號' );
     return false;
   }
-
-  const selectedRow = selectedRows[ 0 ];
 
   try {
-    const success = await IssuancesService.removeItem( { issuanceIdno: route.params.idno.toString(), issuanceItemId: selectedRow.id } );
-    message.success( '已刪除 🗑️' );
-
-    // Remove the row from grid
-    rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno );
-    gridApi.value.setRowData( rowData.value );
-  } catch ( error ) {
-    message.error( '刪除失敗' );
-    return false;
+    const workOrder = await StErpService.getStWorkOrder( { workOrderIdno: formValue.value.workOrderIdno } );
+    console.debug( workOrder );
+  }
+  catch ( error ) {
+    if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此工單' ); }
+    else { throw error; }
   }
 }
+
+// Take background colors from https://windicss.org/utilities/general/colors.html
 </script>
-    
-    
-    
+
+
+
 <template>
-  <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+  <n-config-provider :theme=" darkTheme " :theme-overrides=" darkThemeOverrides ">
+    <header style="position: sticky; top: 0; z-index: 2;">
+      <n-layout-header style="padding: 9px;">
+        <n-space item-style="" justify="space-between">
+          <!-- Hide unused menu -->
+          <!-- <n-menu v-model:value="activeKey" mode="horizontal" :options="menuOptions" /> -->
+        </n-space>
+      </n-layout-header>
+    </header>
 
-    <div style="padding: 1rem;">
+    <!-- Hide unused menu -->
+    <!--<main style="min-height: calc(100vh - 60px); background-color: #27272A;">-->
+    <main style="min-height: calc(100vh - 18px); background-color: #27272A;">
 
-      <n-space vertical size="large"
-        style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
+      <div style="padding: 1rem;">
 
-        <n-grid cols="1 s:3" responsive="screen" x-gap="20">
+        <n-space vertical size="large" style="padding: 1rem;">
+          <n-form size="large" :model="formValue" ref="formRef">
+            <n-grid cols="1 s:3" responsive="screen">
 
-          <n-gi span="3">
-            <n-space size="large" vertical>
+              <n-gi></n-gi>
+              <n-form-item-gi label="工單號">
+                <n-input type="text" size="large" v-model:value.lazy="formValue.workOrderIdno"
+                  ref="workOrderIdnoInput" />
+              </n-form-item-gi>
+              <n-gi></n-gi>
 
-              <n-space size="large" style="margin-bottom: 1rem;">
-                <n-button type="error" tertiary @click=" onClickRemoveRowButton( $event ) " attr-type="button">刪除單列
-                </n-button>
-              </n-space>
+              <n-gi></n-gi>
+              <n-gi span="1">
+                <n-button type="primary" block size="large" @click=" onClickSubmitButton( $event ) " attr-type="submit">
+                  確定</n-button>
+              </n-gi>
+              <n-gi></n-gi>
 
-              <v-grid theme="compact" :columns=" columns " :source=" rows " :autoSizeColumn=" true " resize filter
-                readonly stretch row-headers :columnTypes=" plugin "
-                style="height: 400px; border: 1px solid hsla(0, 0%, 80%, 1.0);">
-              </v-grid>
-
-              <n-button type="primary" block size="large" @click=" handleUpdateIssuanceButtonClick( $event ) "
-                attr-type="submit">
-                確定備料
-              </n-button>
-            </n-space>
-
-          </n-gi>
-
-        </n-grid>
-      </n-space>
-    </div>
-  </main>
+            </n-grid>
+          </n-form>
+        </n-space>
+      </div>
+    </main>
+  </n-config-provider>
 </template>
     
