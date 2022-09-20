@@ -138,6 +138,21 @@ const routes = [
     component: () => import( "../views/IssuancesPickingUpPrintView.vue" ),
   },
   {
+    path: "/smt",
+    meta: { requiresAuth: false },
+    component: () => import( "../smtViews/HomeView.vue" ),
+    children: [
+      {
+        path: '/smt/mounter/work_orders',
+        component: () => import( "../smtViews/WorkOrdersHome.vue" ),
+      },
+      {
+        path: '/smt/mounter/work_orders/:workOrderIdno',
+        component: () => import( "../smtViews/WorkOrdersDetail.vue" ),
+      },
+    ]
+  },
+  {
     path: "/playground",
     name: "Playground",
     meta: { requiresAuth: false },
