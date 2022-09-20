@@ -7,8 +7,6 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AccountRead } from './models/AccountRead';
-export { app__routers__material_inventories__Printer } from './models/app__routers__material_inventories__Printer';
-export { app__st_erp__st_receives__Printer } from './models/app__st_erp__st_receives__Printer';
 export type { Body_login_for_access_token } from './models/Body_login_for_access_token';
 export type { EmployeeAccountCreate } from './models/EmployeeAccountCreate';
 export type { EmployeeAccountRead } from './models/EmployeeAccountRead';
@@ -38,6 +36,7 @@ export type { MaterialInventoryTransferCreate } from './models/MaterialInventory
 export type { MaterialRead } from './models/MaterialRead';
 export type { MaterialStockRecord } from './models/MaterialStockRecord';
 export type { MaterialUpdate } from './models/MaterialUpdate';
+export { Printer } from './models/Printer';
 export type { ReceiveCreate } from './models/ReceiveCreate';
 export type { ReceiveItemCreate } from './models/ReceiveItemCreate';
 export type { ReceiveItemRead } from './models/ReceiveItemRead';
@@ -58,8 +57,6 @@ export type { VendorRead } from './models/VendorRead';
 export type { VendorUpdate } from './models/VendorUpdate';
 
 export { $AccountRead } from './schemas/$AccountRead';
-export { $app__routers__material_inventories__Printer } from './schemas/$app__routers__material_inventories__Printer';
-export { $app__st_erp__st_receives__Printer } from './schemas/$app__st_erp__st_receives__Printer';
 export { $Body_login_for_access_token } from './schemas/$Body_login_for_access_token';
 export { $EmployeeAccountCreate } from './schemas/$EmployeeAccountCreate';
 export { $EmployeeAccountRead } from './schemas/$EmployeeAccountRead';
@@ -89,6 +86,7 @@ export { $MaterialInventoryTransferCreate } from './schemas/$MaterialInventoryTr
 export { $MaterialRead } from './schemas/$MaterialRead';
 export { $MaterialStockRecord } from './schemas/$MaterialStockRecord';
 export { $MaterialUpdate } from './schemas/$MaterialUpdate';
+export { $Printer } from './schemas/$Printer';
 export { $ReceiveCreate } from './schemas/$ReceiveCreate';
 export { $ReceiveItemCreate } from './schemas/$ReceiveItemCreate';
 export { $ReceiveItemRead } from './schemas/$ReceiveItemRead';

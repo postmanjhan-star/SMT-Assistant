@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { app__st_erp__st_receives__Printer } from '../models/app__st_erp__st_receives__Printer';
+import type { Printer } from '../models/Printer';
 import type { STPart } from '../models/STPart';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STVendor } from '../models/STVendor';
@@ -20,10 +20,10 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStPart({
-        partIdno,
-    }: {
-        partIdno: string,
-    }): CancelablePromise<STPart> {
+partIdno,
+}: {
+partIdno: string,
+}): CancelablePromise<STPart> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/parts/{part_idno}',
@@ -42,10 +42,10 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStReceives({
-        page = 1,
-    }: {
-        page?: number,
-    }): CancelablePromise<Array<STReceiveHeader>> {
+page = 1,
+}: {
+page?: number,
+}): CancelablePromise<Array<STReceiveHeader>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/',
@@ -64,10 +64,10 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStReceive({
-        receiveIdno,
-    }: {
-        receiveIdno: string,
-    }): CancelablePromise<STReceiveHeader> {
+receiveIdno,
+}: {
+receiveIdno: string,
+}): CancelablePromise<STReceiveHeader> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{receive_idno}',
@@ -86,10 +86,10 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStReceivePackBarcodes({
-        stErpReceiveIdno,
-    }: {
-        stErpReceiveIdno: string,
-    }): CancelablePromise<Array<any>> {
+stErpReceiveIdno,
+}: {
+stErpReceiveIdno: string,
+}): CancelablePromise<Array<any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{st_erp_receive_idno}/barcodes',
@@ -109,12 +109,12 @@ export class StErpService {
      * @throws ApiError
      */
     public static printStReceivePacksLabel({
-        stErpReceiveIdno,
-        printer,
-    }: {
-        stErpReceiveIdno: string,
-        printer?: app__st_erp__st_receives__Printer,
-    }): CancelablePromise<any> {
+stErpReceiveIdno,
+printer,
+}: {
+stErpReceiveIdno: string,
+printer?: Printer,
+}): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{st_erp_receive_idno}/packs_label',
@@ -136,10 +136,10 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStVendor({
-        vendorIdno,
-    }: {
-        vendorIdno: string,
-    }): CancelablePromise<STVendor> {
+vendorIdno,
+}: {
+vendorIdno: string,
+}): CancelablePromise<STVendor> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/vendors/{vendor_idno}',
@@ -170,10 +170,10 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStWorkOrder({
-        workOrderIdno,
-    }: {
-        workOrderIdno: string,
-    }): CancelablePromise<Array<STWorkOrderItem>> {
+workOrderIdno,
+}: {
+workOrderIdno: string,
+}): CancelablePromise<Array<STWorkOrderItem>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/work_orders/{work_order_idno}',

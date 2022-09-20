@@ -1,12 +1,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { app__routers__material_inventories__Printer } from '../models/app__routers__material_inventories__Printer';
 import type { InventoryChangeCauseEnum } from '../models/InventoryChangeCauseEnum';
 import type { MaterialInventoryBalancesRead } from '../models/MaterialInventoryBalancesRead';
 import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialInventoryRecordRead } from '../models/MaterialInventoryRecordRead';
 import type { MaterialInventoryTransferCreate } from '../models/MaterialInventoryTransferCreate';
+import type { Printer } from '../models/Printer';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -25,7 +25,7 @@ materialInventoryIdnos,
 printer,
 }: {
 materialInventoryIdnos: Array<string>,
-printer?: app__routers__material_inventories__Printer,
+printer?: Printer,
 }): CancelablePromise<any | Blob> {
         return __request(OpenAPI, {
             method: 'GET',

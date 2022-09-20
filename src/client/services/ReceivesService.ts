@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { app__routers__material_inventories__Printer } from '../models/app__routers__material_inventories__Printer';
+import type { Printer } from '../models/Printer';
 import type { ReceiveCreate } from '../models/ReceiveCreate';
 import type { ReceiveRead } from '../models/ReceiveRead';
 
@@ -108,7 +108,7 @@ printer,
 }: {
 receiveIdno: string,
 receiveItemId: number,
-printer?: app__routers__material_inventories__Printer,
+printer?: Printer,
 }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
