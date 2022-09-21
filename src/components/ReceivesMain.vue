@@ -124,6 +124,7 @@ async function handleGenerateLabelsButtonClick () {
 </script>
 
 
+
 <template>
   <main
     style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">

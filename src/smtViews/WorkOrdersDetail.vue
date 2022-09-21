@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { InputInst, NEl, NForm, NFormItem, NGi, NGrid, NInput, NPageHeader, useMessage } from 'naive-ui';
+import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, StErpService, STWorkOrderItem } from '../client';
-import * as Tone from 'tone';
+import { ApiError, MaterialInventoriesService, StErpService, STWorkOrderItemForSMTMounterCheck } from '../client';
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
@@ -11,7 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const message = useMessage();
 
-const workOrderItems = ref<STWorkOrderItem[]>();
+const workOrderItems = ref<STWorkOrderItemForSMTMounterCheck[]>();
 
 const slotFormValue = ref( { slotIdno: '' } );
 const slotIdnoInput = ref<InputInst>();
@@ -37,40 +37,55 @@ const slotMaterialData = ref<SlotMaterial[]>( [] );
 onMounted( async () => {
   slotIdnoInput.value.focus();
 
-  try { workOrderItems.value = await StErpService.getStWorkOrder( { workOrderIdno: route.params.workOrderIdno.toString() } ); }
+  try { workOrderItems.value = await StErpService.getStWorkOrderForSmtMounterMatchCheck( { workOrderIdno: route.params.workOrderIdno.toString() } ); }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
+  for ( let workOrderItem of workOrderItems.value ) {
+    slotMaterialData.value.push( {
+      id: workOrderItem.slot_side + workOrderItem.slot_number,
+      mounterIdno: '',
+      slotSide: workOrderItem.slot_side,
+      slotNumber: workOrderItem.slot_number,
+      materialIdno: workOrderItem.material_idno,
+      materialInventoryIdno: '',
+      materialInventoryStBarcode: '',
+      highlight: false,
+      correct: null,
+    } )
+  }
+
   // Dummy data entries for testing
-  slotMaterialData.value.push( { id: 'A1', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 1, materialIdno: 'M001', materialInventoryIdno: 'MINV20220920001', materialInventoryStBarcode: 'A001002', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A3', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 3, materialIdno: 'M002', materialInventoryIdno: 'MINV20220920002', materialInventoryStBarcode: 'A001003', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A4', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 4, materialIdno: 'M003', materialInventoryIdno: 'MINV20220920004', materialInventoryStBarcode: 'A001005', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A5', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 5, materialIdno: 'M004', materialInventoryIdno: 'MINV20220920006', materialInventoryStBarcode: 'A001006', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A6', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 6, materialIdno: 'M006', materialInventoryIdno: 'MINV20220920007', materialInventoryStBarcode: 'A001008', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A7', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 7, materialIdno: 'M007', materialInventoryIdno: 'MINV20220920008', materialInventoryStBarcode: 'A001009', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A8', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 8, materialIdno: 'M008', materialInventoryIdno: 'MINV20220920009', materialInventoryStBarcode: 'A001010', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A9', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 9, materialIdno: 'M009', materialInventoryIdno: 'MINV20220920010', materialInventoryStBarcode: 'A001011', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A10', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 10, materialIdno: 'M010', materialInventoryIdno: 'MINV20220920011', materialInventoryStBarcode: 'A001012', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A11', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 11, materialIdno: 'M011', materialInventoryIdno: 'MINV20220920012', materialInventoryStBarcode: 'A001013', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A13', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 12, materialIdno: 'M013', materialInventoryIdno: 'MINV20220920014', materialInventoryStBarcode: 'A001014', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A14', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 14, materialIdno: 'M014', materialInventoryIdno: 'MINV20220920015', materialInventoryStBarcode: 'A001015', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A15', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 16, materialIdno: 'M015', materialInventoryIdno: 'MINV20220920016', materialInventoryStBarcode: 'A001016', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A17', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 17, materialIdno: 'M017', materialInventoryIdno: 'MINV20220920017', materialInventoryStBarcode: 'A001017', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A18', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 18, materialIdno: 'M018', materialInventoryIdno: 'MINV20220920018', materialInventoryStBarcode: 'A001018', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A19', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 19, materialIdno: 'M019', materialInventoryIdno: 'MINV20220920019', materialInventoryStBarcode: 'A001019', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A20', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 20, materialIdno: 'M020', materialInventoryIdno: 'MINV20220920020', materialInventoryStBarcode: 'A001020', highlight: false, correct: null } );
-  slotMaterialData.value.push( { id: 'A21', mounterIdno: 'MNTR001', slotSide: 'A', slotNumber: 21, materialIdno: 'M021', materialInventoryIdno: 'MINV20220920021', materialInventoryStBarcode: 'A001021', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A15', mounterIdno: '', slotSide: 'A', slotNumber: 15, materialIdno: 'M014', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A16', mounterIdno: '', slotSide: 'A', slotNumber: 16, materialIdno: 'M016', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A17', mounterIdno: '', slotSide: 'A', slotNumber: 17, materialIdno: 'M017', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A18', mounterIdno: '', slotSide: 'A', slotNumber: 18, materialIdno: 'M018', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A19', mounterIdno: '', slotSide: 'A', slotNumber: 19, materialIdno: 'M019', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A20', mounterIdno: '', slotSide: 'A', slotNumber: 20, materialIdno: 'M020', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A21', mounterIdno: '', slotSide: 'A', slotNumber: 21, materialIdno: 'M021', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A23', mounterIdno: '', slotSide: 'A', slotNumber: 23, materialIdno: 'M023', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A24', mounterIdno: '', slotSide: 'A', slotNumber: 24, materialIdno: 'M024', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A25', mounterIdno: '', slotSide: 'A', slotNumber: 25, materialIdno: 'M025', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A27', mounterIdno: '', slotSide: 'A', slotNumber: 27, materialIdno: 'M027', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A28', mounterIdno: '', slotSide: 'A', slotNumber: 28, materialIdno: 'M028', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A29', mounterIdno: '', slotSide: 'A', slotNumber: 29, materialIdno: 'M029', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A30', mounterIdno: '', slotSide: 'A', slotNumber: 30, materialIdno: 'M030', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A31', mounterIdno: '', slotSide: 'A', slotNumber: 31, materialIdno: 'M031', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A32', mounterIdno: '', slotSide: 'A', slotNumber: 32, materialIdno: 'M032', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A33', mounterIdno: '', slotSide: 'A', slotNumber: 33, materialIdno: 'M033', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
+  slotMaterialData.value.push( { id: 'A34', mounterIdno: '', slotSide: 'A', slotNumber: 34, materialIdno: 'M034', materialInventoryIdno: '', materialInventoryStBarcode: '', highlight: false, correct: null } );
 } );
+
 
 
 function onClickBackArrow ( event: Event ) { router.push( `/smt/mounter/work_orders/` ); }
 
 
+
 function parseSlotIdnoInput () {
+  // Slot barcode format: mounterId-slotSide-slotNumber
   const slotIdnoArray = slotFormValue.value.slotIdno.trim().split( '-' )
   let slotSide = slotIdnoArray[ 1 ];
   let slotNumber = Number( slotIdnoArray[ 2 ] );
-  // slotSide = 'A';
-  // slotNumber = 8;
   const id = slotSide + slotNumber;
   return [ slotSide, slotNumber, id ]
 }
@@ -79,6 +94,10 @@ function parseSlotIdnoInput () {
 
 function scrollToRow ( id: string ) {
   const row = document.querySelector( `#${ id }` );
+  if ( !!row === false ) {
+    message.warning( '無此位置' );
+    throw Error;
+  }
   row.scrollIntoView( { behavior: 'smooth' } );
 }
 
@@ -112,7 +131,7 @@ async function playErrorTone () {
 
 function onSubmitSlotFrom ( event: Event ) {
   if ( !!slotFormValue.value.slotIdno.trim() === false ) {
-    message.warning( '請輸入插槽位置' )
+    message.warning( '請輸入插槽位置' );
     return false;
   }
 
@@ -139,10 +158,44 @@ async function onSubmitMaterialInventoryFrom ( event: Event ) {
   const [ slotSide, slotNumber, id ] = parseSlotIdnoInput();
   scrollToRow( id as string );
 
+  // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
+  let materialIdno = ''
+
+  // // Dummy code for testing
+  // materialIdno = 'M018';
+
+  if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'A' ) {
+    try {
+      const partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } );
+      materialIdno = partPack.part_idno;
+    } catch ( error ) {
+      if ( error instanceof ApiError && error.status === 404 ) {
+        message.warning( '查無此條碼' )
+        return false;
+      }
+    }
+
+  }
+  if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'M' ) {
+    try {
+      const materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } );
+      console.debug(materialInventory)
+      materialIdno = materialInventory.material_idno;
+    } catch ( error ) {
+      if ( error instanceof ApiError && error.status === 404 ) {
+        message.warning( '查無此條碼' )
+        return false;
+      }
+    }
+  }
+
+  // Dummy code for testing
+  materialIdno = 'M018';
+
   slotMaterialData.value.forEach( async ( item, index ) => {
     if ( item.id == id ) {
       item.highlight = true;
-      if ( materialFormValue.value.materialInventoryIdno == item.materialInventoryIdno ) {
+      if ( materialIdno == item.materialIdno ) {
         item.correct = true;
         await playSuccseTone();
       } else {

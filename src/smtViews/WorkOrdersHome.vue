@@ -24,7 +24,7 @@ async function onClickSubmitButton ( event: Event ) {
   }
 
   try {
-    const workOrder = await StErpService.getStWorkOrder( { workOrderIdno: formValue.value.workOrderIdno.trim() } );
+    const workOrder = await StErpService.getStWorkOrderForSmtMounterMatchCheck( { workOrderIdno: formValue.value.workOrderIdno.trim() } );
     console.debug( workOrder );
     router.push( `/smt/mounter/work_orders/${ formValue.value.workOrderIdno.trim() }` );
   }

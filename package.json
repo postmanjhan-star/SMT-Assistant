@@ -22,7 +22,6 @@
     "ag-grid-community": "^27.3.0",
     "ag-grid-vue3": "^27.3.0",
     "client-oauth2": "^4.3.3",
-    "color": "^4.2.3",
     "dataclass": "^2.0.0",
     "jose": "^4.8.1",
     "pinia": "^2.0.13",

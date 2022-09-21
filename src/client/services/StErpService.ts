@@ -3,10 +3,12 @@
 /* eslint-disable */
 import type { Printer } from '../models/Printer';
 import type { STPart } from '../models/STPart';
+import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STVendor } from '../models/STVendor';
 import type { STWorkOrder } from '../models/STWorkOrder';
 import type { STWorkOrderItem } from '../models/STWorkOrderItem';
+import type { STWorkOrderItemForSMTMounterCheck } from '../models/STWorkOrderItemForSMTMounterCheck';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -29,6 +31,33 @@ partIdno: string,
             url: '/st_erp/parts/{part_idno}',
             path: {
                 'part_idno': partIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get St Erp Part Pack
+     * CSV 資料順序：
+ *
+ * 條碼編號^^本包數量^^驗收數量^^本包序號^^總包數^^收料單號^^材料編號^^單位^^廠商編號^^收料日期
+ *
+ * `pack_idno^^pack_qty^^total_qualify_qty^^pack_sequence_idno^^total_pack_sequence_idno^^receive_id^^part_idno^^unit^^vendor_idno^^receive_date`
+     * @returns STPartPack Successful Response
+     * @throws ApiError
+     */
+    public static getStErpPartPack({
+stPackIdno,
+}: {
+stPackIdno: string,
+}): CancelablePromise<STPartPack> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/parts/pack/{st_pack_idno}',
+            path: {
+                'st_pack_idno': stPackIdno,
             },
             errors: {
                 422: `Validation Error`,
@@ -82,14 +111,14 @@ receiveIdno: string,
 
     /**
      * Get St Receive Pack Barcodes
-     * @returns any Successful Response
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static getStReceivePackBarcodes({
 stErpReceiveIdno,
 }: {
 stErpReceiveIdno: string,
-}): CancelablePromise<Array<any>> {
+}): CancelablePromise<Array<string>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/{st_erp_receive_idno}/barcodes',
@@ -166,6 +195,11 @@ vendorIdno: string,
 
     /**
      * Get St Work Order
+     * 工令發料欄位 CSV：
+ *
+ * 工令編號^^成品編號^^材料編號^^應發數量^^實發數量^^欠料數量^^配料位置
+ *
+ * `work_order_idno^^product_idno^^material_idno^^due_quantity^^issued_quantity^^shortage_quantity^^production_position`
      * @returns STWorkOrderItem Successful Response
      * @throws ApiError
      */
@@ -177,6 +211,28 @@ workOrderIdno: string,
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/work_orders/{work_order_idno}',
+            path: {
+                'work_order_idno': workOrderIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get St Work Order For Smt Mounter Match Check
+     * @returns STWorkOrderItemForSMTMounterCheck Successful Response
+     * @throws ApiError
+     */
+    public static getStWorkOrderForSmtMounterMatchCheck({
+workOrderIdno,
+}: {
+workOrderIdno: string,
+}): CancelablePromise<Array<STWorkOrderItemForSMTMounterCheck>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/work_orders/{work_order_idno}/smt/mounter',
             path: {
                 'work_order_idno': workOrderIdno,
             },

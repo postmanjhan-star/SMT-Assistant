@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import * as Color from 'color';
-import { dateZhTW, NConfigProvider, NMessageProvider, zhTW, NNotificationProvider, GlobalThemeOverrides, GlobalTheme } from 'naive-ui';
+import { dateZhTW, GlobalThemeOverrides, NConfigProvider, NMessageProvider, NNotificationProvider, zhTW } from 'naive-ui';
 import { RouterView } from "vue-router";
 
-const lightThemeBorderColor = Color( 'hsla(0, 0%, 84%, 1.0)' );
-const lightThemeRailColor = Color( 'hsla(0, 0%, 60%, 1.0)' );
-const lightThemeInputColor = Color( 'hsla(0, 0%, 96%, 1.0)' );
+const lightThemeBorderColor = 'rgba(214, 214, 214, 1.0)'; // hsla(0, 0%, 84%, 1.0)
+const lightThemeRailColor = 'rgba(153, 153, 153. 1.0)'; // hsla(0, 0%, 60%, 1.0)
+const lightThemeInputColor = 'rgba(245, 245, 245, 1.0)'; // hsla(0, 0%, 96%, 1.0)
 
 /**
  * js 文件下使用这个做类型提示
@@ -14,14 +13,14 @@ const lightThemeInputColor = Color( 'hsla(0, 0%, 96%, 1.0)' );
 const lightThemeOverrides: GlobalThemeOverrides = {
   common: {
     fontWeightStrong: "600",
-    dividerColor: lightThemeBorderColor.rgb().string(),
-    inputColor: lightThemeInputColor.rgb().string(),
+    dividerColor: lightThemeBorderColor,
+    inputColor: lightThemeInputColor,
   },
   DataTable: {
-    borderColor: lightThemeBorderColor.rgb().string(),
+    borderColor: lightThemeBorderColor,
   },
   Switch: {
-    railColor: lightThemeRailColor.rgb().string(),
+    railColor: lightThemeRailColor,
   },
 }
 </script>

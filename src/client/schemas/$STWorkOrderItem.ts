@@ -5,40 +5,30 @@ export const $STWorkOrderItem = {
     properties: {
         work_order_idno: {
     type: 'string',
-    description: `工單號`,
     isRequired: true,
 },
-        material_id: {
-    type: 'number',
+        product_idno: {
+    type: 'string',
     isRequired: true,
 },
         material_idno: {
     type: 'string',
-    description: `物料編號`,
     isRequired: true,
 },
-        material_inventory_id: {
+        due_quantity: {
     type: 'number',
     isRequired: true,
 },
-        material_inventory_idno: {
-    type: 'string',
-    description: `WMS 單包代碼`,
-    isRequired: true,
-},
-        material_inventory_st_barcode: {
-    type: 'string',
-    description: `舊 ERP 單包代碼`,
-    isRequired: true,
-},
-        side_in_smt_mounter: {
-    type: 'string',
-    description: `材料於打件機上件面向`,
-    isRequired: true,
-},
-        slot_in_smt_mounter: {
+        issued_quantity: {
     type: 'number',
-    description: `材料於打件機上件槽位`,
+    isRequired: true,
+},
+        shortage_quantity: {
+    type: 'number',
+    isRequired: true,
+},
+        production_position: {
+    type: 'string',
     isRequired: true,
 },
     },
