@@ -223,6 +223,18 @@ issuanceIdno: string,
     }
 
     /**
+     * Get Issuacne Returns List
+     * @returns IssuanceReturnRead Successful Response
+     * @throws ApiError
+     */
+    public static getIssuacneReturnList(): CancelablePromise<Array<IssuanceReturnRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/issuance_returns/',
+        });
+    }
+
+    /**
      * Create Issuance Return
      * @returns IssuanceReturnRead Successful Response
      * @throws ApiError

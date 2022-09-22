@@ -30,7 +30,7 @@ const storageValue = ref( null );
 const gridApi = ref();
 const gridColumnApi = ref();
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   editable: false,
   filter: true,
   sortable: true,

@@ -127,6 +127,14 @@ const routes = [
         component: () => import( "../components/IssuancesPick.vue" ),
       },
       {
+        path: '/issuance_returns',
+        component: () => import( "../components/IssuanceReturnsMaster.vue" ),
+      },
+      {
+        path: '/issuance_returns/create',
+        component: () => import( "../components/IssuanceReturnsCreate.vue" ),
+      },
+      {
         path: '/st_erp_receives',
         component: () => import( "../components/StErpReceivesMain.vue" ),
       },

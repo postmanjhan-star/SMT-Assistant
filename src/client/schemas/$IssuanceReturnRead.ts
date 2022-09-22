@@ -14,14 +14,30 @@ export const $IssuanceReturnRead = {
         date: {
     type: 'string',
     isRequired: true,
-    format: 'date-time',
+    format: 'date',
 },
         employee_id: {
     type: 'number',
     isRequired: true,
 },
+        employee_idno: {
+    type: 'string',
+    isRequired: true,
+},
+        material_id: {
+    type: 'number',
+    isRequired: true,
+},
+        material_idno: {
+    type: 'string',
+    isRequired: true,
+},
         material_inventory_id: {
     type: 'number',
+    isRequired: true,
+},
+        material_inventory_idno: {
+    type: 'string',
     isRequired: true,
 },
         return_quantity: {
