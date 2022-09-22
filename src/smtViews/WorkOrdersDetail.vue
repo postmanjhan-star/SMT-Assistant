@@ -150,7 +150,7 @@ function onSubmitSlotFrom ( event: Event ) {
 
 async function onSubmitMaterialInventoryFrom ( event: Event ) {
   if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) {
-    message.warning( '請輸入物料號' )
+    message.warning( '請輸入物料號' );
     return false;
   }
   console.debug( materialFormValue.value.materialInventoryIdno.trim() );
@@ -161,32 +161,32 @@ async function onSubmitMaterialInventoryFrom ( event: Event ) {
   // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
   let materialIdno = ''
 
-  // // Dummy code for testing
-  // materialIdno = 'M018';
-
   if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'A' ) {
     try {
       const partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } );
       materialIdno = partPack.part_idno;
     } catch ( error ) {
       if ( error instanceof ApiError && error.status === 404 ) {
-        message.warning( '查無此條碼' )
+        await playErrorTone();
+        message.warning( '查無此條碼' );
         return false;
       }
     }
-
-  }
-  if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'M' ) {
+  } else if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'M' ) {
     try {
       const materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } );
-      console.debug(materialInventory)
       materialIdno = materialInventory.material_idno;
     } catch ( error ) {
       if ( error instanceof ApiError && error.status === 404 ) {
-        message.warning( '查無此條碼' )
+        await playErrorTone();
+        message.warning( '查無此條碼' );
         return false;
       }
     }
+  } else {
+    await playErrorTone();
+    message.warning( '查無此條碼' );
+    return false;
   }
 
   // Dummy code for testing
@@ -202,6 +202,7 @@ async function onSubmitMaterialInventoryFrom ( event: Event ) {
         item.correct = false;
         await playErrorTone();
         message.error( '錯誤' );
+        return false;
       }
       item.highlight = false;
     }
