@@ -205,22 +205,22 @@ router.beforeEach( async ( to, from ) => {
   // For any routes except for login one
   // 检查用户是否已登录
   if ( authStore.isAuthenticated === false && to.meta.requiresAuth ) {
-    // console.debug( 'Redirect un-authenticated user to login page' );
     // 将用户重定向到登录页面
     return { name: 'Login' };
   }
 
-  // Refresh refresh token & access token on every request
+  // Refresh `refresh_token` & `access_token` with every request
   if ( authStore.isAuthenticated === true ) {
-    // console.debug( 'isAuthenticated:\n', authStore.isAuthenticated );
     try { await authStore.refreshToken(); }
     catch ( error ) {
-      if ( error instanceof ApiError ) {
-        if ( error.status === 422 || error.status === 401 ) {
+      // Just logout on error occurs. No matter what the error is.
+      // console.debug( error );
+      // if ( error instanceof ApiError ) {
+      //   if ( error.status === 422 || error.status === 401 ) {
           authStore.logout();
           return { name: 'Login', params: { message: '登錄過期，請重新登入' } };
-        }
-      }
+      //   }
+      // }
     }
   }
 

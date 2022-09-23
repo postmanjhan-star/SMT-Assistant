@@ -6,17 +6,11 @@ import { OpenAPI, SessionService } from "../client";
 // the first argument is a unique id of the store across your application
 export const useAuthStore = defineStore( {
     id: 'auth',
-    state: () => ( {
-        accountToken: useStorage( 'account', '' ),
-    } ),
-    getters: {
-        isAuthenticated () {
-            return !!this.accountToken; // Initial state shoule be 'false'
-        }
-    },
+    state: () => ( { accountToken: useStorage( 'account', '' ) } ),
+    getters: { isAuthenticated () { return !!this.accountToken; } }, // Initial state shoule be 'false'
     actions: {
         async refreshToken () {
-            OpenAPI.TOKEN = JSON.parse( this.accountToken )[ 'access_token' ];
+            // OpenAPI.TOKEN = JSON.parse( this.accountToken )[ 'access_token' ]; // For refreshing tokens, It does noe need access token.
             const response = await SessionService.refreshTokens(); // Handle error on caller, not here.
             this.accountToken = JSON.stringify( response );
         },

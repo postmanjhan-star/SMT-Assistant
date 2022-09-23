@@ -11,7 +11,6 @@ const formValue = ref( { workOrderIdno: '' } );
 const workOrderIdnoInput = ref<InputInst>();
 
 onMounted( async () => {
-  workOrderIdnoInput.value.focus();
   // const workOrders = await StErpService.getStWorkOrders();
 } );
 
@@ -48,7 +47,7 @@ async function onClickSubmitButton ( event: Event ) {
 
           <n-gi></n-gi>
           <n-form-item-gi label="工單號">
-            <n-input type="text" size="large" v-model:value.lazy="formValue.workOrderIdno" ref="workOrderIdnoInput" />
+            <n-input type="text" size="large" autofocus v-model:value.lazy="formValue.workOrderIdno" ref="workOrderIdnoInput" />
           </n-form-item-gi>
           <n-gi></n-gi>
 
