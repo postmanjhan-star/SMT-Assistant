@@ -33,20 +33,16 @@ formData: Body_login_for_access_token,
 
     /**
      * Refresh Tokens
+     * This endpoint issues `refresh_token` as a cookie with `httponly`.
+ *
+ * An `httponly` cookie is unreadable for browser. It is more secure.
      * @returns Token Successful Response
      * @throws ApiError
      */
-    public static refreshTokens({
-refreshToken,
-}: {
-refreshToken?: any,
-}): CancelablePromise<Token> {
+    public static refreshTokens(): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/session/refresh',
-            cookies: {
-                'refresh_token': refreshToken,
-            },
             errors: {
                 422: `Validation Error`,
             },

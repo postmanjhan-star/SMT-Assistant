@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FormInst, FormRules, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, useMessage } from 'naive-ui';
 import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { Body_login_for_access_token, SessionService } from '../client';
 import { useAccountStore } from '../stores/account';
 import { useAuthStore } from '../stores/auth';
@@ -10,7 +10,6 @@ const props = defineProps( { message: String } );
 const message = useMessage();
 
 const router = useRouter();
-const route = useRoute();
 
 const authStore = useAuthStore();
 const accountStore = useAccountStore();
@@ -22,7 +21,11 @@ const rules: FormRules = {
     password: { required: true, message: '请输入密碼', trigger: [ 'input', 'blur' ], }
 };
 
+
+
 onMounted( () => { if ( props.message ) message.warning( props.message ); } );
+
+
 
 async function login ( username: string, password: string ) {
     try {
@@ -33,11 +36,17 @@ async function login ( username: string, password: string ) {
     } catch ( error ) { message.error( '登入失敗' ); }
 }
 
+
+
 async function getAccountInformation () { await accountStore.setAuthorizedModules(); }
+
+
 
 function redirectToHome () { router.push( '/home' ); }
 
-async function handleLoginButtonClick ( event: Event ) {
+
+
+async function onClickLoginButton ( event: Event ) {
     formRef.value?.validate( async ( errors ) => {
         if ( !errors ) {
             // Login and get token
@@ -53,15 +62,17 @@ async function handleLoginButtonClick ( event: Event ) {
 }
 </script>
 
+
+
 <template>
-    <n-grid cols="1 s:3" responsive="screen">
-        <n-gi></n-gi>
-        <n-gi>
+    <n-grid cols="1 s:4" responsive="screen">
+        <n-gi span="0 s:1"></n-gi>
+        <n-gi span="2 s:2">
             <n-card size="huge" hoverable>
                 <!--<template #cover>
                     <img alt="Sentec logo" class="logo" src="http://www.sentecgroup.com/assets/img/logo.png"/>
                 </template> -->
-                <n-form size="large" @keyup.enter=" handleLoginButtonClick( $event ) " :model=" formValue "
+                <n-form size="large" @keyup.enter=" onClickLoginButton( $event ) " :model=" formValue "
                     :rules=" rules " ref="formRef">
                     <n-form-item show-require-mark autofocus label="帳號" path="username">
                         <n-input v-model:value.lazy=" formValue.username " autofocus
@@ -72,12 +83,12 @@ async function handleLoginButtonClick ( event: Event ) {
                             :input-props=" { autocomplete: 'current-password' } "></n-input>
                     </n-form-item>
                     <n-form-item>
-                        <n-button type="primary" block @click=" handleLoginButtonClick( $event ) ">登入</n-button>
+                        <n-button type="primary" block @click=" onClickLoginButton( $event ) ">登入</n-button>
                     </n-form-item>
                 </n-form>
             </n-card>
         </n-gi>
-        <n-gi></n-gi>
+        <n-gi span="0 s:1"></n-gi>
     </n-grid>
 </template>
 

@@ -48,10 +48,7 @@ async function onClickSubmitButton ( event: Event ) {
     return false;
   }
 
-  try {
-    const workOrder = await StErpService.getStWorkOrder( { workOrderIdno: formValue.value.workOrderIdno } );
-    console.debug( workOrder );
-  }
+  try { }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此工單' ); }
     else { throw error; }
