@@ -5,6 +5,6 @@
 export type STWorkOrderItemForSMTMounterCheck = {
     work_order_idno: string;
     material_idno: string;
-    slot_side: string;
-    slot_number: number;
+    slot_side?: string;
+    slot_number?: number;
 };

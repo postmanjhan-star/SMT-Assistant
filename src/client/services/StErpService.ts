@@ -6,8 +6,6 @@ import type { STPart } from '../models/STPart';
 import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STVendor } from '../models/STVendor';
-import type { STWorkOrder } from '../models/STWorkOrder';
-import type { STWorkOrderItem } from '../models/STWorkOrderItem';
 import type { STWorkOrderItemForSMTMounterCheck } from '../models/STWorkOrderItemForSMTMounterCheck';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -174,45 +172,6 @@ vendorIdno: string,
             url: '/st_erp/vendors/{vendor_idno}',
             path: {
                 'vendor_idno': vendorIdno,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get St Work Orders
-     * @returns STWorkOrder Successful Response
-     * @throws ApiError
-     */
-    public static getStWorkOrders(): CancelablePromise<Array<STWorkOrder>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/st_erp/work_orders/',
-        });
-    }
-
-    /**
-     * Get St Work Order
-     * 工令發料欄位 CSV：
- *
- * 工令編號^^成品編號^^材料編號^^應發數量^^實發數量^^欠料數量^^配料位置
- *
- * `work_order_idno^^product_idno^^material_idno^^due_quantity^^issued_quantity^^shortage_quantity^^production_position`
-     * @returns STWorkOrderItem Successful Response
-     * @throws ApiError
-     */
-    public static getStWorkOrder({
-workOrderIdno,
-}: {
-workOrderIdno: string,
-}): CancelablePromise<Array<STWorkOrderItem>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/st_erp/work_orders/{work_order_idno}',
-            path: {
-                'work_order_idno': workOrderIdno,
             },
             errors: {
                 422: `Validation Error`,

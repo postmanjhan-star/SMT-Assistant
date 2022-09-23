@@ -13,11 +13,9 @@ export const $STWorkOrderItemForSMTMounterCheck = {
 },
         slot_side: {
     type: 'string',
-    isRequired: true,
 },
         slot_number: {
     type: 'number',
-    isRequired: true,
 },
     },
 } as const;
