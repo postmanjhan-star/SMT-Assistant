@@ -138,6 +138,10 @@ const routes = [
         path: '/st_erp_receives',
         component: () => import( "../components/StErpReceivesMain.vue" ),
       },
+      {
+        path: '/st_erp_work_orders',
+        component: () => import( "../components/StErpWorkOrdersMaster.vue" ),
+      },
     ],
   },
   {

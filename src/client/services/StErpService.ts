@@ -6,6 +6,7 @@ import type { STPart } from '../models/STPart';
 import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STVendor } from '../models/STVendor';
+import type { STWorkOrder } from '../models/STWorkOrder';
 import type { STWorkOrderItemForSMTMounterCheck } from '../models/STWorkOrderItemForSMTMounterCheck';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -172,6 +173,33 @@ vendorIdno: string,
             url: '/st_erp/vendors/{vendor_idno}',
             path: {
                 'vendor_idno': vendorIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get St Work Order List
+     * 工令欄位 CSV：
+ *
+ * 工令編號^^成品編號^^發料日期^^計劃完工日期^^工令數量^^製造部門^^生產線別
+ *
+ * `work_order_idno^^product_idno^^issue_date^^due_date^^quantity^^production_department^^production_line`
+     * @returns STWorkOrder Successful Response
+     * @throws ApiError
+     */
+    public static getStWorkOrders({
+date = '2022-09-26',
+}: {
+date?: string,
+}): CancelablePromise<Array<STWorkOrder>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/work_orders/',
+            query: {
+                'date': date,
             },
             errors: {
                 422: `Validation Error`,
