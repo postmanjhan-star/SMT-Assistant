@@ -4,14 +4,15 @@ import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always nee
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { format } from 'date-fns';
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, useMessage } from 'naive-ui';
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
-import { RouterLink } from 'vue-router';
-import { OpenAPI, StErpService, STWorkOrder } from '../client';
+import { RouterLink, useRouter } from 'vue-router';
+import { ApiError, MaterialsService, OpenAPI, StErpService, STWorkOrder } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 
 const message = useMessage();
+const router = useRouter();
 
 
 const authStore = useAuthStore();
@@ -66,24 +67,18 @@ const gridOptions = {
 
     rowSelection: 'single',
     suppressCellFocus: true,
-    onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => { },
+    onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => { router.push( `/st_erp_work_orders/${ event.data.workOrderIdno }` ) },
 }
 
 
 
 onBeforeMount( async () => {
-    let date = new Date();
-    const formated_date = format( date, 'yyyy-MM-dd' );
-    console.debug( formated_date );
-
     let workOrderList: STWorkOrder[];
-
-    try { workOrderList = await StErpService.getStWorkOrders( { date: formated_date } ); }
+    try { workOrderList = await StErpService.getStWorkOrderList( { date: format( new Date(), 'yyyy-MM-dd' ) } ); }
     catch ( error ) {
         message.error( '資料抓取失敗' );
         return false;
     }
-
     for ( let workOrder of workOrderList ) {
         rowData.value.push( {
             workOrderIdno: workOrder.work_order_idno,
@@ -110,7 +105,34 @@ function onGridReady ( params: GridReadyEvent ) {
 
 
 
-function onClickCreateIssuanceButton ( event: Event ) { }
+async function onClickCreateIssuanceButton ( event: Event ) {
+    let stWorkOrder: Row;
+    const materialList = [];
+
+    // Get selected row
+    const selectedRows: Row[] = gridApi.value.getSelectedRows();
+    if ( selectedRows.length === 0 ) {
+        message.warning( '請選擇舊 ERP 工單' );
+        return false;
+    } else { stWorkOrder = selectedRows[ 0 ]; }
+
+    // Prepare a material list for latter checking
+    materialList.push( stWorkOrder.productIdno );
+
+    // Get selected work order's items
+    const stWorkOrderItems = await StErpService.getStWorkOrderItems( { workOrderIdno: stWorkOrder.workOrderIdno } );
+    for ( let item of stWorkOrderItems ) { materialList.push( item.material_idno ); }
+
+    // Check if materials exist in WMS
+
+    try { for ( let materialIdno of materialList ) { const Material = await MaterialsService.getMaterial( { idno: materialIdno } ); } }
+    catch ( error ) {
+        if ( error instanceof ApiError && error.status === 404 ) {
+            message.error( '請先建立 WMS 物料主檔' );
+            return false;
+        }
+    }
+}
 </script>
     
     
@@ -134,7 +156,16 @@ function onClickCreateIssuanceButton ( event: Event ) { }
                 style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
                 <n-space size="large" style="">
-                    <n-button type="primary" @click=" onClickCreateIssuanceButton( $event ) ">建立 WMS 發料單</n-button>
+                    <!--
+                    <n-tooltip>
+                        <template #trigger>
+                            <n-button type="primary" @click=" onClickCreateIssuanceButton( $event ) ">建立 WMS 發料單
+                            </n-button>
+                        </template>
+                        建立 WMS 發料單前務必先建立 WMS 之「物料主檔」
+                    </n-tooltip>
+                    -->
+
                 </n-space>
 
                 <div style="height: 600px; overflow-x: scroll; width: 100%;">
