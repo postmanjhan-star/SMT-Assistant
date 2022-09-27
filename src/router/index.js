@@ -142,6 +142,10 @@ const routes = [
         path: '/st_erp_work_orders',
         component: () => import( "../components/StErpWorkOrdersMaster.vue" ),
       },
+      {
+        path: '/st_erp_work_orders/:idno',
+        component: () => import( "../components/StErpWorkOrdersDetail.vue" ),
+      },
     ],
   },
   {
