@@ -4,30 +4,34 @@
 export const $MaterialRead = {
     properties: {
         id: {
-            type: 'number',
-            isRequired: true,
-        },
+    type: 'number',
+    isRequired: true,
+},
         idno: {
-            type: 'string',
-            isRequired: true,
-        },
+    type: 'string',
+    isRequired: true,
+},
+        material_type: {
+    type: 'MaterialTypeEnum',
+    isRequired: true,
+},
         name: {
-            type: 'string',
-        },
+    type: 'string',
+},
         description: {
-            type: 'string',
-        },
+    type: 'string',
+},
         unit: {
-            type: 'UnitEnum',
-            isRequired: true,
-        },
+    type: 'UnitEnum',
+    isRequired: true,
+},
         qty_per_pack: {
-            type: 'number',
-            isRequired: true,
-        },
+    type: 'number',
+    isRequired: true,
+},
         expiry_days: {
-            type: 'number',
-            isRequired: true,
-        },
+    type: 'number',
+    isRequired: true,
+},
     },
 } as const;

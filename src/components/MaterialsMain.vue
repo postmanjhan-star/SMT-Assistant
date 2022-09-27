@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { GetRowIdParams, GridApi, ColumnApi, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
@@ -14,8 +14,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref();
-const gridColumnApi = ref();
+const gridApi = ref<GridApi>();
+const gridColumnApi = ref<ColumnApi>();
 
 const rowData = ref<MaterialRead[]>( [] );
 
@@ -23,7 +23,6 @@ const defaultColDef = {
   editable: false,
   filter: true,
   sortable: true,
-  flex: 1, // Every columns have the same portion of width
   resizable: true,
 }
 
@@ -31,6 +30,7 @@ const columnDefs = reactive( {
   value: [
     { field: "idno", headerName: '物料代碼' },
     { field: "name", headerName: '物料名稱' },
+    { field: "material_type", headerName: '物料類別', refData: { RAW_MATERIAL: '原料', PRODUCT: '成品' } },
   ]
 } );
 
@@ -54,6 +54,8 @@ const gridOptions = {
 
 onBeforeMount( async () => {
   rowData.value = await MaterialsService.getMaterials();
+  gridApi.value.setRowData( rowData.value );
+  gridColumnApi.value.autoSizeAllColumns();
 } );
 
 function getRowId ( params: GetRowIdParams ) { return params.data.id; }
@@ -63,9 +65,7 @@ function onGridReady ( params: GridReadyEvent ) {
   gridColumnApi.value = params.columnApi;
 };
 
-function handleCreateStoreageButtonClick () {
-  router.push( '/materials/create' );
-}
+function onClickCreateRawMaterialButton () { router.push( '/materials/create' ); }
 </script>
 
 <template>
@@ -86,10 +86,14 @@ function handleCreateStoreageButtonClick () {
       <n-h1 prefix="bar" style="font-size: 1.4rem;">物料管理</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
-        <n-button type="primary" @click=" handleCreateStoreageButtonClick ">建立物料</n-button>
 
-        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
-          :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+        <n-button type="primary" @click=" onClickCreateRawMaterialButton( $event ) ">建立原料</n-button>
+
+        <div style="height: 600px; overflow-x: scroll; width: 100%;">
+          <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; " :gridOptions=" gridOptions "
+            :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+        </div>
+
 
       </n-space>
     </div>

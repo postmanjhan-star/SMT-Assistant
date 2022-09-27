@@ -35,6 +35,7 @@ export type { MaterialInventoryRecordRead } from './models/MaterialInventoryReco
 export type { MaterialInventoryTransferCreate } from './models/MaterialInventoryTransferCreate';
 export type { MaterialRead } from './models/MaterialRead';
 export type { MaterialStockRecord } from './models/MaterialStockRecord';
+export { MaterialTypeEnum } from './models/MaterialTypeEnum';
 export type { MaterialUpdate } from './models/MaterialUpdate';
 export { Printer } from './models/Printer';
 export type { ReceiveCreate } from './models/ReceiveCreate';
@@ -87,6 +88,7 @@ export { $MaterialInventoryRecordRead } from './schemas/$MaterialInventoryRecord
 export { $MaterialInventoryTransferCreate } from './schemas/$MaterialInventoryTransferCreate';
 export { $MaterialRead } from './schemas/$MaterialRead';
 export { $MaterialStockRecord } from './schemas/$MaterialStockRecord';
+export { $MaterialTypeEnum } from './schemas/$MaterialTypeEnum';
 export { $MaterialUpdate } from './schemas/$MaterialUpdate';
 export { $Printer } from './schemas/$Printer';
 export { $ReceiveCreate } from './schemas/$ReceiveCreate';

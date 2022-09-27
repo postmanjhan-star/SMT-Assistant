@@ -2,7 +2,7 @@
 import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ApiError, MaterialCreate, MaterialsService, OpenAPI, StErpService, UnitEnum } from '../client';
+import { ApiError, MaterialCreate, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, UnitEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
@@ -14,6 +14,7 @@ const router = useRouter();
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<MaterialCreate>( {
   idno: '',
+  material_type: MaterialTypeEnum.RAW_MATERIAL,
   name: '',
   description: '',
   unit: 'PIECE' as UnitEnum,
@@ -104,11 +105,11 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
           <n-a :href=" href " @click=" navigate ">物料管理</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>建立物料</n-breadcrumb-item>
+      <n-breadcrumb-item>建立原料</n-breadcrumb-item>
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">建立物料</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">建立原料</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
@@ -141,12 +142,12 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
 
             <n-form-item-gi show-require-mark label="基本包裝量">
               <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 1 "></n-input-number>
+                :precision=" 0 " :default-value=" 1 " style="width: 100%;"></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="有效期間">
               <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 365 "><template #suffix>日</template></n-input-number>
+                :precision=" 0 " :default-value=" 365 " style="width: 100%;"><template #suffix>日</template></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi span="3">

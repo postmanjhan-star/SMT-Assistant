@@ -2,11 +2,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { MaterialTypeEnum } from './MaterialTypeEnum';
 import type { UnitEnum } from './UnitEnum';
 
 export type MaterialRead = {
     id: number;
     idno: string;
+    material_type: MaterialTypeEnum;
     name?: string;
     description?: string;
     unit: UnitEnum;

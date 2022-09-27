@@ -4,25 +4,28 @@
 export const $MaterialCreate = {
     properties: {
         idno: {
-            type: 'string',
-            isRequired: true,
-        },
+    type: 'string',
+    isRequired: true,
+},
+        material_type: {
+    type: 'MaterialTypeEnum',
+    isRequired: true,
+},
         name: {
-            type: 'string',
-        },
-        qty_per_pack: {
-            type: 'number',
-            isRequired: true,
-        },
-        expiry_days: {
-            type: 'number',
-        },
-        unit: {
-            type: 'UnitEnum',
-            isRequired: true,
-        },
+    type: 'string',
+},
         description: {
-            type: 'string',
-        },
+    type: 'string',
+},
+        unit: {
+    type: 'UnitEnum',
+    isRequired: true,
+},
+        qty_per_pack: {
+    type: 'number',
+},
+        expiry_days: {
+    type: 'number',
+},
     },
 } as const;
