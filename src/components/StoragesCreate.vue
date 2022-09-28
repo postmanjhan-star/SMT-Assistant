@@ -102,7 +102,7 @@ async function handleCreateStorageButtonClick ( event ) {
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+      <n-breadcrumb-item>基本資料管理</n-breadcrumb-item>
       <n-breadcrumb-item>
         <router-link to="/storages" #=" { navigate, href } " custom>
           <n-a :href=" href " @click=" navigate ">倉位管理</n-a>

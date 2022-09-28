@@ -63,7 +63,7 @@ async function handleCreateVendorButtonClick ( evnet: Event ) {
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>採購管理</n-breadcrumb-item>
+      <n-breadcrumb-item>基本資料管理</n-breadcrumb-item>
       <n-breadcrumb-item>
         <router-link to="/vendors" #=" { navigate, href } " custom>
           <n-a :href=" href " @click=" navigate ">供應商管理</n-a>

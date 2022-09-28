@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NButton, NInput, NInputNumber, NSpace, NTabPane, NTabs, useMessage } from 'naive-ui';
+import { FormInst, FormRules, NButton, NInput, NInputNumber, NSpace, NTag, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialsService, MaterialUpdate, OpenAPI, UnitEnum } from '../client';
+import { ApiError, MaterialsService, MaterialTypeEnum, MaterialUpdate, OpenAPI, UnitEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
-import MaterialsItemInventory from "./MaterialsItemInventory.vue";
-import MaterialsItemStock from "./MaterialsItemStock.vue";
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
@@ -25,6 +23,8 @@ const formValue = ref<MaterialUpdate>( {
   expiry_days: 365,
 } );
 
+
+
 const unit_options = [
   { label: 'PIECE', value: 'PIECE' },
   { label: 'ROLL', value: 'ROLL' },
@@ -36,17 +36,23 @@ const unit_options = [
   { label: 'BAG', value: 'BAG' },
 ]
 
+
+
 const rules: FormRules = {
   idno: { required: true, message: '請输入物料代碼', trigger: [ 'blur' ] },
   name: { required: true, message: '請输入物料名稱', trigger: [ 'input', 'blur' ] },
 }
+
+
 
 onBeforeMount( async () => {
   try { formValue.value = await MaterialsService.getMaterial( { idno: route.params.idno.toString() } ); }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 } );
 
-async function handleCreateMaterialButtonClick ( evnet: Event ) {
+
+
+async function onSubmitMaterialForm ( event: Event ) {
   // Check if any empyt fields
   try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } ); }
   catch ( error ) {
@@ -70,6 +76,7 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
 </script>
 
 
+
 <template>
   <main
     style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
@@ -80,7 +87,7 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+      <n-breadcrumb-item>基本資料管理</n-breadcrumb-item>
       <n-breadcrumb-item>
         <router-link to="/materials" #=" { navigate, href } " custom>
           <n-a :href=" href " @click=" navigate ">物料管理</n-a>
@@ -90,71 +97,66 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">物料 {{ $route.params.idno.toString().toUpperCase() }}</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">
+        {{ $route.params.idno.toString().toUpperCase() }}
+        <n-tag size="large" type="info" strong v-if=" formValue.material_type === MaterialTypeEnum.RAW_MATERIAL ">❹ 原料
+        </n-tag>
+        <n-tag size="large" type="info" strong v-if=" formValue.material_type === MaterialTypeEnum.PRODUCT ">❶ 成品
+        </n-tag>
+      </n-h1>
 
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-tabs type="line" size="large">
+        <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef"
+          @submit:prevent=" onSubmitMaterialForm( $event ) ">
+          <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
-          <n-tab-pane name="properties" tab="基本屬性">
-            <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
-              <n-grid cols="1 s:3" responsive="screen" x-gap="20">
+            <n-form-item-gi show-require-mark label="物料代碼" path="idno" autofocus>
+              <n-input v-model:value.lazy=" formValue.idno " autofocus
+                :input-props=" { style: 'text-transform: uppercase;' } "></n-input>
+            </n-form-item-gi>
 
-                <n-form-item-gi show-require-mark label="物料代碼" path="idno" autofocus>
-                  <n-input v-model:value.lazy=" formValue.idno " autofocus
-                    :input-props=" { style: 'text-transform: uppercase;' } "></n-input>
-                </n-form-item-gi>
+            <n-form-item-gi show-require-mark label="物料名稱" path="name">
+              <n-input v-model:value.lazy=" formValue.name "></n-input>
+            </n-form-item-gi>
 
-                <n-form-item-gi show-require-mark label="物料名稱" path="name">
-                  <n-input v-model:value.lazy=" formValue.name "></n-input>
-                </n-form-item-gi>
+            <n-form-item-gi label="物料說明" path="description">
+              <n-input v-model:value.lazy=" formValue.description "></n-input>
+            </n-form-item-gi>
 
-                <n-form-item-gi label="物料說明" path="description">
-                  <n-input v-model:value.lazy=" formValue.description "></n-input>
-                </n-form-item-gi>
+            <n-form-item-gi show-require-mark label="基本單位" path="unit">
+              <n-select v-model:value.lazy=" formValue.unit " :options=" unit_options "></n-select>
+            </n-form-item-gi>
 
-                <n-form-item-gi show-require-mark label="基本單位" path="unit">
-                  <n-select v-model:value.lazy=" formValue.unit " :options=" unit_options "></n-select>
-                </n-form-item-gi>
+            <n-form-item-gi show-require-mark label="基本包裝量">
+              <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
+                style="width: 100%;" :precision=" 0 " :default-value=" 1 "></n-input-number>
+            </n-form-item-gi>
 
-                <n-form-item-gi show-require-mark label="基本包裝量">
-                  <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
-                    :precision=" 0 " :default-value=" 1 "></n-input-number>
-                </n-form-item-gi>
+            <n-form-item-gi show-require-mark label="有效期間">
+              <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false " :min=" 1 "
+                style="width: 100%;" :precision=" 0 ">
+                <template #suffix>日</template>
+              </n-input-number>
+            </n-form-item-gi>
 
-                <n-form-item-gi show-require-mark label="有效期間">
-                  <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false " :min=" 1 "
-                    :precision=" 0 ">
-                    <template #suffix> 日 </template>
-                  </n-input-number>
-                </n-form-item-gi>
+            <n-form-item-gi span="3">
+              <n-button type="primary" block @click=" onSubmitMaterialForm( $event ) " attr-type="submit">
+                更新物料
+              </n-button>
+            </n-form-item-gi>
 
-                <n-form-item-gi span="3">
-                  <n-button type="primary" block @click=" handleCreateMaterialButtonClick( $event ) "
-                    attr-type="submit">
-                    更新物料
-                  </n-button>
-                </n-form-item-gi>
-
-              </n-grid>
-            </n-form>
-          </n-tab-pane>
-
-          <n-tab-pane name="inventories" tab="料況統計">
-            <materials-item-inventory></materials-item-inventory>
-          </n-tab-pane>
-
-          <n-tab-pane name="stocks" tab="庫存明細">
-            <materials-item-stock></materials-item-stock>
-          </n-tab-pane>
-
-        </n-tabs>
+          </n-grid>
+        </n-form>
 
       </n-space>
     </div>
   </main>
 </template>
 
+
+
 <style>
+
 </style>

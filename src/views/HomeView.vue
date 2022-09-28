@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import Switcher from '@carbon/icons-vue/es/switcher/32';
 import * as jose from 'jose';
 import { darkTheme, NButton, NCard, NConfigProvider, NDropdown, NH1, NIcon, NLayoutHeader, NMenu, NPopover, NSpace } from "naive-ui";
@@ -26,6 +26,8 @@ function handleAccountMenuSelect ( key ) {
 }
 </script>
 
+
+
 <template>
   <header style="position: sticky; top: 0; z-index: 2;">
     <n-config-provider :theme=" darkTheme ">
@@ -42,12 +44,12 @@ function handleAccountMenuSelect ( key ) {
               </template>
               <n-space size="large">
 
-                <n-card title="採購管理" size="small" :bordered=" false " header-style="padding-bottom: 0;"
+                <n-card title="基本資料管理" size="small" :bordered=" false " header-style="padding-bottom: 0;"
                   content-style="padding-left: 0;">
                   <n-menu :options=" purchaseMenuOptions " :root-indent=" 16 " />
                 </n-card>
 
-                <n-card title="物料管理" size="small" :bordered=" false " header-style="padding-bottom: 0;"
+                <n-card title="收發作業" size="small" :bordered=" false " header-style="padding-bottom: 0;"
                   content-style="padding-left: 0;">
                   <n-menu :options=" materialMenuOptions " :root-indent=" 16 " />
                 </n-card>
