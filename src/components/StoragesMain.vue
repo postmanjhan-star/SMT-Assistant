@@ -42,7 +42,7 @@ function handleCreateStoreageButtonClick () { router.push( '/storages/create' );
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+      <n-breadcrumb-item>基本資料管理</n-breadcrumb-item>
       <n-breadcrumb-item>倉位管理</n-breadcrumb-item>
     </n-breadcrumb>
 

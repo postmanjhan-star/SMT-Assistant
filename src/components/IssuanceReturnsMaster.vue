@@ -114,7 +114,7 @@ function onClickCreateIssuanceReturnButton () { router.push( '/issuance_returns/
                     <n-a :href=" href " @click=" navigate ">首頁</n-a>
                 </router-link>
             </n-breadcrumb-item>
-            <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+            <n-breadcrumb-item>收發作業</n-breadcrumb-item>
             <n-breadcrumb-item>發料退回作業</n-breadcrumb-item>
         </n-breadcrumb>
 

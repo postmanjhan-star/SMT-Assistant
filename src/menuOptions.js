@@ -1,13 +1,15 @@
 import { h } from 'vue';
 import { RouterLink } from 'vue-router';
 
+
+
 const systemMenuOptions = [
     { label: () => h( RouterLink, { to: '/accounts' }, { default: () => '帳號管理' } ), key: 'accounts' },
 ];
 
+
+
 const materialMenuOptions = [
-    { label: () => h( RouterLink, { to: '/storages' }, { default: () => '倉位管理' } ), key: 'storages' },
-    { label: () => h( RouterLink, { to: '/materials' }, { default: () => '物料管理' } ), key: 'materials' },
     { label: () => h( RouterLink, { to: '/receives' }, { default: () => '收料作業' } ), key: 'receives' },
     { label: () => h( RouterLink, { to: '/transfers' }, { default: () => '調撥作業' } ), key: 'transfers' },
     { label: () => h( RouterLink, { to: '/issuances' }, { default: () => '發料備料作業' } ), key: 'issuances' },
@@ -17,9 +19,15 @@ const materialMenuOptions = [
     { label: () => h( RouterLink, { to: '/st_erp_work_orders' }, { default: () => '舊 ERP 工單紀錄' } ), key: 'st_erp_work_orders' },
 ];
 
+
+
 const purchaseMenuOptions = [
     { label: () => h( RouterLink, { to: '/vendors' }, { default: () => '供應商管理' } ), key: 'vendors' },
+    { label: () => h( RouterLink, { to: '/storages' }, { default: () => '倉位管理' } ), key: 'storages' },
+    { label: () => h( RouterLink, { to: '/materials' }, { default: () => '物料管理' } ), key: 'materials' },
 ];
+
+
 
 export {
     systemMenuOptions,

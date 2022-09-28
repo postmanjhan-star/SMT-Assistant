@@ -6,7 +6,7 @@ import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace } from 'naive-ui';
 import { onBeforeMount, reactive, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { MaterialRead, MaterialsService, OpenAPI } from '../client';
+import { MaterialRead, MaterialsService, MaterialTypeEnum, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -30,9 +30,11 @@ const columnDefs = reactive( {
   value: [
     { field: "idno", headerName: '物料代碼' },
     { field: "name", headerName: '物料名稱' },
-    { field: "material_type", headerName: '物料類別', refData: { RAW_MATERIAL: '原料', PRODUCT: '成品' } },
+    { field: "material_type", headerName: '物料類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品' } },
   ]
 } );
+
+
 
 const gridOptions = {
   columnDefs: columnDefs.value,
@@ -49,8 +51,19 @@ const gridOptions = {
 
   rowSelection: 'single',
   suppressCellFocus: true,
-  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/materials/${ event.data.idno }` ),
+  onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => {
+    switch ( event.data.material_type ) {
+      case MaterialTypeEnum.RAW_MATERIAL:
+        router.push( `/materials/${ event.data.idno }` );
+        break;
+      case MaterialTypeEnum.PRODUCT:
+        router.push( `/materials/${ event.data.idno }` );
+        break;
+    }
+  },
 }
+
+
 
 onBeforeMount( async () => {
   rowData.value = await MaterialsService.getMaterials();
@@ -58,14 +71,20 @@ onBeforeMount( async () => {
   gridColumnApi.value.autoSizeAllColumns();
 } );
 
+
+
 function getRowId ( params: GetRowIdParams ) { return params.data.id; }
+
+
 
 function onGridReady ( params: GridReadyEvent ) {
   gridApi.value = params.api;
   gridColumnApi.value = params.columnApi;
 };
 
-function onClickCreateRawMaterialButton () { router.push( '/materials/create' ); }
+
+
+function onClickCreateRawMaterialButton () { router.push( '/materials/create_raw_material' ); }
 </script>
 
 <template>
@@ -78,7 +97,7 @@ function onClickCreateRawMaterialButton () { router.push( '/materials/create' );
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+      <n-breadcrumb-item>基本資料管理</n-breadcrumb-item>
       <n-breadcrumb-item>物料管理</n-breadcrumb-item>
     </n-breadcrumb>
 

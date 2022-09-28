@@ -29,7 +29,7 @@ onBeforeMount( async () => { formValue.value = await EpicorService.getEpicorRece
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+      <n-breadcrumb-item>收發作業</n-breadcrumb-item>
       <n-breadcrumb-item>
         <router-link to="/epicor_receives" #=" { navigate, href } " custom>
           <n-a :href=" href " @click=" navigate ">Epicor 收料紀錄</n-a>

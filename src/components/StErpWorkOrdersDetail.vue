@@ -152,7 +152,7 @@ async function onClickCreateWmsMaterial ( event: Event ) { }
           <n-a :href=" href " @click=" navigate ">首頁</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>物料管理</n-breadcrumb-item>
+      <n-breadcrumb-item>收發作業</n-breadcrumb-item>
       <n-breadcrumb-item>
         <router-link to="/st_erp_work_orders" #=" { navigate, href } " custom>
           <n-a :href=" href " @click=" navigate ">舊 ERP 工單紀錄</n-a>

@@ -52,15 +52,19 @@ const routes = [
       },
       {
         path: '/materials',
-        component: () => import( "../components/MaterialsMain.vue" ),
+        component: () => import( "../components/MaterialsMaster.vue" ),
       },
       {
-        path: '/materials/create',
-        component: () => import( "../components/MaterialsCreate.vue" ),
+        path: '/materials/create_raw_material',
+        component: () => import( "../components/MaterialsCreateRawMaterial.vue" ),
       },
       {
         path: '/materials/:idno',
-        component: () => import( "../components/MaterialsItem.vue" ),
+        component: () => import( "../components/MaterialsDetail.vue" ),
+      },
+      {
+        path: '/materials/:idno/edit',
+        component: () => import( "../components/MaterialsEdit.vue" ),
       },
       {
         path: '/vendors',
