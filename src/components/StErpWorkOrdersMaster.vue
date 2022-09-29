@@ -7,7 +7,7 @@ import { format, getTime, fromUnixTime } from 'date-fns';
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage, NDatePicker } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, MaterialsService, OpenAPI, StErpService, STWorkOrder } from '../client';
+import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, STWorkOrder } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 
@@ -26,6 +26,8 @@ const dateForm = ref( { dateTimestamp: getTime( new Date() ) } );
 type Row = {
     workOrderIdno: string,
     productIdno: string,
+    productType: MaterialTypeEnum,
+    productName: string,
     issueDate: string,
     dueDate: string,
     quantity: number,
@@ -45,6 +47,8 @@ const defaultColDef: ColDef = {
 const columnDefs: ColDef[] = [
     { field: "workOrderIdno", headerName: '工令編號' },
     { field: "productIdno", headerName: '成品／半成品編號' },
+    { field: "productType", headerName: '類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品', IN_PROCESS_MATERIAL: '❷ 半成品' } },
+    { field: "productName", headerName: '名稱' },
     { field: "issueDate", headerName: '發料日期' },
     { field: "dueDate", headerName: '計劃完工日期' },
     { field: "quantity", headerName: '工令數量' },
@@ -82,15 +86,32 @@ async function queryWorkOrders ( date: Date ) {
     }
     rowData.value = [];
     for ( let workOrder of workOrderList ) {
+        const stProductPart = await StErpService.getStPart( { partIdno: workOrder.product_idno } );
+        let productType: MaterialTypeEnum;
+        switch(stProductPart.part_type) {
+            case 4:
+                productType = MaterialTypeEnum.RAW_MATERIAL;
+                break;
+            case 2:
+                productType = MaterialTypeEnum.IN_PROCESS_MATERIAL;
+                break;
+            case 1:
+                productType = MaterialTypeEnum.PRODUCT;
+                break;
+        }
+
         rowData.value.push( {
             workOrderIdno: workOrder.work_order_idno,
             productIdno: workOrder.product_idno,
+            productType: productType,
+            productName: stProductPart.spec_1,
             issueDate: new Date( workOrder.issue_date ).toLocaleDateString(),
             dueDate: new Date( workOrder.due_date ).toLocaleDateString(),
             quantity: workOrder.quantity,
             productionDepartment: workOrder.production_department,
             productionLine: workOrder.production_line,
         } );
+        gridColumnApi.value.autoSizeAllColumns();
     }
 }
 
