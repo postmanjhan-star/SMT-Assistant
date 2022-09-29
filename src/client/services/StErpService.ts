@@ -1,8 +1,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlexaFST } from '../models/FlexaFST';
+import type { Body_upload_fst } from '../models/Body_upload_fst';
 import type { Printer } from '../models/Printer';
+import type { SmtMounterFstRead } from '../models/SmtMounterFstRead';
 import type { STPart } from '../models/STPart';
 import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
@@ -299,14 +300,24 @@ workOrderIdno: string,
     }
 
     /**
-     * Fst To Model
-     * @returns FlexaFST Successful Response
+     * Upload Fst
+     * 40X980123-T1-XP1B1-T.fst
+     * @returns SmtMounterFstRead Successful Response
      * @throws ApiError
      */
-    public static fstToDict(): CancelablePromise<Array<FlexaFST>> {
+    public static uploadFst({
+formData,
+}: {
+formData: Body_upload_fst,
+}): CancelablePromise<SmtMounterFstRead> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/st_erp/smt/mounter/fst_to_dict',
+            method: 'POST',
+            url: '/st_erp/smt/mounter/upload_fst',
+            formData: formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
 
