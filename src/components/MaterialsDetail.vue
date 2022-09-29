@@ -62,6 +62,8 @@ function onClickEditButton ( event: Event ) { router.push( `/materials/${ route.
         </n-tag>
         <n-tag size="large" type="info" strong v-if=" formValue.material_type === MaterialTypeEnum.PRODUCT ">❶ 成品
         </n-tag>
+        <n-tag size="large" type="info" strong v-if=" formValue.material_type === MaterialTypeEnum.IN_PROCESS_MATERIAL ">❷ 半成品
+        </n-tag>
       </n-h1>
 
       <n-space vertical size="large"
