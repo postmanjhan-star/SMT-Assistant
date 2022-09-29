@@ -6,6 +6,9 @@ import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialRead } from '../models/MaterialRead';
 import type { MaterialStockRecord } from '../models/MaterialStockRecord';
 import type { MaterialUpdate } from '../models/MaterialUpdate';
+import type { ProductCreate } from '../models/ProductCreate';
+import type { ProductRead } from '../models/ProductRead';
+import type { ProductUpdate } from '../models/ProductUpdate';
 import type { RawMaterialCreate } from '../models/RawMaterialCreate';
 import type { RawMaterialRead } from '../models/RawMaterialRead';
 import type { RawMaterialUpdate } from '../models/RawMaterialUpdate';
@@ -275,6 +278,53 @@ requestBody: RawMaterialUpdate,
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/materials/raw_materials/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Create Product
+     * @returns ProductRead Successful Response
+     * @throws ApiError
+     */
+    public static createProduct({
+requestBody,
+}: {
+requestBody: ProductCreate,
+}): CancelablePromise<ProductRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/materials/products',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update Product
+     * @returns ProductRead Successful Response
+     * @throws ApiError
+     */
+    public static updateProduct({
+id,
+requestBody,
+}: {
+id: number,
+requestBody: ProductUpdate,
+}): CancelablePromise<ProductRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/materials/products/{id}',
             path: {
                 'id': id,
             },

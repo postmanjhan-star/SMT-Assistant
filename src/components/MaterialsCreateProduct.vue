@@ -2,7 +2,7 @@
 import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, RawMaterialCreate, StErpService, UnitEnum } from '../client';
+import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, ProductCreate, StErpService, UnitEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
@@ -12,9 +12,9 @@ const message = useMessage();
 const router = useRouter();
 
 const formRef = ref<FormInst | null>( null );
-const formValue = ref<RawMaterialCreate>( {
+const formValue = ref<ProductCreate>( {
   idno: '',
-  material_type: MaterialTypeEnum.RAW_MATERIAL,
+  material_type: MaterialTypeEnum.PRODUCT,
   name: '',
   description: '',
   unit: 'PIECE' as UnitEnum,
@@ -56,7 +56,7 @@ async function onSubmitMaterialCreationForm ( evnet: Event ) {
 
   // Create Material
   try {
-    const response = await MaterialsService.createRawMaterial( { requestBody: formValue.value } );
+    const response = await MaterialsService.createProduct( { requestBody: formValue.value } );
     message.success( `物料 ${ response.idno } 建立成功` );
     router.push( '/materials' );
   } catch ( error ) {
@@ -108,11 +108,11 @@ async function onClickImportFromStErpButton ( event: Event ) {
           <n-a :href=" href " @click=" navigate ">物料管理</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>建立原料</n-breadcrumb-item>
+      <n-breadcrumb-item>建立成品</n-breadcrumb-item>
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
-      <n-h1 prefix="bar" style="font-size: 1.4rem;">建立原料</n-h1>
+      <n-h1 prefix="bar" style="font-size: 1.4rem;">建立成品</n-h1>
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
@@ -156,7 +156,7 @@ async function onClickImportFromStErpButton ( event: Event ) {
 
             <n-form-item-gi span="3">
               <n-button type="primary" block @click=" onSubmitMaterialCreationForm( $event ) " attr-type="submit">
-                建立物料
+                建立成品
               </n-button>
             </n-form-item-gi>
 
@@ -166,8 +166,6 @@ async function onClickImportFromStErpButton ( event: Event ) {
     </div>
   </main>
 </template>
-
-
 
 <style>
 
