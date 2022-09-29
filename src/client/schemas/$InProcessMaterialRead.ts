@@ -1,42 +1,37 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $STPart = {
+export const $InProcessMaterialRead = {
     properties: {
+        id: {
+    type: 'number',
+    isRequired: true,
+},
         idno: {
     type: 'string',
     isRequired: true,
 },
-        spec_1: {
-    type: 'string',
+        material_type: {
+    type: 'MaterialTypeEnum',
     isRequired: true,
 },
-        spec_2: {
+        name: {
     type: 'string',
-    isRequired: true,
+},
+        description: {
+    type: 'string',
 },
         unit: {
-    type: 'string',
-    isRequired: true,
-},
-        base_storage_1: {
-    type: 'string',
-    isRequired: true,
-},
-        base_storage_2: {
-    type: 'string',
+    type: 'UnitEnum',
     isRequired: true,
 },
         qty_per_pack: {
     type: 'number',
     isRequired: true,
 },
-        maker_part_idno: {
-    type: 'string',
-    isRequired: true,
-},
-        part_type: {
+        expiry_days: {
     type: 'number',
+    isRequired: true,
 },
     },
 } as const;

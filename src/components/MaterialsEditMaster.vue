@@ -6,6 +6,7 @@ import { ApiError, MaterialsService, MaterialTypeEnum, MaterialUpdate, OpenAPI, 
 import { useAuthStore } from '../stores/auth';
 import MaterialsEditRawMaterial from "./MaterialsEditRawMaterial.vue";
 import MaterialsEditProduct from "./MaterialsEditProduct.vue";
+import MaterialsEditInProcessMaterial from './MaterialsEditInProcessMaterial.vue';
 
 
 const authStore = useAuthStore();
@@ -65,6 +66,8 @@ onBeforeMount( async () => {
         </n-tag>
         <n-tag size="large" type="info" strong v-if=" formValue.material_type === MaterialTypeEnum.PRODUCT ">❶ 成品
         </n-tag>
+        <n-tag size="large" type="info" strong v-if=" formValue.material_type === MaterialTypeEnum.IN_PROCESS_MATERIAL ">❷ 半成品
+        </n-tag>
       </n-h1>
 
       <materials-edit-raw-material v-if="formValue.material_type == MaterialTypeEnum.RAW_MATERIAL">
@@ -72,6 +75,8 @@ onBeforeMount( async () => {
 
       <materials-edit-product v-if="formValue.material_type == MaterialTypeEnum.PRODUCT">
       </materials-edit-product>
+
+      <materials-edit-in-process-material v-if="formValue.material_type == MaterialTypeEnum.IN_PROCESS_MATERIAL"></materials-edit-in-process-material>
 
     </div>
   </main>

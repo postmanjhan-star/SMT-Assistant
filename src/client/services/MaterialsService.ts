@@ -1,6 +1,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { InProcessMaterialCreate } from '../models/InProcessMaterialCreate';
+import type { InProcessMaterialRead } from '../models/InProcessMaterialRead';
+import type { InProcessMaterialUpdate } from '../models/InProcessMaterialUpdate';
 import type { MaterialCreate } from '../models/MaterialCreate';
 import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialRead } from '../models/MaterialRead';
@@ -325,6 +328,53 @@ requestBody: ProductUpdate,
         return __request(OpenAPI, {
             method: 'POST',
             url: '/materials/products/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Create In Process Material
+     * @returns InProcessMaterialRead Successful Response
+     * @throws ApiError
+     */
+    public static createInProcessMaterial({
+requestBody,
+}: {
+requestBody: InProcessMaterialCreate,
+}): CancelablePromise<InProcessMaterialRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/materials/in_process_material',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update In Process Material
+     * @returns InProcessMaterialRead Successful Response
+     * @throws ApiError
+     */
+    public static updateInProcessMaterial({
+id,
+requestBody,
+}: {
+id: number,
+requestBody: InProcessMaterialUpdate,
+}): CancelablePromise<InProcessMaterialRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/materials/in_process_material/{id}',
             path: {
                 'id': id,
             },

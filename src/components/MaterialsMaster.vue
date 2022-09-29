@@ -30,7 +30,7 @@ const columnDefs = reactive( {
   value: [
     { field: "idno", headerName: '物料代碼' },
     { field: "name", headerName: '物料名稱' },
-    { field: "material_type", headerName: '物料類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品' } },
+    { field: "material_type", headerName: '物料類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品', IN_PROCESS_MATERIAL: '❷ 半成品' } },
   ]
 } );
 
@@ -59,6 +59,9 @@ const gridOptions = {
       case MaterialTypeEnum.PRODUCT:
         router.push( `/materials/${ event.data.idno }` );
         break;
+      case MaterialTypeEnum.IN_PROCESS_MATERIAL:
+        router.push( `/materials/${ event.data.idno }` );
+        break;
     }
   },
 }
@@ -84,11 +87,9 @@ function onGridReady ( params: GridReadyEvent ) {
 
 
 
-function onClickCreateRawMaterialButton () { router.push( '/materials/create_raw_material' ); }
-
-
-
 function onClickCreateProductButton () { router.push( '/materials/create_product' ); }
+function onClickCreateInProcessMaterialButton () { router.push( '/materials/create_in_process_material' ); }
+function onClickCreateRawMaterialButton () { router.push( '/materials/create_raw_material' ); }
 </script>
 
 <template>
@@ -111,11 +112,9 @@ function onClickCreateProductButton () { router.push( '/materials/create_product
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
         <n-space size="large">
-
-          <n-button type="primary" size="large" @click=" onClickCreateRawMaterialButton( $event ) ">建立原料 ❹</n-button>
-
           <n-button type="primary" size="large" @click=" onClickCreateProductButton( $event ) ">建立成品 ❶</n-button>
-        
+          <n-button type="primary" size="large" @click=" onClickCreateInProcessMaterialButton( $event ) ">建立半成品 ❷</n-button>
+          <n-button type="primary" size="large" @click=" onClickCreateRawMaterialButton( $event ) ">建立原料 ❹</n-button>
         </n-space>
 
         <div style="height: 600px; overflow-x: scroll; width: 100%;">
