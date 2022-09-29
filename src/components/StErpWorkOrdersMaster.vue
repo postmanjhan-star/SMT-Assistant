@@ -3,8 +3,8 @@ import { ColDef, GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "a
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { format } from 'date-fns';
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
+import { format, getTime, fromUnixTime } from 'date-fns';
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage, NDatePicker } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, MaterialsService, OpenAPI, StErpService, STWorkOrder } from '../client';
@@ -21,6 +21,7 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const gridApi = ref();
 const gridColumnApi = ref();
 
+const dateForm = ref( { dateTimestamp: getTime( new Date() ) } );
 
 type Row = {
     workOrderIdno: string,
@@ -72,13 +73,14 @@ const gridOptions = {
 
 
 
-onBeforeMount( async () => {
+async function queryWorkOrders ( date: Date ) {
     let workOrderList: STWorkOrder[];
-    try { workOrderList = await StErpService.getStWorkOrderList( { date: format( new Date(), 'yyyy-MM-dd' ) } ); }
+    try { workOrderList = await StErpService.getStWorkOrderList( { date: format( date, 'yyyy-MM-dd' ) } ); }
     catch ( error ) {
-        message.error( '資料抓取失敗' );
+        message.warning( '無資料' );
         return false;
     }
+    rowData.value = [];
     for ( let workOrder of workOrderList ) {
         rowData.value.push( {
             workOrderIdno: workOrder.work_order_idno,
@@ -90,7 +92,11 @@ onBeforeMount( async () => {
             productionLine: workOrder.production_line,
         } );
     }
-} );
+}
+
+
+
+onBeforeMount( async () => { await queryWorkOrders( new Date() ); } );
 
 
 
@@ -102,6 +108,13 @@ function onGridReady ( params: GridReadyEvent ) {
     gridApi.value = params.api;
     gridColumnApi.value = params.columnApi;
 };
+
+
+
+async function onSubmitDateQuery ( event: Event ) {
+    const dateTime = fromUnixTime( dateForm.value.dateTimestamp / 1000 );
+    await queryWorkOrders( dateTime );
+}
 
 
 
@@ -165,8 +178,19 @@ async function onClickCreateIssuanceButton ( event: Event ) {
                         建立 WMS 發料單前務必先建立 WMS 之「物料主檔」
                     </n-tooltip>
                     -->
-
                 </n-space>
+
+                <n-form size="large" :model="dateForm">
+                    <n-grid cols="1 s:3">
+                        <n-form-item-gi label="日期">
+                            <n-space>
+                                <n-date-picker v-model:value.lazy="dateForm.dateTimestamp" type="date" />
+                                <n-button type="primary" @click=" onSubmitDateQuery( $event ) " attr-type="submit">查詢
+                                </n-button>
+                            </n-space>
+                        </n-form-item-gi>
+                    </n-grid>
+                </n-form>
 
                 <div style="height: 600px; overflow-x: scroll; width: 100%;">
                     <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%;"
