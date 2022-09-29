@@ -64,7 +64,7 @@ const routes = [
       },
       {
         path: '/materials/:idno/edit',
-        component: () => import( "../components/MaterialsEdit.vue" ),
+        component: () => import( "../components/MaterialsEditMaster.vue" ),
       },
       {
         path: '/vendors',

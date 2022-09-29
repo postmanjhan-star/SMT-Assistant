@@ -2,7 +2,7 @@
 import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ApiError, MaterialCreate, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, UnitEnum } from '../client';
+import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, RawMaterialCreate, StErpService, UnitEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore();
@@ -12,7 +12,7 @@ const message = useMessage();
 const router = useRouter();
 
 const formRef = ref<FormInst | null>( null );
-const formValue = ref<MaterialCreate>( {
+const formValue = ref<RawMaterialCreate>( {
   idno: '',
   material_type: MaterialTypeEnum.RAW_MATERIAL,
   name: '',
@@ -42,7 +42,8 @@ const rules: FormRules = {
 }
 
 
-async function handleCreateMaterialButtonClick ( evnet: Event ) {
+
+async function onSubmitMaterialCreationForm ( evnet: Event ) {
   // Check if any empyt fields
   try {
     await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } );
@@ -56,7 +57,7 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
 
   // Create Material
   try {
-    const response = await MaterialsService.createMaterial( { requestBody: formValue.value } );
+    const response = await MaterialsService.createRawMaterial( { requestBody: formValue.value } );
     message.success( `物料 ${ response.idno } 建立成功` );
     router.push( '/materials' );
   } catch ( error ) {
@@ -66,10 +67,11 @@ async function handleCreateMaterialButtonClick ( evnet: Event ) {
 }
 
 
+
 const loadingRef = ref( false );
 const loading = loadingRef;
 
-async function handleImportFromStErpButtonClick ( event: Event ) {
+async function onClickImportFromStErpButton ( event: Event ) {
   loadingRef.value = true;
   if ( formValue.value.idno === '' ) {
     message.error( '請輸入物料代碼' );
@@ -88,6 +90,8 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
   } finally { loadingRef.value = false; }
 }
 </script>
+
+
 
 <template>
   <main
@@ -114,7 +118,7 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
         <n-space size="large">
-          <n-button type="primary" secondary strong size="large" @click=" handleImportFromStErpButtonClick( $event ) "
+          <n-button type="primary" secondary strong size="large" @click=" onClickImportFromStErpButton( $event ) "
             attr-type="button" :loading=" loading ">
             從舊 ERP 匯入
           </n-button>
@@ -151,7 +155,7 @@ async function handleImportFromStErpButtonClick ( event: Event ) {
             </n-form-item-gi>
 
             <n-form-item-gi span="3">
-              <n-button type="primary" block @click=" handleCreateMaterialButtonClick( $event ) " attr-type="submit">
+              <n-button type="primary" block @click=" onSubmitMaterialCreationForm( $event ) " attr-type="submit">
                 建立物料
               </n-button>
             </n-form-item-gi>
