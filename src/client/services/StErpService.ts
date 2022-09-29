@@ -19,11 +19,19 @@ export class StErpService {
 
     /**
      * Get St Part
-     * CSV structure:
+     * ## CSV structure:
  *
- * 材料編號^^規格說明1^^規格說明2^^單位^^固定庫位^^儲存位置^^明細位置^^基本包裝量
+ * 材料編號^^規格說明1^^規格說明2^^單位^^固定庫位^^儲存位置^^明細位置^^基本包裝量^^Maker 材料編號^^品料類別
  *
- * `idno^^spec_1^^spec_2^^unit^^storage_lv1^^storage_lv2^^storage_lv3^^qty_per_pack`
+ * `idno^^spec_1^^spec_2^^unit^^storage_lv1^^storage_lv2^^storage_lv3^^qty_per_pack^^maker_part_idno^^part_type`
+ *
+ * ## Part types
+ * 0: 虛擬
+ * 1: 成品
+ * 2: 半成品
+ * 3: 客供件
+ * 4: 物料，成品的原物料
+ * 5: 原料，例如隨貨出的籃子
      * @returns STPart Successful Response
      * @throws ApiError
      */
@@ -198,7 +206,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2022-09-28',
+date = '2022-09-29',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {

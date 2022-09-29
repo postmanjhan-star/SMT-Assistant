@@ -78,7 +78,7 @@ async function onClickImportFromStErpButton ( event: Event ) {
     return false;
   }
   try {
-    const response = await StErpService.getStPart( { partIdno: formValue.value.idno } );
+    const response = await StErpService.getStPart( { partIdno: formValue.value.idno.trim() } );
     formValue.value.idno = response.idno;
     formValue.value.name = response.spec_1;
     formValue.value.description = response.spec_2;

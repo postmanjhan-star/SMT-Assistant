@@ -44,7 +44,7 @@ const defaultColDef: ColDef = {
 
 const columnDefs: ColDef[] = [
     { field: "workOrderIdno", headerName: '工令編號' },
-    { field: "productIdno", headerName: '成品編號' },
+    { field: "productIdno", headerName: '成品／半成品編號' },
     { field: "issueDate", headerName: '發料日期' },
     { field: "dueDate", headerName: '計劃完工日期' },
     { field: "quantity", headerName: '工令數量' },

@@ -10,4 +10,6 @@ export type STPart = {
     base_storage_1: string;
     base_storage_2: string;
     qty_per_pack: number;
+    maker_part_idno: string;
+    part_type: number;
 };
