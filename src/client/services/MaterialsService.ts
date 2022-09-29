@@ -6,6 +6,9 @@ import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 import type { MaterialRead } from '../models/MaterialRead';
 import type { MaterialStockRecord } from '../models/MaterialStockRecord';
 import type { MaterialUpdate } from '../models/MaterialUpdate';
+import type { RawMaterialCreate } from '../models/RawMaterialCreate';
+import type { RawMaterialRead } from '../models/RawMaterialRead';
+import type { RawMaterialUpdate } from '../models/RawMaterialUpdate';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -225,6 +228,53 @@ requestBody: MaterialUpdate,
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/materials/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Create Raw Material
+     * @returns RawMaterialRead Successful Response
+     * @throws ApiError
+     */
+    public static createRawMaterial({
+requestBody,
+}: {
+requestBody: RawMaterialCreate,
+}): CancelablePromise<RawMaterialRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/materials/raw_materials',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update Raw Material
+     * @returns RawMaterialRead Successful Response
+     * @throws ApiError
+     */
+    public static updateRawMaterial({
+id,
+requestBody,
+}: {
+id: number,
+requestBody: RawMaterialUpdate,
+}): CancelablePromise<RawMaterialRead> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/materials/raw_materials/{id}',
             path: {
                 'id': id,
             },

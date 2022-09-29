@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { FlexaFST } from '../models/FlexaFST';
 import type { Printer } from '../models/Printer';
 import type { STPart } from '../models/STPart';
 import type { STPartPack } from '../models/STPartPack';
@@ -197,7 +198,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2022-09-27',
+date = '2022-09-28',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
@@ -286,6 +287,18 @@ workOrderIdno: string,
             errors: {
                 422: `Validation Error`,
             },
+        });
+    }
+
+    /**
+     * Fst To Model
+     * @returns FlexaFST Successful Response
+     * @throws ApiError
+     */
+    public static fstToDict(): CancelablePromise<Array<FlexaFST>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/smt/mounter/fst_to_dict',
         });
     }
 

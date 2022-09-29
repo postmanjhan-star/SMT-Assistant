@@ -30,12 +30,10 @@ type SlotMaterial = {
   correct: boolean | null,
 }
 const slotMaterialData = ref<SlotMaterial[]>( [] );
-
+let materialIdno;
 
 
 onMounted( async () => {
-  slotIdnoInput.value.focus();
-
   try { workOrderItems.value = await StErpService.getStWorkOrderForSmtMounterMatchCheck( { workOrderIdno: route.params.workOrderIdno.toString() } ); }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
@@ -82,7 +80,16 @@ function onClickBackArrow ( event: Event ) { router.push( `/smt/mounter/work_ord
 function parseSlotIdnoInput () {
   // Slot barcode format: mounterId-slotSide-slotNumber
   const slotIdnoArray = slotFormValue.value.slotIdno.trim().split( '-' )
-  let slotSide = slotIdnoArray[ 1 ];
+  let slotSideDigit = slotIdnoArray[ 1 ];
+  let slotSide
+  switch ( slotSideDigit ) {
+    case '1':
+      slotSide = 'A';
+      break
+    case '2':
+      slotSide = 'B';
+      break;
+  }
   let slotNumber = Number( slotIdnoArray[ 2 ] );
   const id = slotSide + slotNumber;
   return [ slotSide, slotNumber, id ]
@@ -91,6 +98,7 @@ function parseSlotIdnoInput () {
 
 
 function scrollToRow ( id: string ) {
+  console.debug(id)
   const row = document.querySelector( `#${ id }` );
   if ( !!row === false ) {
     message.warning( '無此位置' );
@@ -127,50 +135,14 @@ async function playErrorTone () {
 
 
 
-function onSubmitSlotFrom ( event: Event ) {
-  if ( !!slotFormValue.value.slotIdno.trim() === false ) {
-    message.warning( '請輸入插槽位置' );
-    return false;
-  }
-
-  const [ slotSide, slotNumber, id ] = parseSlotIdnoInput();
-  scrollToRow( id as string );
-
-  slotMaterialData.value.forEach( ( item, index ) => {
-    if ( item.id == id ) { item.highlight = true; }
-    else { item.highlight = false; }
-  } );
-
-  materialInventoryIdnoInput.value.focus();
-}
-
-
-
-async function onSubmitMaterialInventoryFrom ( event: Event ) {
+async function onSubmitMaterialInventoryForm ( event: Event ) {
   if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) {
     message.warning( '請輸入物料號' );
     return false;
   }
 
-  const [ slotSide, slotNumber, id ] = parseSlotIdnoInput();
-  scrollToRow( id as string );
-
   // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
-  let materialIdno = ''
-
-  // Disable this block for testing
-  if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'A' ) {
-    try {
-      const partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } );
-      materialIdno = partPack.part_idno;
-    } catch ( error ) {
-      if ( error instanceof ApiError && error.status === 404 ) {
-        await playErrorTone();
-        message.warning( '查無此條碼' );
-        return false;
-      }
-    }
-  } else if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'M' ) {
+  if ( materialFormValue.value.materialInventoryIdno.trim().slice( 0, 4 ) == 'MINV' ) {
     try {
       const materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } );
       materialIdno = materialInventory.material_idno;
@@ -178,37 +150,75 @@ async function onSubmitMaterialInventoryFrom ( event: Event ) {
       if ( error instanceof ApiError && error.status === 404 ) {
         await playErrorTone();
         message.warning( '查無此條碼' );
+        materialFormValue.value.materialInventoryIdno = '';
+        return false;
+      }
+    }
+  } else if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'A' ) {
+    try {
+      const partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } );
+      materialIdno = partPack.part_idno;
+    } catch ( error ) {
+      if ( error instanceof ApiError && error.status === 404 ) {
+        await playErrorTone();
+        message.warning( '查無此條碼' );
+        materialFormValue.value.materialInventoryIdno = '';
         return false;
       }
     }
   } else {
     await playErrorTone();
     message.warning( '查無此條碼' );
+    materialFormValue.value.materialInventoryIdno = '';
     return false;
   }
 
-  // // Dummy code for testing, by position A18.
-  // materialIdno = 'M018'; 
-
   slotMaterialData.value.forEach( async ( item, index ) => {
-    if ( item.id == id ) {
-      item.highlight = true;
-      if ( materialIdno == item.materialIdno ) {
-        item.correct = true;
-        item.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
+    if ( item.materialIdno == materialIdno ) { item.highlight = true; }
+    else { item.highlight = false; }
+    scrollToRow( materialIdno );
+  } );
+
+  slotIdnoInput.value.focus();
+}
+
+
+
+async function onSubmitSlotForm ( event: Event ) {
+  if ( !!slotFormValue.value.slotIdno.trim() === false ) {
+    message.warning( '請輸入插槽位置' );
+    return false;
+  }
+
+  const [ slotSide, slotNumber, id ] = parseSlotIdnoInput();
+
+
+  for ( let slotMaterialItem of slotMaterialData.value ) {
+    if ( slotMaterialItem.id == id ) {
+      slotMaterialItem.highlight = true;
+      if ( materialIdno == slotMaterialItem.materialIdno ) {
+        slotMaterialItem.correct = true;
+        slotMaterialItem.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
         await playSuccseTone();
+        slotMaterialItem.highlight = false;
+        break;
       } else {
-        item.correct = false;
+        slotMaterialItem.correct = false;
         await playErrorTone();
         message.error( '錯誤' );
+        break;
       }
-      item.highlight = false;
+    } else {
+      slotMaterialItem.correct = false;
+      await playErrorTone();
+      message.error( '錯誤' );
+      break;
     }
-  } );
+  }
 
   slotFormValue.value.slotIdno = '';
   materialFormValue.value.materialInventoryIdno = '';
-  slotIdnoInput.value.focus();
+  materialInventoryIdnoInput.value.focus();
 }
 
 // Take background colors from https://windicss.org/utilities/general/colors.html
@@ -224,18 +234,18 @@ async function onSubmitMaterialInventoryFrom ( event: Event ) {
 
     <n-grid cols="1 s:2" responsive="screen" x-gap="20">
       <n-gi>
-        <n-form size="large" :model="slotFormValue" @submit.prevent=" onSubmitSlotFrom( $event )">
-          <n-form-item label="位置">
-            <n-input type="text" size="large" v-model:value.lazy="slotFormValue.slotIdno" ref="slotIdnoInput" />
+        <n-form size="large" :model="materialFormValue" @submit.prevent="onSubmitMaterialInventoryForm( $event )">
+          <n-form-item label="物料單包條碼">
+            <n-input type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno" autofocus
+              ref="materialInventoryIdnoInput" />
           </n-form-item>
         </n-form>
       </n-gi>
 
       <n-gi>
-        <n-form size="large" :model="materialFormValue" @submit.prevent="onSubmitMaterialInventoryFrom( $event )">
-          <n-form-item label="物料單包條碼">
-            <n-input type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno"
-              ref="materialInventoryIdnoInput" />
+        <n-form size="large" :model="slotFormValue" @submit.prevent=" onSubmitSlotForm( $event )">
+          <n-form-item label="位置">
+            <n-input type="text" size="large" v-model:value.lazy="slotFormValue.slotIdno" ref="slotIdnoInput" />
           </n-form-item>
         </n-form>
       </n-gi>
@@ -260,7 +270,7 @@ async function onSubmitMaterialInventoryFrom ( event: Event ) {
           <tbody>
             <!-- Chromium does not handle `scroll-margin-top` correctly. Firefox and WebKit are OK. -->
             <n-el tag="tr" v-for="(slotMaterialItem, index) in slotMaterialData" :key=" slotMaterialItem.id "
-              :id="slotMaterialItem.id" style="scroll-margin-top: 180px;"
+              :id="slotMaterialItem.materialIdno" style="scroll-margin-top: 180px;"
               :class=" slotMaterialItem.highlight ? 'row-highlight' : '' ">
               <td><span v-if="slotMaterialItem.correct">✅</span></td>
               <td>{{slotMaterialItem.slotSide}}{{slotMaterialItem.slotNumber}}</td>
