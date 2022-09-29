@@ -2,7 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type FlexaFST = {
+export type SmtMounterFstItemRead = {
+    id: number;
+    smt_mounter_fst_id: number;
     stage: string;
     slot: number;
     original: string;

@@ -178,6 +178,10 @@ const routes = [
         path: '/smt/mounter/work_orders/:workOrderIdno',
         component: () => import( "../smtViews/WorkOrdersDetail.vue" ),
       },
+      {
+        path: '/smt/mounter/upload_fst',
+        component: () => import( "../smtViews/UploadFst.vue" ),
+      },
     ]
   },
   {

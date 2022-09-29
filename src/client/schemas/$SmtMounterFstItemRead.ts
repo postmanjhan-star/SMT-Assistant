@@ -1,8 +1,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $FlexaFST = {
+export const $SmtMounterFstItemRead = {
     properties: {
+        id: {
+    type: 'number',
+    isRequired: true,
+},
+        smt_mounter_fst_id: {
+    type: 'number',
+    isRequired: true,
+},
         stage: {
     type: 'string',
     isRequired: true,

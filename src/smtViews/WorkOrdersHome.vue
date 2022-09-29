@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { InputInst, NButton, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, useMessage } from 'naive-ui';
+import { InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, useMessage } from 'naive-ui';
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, StErpService } from '../client';
 
 const router = useRouter();
@@ -47,7 +47,8 @@ async function onClickSubmitButton ( event: Event ) {
 
           <n-gi></n-gi>
           <n-form-item-gi label="工單號">
-            <n-input type="text" size="large" autofocus v-model:value.lazy="formValue.workOrderIdno" ref="workOrderIdnoInput" />
+            <n-input type="text" size="large" autofocus v-model:value.lazy="formValue.workOrderIdno"
+              ref="workOrderIdnoInput" />
           </n-form-item-gi>
           <n-gi></n-gi>
 
@@ -60,6 +61,13 @@ async function onClickSubmitButton ( event: Event ) {
 
         </n-grid>
       </n-form>
+
+      <div style="text-align: center; margin-top: 1rem;">
+        <router-link to="/smt/mounter/upload_fst" #=" { navigate, href } " custom>
+          <n-a :href=" href " @click=" navigate ">上傳 FST 檔案作業</n-a>
+        </router-link>
+      </div>
+
     </n-space>
   </div>
 </template>
