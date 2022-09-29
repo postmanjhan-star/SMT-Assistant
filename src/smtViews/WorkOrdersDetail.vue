@@ -3,7 +3,7 @@ import { InputInst, NEl, NForm, NFormItem, NGi, NGrid, NInput, NPageHeader, useM
 import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialInventoriesService, StErpService, STWorkOrderItemForSMTMounterCheck } from '../client';
+import { ApiError, MaterialInventoriesService, StErpService, STWorkOrderItemForSMTMounterCheck, SmtMounterFstRead } from '../client';
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
@@ -12,6 +12,7 @@ const router = useRouter();
 const message = useMessage();
 
 const workOrderItems = ref<STWorkOrderItemForSMTMounterCheck[]>();
+const smtMounterFstArray = ref<SmtMounterFstRead[]>();
 
 const slotFormValue = ref( { slotIdno: '' } );
 const slotIdnoInput = ref<InputInst>();
@@ -20,10 +21,12 @@ const materialFormValue = ref( { materialInventoryIdno: '' } );
 const materialInventoryIdnoInput = ref<InputInst>();
 
 type SlotMaterial = {
-  id: string,
+  id: number,
   mounterIdno: string,
+  boardSide: string,
   slotSide: string,
   slotNumber: number,
+  slotPosition: string,
   materialIdno: string,
   materialInventoryIdno: string,
   highlight: boolean,
@@ -34,41 +37,25 @@ let materialIdno;
 
 
 onMounted( async () => {
-  try { workOrderItems.value = await StErpService.getStWorkOrderForSmtMounterMatchCheck( { workOrderIdno: route.params.workOrderIdno.toString() } ); }
+  try { smtMounterFstArray.value = await StErpService.getSmtMounterCheckData( { workOrderIdno: route.params.workOrderIdno.toString() } ) }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
-  for ( let workOrderItem of workOrderItems.value ) {
-    slotMaterialData.value.push( {
-      id: workOrderItem.slot_side + workOrderItem.slot_number,
-      mounterIdno: '',
-      slotSide: workOrderItem.slot_side,
-      slotNumber: workOrderItem.slot_number,
-      materialIdno: workOrderItem.material_idno,
-      materialInventoryIdno: '',
-      highlight: false,
-      correct: null,
-    } )
+  for ( let masterData of smtMounterFstArray.value ) {
+    for ( let detailData of masterData.smt_mounter_fst_items ) {
+      slotMaterialData.value.push( {
+        id: detailData.id,
+        mounterIdno: masterData.mounter_idno,
+        boardSide: masterData.board_side,
+        slotSide: detailData.stage,
+        slotNumber: detailData.slot,
+        slotPosition: detailData.stage + detailData.slot,
+        materialIdno: detailData.part_number,
+        materialInventoryIdno: '',
+        highlight: false,
+        correct: null,
+      } )
+    }
   }
-
-  // // Dummy data entries for testing
-  // slotMaterialData.value.push( { id: 'A15', mounterIdno: '', slotSide: 'A', slotNumber: 15, materialIdno: 'M014', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A16', mounterIdno: '', slotSide: 'A', slotNumber: 16, materialIdno: 'M016', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A17', mounterIdno: '', slotSide: 'A', slotNumber: 17, materialIdno: 'M017', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A18', mounterIdno: '', slotSide: 'A', slotNumber: 18, materialIdno: 'M018', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A19', mounterIdno: '', slotSide: 'A', slotNumber: 19, materialIdno: 'M019', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A20', mounterIdno: '', slotSide: 'A', slotNumber: 20, materialIdno: 'M020', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A21', mounterIdno: '', slotSide: 'A', slotNumber: 21, materialIdno: 'M021', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A23', mounterIdno: '', slotSide: 'A', slotNumber: 23, materialIdno: 'M023', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A24', mounterIdno: '', slotSide: 'A', slotNumber: 24, materialIdno: 'M024', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A25', mounterIdno: '', slotSide: 'A', slotNumber: 25, materialIdno: 'M025', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A27', mounterIdno: '', slotSide: 'A', slotNumber: 27, materialIdno: 'M027', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A28', mounterIdno: '', slotSide: 'A', slotNumber: 28, materialIdno: 'M028', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A29', mounterIdno: '', slotSide: 'A', slotNumber: 29, materialIdno: 'M029', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A30', mounterIdno: '', slotSide: 'A', slotNumber: 30, materialIdno: 'M030', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A31', mounterIdno: '', slotSide: 'A', slotNumber: 31, materialIdno: 'M031', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A32', mounterIdno: '', slotSide: 'A', slotNumber: 32, materialIdno: 'M032', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A33', mounterIdno: '', slotSide: 'A', slotNumber: 33, materialIdno: 'M033', materialInventoryIdno: '', highlight: false, correct: null } );
-  // slotMaterialData.value.push( { id: 'A34', mounterIdno: '', slotSide: 'A', slotNumber: 34, materialIdno: 'M034', materialInventoryIdno: '', highlight: false, correct: null } );
 } );
 
 
@@ -81,7 +68,7 @@ function parseSlotIdnoInput () {
   // Slot barcode format: mounterId-slotSide-slotNumber
   const slotIdnoArray = slotFormValue.value.slotIdno.trim().split( '-' )
   let slotSideDigit = slotIdnoArray[ 1 ];
-  let slotSide
+  let slotSide: string;
   switch ( slotSideDigit ) {
     case '1':
       slotSide = 'A';
@@ -98,8 +85,8 @@ function parseSlotIdnoInput () {
 
 
 function scrollToRow ( id: string ) {
-  console.debug(id)
-  const row = document.querySelector( `#${ id }` );
+  console.debug( id )
+  const row = document.querySelector( `[id='${ id }']` );
   if ( !!row === false ) {
     message.warning( '無此位置' );
     throw Error;
@@ -154,7 +141,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
         return false;
       }
     }
-  } else if ( materialFormValue.value.materialInventoryIdno.trim()[ 0 ] == 'A' ) {
+  } else {
     try {
       const partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } );
       materialIdno = partPack.part_idno;
@@ -166,11 +153,6 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
         return false;
       }
     }
-  } else {
-    await playErrorTone();
-    message.warning( '查無此條碼' );
-    materialFormValue.value.materialInventoryIdno = '';
-    return false;
   }
 
   slotMaterialData.value.forEach( async ( item, index ) => {
@@ -192,9 +174,9 @@ async function onSubmitSlotForm ( event: Event ) {
 
   const [ slotSide, slotNumber, id ] = parseSlotIdnoInput();
 
-
+  
   for ( let slotMaterialItem of slotMaterialData.value ) {
-    if ( slotMaterialItem.id == id ) {
+    if ( slotMaterialItem.slotPosition == id ) {
       slotMaterialItem.highlight = true;
       if ( materialIdno == slotMaterialItem.materialIdno ) {
         slotMaterialItem.correct = true;
@@ -262,6 +244,8 @@ async function onSubmitSlotForm ( event: Event ) {
           <thead>
             <tr>
               <th style="width: 40px;"></th>
+              <th>機台</th>
+              <th>PCB 板打件面</th>
               <th>位置</th>
               <th>物料號</th>
               <th>單包條碼</th>
@@ -273,6 +257,8 @@ async function onSubmitSlotForm ( event: Event ) {
               :id="slotMaterialItem.materialIdno" style="scroll-margin-top: 180px;"
               :class=" slotMaterialItem.highlight ? 'row-highlight' : '' ">
               <td><span v-if="slotMaterialItem.correct">✅</span></td>
+              <td>{{slotMaterialItem.mounterIdno}}</td>
+              <td>{{slotMaterialItem.boardSide}}</td>
               <td>{{slotMaterialItem.slotSide}}{{slotMaterialItem.slotNumber}}</td>
               <td>{{slotMaterialItem.materialIdno}}</td>
               <td>{{slotMaterialItem.materialInventoryIdno}}</td>

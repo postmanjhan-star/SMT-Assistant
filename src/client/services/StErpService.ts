@@ -278,6 +278,29 @@ workOrderIdno: string,
     }
 
     /**
+     * Upload Fst
+     * 40X980123-T1-XP1B1-T.fst
+     * @returns SmtMounterFstRead Successful Response
+     * @throws ApiError
+     */
+    public static uploadFst({
+formData,
+}: {
+formData: Body_upload_fst,
+}): CancelablePromise<SmtMounterFstRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/st_erp/smt/mounter/upload_fst',
+            formData: formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * @deprecated
      * Get St Work Order For Smt Mounter Match Check
      * @returns STWorkOrderItemForSMTMounterCheck Successful Response
      * @throws ApiError
@@ -300,21 +323,21 @@ workOrderIdno: string,
     }
 
     /**
-     * Upload Fst
-     * 40X980123-T1-XP1B1-T.fst
+     * Get Smt Mounter Check Data
      * @returns SmtMounterFstRead Successful Response
      * @throws ApiError
      */
-    public static uploadFst({
-formData,
+    public static getSmtMounterCheckData({
+workOrderIdno,
 }: {
-formData: Body_upload_fst,
-}): CancelablePromise<SmtMounterFstRead> {
+workOrderIdno: string,
+}): CancelablePromise<Array<SmtMounterFstRead>> {
         return __request(OpenAPI, {
-            method: 'POST',
-            url: '/st_erp/smt/mounter/upload_fst',
-            formData: formData,
-            mediaType: 'multipart/form-data',
+            method: 'GET',
+            url: '/st_erp/smt/mounter/{work_order_idno}',
+            path: {
+                'work_order_idno': workOrderIdno,
+            },
             errors: {
                 422: `Validation Error`,
             },
