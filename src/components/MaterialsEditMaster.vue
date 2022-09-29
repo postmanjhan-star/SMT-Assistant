@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ApiError, MaterialsService, MaterialTypeEnum, MaterialUpdate, OpenAPI, UnitEnum } from '../client';
 import { useAuthStore } from '../stores/auth';
 import MaterialsEditRawMaterial from "./MaterialsEditRawMaterial.vue";
+import MaterialsEditProduct from "./MaterialsEditProduct.vue";
 
 
 const authStore = useAuthStore();
@@ -54,7 +55,6 @@ onBeforeMount( async () => {
           custom>
           <n-a :href=" href " @click=" navigate ">{{ $route.params.idno.toString().toUpperCase() }}</n-a>
         </router-link>
-
       </n-breadcrumb-item>
     </n-breadcrumb>
 
@@ -69,6 +69,9 @@ onBeforeMount( async () => {
 
       <materials-edit-raw-material v-if="formValue.material_type == MaterialTypeEnum.RAW_MATERIAL">
       </materials-edit-raw-material>
+
+      <materials-edit-product v-if="formValue.material_type == MaterialTypeEnum.PRODUCT">
+      </materials-edit-product>
 
     </div>
   </main>

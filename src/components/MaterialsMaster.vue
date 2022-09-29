@@ -85,6 +85,10 @@ function onGridReady ( params: GridReadyEvent ) {
 
 
 function onClickCreateRawMaterialButton () { router.push( '/materials/create_raw_material' ); }
+
+
+
+function onClickCreateProductButton () { router.push( '/materials/create_product' ); }
 </script>
 
 <template>
@@ -106,7 +110,13 @@ function onClickCreateRawMaterialButton () { router.push( '/materials/create_raw
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-button type="primary" @click=" onClickCreateRawMaterialButton( $event ) ">建立原料</n-button>
+        <n-space size="large">
+
+          <n-button type="primary" size="large" @click=" onClickCreateRawMaterialButton( $event ) ">建立原料 ❹</n-button>
+
+          <n-button type="primary" size="large" @click=" onClickCreateProductButton( $event ) ">建立成品 ❶</n-button>
+        
+        </n-space>
 
         <div style="height: 600px; overflow-x: scroll; width: 100%;">
           <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; " :gridOptions=" gridOptions "
