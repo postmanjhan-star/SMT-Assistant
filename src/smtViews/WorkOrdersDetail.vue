@@ -11,8 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const message = useMessage();
 
-const workOrderItems = ref<STWorkOrderItemForSMTMounterCheck[]>();
-const smtMounterFstArray = ref<SmtMounterFstRead[]>();
+const fstDataArray = ref<SmtMounterFstRead[]>();
 
 const slotFormValue = ref( { slotIdno: '' } );
 const slotIdnoInput = ref<InputInst>();
@@ -20,35 +19,35 @@ const slotIdnoInput = ref<InputInst>();
 const materialFormValue = ref( { materialInventoryIdno: '' } );
 const materialInventoryIdnoInput = ref<InputInst>();
 
-type SlotMaterial = {
+type fstEntry = {
   id: number,
   mounterIdno: string,
   boardSide: string,
   slotSide: string,
   slotNumber: number,
-  slotPosition: string,
+  slotIdno: string,
   materialIdno: string,
   materialInventoryIdno: string,
   highlight: boolean,
   correct: boolean | null,
 }
-const slotMaterialData = ref<SlotMaterial[]>( [] );
-let materialIdno;
+const fstDataTable = ref<fstEntry[]>( [] );
+let matereialIdnoFromInput: string;
 
 
 onMounted( async () => {
-  try { smtMounterFstArray.value = await StErpService.getSmtMounterCheckData( { workOrderIdno: route.params.workOrderIdno.toString() } ) }
+  try { fstDataArray.value = await StErpService.getSmtMounterCheckData( { workOrderIdno: route.params.workOrderIdno.toString() } ) }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
-  for ( let masterData of smtMounterFstArray.value ) {
+  for ( let masterData of fstDataArray.value ) {
     for ( let detailData of masterData.smt_mounter_fst_items ) {
-      slotMaterialData.value.push( {
+      fstDataTable.value.push( {
         id: detailData.id,
         mounterIdno: masterData.mounter_idno,
         boardSide: masterData.board_side,
         slotSide: detailData.stage,
         slotNumber: detailData.slot,
-        slotPosition: detailData.stage + detailData.slot,
+        slotIdno: `${ masterData.mounter_idno }-${ detailData.stage }-${ detailData.slot }`,
         materialIdno: detailData.part_number,
         materialInventoryIdno: '',
         highlight: false,
@@ -56,6 +55,7 @@ onMounted( async () => {
       } )
     }
   }
+  console.debug( fstDataTable.value )
 } );
 
 
@@ -64,9 +64,10 @@ function onClickBackArrow ( event: Event ) { router.push( `/smt/mounter/work_ord
 
 
 
-function parseSlotIdnoInput () {
+function parseSlotIdno ( slotIdno: string ) {
   // Slot barcode format: mounterId-slotSide-slotNumber
-  const slotIdnoArray = slotFormValue.value.slotIdno.trim().split( '-' )
+  const slotIdnoArray = slotIdno.split( '-' )
+  let machineIdno = slotIdnoArray[ 0 ];
   let slotSideDigit = slotIdnoArray[ 1 ];
   let slotSide: string;
   switch ( slotSideDigit ) {
@@ -78,14 +79,12 @@ function parseSlotIdnoInput () {
       break;
   }
   let slotNumber = Number( slotIdnoArray[ 2 ] );
-  const id = slotSide + slotNumber;
-  return [ slotSide, slotNumber, id ]
+  return [ machineIdno, slotSide, slotNumber ]
 }
 
 
 
 function scrollToRow ( id: string ) {
-  console.debug( id )
   const row = document.querySelector( `[id='${ id }']` );
   if ( !!row === false ) {
     message.warning( '無此位置' );
@@ -122,6 +121,14 @@ async function playErrorTone () {
 
 
 
+function getMaterialMatchedRow ( materialIdno: string ) {
+  for ( let row of fstDataTable.value ) {
+    if ( materialIdno == row.materialIdno ) { return row; }
+  }
+}
+
+
+
 async function onSubmitMaterialInventoryForm ( event: Event ) {
   if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) {
     message.warning( '請輸入物料號' );
@@ -132,7 +139,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
   if ( materialFormValue.value.materialInventoryIdno.trim().slice( 0, 4 ) == 'MINV' ) {
     try {
       const materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } );
-      materialIdno = materialInventory.material_idno;
+      matereialIdnoFromInput = materialInventory.material_idno;
     } catch ( error ) {
       if ( error instanceof ApiError && error.status === 404 ) {
         await playErrorTone();
@@ -144,7 +151,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
   } else {
     try {
       const partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } );
-      materialIdno = partPack.part_idno;
+      matereialIdnoFromInput = partPack.part_idno;
     } catch ( error ) {
       if ( error instanceof ApiError && error.status === 404 ) {
         await playErrorTone();
@@ -155,52 +162,51 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
     }
   }
 
-  slotMaterialData.value.forEach( async ( item, index ) => {
-    if ( item.materialIdno == materialIdno ) { item.highlight = true; }
-    else { item.highlight = false; }
-    scrollToRow( materialIdno );
-  } );
-
+  const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput );
+  materialMatchedRow.highlight = true;
+  scrollToRow( materialMatchedRow.materialIdno )
   slotIdnoInput.value.focus();
 }
 
 
 
 async function onSubmitSlotForm ( event: Event ) {
-  if ( !!slotFormValue.value.slotIdno.trim() === false ) {
+  let inputSlotIdno = slotFormValue.value.slotIdno.trim();
+  if ( !!inputSlotIdno === false ) {
     message.warning( '請輸入插槽位置' );
     return false;
   }
 
-  const [ slotSide, slotNumber, id ] = parseSlotIdnoInput();
+  const [ inputMachineIdno, inputSlotSide, inputSlotNumber ] = parseSlotIdno( inputSlotIdno );
 
+  // Converse inputSlotIdno  XP1B1-1-30 to XP1B1-A-30
+  //                               ^             ^
+  inputSlotIdno = `${ inputMachineIdno }-${ inputSlotSide }-${ inputSlotNumber }`;
+
+  const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput );
   
-  for ( let slotMaterialItem of slotMaterialData.value ) {
-    if ( slotMaterialItem.slotPosition == id ) {
-      slotMaterialItem.highlight = true;
-      if ( materialIdno == slotMaterialItem.materialIdno ) {
-        slotMaterialItem.correct = true;
-        slotMaterialItem.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
-        await playSuccseTone();
-        slotMaterialItem.highlight = false;
-        break;
-      } else {
-        slotMaterialItem.correct = false;
-        await playErrorTone();
-        message.error( '錯誤' );
-        break;
-      }
-    } else {
-      slotMaterialItem.correct = false;
-      await playErrorTone();
-      message.error( '錯誤' );
-      break;
-    }
+  // In case of slot idnos not match.
+  if ( inputSlotIdno != materialMatchedRow.slotIdno ) {
+    materialMatchedRow.correct = false;
+    materialMatchedRow.highlight = false;
+    await playErrorTone();
+    message.error( '錯誤' );
+    slotFormValue.value.slotIdno = '';
+    materialFormValue.value.materialInventoryIdno = '';
+    materialInventoryIdnoInput.value.focus();
+    return false;
   }
+
+  // In case of slot idnos match.
+  materialMatchedRow.correct = true;
+  materialMatchedRow.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
+  await playSuccseTone();
+  materialMatchedRow.highlight = false;
 
   slotFormValue.value.slotIdno = '';
   materialFormValue.value.materialInventoryIdno = '';
   materialInventoryIdnoInput.value.focus();
+  return true;
 }
 
 // Take background colors from https://windicss.org/utilities/general/colors.html
@@ -253,15 +259,14 @@ async function onSubmitSlotForm ( event: Event ) {
           </thead>
           <tbody>
             <!-- Chromium does not handle `scroll-margin-top` correctly. Firefox and WebKit are OK. -->
-            <n-el tag="tr" v-for="(slotMaterialItem, index) in slotMaterialData" :key=" slotMaterialItem.id "
-              :id="slotMaterialItem.materialIdno" style="scroll-margin-top: 180px;"
-              :class=" slotMaterialItem.highlight ? 'row-highlight' : '' ">
-              <td><span v-if="slotMaterialItem.correct">✅</span></td>
-              <td>{{slotMaterialItem.mounterIdno}}</td>
-              <td>{{slotMaterialItem.boardSide}}</td>
-              <td>{{slotMaterialItem.slotSide}}{{slotMaterialItem.slotNumber}}</td>
-              <td>{{slotMaterialItem.materialIdno}}</td>
-              <td>{{slotMaterialItem.materialInventoryIdno}}</td>
+            <n-el tag="tr" v-for="(row, index) in fstDataTable" :key=" row.id " :id="row.materialIdno"
+              style="scroll-margin-top: 180px;" :class=" row.highlight ? 'row-highlight' : '' ">
+              <td><span v-if="row.correct">✅</span></td>
+              <td>{{row.mounterIdno}}</td>
+              <td>{{row.boardSide}}</td>
+              <td>{{row.slotSide}}{{row.slotNumber}}</td>
+              <td>{{row.materialIdno}}</td>
+              <td>{{row.materialInventoryIdno}}</td>
             </n-el>
           </tbody>
         </n-table>
