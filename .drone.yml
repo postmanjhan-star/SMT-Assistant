@@ -2,9 +2,17 @@ kind: pipeline
 type: docker
 name: default
 
+volumes:
+  - name: cache
+    host:
+      path: /tmp/drone/cache/node_modules/
+
 steps:
   - name: build
     image: node:18-bullseye-slim
+    volumes:
+      - name: cache
+        path: /drone/src/node_modules/
     commands:
       - npm install
       - npm run build
@@ -13,5 +21,5 @@ steps:
   - name: test
     image: node:18-bullseye
     commands:
-      - cd ./public/
+      - cd ./dist/
       - ls -l
