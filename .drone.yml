@@ -6,10 +6,12 @@ steps:
   - name: build
     image: node:18-bullseye-slim
     commands:
-      - touch test.txt
+      - npm install
+      - npm run build
 
   # Test every commits
   - name: test
     image: node:18-bullseye
     commands:
-      - ls
+      - cd ./public/
+      - ll
