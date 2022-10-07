@@ -20,7 +20,7 @@ steps:
 
       # Install dependencies and build
       - npm install
-      - npm run build
+      - npm run build:staging
 
   # Test every commits
   - name: test
