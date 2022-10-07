@@ -14,4 +14,4 @@ steps:
     image: node:18-bullseye
     commands:
       - cd ./public/
-      - ll
+      - ls -l
