@@ -14,6 +14,11 @@ steps:
       - name: cache
         path: /drone/src/node_modules/
     commands:
+      # Set timezone to Taipei
+      - ln --force --symbolic /usr/share/zoneinfo/Asia/Taipei /etc/localtime
+      - dpkg-reconfigure --frontend noninteractive tzdata
+
+      # Install dependencies and build
       - npm install
       - npm run build
 
@@ -21,5 +26,10 @@ steps:
   - name: test
     image: node:18-bullseye
     commands:
+      # Set timezone to Taipei
+      - ln --force --symbolic /usr/share/zoneinfo/Asia/Taipei /etc/localtime
+      - dpkg-reconfigure --frontend noninteractive tzdata
+
+      # Dummy test
       - cd ./dist/
       - ls -l
