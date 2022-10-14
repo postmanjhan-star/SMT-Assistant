@@ -20,6 +20,7 @@ steps:
 
       # Clone soda-web
       # Checkout to pre-production or production branch
+      # Pull the latest changes
 
       # Install dependencies and build
       - npm install
