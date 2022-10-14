@@ -18,6 +18,9 @@ steps:
       - ln --force --symbolic /usr/share/zoneinfo/Asia/Taipei /etc/localtime
       - dpkg-reconfigure --frontend noninteractive tzdata
 
+      # Clone soda-web
+      # Checkout to pre-production or production branch
+
       # Install dependencies and build
       - npm install
       - npm run build:staging
