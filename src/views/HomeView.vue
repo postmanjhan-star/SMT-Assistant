@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Switcher from '@carbon/icons-vue/es/switcher/32';
 import * as jose from 'jose';
-import { darkTheme, NButton, NCard, NConfigProvider, NDropdown, NH1, NIcon, NLayoutHeader, NMenu, NPopover, NSpace } from "naive-ui";
+import { darkTheme, NButton, NCard, NConfigProvider, NDivider, NDropdown, NH1, NIcon, NLayoutHeader, NMenu, NPopover, NSpace, NTag } from "naive-ui";
 import { RouterView, useRouter } from "vue-router";
 import { materialMenuOptions, purchaseMenuOptions, systemMenuOptions } from "../menuOptions";
 import { useAccountStore } from '../stores/account';
@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
 const appTitle = import.meta.env.VITE_APP_TITLE;
+const appEnv = import.meta.env.MODE;
 const authStore = useAuthStore();
 const accountStore = useAccountStore();
 const token = JSON.parse( authStore.accountToken )[ 'access_token' ];
@@ -66,6 +67,14 @@ function onSelectAccountMenu ( key: string ) {
               style="display: inline-block; font-size: 1rem; font-weight: bolder; line-height: 28px; margin: 0; vertical-align: middle; height: 28px;">
               {{ appTitle }}
             </n-h1>
+            <span v-if="appEnv === 'development'">
+              <n-divider vertical />
+              <n-tag size="small" type="error" strong :bordered="false">開發</n-tag>
+            </span>
+            <span v-if="appEnv === 'staging'">
+              <n-divider vertical />
+              <n-tag size="small" type="warning" strong :bordered="false">測試</n-tag>
+            </span>
           </div>
 
           <n-dropdown :options=" accountMenuOptions " trigger="click" :show-arrow=" true " size="huge"
