@@ -49,4 +49,16 @@ formData: Body_login_for_access_token,
         });
     }
 
+    /**
+     * Logout
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static logout(): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/session/logout',
+        });
+    }
+
 }

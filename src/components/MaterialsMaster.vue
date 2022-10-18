@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridApi, ColumnApi, GridReadyEvent, RowDoubleClickedEvent, ColDef } from "ag-grid-community";
+import { GetRowIdParams, GridApi, ColumnApi, GridReadyEvent, RowDoubleClickedEvent, ColDef, GridOptions } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
@@ -34,7 +34,7 @@ const columnDefs: ColDef[] = [
 
 
 
-const gridOptions = {
+const gridOptions: GridOptions = {
   columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,

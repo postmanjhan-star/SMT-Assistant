@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
-import { onBeforeMount, reactive, ref } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { OpenAPI, ReceiveRead, ReceivesService } from '../client';
 import { useAuthStore } from '../stores/auth';
@@ -20,25 +20,23 @@ const gridColumnApi = ref();
 
 const rowData = ref<ReceiveRead[]>( [] );
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   filter: true,
   sortable: true,
   flex: 1,
   resizable: true,
 }
 
-const columnDefs = reactive( {
-  value: [
-    { field: "idno", headerName: '收料單號' },
-    { field: "vendor_idno", headerName: '供應商代號' },
-    { field: "vendor_name", headerName: '供應商名稱' },
-    { field: "st_receive_idno", headerName: '舊 ERP 收料單號' },
-    { field: "st_mbr_idno", headerName: '舊 ERP 隨車交貨單號' },
-  ]
-} );
+const columnDefs: ColDef[] = [
+  { field: "idno", headerName: '收料單號' },
+  { field: "vendor_idno", headerName: '供應商代號' },
+  { field: "vendor_name", headerName: '供應商名稱' },
+  { field: "st_receive_idno", headerName: '舊 ERP 收料單號' },
+  { field: "st_mbr_idno", headerName: '舊 ERP 隨車交貨單號' },
+];
 
-const gridOptions = {
-  columnDefs: columnDefs.value,
+const gridOptions: GridOptions = {
+  columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,

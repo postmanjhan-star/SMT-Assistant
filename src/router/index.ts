@@ -1,11 +1,11 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import { useAccountStore } from "../stores/account";
 import { useAuthStore } from "../stores/auth";
 
 // 2. 定义一些路由
 // 每个路由都需要映射到一个组件。
 // 这些都会传递给 `createRouter`
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "Login",
@@ -24,8 +24,8 @@ const routes = [
       },
       {
         path: "/accounts",
-        meta: { requiredAuthModule: ["see_system_group"] },
-        component: () => import("../components/AccountsMaster.vue"),
+        meta: { requiredAuthModule: [ "see_system_group" ] },
+        component: () => import( "../components/AccountsMaster.vue" ),
       },
       {
         path: '/accounts/create',
@@ -222,10 +222,6 @@ router.beforeEach( async ( to, from ) => {
   const authStore = useAuthStore();
   const accountStore = useAccountStore();
 
-  // Skip below logic
-  if ( to.params === '/' ) { return { path: '/' }; }
-
-  // For any routes except for login one
   // 检查用户是否已登录
   if ( authStore.isAuthenticated === false && to.meta.requiresAuth ) {
     // 将用户重定向到登录页面
@@ -233,20 +229,16 @@ router.beforeEach( async ( to, from ) => {
   }
 
   // Refresh `refresh_token` & `access_token` with every request
-  if (authStore.isAuthenticated === true) {
-    try {
-      await authStore.refreshToken();
-    } catch (error) {
-      authStore.logout();
-          return { name: 'Login', params: { message: '登錄過期，請重新登入' } };
+  if ( authStore.isAuthenticated === true ) {
+    try { await authStore.refreshToken(); }
+    catch ( error ) {
+      await authStore.logout();
+      return { name: 'Login', params: { message: '登錄過期，請重新登入' } };
     }
   }
 
-  if (
-    to.meta.requiredAuthModule &&
-    to.meta.requiredAuthModule.includes( 'see_system_group' ) &&
-    !accountStore.authorizedModules.includes( 'see_system_group' )
-  ) { return { path: '/403' } }
+  const requiredAuthModule = to.meta.requiredAuthModule as string[];
+  if ( requiredAuthModule?.includes( 'see_system_group' ) && !accountStore.authorizedModules.includes( 'see_system_group' ) ) { return { path: '/403' } }
 } );
 
 export default router;

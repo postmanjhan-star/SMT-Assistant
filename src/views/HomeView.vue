@@ -18,10 +18,9 @@ const claims = jose.decodeJwt( token );
 const accountMenuOptions = [ { label: '登出', key: 'logout', disabled: false } ]
 
 
-function onSelectAccountMenu ( key: string ) {
+async function onSelectAccountMenu ( key: string ) {
   if ( key === 'logout' ) {
-    authStore.accountToken = null;
-    accountStore.authorizedModules = [];
+    await authStore.logout();
     router.push( { name: 'Login' } );
   }
 }
