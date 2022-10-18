@@ -3,10 +3,12 @@
         "module": "ES2020",
         "target": "ES2020",
         "moduleResolution": "Node16",
-        "allowJs": true,
+        "outDir": "dist", // To prevent the error of 'Cannot write file XXX because it would overwrite input file.'
+        "allowJs": true, // 允许 JavaScript 文件在你的工程中被引入，而不是仅仅允许 .ts 和 .tsx 文件。
+        "checkJs": true, // 与 allowJs 配合使用，当 checkJs 被启用时，JavaScript 文件中会报告错误。
         "jsx": "preserve",
         "types": ["vite/client"],
-        // "skipLibCheck": true,
+        "skipLibCheck": true,
     },
     "exclude": ["./dist/**/*"] // To prevent the error of 'Cannot write file XXX because it would overwrite input file.'
 }

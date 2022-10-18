@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace } from 'naive-ui';
-import { onBeforeMount, reactive, ref } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { VendorRead, VendorsService, OpenAPI } from '../client';
+import { OpenAPI, VendorRead, VendorsService } from '../client';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -19,22 +19,20 @@ const gridColumnApi = ref();
 
 const rowData = ref<VendorRead[]>( [] );
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   filter: true,
   sortable: true,
   flex: 1,
   resizable: true,
 }
 
-const columnDefs = reactive( {
-  value: [
-    { field: "idno", headerName: '供應商代碼' },
-    { field: "name", headerName: '供應商名稱' },
-  ]
-} );
+const columnDefs: ColDef[] = [
+  { field: "idno", headerName: '供應商代碼' },
+  { field: "name", headerName: '供應商名稱' },
+];
 
-const gridOptions = {
-  columnDefs: columnDefs.value,
+const gridOptions: GridOptions = {
+  columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,

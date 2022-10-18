@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NH1, NSpace } from 'naive-ui';
-import { onBeforeMount, reactive, ref } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { EpicorReceive, EpicorService, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
@@ -19,24 +19,22 @@ const gridColumnApi = ref();
 
 const rowData = ref<EpicorReceive[]>( [] );
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   filter: true,
   sortable: true,
   flex: 1,
   resizable: true,
 }
 
-const columnDefs = reactive( {
-  value: [
-    { field: "ReceiptDate", headerName: '收貨日期' },
-    { field: "PackSlip", headerName: '包裝單' },
-    { field: "PONum", headerName: 'PO' },
-    { field: "VendorNumName", headerName: '供應商名稱' },
-  ]
-} );
+const columnDefs: ColDef[] = [
+  { field: "ReceiptDate", headerName: '收貨日期' },
+  { field: "PackSlip", headerName: '包裝單' },
+  { field: "PONum", headerName: 'PO' },
+  { field: "VendorNumName", headerName: '供應商名稱' },
+];
 
-const gridOptions = {
-  columnDefs: columnDefs.value,
+const gridOptions: GridOptions = {
+  columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
