@@ -17,7 +17,7 @@ const claims = jose.decodeJwt( token );
 const accountMenuOptions = [ { label: '登出', key: 'logout', disabled: false } ]
 
 
-function handleAccountMenuSelect ( key ) {
+function onSelectAccountMenu ( key: string ) {
   if ( key === 'logout' ) {
     authStore.accountToken = null;
     accountStore.authorizedModules = [];
@@ -69,7 +69,7 @@ function handleAccountMenuSelect ( key ) {
           </div>
 
           <n-dropdown :options=" accountMenuOptions " trigger="click" :show-arrow=" true " size="huge"
-            @select=" handleAccountMenuSelect ">
+            @select=" onSelectAccountMenu ">
             <n-button style="vertical-align: middle; height: 28px; line-height: 28px;" text>
               {{ claims.sub }}
             </n-button>

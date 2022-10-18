@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { NA, NBreadcrumb, NBreadcrumbItem, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
+import { NA, NBreadcrumb, NBreadcrumbItem, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 import { EpicorReceive, EpicorService, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 import EpicorReceivesSubItem from "./EpicorReceivesSubItem.vue";
 
 const route = useRoute();
-const router = useRouter();
-const message = useMessage();
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];

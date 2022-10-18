@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridApi, ColumnApi, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { GetRowIdParams, GridApi, ColumnApi, GridReadyEvent, RowDoubleClickedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace } from 'naive-ui';
-import { onBeforeMount, reactive, ref } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { MaterialRead, MaterialsService, MaterialTypeEnum, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
@@ -26,18 +26,16 @@ const defaultColDef = {
   resizable: true,
 }
 
-const columnDefs = reactive( {
-  value: [
-    { field: "idno", headerName: '物料代碼' },
-    { field: "name", headerName: '物料名稱' },
-    { field: "material_type", headerName: '物料類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品', IN_PROCESS_MATERIAL: '❷ 半成品' } },
-  ]
-} );
+const columnDefs: ColDef[] = [
+  { field: "idno", headerName: '物料代碼' },
+  { field: "name", headerName: '物料名稱' },
+  { field: "material_type", headerName: '物料類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品', IN_PROCESS_MATERIAL: '❷ 半成品' } },
+];
 
 
 
 const gridOptions = {
-  columnDefs: columnDefs.value,
+  columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
@@ -87,9 +85,9 @@ function onGridReady ( params: GridReadyEvent ) {
 
 
 
-function onClickCreateProductButton () { router.push( '/materials/create_product' ); }
-function onClickCreateInProcessMaterialButton () { router.push( '/materials/create_in_process_material' ); }
-function onClickCreateRawMaterialButton () { router.push( '/materials/create_raw_material' ); }
+function onClickCreateProductButton ( event: Event ) { router.push( '/materials/create_product' ); }
+function onClickCreateInProcessMaterialButton ( event: Event ) { router.push( '/materials/create_in_process_material' ); }
+function onClickCreateRawMaterialButton ( event: Event ) { router.push( '/materials/create_raw_material' ); }
 </script>
 
 <template>

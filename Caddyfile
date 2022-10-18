@@ -20,7 +20,7 @@ http:// {
 	# }
 
 	handle {
-		reverse_proxy :3000
+		reverse_proxy localhost:5173
 		# try_files {path} /
 	}
 }
