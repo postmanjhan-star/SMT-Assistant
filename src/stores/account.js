@@ -8,15 +8,11 @@ const useAccountStore = defineStore( 'account', () => {
     const authorizedModules = ref( useStorage( 'authorizedModules', [] ) );
     async function setAuthorizedModules () {
         const authStore = useAuthStore();
-        // console.debug( authStore.accountToken );
         OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
         try {
             const response = await MeService.getAuthorizedModules();
-            // console.debug( response );
             authorizedModules.value = response;
-        } catch ( error ) {
-            console.error( error );
-        }
+        } catch ( error ) { console.error( error ); }
     }
     return { authorizedModules, setAuthorizedModules };
 } );

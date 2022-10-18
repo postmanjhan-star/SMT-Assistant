@@ -1,5 +1,6 @@
 import { defineStore, acceptHMRUpdate } from "pinia";
 import { useStorage } from "@vueuse/core";
+import { useAccountStore } from "./account";
 import { SessionService } from "../client";
 
 // useStore could be anything like useUser, useCart
@@ -13,7 +14,10 @@ export const useAuthStore = defineStore( {
       const response = await SessionService.refreshTokens(); // Handle error on caller, not here.
       this.accountToken = JSON.stringify( response );
     },
-    logout () {
+    async logout () {
+      const accountStore = useAccountStore();
+      accountStore.authorizedModules = [];
+      await SessionService.logout();
       this.accountToken = null;
       localStorage.clear();
     },

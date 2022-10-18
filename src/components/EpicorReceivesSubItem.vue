@@ -1,20 +1,19 @@
 <script setup lang="ts">
+import { ColDef, GridOptions } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NH2, NSpace, useMessage } from 'naive-ui';
-import { onBeforeMount, reactive, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { NH2, NSpace } from 'naive-ui';
+import { onBeforeMount, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { EpicorReceiveDetail, EpicorService, OpenAPI } from '../client';
 import { useAuthStore } from '../stores/auth';
 
-const message = useMessage();
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
 const route = useRoute();
-const router = useRouter();
 
 const rowData = ref<EpicorReceiveDetail[] | undefined>( [] );
 
@@ -28,23 +27,21 @@ const defaultColDef = {
   resizable: true,
 }
 
-const columnDefs = reactive( {
-  value: [
-    { field: "PartNum", headerName: '零件' },
-    { field: "WareHouseCode", headerName: '倉庫' },
-    { field: "BinNum", headerName: '庫位' },
-    { field: "OurQty", headerName: '我方數量' },
-    { field: "IUM", headerName: '單位' },
-    { field: "ReceivedTo", headerName: '收貨至' },
-    { field: "VenPartNum", headerName: '供應商零件' },
-    { field: "LotNum", headerName: '批號' },
-    { field: "NumLabels", headerName: '行' },
-    { field: "ReceivedQty", headerName: '我方數量' },
-  ]
-} );
+const columnDefs: ColDef[] = [
+  { field: "PartNum", headerName: '零件' },
+  { field: "WareHouseCode", headerName: '倉庫' },
+  { field: "BinNum", headerName: '庫位' },
+  { field: "OurQty", headerName: '我方數量' },
+  { field: "IUM", headerName: '單位' },
+  { field: "ReceivedTo", headerName: '收貨至' },
+  { field: "VenPartNum", headerName: '供應商零件' },
+  { field: "LotNum", headerName: '批號' },
+  { field: "NumLabels", headerName: '行' },
+  { field: "ReceivedQty", headerName: '我方數量' },
+];
 
-const gridOptions = {
-  columnDefs: columnDefs.value,
+const gridOptions: GridOptions = {
+  columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
@@ -94,4 +91,5 @@ function onGridReady ( params ) {
 </template>
 
 <style>
+
 </style>

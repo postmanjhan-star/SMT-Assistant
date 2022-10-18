@@ -15,19 +15,19 @@ const accountStore = useAccountStore();
     <n-grid cols="1 s:2 m:4 xl:5" responsive="screen" :x-gap=" 20 " :y-gap=" 20 ">
 
       <n-gi>
-        <n-card class="main-card" title="基本資料管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
+        <n-card class="main-card" title="基本資料管理" size="huge" :bordered=" false " header-style="padding-bottom: 0;">
           <n-menu :options=" purchaseMenuOptions " />
         </n-card>
       </n-gi>
 
       <n-gi>
-        <n-card class="main-card" title="收發作業" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
+        <n-card class="main-card" title="收發作業" size="huge" :bordered=" false " header-style="padding-bottom: 0;">
           <n-menu :options=" materialMenuOptions " />
         </n-card>
       </n-gi>
 
       <n-gi v-if=" accountStore.authorizedModules.includes( 'see_system_group' ) ">
-        <n-card class="main-card" title="系統管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
+        <n-card class="main-card" title="系統管理" size="huge" :bordered=" false " header-style="padding-bottom: 0;">
           <n-menu :options=" systemMenuOptions " />
         </n-card>
       </n-gi>

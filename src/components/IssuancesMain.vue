@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
@@ -31,23 +31,21 @@ type Row = {
 
 const rowData = ref<Row[]>( [] );
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   filter: true,
   sortable: true,
   flex: 1,
   resizable: true,
 }
 
-const columnDefs = reactive( {
-  value: [
-    { field: "idno", headerName: '發料單號' },
-    { field: "date", headerName: '發料日期' },
-    { field: "issuingCompleted", headerName: '已發料完成' },
-  ]
-} );
+const columnDefs: ColDef[] = [
+  { field: "idno", headerName: '發料單號' },
+  { field: "date", headerName: '發料日期' },
+  { field: "issuingCompleted", headerName: '已發料完成' },
+];
 
-const gridOptions = {
-  columnDefs: columnDefs.value,
+const gridOptions: GridOptions = {
+  columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
