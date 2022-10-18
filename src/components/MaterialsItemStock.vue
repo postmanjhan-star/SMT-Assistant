@@ -189,8 +189,8 @@ async function handleGenerateLabelsButtonClick ( event: Event ) {
         </n-space>
 
         <n-space size="large">
-            <n-button type="primary" secondary strong @click=" onClickSplitButton() ">分割單包</n-button>
-            <n-button type="primary" secondary strong @click=" handleGenerateLabelsButtonClick() ">產生 WMS 標籤貼紙
+            <n-button type="primary" secondary strong @click=" onClickSplitButton( $event ) ">分割單包</n-button>
+            <n-button type="primary" secondary strong @click=" handleGenerateLabelsButtonClick( $event ) ">產生 WMS 標籤貼紙
             </n-button>
         </n-space>
 

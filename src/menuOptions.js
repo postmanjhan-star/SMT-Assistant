@@ -1,10 +1,12 @@
-import { h } from 'vue';
-import { RouterLink } from 'vue-router';
-
-
+import { h } from "vue";
+import { RouterLink } from "vue-router";
 
 const systemMenuOptions = [
-    { label: () => h( RouterLink, { to: '/accounts' }, { default: () => '帳號管理' } ), key: 'accounts' },
+  {
+    label: () =>
+      h(RouterLink, { to: "/accounts" }, { default: () => "帳號管理" }),
+    key: "accounts",
+  },
 ];
 
 
@@ -27,10 +29,4 @@ const purchaseMenuOptions = [
     { label: () => h( RouterLink, { to: '/materials' }, { default: () => '物料管理' } ), key: 'materials' },
 ];
 
-
-
-export {
-    systemMenuOptions,
-    materialMenuOptions,
-    purchaseMenuOptions,
-};
+export { systemMenuOptions, materialMenuOptions, purchaseMenuOptions };

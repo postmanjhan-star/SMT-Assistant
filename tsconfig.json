@@ -8,4 +8,5 @@
         "types": ["vite/client"],
         // "skipLibCheck": true,
     },
+    "exclude": ["./dist/**/*"] // To prevent the error of 'Cannot write file XXX because it would overwrite input file.'
 }

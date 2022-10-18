@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { ApiError } from "../client";
 import { useAccountStore } from "../stores/account";
 import { useAuthStore } from "../stores/auth";
 
@@ -24,9 +23,9 @@ const routes = [
         component: () => import( "../components/HomeMain.vue" ),
       },
       {
-        path: '/accounts',
-        meta: { requiredAuthModule: [ 'see_system_group' ] },
-        component: () => import( "../components/Accounts.vue" ),
+        path: "/accounts",
+        meta: { requiredAuthModule: ["see_system_group"] },
+        component: () => import("../components/AccountsMaster.vue"),
       },
       {
         path: '/accounts/create',
@@ -182,7 +181,7 @@ const routes = [
         path: '/smt/mounter/upload_fst',
         component: () => import( "../smtViews/UploadFst.vue" ),
       },
-    ]
+    ],
   },
   {
     path: "/playground",
@@ -234,17 +233,12 @@ router.beforeEach( async ( to, from ) => {
   }
 
   // Refresh `refresh_token` & `access_token` with every request
-  if ( authStore.isAuthenticated === true ) {
-    try { await authStore.refreshToken(); }
-    catch ( error ) {
-      // Just logout on error occurs. No matter what the error is.
-      // console.debug( error );
-      // if ( error instanceof ApiError ) {
-      //   if ( error.status === 422 || error.status === 401 ) {
-          authStore.logout();
+  if (authStore.isAuthenticated === true) {
+    try {
+      await authStore.refreshToken();
+    } catch (error) {
+      authStore.logout();
           return { name: 'Login', params: { message: '登錄過期，請重新登入' } };
-      //   }
-      // }
     }
   }
 

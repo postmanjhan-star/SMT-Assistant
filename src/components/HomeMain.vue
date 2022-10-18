@@ -25,7 +25,7 @@ const accountStore = useAccountStore();
           <n-menu :options=" materialMenuOptions " />
         </n-card>
       </n-gi>
-      
+
       <n-gi v-if=" accountStore.authorizedModules.includes( 'see_system_group' ) ">
         <n-card class="main-card" title="系統管理" size="Huge" :bordered=" false " header-style="padding-bottom: 0;">
           <n-menu :options=" systemMenuOptions " />
@@ -43,7 +43,7 @@ main .n-card {
   background-color: transparent;
 }
 
-.n-grid>div {
+.n-grid > div {
   border: 1px solid white;
   border-radius: 4px;
   background-color: hsla(0, 0%, 100%, 0.6);
