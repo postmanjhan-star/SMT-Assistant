@@ -15,3 +15,11 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 - 表格內容從靠上修正為置中。（c64596cf）
 
 ### Security
+
+## 1.1.0 - 2022-10-21
+### Added
+- 二次首發
+
+## 1.0.0
+### Added
+- 首發
