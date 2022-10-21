@@ -40,6 +40,11 @@ const lightThemeOverrides: GlobalThemeOverrides = {
 </template>
 
 <style>
+/* Make AG-Grid cell content at middle in vertical */
+.ag-cell-wrapper {
+  height: 100%;
+}
+
 /* .n-input {
   box-shadow: inset 0px 0px 4px 0px hsla(0deg, 0%, 60% , 1.0);
 }
