@@ -73,7 +73,6 @@ const gridOptions: GridOptions = {
 
 onBeforeMount( async () => {
     issuanceReturnList = await IssuancesService.getIssuacneReturnList();
-
     for ( let issuanceReturn of issuanceReturnList ) {
         rowData.value.push( {
             id: issuanceReturn.id,
@@ -85,6 +84,8 @@ onBeforeMount( async () => {
             returnQuantity: issuanceReturn.return_quantity,
         } );
     }
+    gridApi.value.setRowData( rowData.value )
+    gridColumnApi.value.autoSizeAllColumns();
 } );
 
 
