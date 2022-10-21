@@ -6,12 +6,12 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
 ## Unreleased
 ### Added
-- 所有更新日誌都在 [CHANGELOG.md](CHANGELOG.md)。（）
+- 所有更新日誌都在 [CHANGELOG.md](CHANGELOG.md)。（c64596cf）
 
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
-- 表格內容從靠上修正為置中。
+- 表格內容從靠上修正為置中。（c64596cf）
 
 ### Security
