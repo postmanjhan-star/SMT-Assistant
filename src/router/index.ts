@@ -47,7 +47,11 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/storages/:id',
-        component: () => import( "../components/StoragesItem.vue" ),
+        component: () => import( "../components/StoragesDetail.vue" ),
+      },
+      {
+        path: '/storages/:id/edit',
+        component: () => import( "../components/StoragesEdit.vue" ),
       },
       {
         path: '/materials',
