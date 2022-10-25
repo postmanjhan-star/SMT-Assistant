@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { L1StorageMaterialBalance } from '../models/L1StorageMaterialBalance';
 import type { L1StorageUpdate } from '../models/L1StorageUpdate';
 import type { L2StorageCreate } from '../models/L2StorageCreate';
 import type { L2StorageRead } from '../models/L2StorageRead';
@@ -144,6 +145,28 @@ requestBody: L2StorageCreate,
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Storage Materials Balance
+     * @returns L1StorageMaterialBalance Successful Response
+     * @throws ApiError
+     */
+    public static getStorageMaterialsBalance({
+l1Id,
+}: {
+l1Id: number,
+}): CancelablePromise<Array<L1StorageMaterialBalance>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/storages/{l1_id}/materials',
+            path: {
+                'l1_id': l1Id,
+            },
             errors: {
                 422: `Validation Error`,
             },

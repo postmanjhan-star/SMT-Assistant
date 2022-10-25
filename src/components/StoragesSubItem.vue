@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // 儲位可以加，可以改，不能刪。
 
+import { ColDef, ColumnApi, GridApi, GridOptions } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NButton, NH2, NSpace, useMessage } from 'naive-ui';
-import { onBeforeMount, reactive, ref } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { L2StorageCreate, L2StorageRead, L2StorageUpdate, OpenAPI, StoragesService } from '../client';
 import { useAuthStore } from '../stores/auth';
@@ -21,26 +22,23 @@ const router = useRouter();
 let l1_storage_id: number;
 const rowData = ref<L2StorageRead[]>( [] );
 
-const gridApi = ref();
-const gridColumnApi = ref();
+const gridApi = ref<GridApi>();
+const gridColumnApi = ref<ColumnApi>();
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   editable: true,
   filter: true,
   sortable: true,
-  flex: 1,
   resizable: true,
 }
 
-const columnDefs = reactive( {
-  value: [
-    { field: "idno", headerName: '儲位代碼' },
-    { field: "name", headerName: '儲位名稱' },
-  ]
-} );
+const columnDefs: ColDef[] = [
+  { field: "idno", headerName: '儲位代碼' },
+  { field: "name", headerName: '儲位名稱' },
+];
 
-const gridOptions = {
-  columnDefs: columnDefs.value,
+const gridOptions: GridOptions = {
+  columnDefs: columnDefs,
   defaultColDef: defaultColDef,
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
@@ -50,13 +48,18 @@ const gridOptions = {
   suppressColumnVirtualisation: true,
   suppressRowTransform: true,
   debounceVerticalScrollbar: true,
+  enableCellTextSelection: true, // Add a div.ag-cell-wrapper element
 
+  rowSelection: 'single',
+  suppressCellFocus: true,
 }
 
 onBeforeMount( async () => {
   try {
     const response = await StoragesService.getStorage( { l1Id: Number( route.params.id ) } );
     rowData.value = response.l2_storages;
+    gridApi.value.setRowData( rowData.value );
+    gridColumnApi.value.autoSizeAllColumns();
     l1_storage_id = response.id;
   } catch ( error ) { console.error( error ); }
 } )
@@ -106,8 +109,6 @@ async function handleUpdateL2StorageButtonClick ( event: Event ) {
     if ( entry.id >= 0 ) { to_update.push( entry ); }
     else { to_create.push( entry ); }
   }
-  console.debug( to_update );
-  console.debug( to_create );
 
   if ( to_update.length >= 1 ) {
     for ( let row of to_update ) {
@@ -131,7 +132,7 @@ async function handleUpdateL2StorageButtonClick ( event: Event ) {
     message.success( '儲位建立成功' );
   }
 
-  router.push( '/storages' );
+  router.push( '/storages' ); // Stay on the same page?
 }
 </script>
 
@@ -151,9 +152,12 @@ async function handleUpdateL2StorageButtonClick ( event: Event ) {
         </n-button>
       </n-space>
 
-      <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
-        :getRowId=" getRowId " :onGridReady=" onGridReady ">
-      </ag-grid-vue>
+      <div style="height: 600px; overflow-x: scroll; width: 100%;">
+        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; " :gridOptions=" gridOptions "
+          :getRowId=" getRowId " :onGridReady=" onGridReady ">
+        </ag-grid-vue>
+      </div>
+
 
       <n-button type="primary" size="large" @click=" handleUpdateL2StorageButtonClick( $event ) " attr-type="submit"
         block>
@@ -165,4 +169,5 @@ async function handleUpdateL2StorageButtonClick ( event: Event ) {
 </template>
 
 <style>
+
 </style>

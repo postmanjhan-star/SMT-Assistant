@@ -7,8 +7,11 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ## Unreleased
 ### Added
 - 所有更新日誌都在 [CHANGELOG.md](CHANGELOG.md)。（c64596cf）
+- 倉儲管理可檢視該倉位內所有物料及庫存數量。（）
 
 ### Changed
+- 倉儲管理頁改為按編輯鈕才可編輯。（）
+
 ### Deprecated
 ### Removed
 ### Fixed

@@ -49,7 +49,7 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
   try {
     const response = await StoragesService.updateL1Storage( { l1Id: formValue.value.id, requestBody: formValue.value } );
     message.success( `更新成功` );
-    router.push( '/storages' );
+    router.push( `/storages/${ formValue.value.id }` );
 
   } catch ( error ) {
     if ( error instanceof ApiError && error.status === 409 ) { message.error( '同名倉位已存在，請重新命名' ); }
