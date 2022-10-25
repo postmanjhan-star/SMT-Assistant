@@ -11,6 +11,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
 ### Changed
 - 倉儲管理頁改為按編輯鈕才可編輯。（f2204e1e）
+- SMT mounter 上料助手首頁改為須輸入工單與機台號，內頁改為僅顯示該工單與機台號之物料資訊。（）
 
 ### Deprecated
 ### Removed

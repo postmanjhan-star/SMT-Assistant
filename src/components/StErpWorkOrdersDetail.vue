@@ -59,7 +59,7 @@ const columnDefs: ColDef[] = [
 
 
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   editable: false,
   filter: true,
   sortable: true,
@@ -122,6 +122,7 @@ onBeforeMount( async () => {
       } )
     }
     gridApi.value.setRowData( rowData.value );
+    gridColumnApi.value.autoSizeAllColumns();
   } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 } );
 
@@ -172,7 +173,7 @@ async function onClickCreateWmsMaterial ( event: Event ) { }
 
         <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
-          <n-form-item-gi label="成品編號">
+          <n-form-item-gi label="製品編號">
             <n-input v-model:value.lazy=" headerFormValue.productIdno " readonly></n-input>
           </n-form-item-gi>
 

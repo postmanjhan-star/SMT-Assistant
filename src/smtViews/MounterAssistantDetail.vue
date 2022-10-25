@@ -3,7 +3,7 @@ import { InputInst, NEl, NForm, NFormItem, NGi, NGrid, NInput, NPageHeader, useM
 import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialInventoriesService, StErpService, STWorkOrderItemForSMTMounterCheck, SmtMounterFstRead } from '../client';
+import { ApiError, MaterialInventoriesService, SmtMounterFstRead, StErpService } from '../client';
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
@@ -36,7 +36,10 @@ let matereialIdnoFromInput: string;
 
 
 onMounted( async () => {
-  try { fstDataArray.value = await StErpService.getSmtMounterCheckData( { workOrderIdno: route.params.workOrderIdno.toString() } ) }
+  try { fstDataArray.value = await StErpService.getSmtMounterCheckData( {
+    workOrderIdno: route.params.workOrderIdno.toString().trim(),
+    mounterIdno: route.params.mounterIdno.toString().trim(),
+  } ) }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
   for ( let masterData of fstDataArray.value ) {
@@ -60,7 +63,7 @@ onMounted( async () => {
 
 
 
-function onClickBackArrow ( event: Event ) { router.push( `/smt/mounter/work_orders/` ); }
+function onClickBackArrow ( event: Event ) { router.push( `/smt/mounter/` ); }
 
 
 

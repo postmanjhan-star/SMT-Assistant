@@ -37,6 +37,7 @@ export const $STPart = {
 },
         part_type: {
     type: 'number',
+    isRequired: true,
 },
     },
 } as const;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, useMessage } from 'naive-ui';
+import { FormInst, FormRules, NA, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, useMessage } from 'naive-ui';
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { Body_login_for_access_token, SessionService } from '../client';
 import { useAccountStore } from '../stores/account';
 import { useAuthStore } from '../stores/auth';
@@ -17,8 +17,8 @@ const accountStore = useAccountStore();
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<Body_login_for_access_token>( { username: '', password: '' } );
 const rules: FormRules = {
-    username: { required: true, message: '请输入帳號', trigger: [ 'blur' ], },
-    password: { required: true, message: '请输入密碼', trigger: [ 'input', 'blur' ], }
+    username: { required: true, message: '請輸入帳號', trigger: [ 'blur' ], },
+    password: { required: true, message: '請輸入密碼', trigger: [ 'input', 'blur' ], }
 };
 
 
@@ -72,9 +72,9 @@ async function onClickLoginButton ( event: Event ) {
                 <!--<template #cover>
                     <img alt="Sentec logo" class="logo" src="http://www.sentecgroup.com/assets/img/logo.png"/>
                 </template> -->
-                <n-form size="large" @keyup.enter=" onClickLoginButton( $event ) " :model=" formValue "
-                    :rules=" rules " ref="formRef">
-                    <n-form-item show-require-mark autofocus label="帳號" path="username">
+                <n-form size="large" @keyup.enter=" onClickLoginButton( $event ) " :model=" formValue " :rules=" rules "
+                    ref="formRef">
+                    <n-form-item show-require-mark label="帳號" path="username">
                         <n-input v-model:value.lazy=" formValue.username " autofocus
                             :input-props=" { autocomplete: 'username' } "></n-input>
                     </n-form-item>
@@ -87,6 +87,12 @@ async function onClickLoginButton ( event: Event ) {
                     </n-form-item>
                 </n-form>
             </n-card>
+
+            <div style="text-align: center; margin-top: 1rem;">
+                <router-link to="/smt/mounter" #=" { navigate, href } " custom>
+                    <n-a :href=" href " @click=" navigate ">SMT Mounter 上料助手</n-a>
+                </router-link>
+            </div>
         </n-gi>
         <n-gi span="0 s:1"></n-gi>
     </n-grid>

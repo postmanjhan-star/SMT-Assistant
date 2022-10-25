@@ -174,12 +174,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import( "../smtViews/HomeView.vue" ),
     children: [
       {
-        path: '/smt/mounter/work_orders',
-        component: () => import( "../smtViews/WorkOrdersHome.vue" ),
+        path: '/smt/mounter',
+        component: () => import( "../smtViews/MounterAssistantHome.vue" ),
       },
       {
-        path: '/smt/mounter/work_orders/:workOrderIdno',
-        component: () => import( "../smtViews/WorkOrdersDetail.vue" ),
+        path: '/smt/mounter/:mounterIdno/:workOrderIdno',
+        component: () => import( "../smtViews/MounterAssistantDetail.vue" ),
       },
       {
         path: '/smt/mounter/upload_fst',
