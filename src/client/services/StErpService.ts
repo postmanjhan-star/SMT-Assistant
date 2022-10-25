@@ -10,7 +10,6 @@ import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STVendor } from '../models/STVendor';
 import type { STWorkOrder } from '../models/STWorkOrder';
 import type { STWorkOrderItem } from '../models/STWorkOrderItem';
-import type { STWorkOrderItemForSMTMounterCheck } from '../models/STWorkOrderItemForSMTMounterCheck';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -207,7 +206,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2022-09-29',
+date = '2022-10-25',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
@@ -300,43 +299,25 @@ formData: Body_upload_fst,
     }
 
     /**
-     * @deprecated
-     * Get St Work Order For Smt Mounter Match Check
-     * @returns STWorkOrderItemForSMTMounterCheck Successful Response
-     * @throws ApiError
-     */
-    public static getStWorkOrderForSmtMounterMatchCheck({
-workOrderIdno,
-}: {
-workOrderIdno: string,
-}): CancelablePromise<Array<STWorkOrderItemForSMTMounterCheck>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/st_erp/work_orders/{work_order_idno}/smt/mounter',
-            path: {
-                'work_order_idno': workOrderIdno,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
      * Get Smt Mounter Check Data
      * @returns SmtMounterFstRead Successful Response
      * @throws ApiError
      */
     public static getSmtMounterCheckData({
 workOrderIdno,
+mounterIdno,
 }: {
 workOrderIdno: string,
+mounterIdno?: string,
 }): CancelablePromise<Array<SmtMounterFstRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/smt/mounter/{work_order_idno}',
             path: {
                 'work_order_idno': workOrderIdno,
+            },
+            query: {
+                'mounter_idno': mounterIdno,
             },
             errors: {
                 422: `Validation Error`,

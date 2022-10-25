@@ -11,5 +11,5 @@ export type STPart = {
     base_storage_2: string;
     qty_per_pack: number;
     maker_part_idno: string;
-    part_type?: number;
+    part_type: number;
 };

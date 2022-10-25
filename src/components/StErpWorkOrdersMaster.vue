@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { ColDef, ColumnApi, GetRowIdParams, GridApi, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
@@ -18,8 +18,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref();
-const gridColumnApi = ref();
+const gridApi = ref<GridApi>();
+const gridColumnApi = ref<ColumnApi>();
 
 const dateForm = ref( { dateTimestamp: getTime( new Date() ) } );
 
@@ -46,7 +46,7 @@ const defaultColDef: ColDef = {
 
 const columnDefs: ColDef[] = [
     { field: "workOrderIdno", headerName: '工令編號' },
-    { field: "productIdno", headerName: '成品／半成品編號' },
+    { field: "productIdno", headerName: '製品物料代碼' },
     { field: "productType", headerName: '類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品', IN_PROCESS_MATERIAL: '❷ 半成品' } },
     { field: "productName", headerName: '名稱' },
     { field: "issueDate", headerName: '發料日期' },
@@ -111,6 +111,7 @@ async function queryWorkOrders ( date: Date ) {
             productionDepartment: workOrder.production_department,
             productionLine: workOrder.production_line,
         } );
+        gridApi.value.setRowData( rowData.value );
         gridColumnApi.value.autoSizeAllColumns();
     }
 }
@@ -121,13 +122,9 @@ onBeforeMount( async () => { await queryWorkOrders( new Date() ); } );
 
 
 
-function getRowId ( params: GetRowIdParams ) { return params.data.workOrderIdno; }
-
-
-
-function onGridReady ( params: GridReadyEvent ) {
-    gridApi.value = params.api;
-    gridColumnApi.value = params.columnApi;
+function onGridReady ( event: GridReadyEvent ) {
+    gridApi.value = event.api;
+    gridColumnApi.value = event.columnApi;
 };
 
 
@@ -138,7 +135,7 @@ async function onSubmitDateQuery ( event: Event ) {
 }
 
 
-
+// Not implemented yet
 async function onClickCreateIssuanceButton ( event: Event ) {
     let stWorkOrder: Row;
     const materialList = [];
@@ -215,7 +212,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
 
                 <div style="height: 600px; overflow-x: scroll; width: 100%;">
                     <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%;"
-                        :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+                        :gridOptions=" gridOptions " :onGridReady=" onGridReady "></ag-grid-vue>
                 </div>
 
             </n-space>
