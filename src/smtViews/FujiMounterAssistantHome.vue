@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, useMessage } from 'naive-ui';
+import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, useMessage, NH1 } from 'naive-ui';
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, StErpService } from '../client';
@@ -33,11 +33,15 @@ async function onClickSubmitButton ( event: Event ) {
       workOrderIdno: formValue.value.workOrderIdno.trim(),
       mounterIdno: formValue.value.mounterIdno.trim(),
     } );
-    router.push( `/smt/mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }` );
+    router.push( `/smt/fuji-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }` );
   }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '查無資料' );
+      return false;
+    }
+    if ( error instanceof ApiError && error.status === 503 ) {
+      message.error( 'ERP 工單查詢失敗' );
       return false;
     }
   }
@@ -48,7 +52,7 @@ async function onClickSubmitButton ( event: Event ) {
 
 <template>
   <div style="padding: 1rem;">
-
+    <n-h1 style="text-align: center;">Fuji 打件機上料助手</n-h1>
     <n-space vertical size="large" style="padding: 1rem;">
       <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
         <n-grid cols="1 s:3" responsive="screen">
@@ -77,7 +81,7 @@ async function onClickSubmitButton ( event: Event ) {
       </n-form>
 
       <div style="text-align: center; margin-top: 1rem;">
-        <router-link to="/smt/mounter/upload_fst" #=" { navigate, href } " custom>
+        <router-link to="/smt/fuji-mounter/upload_fst" #=" { navigate, href } " custom>
           <n-a :href=" href " @click=" navigate ">上傳 FST 檔案作業</n-a>
         </router-link>
       </div>

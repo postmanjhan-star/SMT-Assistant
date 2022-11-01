@@ -8,6 +8,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ### Added
 - 所有更新日誌都在 [CHANGELOG.md](CHANGELOG.md)。（c64596cf）
 - 倉儲管理可檢視該倉位內所有物料及庫存數量。（f2204e1e）
+- SMT mounter 上料助手增加語音提示，輸入物料後會提示插槽位置。（）
 
 ### Changed
 - 倉儲管理頁改為按編輯鈕才可編輯。（f2204e1e）

@@ -30,9 +30,6 @@ const lightThemeOverrides: GlobalThemeOverrides = {
     :theme-overrides=" lightThemeOverrides ">
     <n-message-provider>
       <n-notification-provider>
-        <!-- <header>
-          <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-        </header> -->
         <RouterView />
       </n-notification-provider>
     </n-message-provider>

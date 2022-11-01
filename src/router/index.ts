@@ -174,16 +174,16 @@ const routes: RouteRecordRaw[] = [
     component: () => import( "../smtViews/HomeView.vue" ),
     children: [
       {
-        path: '/smt/mounter',
-        component: () => import( "../smtViews/MounterAssistantHome.vue" ),
+        path: '/smt/fuji-mounter',
+        component: () => import( "../smtViews/FujiMounterAssistantHome.vue" ),
       },
       {
-        path: '/smt/mounter/:mounterIdno/:workOrderIdno',
-        component: () => import( "../smtViews/MounterAssistantDetail.vue" ),
+        path: '/smt/fuji-mounter/:mounterIdno/:workOrderIdno',
+        component: () => import( "../smtViews/FujiMounterAssistantDetail.vue" ),
       },
       {
-        path: '/smt/mounter/upload_fst',
-        component: () => import( "../smtViews/UploadFst.vue" ),
+        path: '/smt/fuji-mounter/upload_fst',
+        component: () => import( "../smtViews/UploadFujiFile.vue" ),
       },
     ],
   },
