@@ -223,7 +223,10 @@ async function onClickCreateReceiveButton ( event: Event ) {
     message.success( `收料單 ${ response.idno } 建立成功` );
     router.push( '/receives' );
   }
-  catch ( error ) { message.error( '建立失敗' ); }
+  catch ( error ) {
+    if ( error instanceof ApiError && error.status === 409 ) { message.error( '此張舊 ERP 收料單已匯入過，不可重複匯入。' ); }
+    else { message.error( '建立失敗' ); }
+  }
   finally { loadingRef.value = false; }
 }
 </script>

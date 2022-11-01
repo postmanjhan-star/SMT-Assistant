@@ -63,11 +63,10 @@ const columnDefs: ColDef[] = [
   { field: "lend_qty", headerName: '借出數量', editable: false },
 ];
 
-const defaultColDef = {
+const defaultColDef: ColDef = {
   editable: true,
   filter: true,
   sortable: true,
-  flex: 1, // Every columns have the same portion of width
   resizable: true,
 };
 
@@ -131,6 +130,7 @@ function addItemToGrid ( item: GridItem ) {
     lend_qty: item.lend_qty,
   } );
   gridApi.value.setRowData( rowData.value );
+  gridColumnApi.value.autoSizeAllColumns();
 }
 
 
@@ -246,10 +246,10 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance({
+  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
     materialInventoryId: materialInventory.id,
     onlyIssuable: true,
-  })
+  } )
   if ( balance <= 0 ) {
     message.error( '此單包已無可用庫存' );
     return false;
@@ -427,9 +427,12 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
               </n-space>
 
-              <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; "
-                :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
-              </ag-grid-vue>
+              <div style="height: 600px; overflow-x: scroll; width: 100%;">
+                <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
+                  :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
+                </ag-grid-vue>
+              </div>
+
             </n-gi>
 
             <n-form-item-gi span="3">
