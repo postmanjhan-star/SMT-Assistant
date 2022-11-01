@@ -13,7 +13,6 @@ const message = useMessage();
 const router = useRouter();
 const props = defineProps( {
   st_receive_idno: String,
-  st_record_idno: String,
   st_vendor_id: Number,
   st_mbr_idno: String,
   st_purchase_idno: String,
@@ -37,7 +36,6 @@ const headerFormValue = ref( {
   memo: undefined,
   st_receive_idno: props.st_receive_idno as string,
   st_mbr_idno: props.st_mbr_idno,
-  st_record_idno: props.st_record_idno,
 } );
 
 const materialIdnoInput = ref();
@@ -69,7 +67,6 @@ const defaultColDef = {
   editable: true,
   filter: true,
   sortable: true,
-  flex: 1, // Every columns have the same portion of width
   resizable: true,
 }
 
@@ -84,7 +81,7 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
   suppressRowTransform: true,
   debounceVerticalScrollbar: true,
-  enableCellTextSelection: false,
+  enableCellTextSelection: true,
 
   rowSelection: 'single',
   suppressCellFocus: true,
@@ -134,10 +131,7 @@ async function onGridReady ( params: GridReadyEvent ) {
   }
 };
 
-// async function handleImportFromStErpButtonClick ( event: Event ) {
-//   const response = await StErpService.getStReceive( headerFormValue.value.st_receive_idno );
-//   console.debug( response );
-// }
+
 
 let newRowId = -1
 function addReceiveItemToGrid ( receiveItem: GridReceiveItem ) {
@@ -151,10 +145,11 @@ function addReceiveItemToGrid ( receiveItem: GridReceiveItem ) {
     st_barcodes: receiveItem.st_barcodes,
   } );
   gridApi.value.setRowData( rowData.value );
+  gridColumnApi.value.autoSizeAllColumns();
   newRowId--;
 }
 
-async function handleAddReceiveItemButtonClick ( event: Event ) {
+async function onClickAddReceiveItemButton ( event: Event ) {
   // qualify_qty and total_qty should greater than zero
   if ( materialAdditionFormValue.value.qualify_qty as number <= 0 || materialAdditionFormValue.value.total_qty as number <= 0 ) {
     message.error( '數量應大於零' );
@@ -208,7 +203,7 @@ async function handleAddReceiveItemButtonClick ( event: Event ) {
 const loadingRef = ref( false );
 const loading = loadingRef;
 
-async function handleCreateReceiveButtonClick ( event: Event ) {
+async function onClickCreateReceiveButton ( event: Event ) {
   loadingRef.value = true;
 
   // Build request body
@@ -218,7 +213,6 @@ async function handleCreateReceiveButtonClick ( event: Event ) {
     purchase_idno: headerFormValue.value.purchase_idno,
     memo: headerFormValue.value.memo,
     st_receive_idno: headerFormValue.value.st_receive_idno,
-    st_record_idno: headerFormValue.value.st_record_idno,
     st_mbr_idno: headerFormValue.value.st_mbr_idno,
     receive_items: rowData.value,
   };
@@ -264,13 +258,7 @@ async function handleCreateReceiveButtonClick ( event: Event ) {
 
             <n-form-item-gi label="舊 ERP 收料單號" path="st_recieve_idno">
               <n-input-group>
-
                 <n-input v-model:value.st_recieve_idno=" headerFormValue.st_receive_idno "></n-input>
-
-                <!-- <n-button @click=" handleImportFromStErpButtonClick( $event ) " :loading=" loading ">
-                  從舊 ERP 匯入
-                </n-button> -->
-
               </n-input-group>
             </n-form-item-gi>
 
@@ -333,20 +321,23 @@ async function handleCreateReceiveButtonClick ( event: Event ) {
                   </n-form-item>
 
                   <n-form-item>
-                    <n-button type="primary" secondary strong @click=" handleAddReceiveItemButtonClick( $event ) "
+                    <n-button type="primary" secondary strong @click=" onClickAddReceiveItemButton( $event ) "
                       attr-type="submit">增加物料</n-button>
                   </n-form-item>
 
                 </n-space>
               </n-form>
 
-              <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; "
-                :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
-              </ag-grid-vue>
+              <div style="height: 600px; overflow-x: scroll; width: 100%;">
+                <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
+                  :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
+                </ag-grid-vue>
+              </div>
+
             </n-gi>
 
             <n-form-item-gi span="3">
-              <n-button type="primary" block @click=" handleCreateReceiveButtonClick( $event ) " attr-type="submit"
+              <n-button type="primary" block @click=" onClickCreateReceiveButton( $event ) " attr-type="submit"
                 :loading=" loading ">
                 建立收料單
               </n-button>

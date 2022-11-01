@@ -17,6 +17,5 @@ export type ReceiveRead = {
     employee_id: number;
     receive_items: Array<ReceiveItemRead>;
     st_receive_idno?: string;
-    st_record_idno?: string;
     st_mbr_idno?: string;
 };

@@ -11,7 +11,11 @@
     "generate": "openapi --input http://localhost/api/openapi.json --output ./src/client --exportSchemas true --useOptions",
     "test": "vitest"
   },
+  "dependenciesComments": {
+    "@antfu/utils": "@antfu/utils v0.6.1 has a bug. Skip it."
+  },
   "dependencies": {
+    "@antfu/utils": "0.6.0",
     "@carbon/icons-vue": "^10.49.1",
     "@chenfengyuan/vue-barcode": "^2.0.0",
     "@revolist/revogrid-column-numeral": "^1.0.2",

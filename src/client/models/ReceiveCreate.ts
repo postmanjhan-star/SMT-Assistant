@@ -10,7 +10,6 @@ export type ReceiveCreate = {
     memo?: string;
     purchase_idno?: string;
     st_receive_idno?: string;
-    st_record_idno?: string;
     st_mbr_idno?: string;
     receive_items: Array<ReceiveItemCreate>;
 };

@@ -107,7 +107,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import( "../components/ReceivesCreate.vue" ),
         props: route => ( {
           st_receive_idno: route.params.st_receive_idno,
-          st_record_idno: route.params.st_record_idno,
           st_vendor_id: Number( route.params.st_vendor_id ),
           st_mbr_idno: route.params.st_mbr_idno,
           st_purchase_idno: route.params.st_purchase_idno,
@@ -151,7 +150,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/st_erp_receives',
-        component: () => import( "../components/StErpReceivesMain.vue" ),
+        component: () => import( "../components/StErpReceivesMaster.vue" ),
       },
       {
         path: '/st_erp_work_orders',

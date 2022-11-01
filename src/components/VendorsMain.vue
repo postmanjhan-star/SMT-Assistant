@@ -22,7 +22,6 @@ const rowData = ref<VendorRead[]>( [] );
 const defaultColDef: ColDef = {
   filter: true,
   sortable: true,
-  flex: 1,
   resizable: true,
 }
 
@@ -42,6 +41,7 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
   suppressRowTransform: true,
   debounceVerticalScrollbar: true,
+  enableCellTextSelection: true,
 
   rowSelection: 'single',
   suppressCellFocus: true,
@@ -50,6 +50,8 @@ const gridOptions: GridOptions = {
 
 onBeforeMount( async () => {
   rowData.value = await VendorsService.getVendors();
+  gridApi.value.setRowData( rowData.value );
+  gridColumnApi.value.autoSizeAllColumns();
 } );
 
 function getRowId ( params: GetRowIdParams ) { return params.data.id; }

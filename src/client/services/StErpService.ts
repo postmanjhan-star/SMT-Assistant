@@ -2,7 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Body_upload_fst } from '../models/Body_upload_fst';
-import type { Printer } from '../models/Printer';
 import type { SmtMounterFstRead } from '../models/SmtMounterFstRead';
 import type { STPart } from '../models/STPart';
 import type { STPartPack } from '../models/STPartPack';
@@ -80,42 +79,25 @@ stPackIdno: string,
     }
 
     /**
-     * Get St Receives
+     * Get St Receive List
+     * CSV 資料順序：
+ *
+ * 收料單號^^訂單編號^^材料編號^^廠商編號^^收料日期^^收料數量^^驗收日期^^驗收數量^^隨車單號
+ *
+ * `idno^^purchase_idno^^part_idno^^vendor_idno^^receive_date^^tatal_qty^^qualify_date^^qualify_qty^^mbr_idno`
      * @returns STReceiveHeader Successful Response
      * @throws ApiError
      */
-    public static getStReceives({
-page = 1,
+    public static getStReceiveList({
+stReceiveDate = '2022-11-01',
 }: {
-page?: number,
+stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/receives/',
             query: {
-                'page': page,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get St Receive
-     * @returns STReceiveHeader Successful Response
-     * @throws ApiError
-     */
-    public static getStReceive({
-receiveIdno,
-}: {
-receiveIdno: string,
-}): CancelablePromise<STReceiveHeader> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/st_erp/receives/{receive_idno}',
-            path: {
-                'receive_idno': receiveIdno,
+                'st_receive_date': stReceiveDate,
             },
             errors: {
                 422: `Validation Error`,
@@ -138,34 +120,6 @@ stErpReceiveIdno: string,
             url: '/st_erp/receives/{st_erp_receive_idno}/barcodes',
             path: {
                 'st_erp_receive_idno': stErpReceiveIdno,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * @deprecated
-     * Print St Receive Packs Label
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static printStReceivePacksLabel({
-stErpReceiveIdno,
-printer,
-}: {
-stErpReceiveIdno: string,
-printer?: Printer,
-}): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/st_erp/receives/{st_erp_receive_idno}/packs_label',
-            path: {
-                'st_erp_receive_idno': stErpReceiveIdno,
-            },
-            query: {
-                'printer': printer,
             },
             errors: {
                 422: `Validation Error`,
@@ -206,7 +160,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2022-10-25',
+date = '2022-11-01',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
