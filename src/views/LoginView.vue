@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, useMessage } from 'naive-ui';
+import { FormInst, FormRules, NA, NButton, NCard, NForm, NFormItem, NGi, NGrid, NImage, NInput, useMessage } from 'naive-ui';
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { Body_login_for_access_token, SessionService } from '../client';
 import { useAccountStore } from '../stores/account';
 import { useAuthStore } from '../stores/auth';
+import imgUrl from '@/assets/fuji.webp'
 
 const props = defineProps( { message: String } );
 const message = useMessage();
@@ -86,11 +87,15 @@ async function onClickLoginButton ( event: Event ) {
                         <n-button type="primary" block @click=" onClickLoginButton( $event ) ">登入</n-button>
                     </n-form-item>
                 </n-form>
-            </n-card>
 
+            </n-card>
             <div style="text-align: center; margin-top: 1rem;">
-                <router-link to="/smt/mounter" #=" { navigate, href } " custom>
-                    <n-a :href=" href " @click=" navigate ">SMT Mounter 上料助手</n-a>
+                <router-link to="/smt/fuji-mounter" #=" { navigate, href } " custom>
+                    <n-a :href=" href " @click=" navigate ">
+                        <n-image :src=" imgUrl " width="80" preview-disabled lazy alt="Fuji 打件機上料助手"
+                            style="border-radius: 20px; border: 0.1px solid hsla(0, 0%, 100%, 0.2)"></n-image><br>
+                        Fuji 打件機<br />上料助手
+                    </n-a>
                 </router-link>
             </div>
         </n-gi>
@@ -100,8 +105,8 @@ async function onClickLoginButton ( event: Event ) {
 
 <style scoped>
 .n-grid {
-    background: linear-gradient(180deg, hsla(0, 0%, 0%, 0.4), hsla(0, 0%, 0%, 0.4)), url(http://www.sentecgroup.com/assets/img/hero-bg.jpg);
     background: linear-gradient(180deg, hsla(210, 100%, 40%, 0.4), hsla(50, 100%, 50%, 0.4)), url(http://www.sentecgroup.com/assets/img/hero-bg.jpg);
+    /* background: linear-gradient(180deg, hsla(0, 0%, 0%, 0), hsla(0, 0%, 0%, 0.1)), url(http://www.sentecgroup.com/assets/img/hero-bg.jpg); */
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center;
@@ -121,5 +126,19 @@ async function onClickLoginButton ( event: Event ) {
 
 .n-card-cover {
     padding: 20rem;
+}
+
+.n-a {
+    color: white;
+    font-size: xx-small;
+    text-decoration: none;
+    background-color: hsla(0, 0%, 0%, 0.2);
+    padding: 12px 12px 8px 12px;
+    display: inline-block;
+    border-radius: 24px;
+}
+
+.n-a:hover {
+    background-color: hsla(0, 0%, 0%, 0.22);
 }
 </style>
