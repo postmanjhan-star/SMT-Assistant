@@ -8,6 +8,7 @@ import type { IssuanceRead } from '../models/IssuanceRead';
 import type { IssuanceReturnCreate } from '../models/IssuanceReturnCreate';
 import type { IssuanceReturnRead } from '../models/IssuanceReturnRead';
 import type { IssuanceUpdate } from '../models/IssuanceUpdate';
+import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -215,6 +216,50 @@ issuanceIdno: string,
             url: '/issuances/{issuance_idno}/pick_issuance',
             path: {
                 'issuance_idno': issuanceIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Material Issuable Balance
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static getMaterialIssuableBalance({
+materialIdno,
+}: {
+materialIdno: string,
+}): CancelablePromise<number> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/issuances/issuable_balance/{material_idno}',
+            path: {
+                'material_idno': materialIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Issuable Material Inventories
+     * @returns MaterialInventoryRead Successful Response
+     * @throws ApiError
+     */
+    public static getIssuableMaterialInventories({
+materialIdno,
+}: {
+materialIdno: string,
+}): CancelablePromise<Array<MaterialInventoryRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/issuances/issuable_material_inventories/{material_idno}',
+            path: {
+                'material_idno': materialIdno,
             },
             errors: {
                 422: `Validation Error`,

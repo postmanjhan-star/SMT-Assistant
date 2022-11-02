@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { GetRowIdParams, GridOptions } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
@@ -17,13 +17,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref();
-const gridColumnApi = ref();
-
 const formRef = ref<FormInst | null>( null );
-const headerFormValue = ref( {
-  memo: '',
-} );
+const headerFormValue = ref( { memo: '' } );
 
 const materialIdnoInput = ref();
 const materialUnit = ref();
@@ -56,46 +51,44 @@ const materialInventoryFormValue = ref( {
 } );
 
 const rowData = ref<GridItem[]>( [] );
-const columnDefs: ColDef[] = [
-  { field: "material_idno", headerName: '物料代碼', editable: false },
-  { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
-  { field: "issue_qty", headerName: '發出數量', editable: false },
-  { field: "lend_qty", headerName: '借出數量', editable: false },
-];
-
-const defaultColDef: ColDef = {
-  editable: true,
-  filter: true,
-  sortable: true,
-  resizable: true,
-};
-
 const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
+  // GRID OPTIONS
+  // Column Definitions
+  columnDefs: [
+    { field: "material_idno", headerName: '物料代碼', editable: false },
+    { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
+    { field: "issue_qty", headerName: '發出數量', editable: false },
+    { field: "lend_qty", headerName: '借出數量', editable: false },
+  ],
+  defaultColDef: { editable: true, filter: true, sortable: true, resizable: true },
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true,
 
+  // Miscellaneous
+  debug: false,
+
+  // Pagination
+  pagination: true,
+
+  // Rendering
+  suppressColumnVirtualisation: true,
+
+  // RowModel
+  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
+
+  // Scrolling
+  debounceVerticalScrollbar: true,
+
+  // Selection
+  enableCellTextSelection: true,
   rowSelection: 'single',
   suppressCellFocus: true,
-};
 
-
-
-function getRowId ( params: GetRowIdParams ) { return params.data.material_inventory_id; }
-
-
-
-async function onGridReady ( params: GridReadyEvent ) {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
+  // Styling
+  suppressRowTransform: true,
 };
 
 
@@ -129,13 +122,15 @@ function addItemToGrid ( item: GridItem ) {
     issue_qty: item.issue_qty,
     lend_qty: item.lend_qty,
   } );
-  gridApi.value.setRowData( rowData.value );
-  gridColumnApi.value.autoSizeAllColumns();
+  gridOptions.api.setRowData( rowData.value );
+  gridOptions.columnApi.autoSizeAllColumns();
 }
 
 
 
 async function onClickAddMaterialButton ( event: Event ) {
+  // Take expired material inventory in thie function is NOT allowed.
+
   // Quantity should greater than zero
   if ( materialAdditionFormValue.value.quantity <= 0 ) {
     message.error( '數量應大於零' );
@@ -162,7 +157,7 @@ async function onClickAddMaterialButton ( event: Event ) {
   }
 
   // Check if quantity in-stock is enough
-  const materialInStockBalance = await MaterialsService.getMaterialInStockBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
+  const materialInStockBalance = await IssuancesService.getMaterialIssuableBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
   if ( materialAdditionFormValue.value.quantity > materialInStockBalance ) {
     message.error( `庫存數量 ${ materialInStockBalance.toLocaleString() }，需求數量不可大於庫存數量` );
     return false;
@@ -170,13 +165,13 @@ async function onClickAddMaterialButton ( event: Event ) {
 
   // Clear the material's all inventories in grid
   rowData.value = rowData.value.filter( row => row.material_idno !== materialAdditionFormValue.value.material_idno.trim() );
-  gridApi.value.setRowData( rowData.value );
+  gridOptions.api.setRowData( rowData.value );
 
   // Take demand inventories
   let askedQuantity = materialAdditionFormValue.value.quantity;
   let issuedQuantity = 0;
   let issuedMaterialInventories: MaterialInventoryRead[] = [];
-  const materialInventories = await MaterialsService.getMaterialInventoriesInStock( { materialIdno: materialAdditionFormValue.value.material_idno.trim(), onlyIssuable: true } );
+  const materialInventories = await IssuancesService.getIssuableMaterialInventories( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
   while ( issuedQuantity < askedQuantity ) {
     const materialInventory = materialInventories.shift();
     const materialInventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: materialInventory.id } );
@@ -219,6 +214,8 @@ async function onClickAddMaterialButton ( event: Event ) {
 
 
 async function onClickAddInventoryButton ( event: Event ) {
+  // Take expired material inventory in thie function is allowed.
+
   // `material_inventory_idno` cannot be empty
   if ( materialInventoryFormValue.value.material_inventory_idno.trim() === '' ) {
     message.error( '請填入單包代碼' );
@@ -282,9 +279,9 @@ async function onClickAddInventoryButton ( event: Event ) {
 
 function onClickRemoveRowButton ( event: Event ) {
   // Get selected row
-  const selectedRows: GridItem[] = gridApi.value.getSelectedRows();
+  const selectedRows: GridItem[] = gridOptions.api.getSelectedRows();
   rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno );
-  gridApi.value.setRowData( rowData.value );
+  gridOptions.api.setRowData( rowData.value );
 }
 
 
@@ -382,9 +379,11 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
                     </n-input>
                   </n-form-item>
 
-                  <n-form-item label="可用庫存">
+                  <n-form-item label="可發料數量">
+                    <!-- Naive UI 數字輸入框目前不支援 tabindex 屬性 -->
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.issuable_balance "
-                      :show-button=" false " :min=" 0 " :precision=" 0 " :default-value=" 0 " disabled>
+                      :show-button=" false " :min=" 0 " :precision=" 0 " :default-value=" 0 " readonly tabindex="-1"
+                      :input-props=" { tabindex: -1 } ">
                       <template #suffix> {{ materialUnit }} </template>
                     </n-input-number>
                   </n-form-item>
@@ -429,7 +428,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
               <div style="height: 600px; overflow-x: scroll; width: 100%;">
                 <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
-                  :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
+                  :gridOptions=" gridOptions ">
                 </ag-grid-vue>
               </div>
 
