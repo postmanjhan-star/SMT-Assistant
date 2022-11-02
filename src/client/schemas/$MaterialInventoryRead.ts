@@ -49,6 +49,11 @@ export const $MaterialInventoryRead = {
     type: 'boolean',
     isRequired: true,
 },
+        date_of_expiry: {
+    type: 'string',
+    isRequired: true,
+    format: 'date',
+},
         st_barcode: {
     type: 'string',
 },

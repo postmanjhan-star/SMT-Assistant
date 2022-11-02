@@ -16,5 +16,6 @@ export type MaterialInventoryRead = {
     latest_qty: number;
     receive_item_id?: number;
     issuing_locked: boolean;
+    date_of_expiry: string;
     st_barcode?: string;
 };

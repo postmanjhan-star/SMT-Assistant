@@ -12,6 +12,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 - 首頁增加 Fuji 打件機上料助手連結。（1cb3481a）
 - 從舊 ERP 匯入收料單如果無法取得條碼資訊，會中止匯入。（b55a66ad）
 - 收料單建立頁面會阻擋重複的舊 ERP 收料單號。（）
+- 物料的明細頁面顯示單包裝的有效期限。（）
 ### Changed
 - 倉儲管理頁改為按編輯鈕才可編輯。（f2204e1e）
 - Fuji 打件機上料助手網址變更為 /smt/fuji-mounter。（1cb3481a）

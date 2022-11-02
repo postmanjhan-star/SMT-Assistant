@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ColDef, ColumnApi, GetRowIdParams, GridApi, GridOptions, GridReadyEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { GetRowIdParams, GridOptions, RowClassParams } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NButton, NSpace, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
@@ -19,76 +19,70 @@ const message = useMessage();
 
 const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL;
 
-const gridApi = ref<GridApi>();
-const gridColumnApi = ref<ColumnApi>();
 const rowData = ref<MaterialInventoryRead[]>( [] );
 
-
-
-const columnDefs: ColDef[] = [
-    // { checkboxSelection: true }, // Do not use checkbox for multiple rows selection to save space on mobile devices.
-    { field: 'issuing_locked', headerName: '', refData: { true: '🔒' } },
-    { field: "idno", headerName: '單包代碼' },
-    { field: "st_barcode", headerName: '舊 ERP 單包代碼' },
-    { field: "l1_storage_idno", headerName: '倉位代碼' },
-    { field: "l2_storage_idno", headerName: '儲位代碼' },
-    { field: "latest_qty", headerName: '數量' },
-];
-
-
-
-const defaultColDef: ColDef = {
-    editable: false,
-    filter: true,
-    sortable: true,
-    resizable: true,
-}
-
-
-
 const gridOptions: GridOptions = {
-    columnDefs: columnDefs,
-    defaultColDef: defaultColDef,
+    // GRID OPTIONS
+    // Column Definitions
+    columnDefs: [
+        // { checkboxSelection: true }, // Do not use checkbox for multiple rows selection to save space on mobile devices.
+        { field: 'issuing_locked', headerName: '', refData: { true: '🔒' } },
+        { field: "idno", headerName: '單包代碼' },
+        { field: "st_barcode", headerName: '舊 ERP 單包代碼' },
+        { field: "l1_storage_idno", headerName: '倉位代碼' },
+        { field: "l2_storage_idno", headerName: '儲位代碼' },
+        { field: "latest_qty", headerName: '數量' },
+        { field: "date_of_expiry", headerName: '到期日' },
+    ],
+    defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+
+    // Editing
     stopEditingWhenCellsLoseFocus: true,
     enterMovesDownAfterEdit: true,
     undoRedoCellEditing: true,
-    debug: false,
-    pagination: true,
-    suppressColumnVirtualisation: true,
-    suppressRowTransform: true,
-    debounceVerticalScrollbar: true,
-    enableCellTextSelection: true,
 
+    // Miscellaneous
+    debug: false,
+
+    // Pagination
+    pagination: true,
+
+    // Rendering
+    suppressColumnVirtualisation: true,
+
+    // RowModel
+    getRowId: ( params: GetRowIdParams ) => { return params.data.id; },
+
+    // Scrolling
+    debounceVerticalScrollbar: true,
+
+    // Selection
+    enableCellTextSelection: true,
     rowSelection: 'multiple',
     rowMultiSelectWithClick: true,
     suppressCellFocus: true,
-}
 
+    // Styling
+    suppressRowTransform: true,
+    getRowStyle: ( params: RowClassParams<any> ) => {
+        if ( new Date( params.data.date_of_expiry ) < new Date() ) {
+            return { color: 'unset' } // Not implement yet
+        }
+    },
+}
 
 
 
 onBeforeMount( async () => {
     rowData.value = await MaterialsService.getMaterialInventories( { materialIdno: route.params.idno.toString() } );
-    gridApi.value.setRowData( rowData.value );
-    gridColumnApi.value.autoSizeAllColumns();
+    gridOptions.api.setRowData( rowData.value );
+    gridOptions.columnApi.autoSizeAllColumns();
 } );
-
-
-
-function getRowId ( params: GetRowIdParams ) { return params.data.id; }
-
-
-
-async function onGridReady ( params: GridReadyEvent ) {
-    gridApi.value = params.api;
-    gridColumnApi.value = params.columnApi;
-}
-
 
 
 async function onClickSplitButton ( event: Event ) {
     // Get selected rows
-    const selectedRows: MaterialInventoryRead[] = gridApi.value.getSelectedRows();
+    const selectedRows: MaterialInventoryRead[] = gridOptions.api.getSelectedRows();
 
     // Check if a row is selected
     if ( selectedRows.length === 0 ) {
@@ -154,7 +148,7 @@ async function onClickSplitButton ( event: Event ) {
 
         // Insert a new row of the child inventory
         rowData.value.unshift( childMaterialInventory );
-        gridApi.value.setRowData( rowData.value );
+        gridOptions.api.setRowData( rowData.value );
     } catch ( error ) {
         message.error( '分割失敗' );
         return false;
@@ -165,7 +159,7 @@ async function onClickSplitButton ( event: Event ) {
 
 async function handleGenerateLabelsButtonClick ( event: Event ) {
     // Get selected rows
-    const selectedRows: MaterialInventoryRead[] = gridApi.value.getSelectedRows();
+    const selectedRows: MaterialInventoryRead[] = gridOptions.api.getSelectedRows();
 
     // Check if at least one row is selected
     if ( selectedRows.length === 0 ) {
@@ -195,8 +189,8 @@ async function handleGenerateLabelsButtonClick ( event: Event ) {
         </n-space>
 
         <div style="height: 600px; overflow-x: scroll; width: 100%;">
-            <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%;" :gridOptions=" gridOptions "
-                :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+            <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%;"
+                :gridOptions=" gridOptions "></ag-grid-vue>
         </div>
 
     </n-space>
