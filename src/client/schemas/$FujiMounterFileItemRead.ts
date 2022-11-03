@@ -7,7 +7,7 @@ export const $FujiMounterFileItemRead = {
     type: 'number',
     isRequired: true,
 },
-        smt_mounter_fst_id: {
+        fuji_mounter_file_id: {
     type: 'number',
     isRequired: true,
 },
