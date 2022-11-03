@@ -4,7 +4,7 @@
 
 export type FujiMounterFileItemRead = {
     id: number;
-    smt_mounter_fst_id: number;
+    fuji_mounter_file_id: number;
     stage: string;
     slot: number;
     original: string;
