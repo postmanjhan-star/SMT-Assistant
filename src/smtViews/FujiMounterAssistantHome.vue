@@ -2,7 +2,7 @@
 import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, useMessage, NH1 } from 'naive-ui';
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, StErpService } from '../client';
+import { ApiError, SmtService } from '../client';
 
 const router = useRouter();
 const message = useMessage();
@@ -29,7 +29,7 @@ async function onClickSubmitButton ( event: Event ) {
   }
 
   try {
-    const mounterData = await StErpService.getSmtMounterCheckData( {
+    const mounterData = await SmtService.getFujiMounterMaterialSlotPairsByWorkOrder( {
       workOrderIdno: formValue.value.workOrderIdno.trim(),
       mounterIdno: formValue.value.mounterIdno.trim(),
     } );

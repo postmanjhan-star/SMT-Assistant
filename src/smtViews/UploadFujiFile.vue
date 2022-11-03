@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NGi, NGrid, NP, NSpace, NUpload, NUploadDragger } from 'naive-ui';
 
-const uploadUrl = '/api/st_erp/smt/mounter/upload_fst'
+const uploadUrl = '/api/smt/fuji_mounter/upload_fst'
 </script>
 
 

@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $SmtMounterFstItemRead = {
+export const $FujiMounterFileItemRead = {
     properties: {
         id: {
     type: 'number',

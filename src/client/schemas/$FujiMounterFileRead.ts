@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $SmtMounterFstRead = {
+export const $FujiMounterFileRead = {
     properties: {
         id: {
     type: 'number',
@@ -23,10 +23,10 @@ export const $SmtMounterFstRead = {
     type: 'string',
     isRequired: true,
 },
-        smt_mounter_fst_items: {
+        fuji_mounter_file_items: {
     type: 'array',
     contains: {
-        type: 'SmtMounterFstItemRead',
+        type: 'FujiMounterFileItemRead',
     },
     isRequired: true,
 },

@@ -1,8 +1,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Body_upload_fst } from '../models/Body_upload_fst';
-import type { SmtMounterFstRead } from '../models/SmtMounterFstRead';
 import type { STPart } from '../models/STPart';
 import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
@@ -89,7 +87,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2022-11-01',
+stReceiveDate = '2022-11-03',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -160,7 +158,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2022-11-01',
+date = '2022-11-03',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
@@ -223,55 +221,6 @@ workOrderIdno: string,
             url: '/st_erp/work_orders/{work_order_idno}/items',
             path: {
                 'work_order_idno': workOrderIdno,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Upload Fst
-     * 40X980123-T1-XP1B1-T.fst
-     * @returns SmtMounterFstRead Successful Response
-     * @throws ApiError
-     */
-    public static uploadFst({
-formData,
-}: {
-formData: Body_upload_fst,
-}): CancelablePromise<SmtMounterFstRead> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/st_erp/smt/mounter/upload_fst',
-            formData: formData,
-            mediaType: 'multipart/form-data',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Smt Mounter Check Data
-     * @returns SmtMounterFstRead Successful Response
-     * @throws ApiError
-     */
-    public static getSmtMounterCheckData({
-workOrderIdno,
-mounterIdno,
-}: {
-workOrderIdno: string,
-mounterIdno?: string,
-}): CancelablePromise<Array<SmtMounterFstRead>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/st_erp/smt/mounter/{work_order_idno}',
-            path: {
-                'work_order_idno': workOrderIdno,
-            },
-            query: {
-                'mounter_idno': mounterIdno,
             },
             errors: {
                 422: `Validation Error`,

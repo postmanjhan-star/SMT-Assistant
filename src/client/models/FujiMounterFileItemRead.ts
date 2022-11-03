@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type SmtMounterFstItemRead = {
+export type FujiMounterFileItemRead = {
     id: number;
     smt_mounter_fst_id: number;
     stage: string;

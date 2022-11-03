@@ -2,13 +2,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { SmtMounterFstItemRead } from './SmtMounterFstItemRead';
+import type { FujiMounterFileItemRead } from './FujiMounterFileItemRead';
 
-export type SmtMounterFstRead = {
+export type FujiMounterFileRead = {
     id: number;
     product_idno: string;
     product_ver: string;
     mounter_idno: string;
     board_side: string;
-    smt_mounter_fst_items: Array<SmtMounterFstItemRead>;
+    fuji_mounter_file_items: Array<FujiMounterFileItemRead>;
 };

@@ -3,7 +3,7 @@ import { InputInst, NEl, NForm, NFormItem, NGi, NGrid, NInput, NPageHeader, useM
 import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialInventoriesService, SmtMounterFstRead, StErpService } from '../client';
+import { ApiError, MaterialInventoriesService, FujiMounterFileRead, SmtService, StErpService } from '../client';
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
@@ -11,7 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const message = useMessage();
 
-const fstDataArray = ref<SmtMounterFstRead[]>();
+const fstDataArray = ref<FujiMounterFileRead[]>();
 
 const slotFormValue = ref( { slotIdno: '' } );
 const slotIdnoInput = ref<InputInst>();
@@ -37,7 +37,7 @@ let matereialIdnoFromInput: string;
 
 onMounted( async () => {
   try {
-    fstDataArray.value = await StErpService.getSmtMounterCheckData( {
+    fstDataArray.value = await SmtService.getFujiMounterMaterialSlotPairsByWorkOrder( {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
     } )
@@ -45,7 +45,7 @@ onMounted( async () => {
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 
   for ( let masterData of fstDataArray.value ) {
-    for ( let detailData of masterData.smt_mounter_fst_items ) {
+    for ( let detailData of masterData.fuji_mounter_file_items ) {
       fstDataTable.value.push( {
         id: detailData.id,
         mounterIdno: masterData.mounter_idno,
