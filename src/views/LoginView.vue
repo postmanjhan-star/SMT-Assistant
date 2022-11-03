@@ -5,7 +5,7 @@ import { RouterLink, useRouter } from 'vue-router';
 import { Body_login_for_access_token, SessionService } from '../client';
 import { useAccountStore } from '../stores/account';
 import { useAuthStore } from '../stores/auth';
-import imgUrl from '@/assets/fuji.webp'
+import imgUrl from '@/assets/fuji2.webp'
 
 const props = defineProps( { message: String } );
 const message = useMessage();
