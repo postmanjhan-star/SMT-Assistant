@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, useMessage, NH1 } from 'naive-ui';
+import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
 import { onMounted, ref } from 'vue';
+import { useMeta } from 'vue-meta';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, SmtService } from '../client';
 
 const router = useRouter();
 const message = useMessage();
+useMeta( { title: 'Fuji Mounter Assistant' } );
 
 const formRef = ref<FormInst | null>( null );
 const formValue = ref( { workOrderIdno: '', mounterIdno: '' } );
