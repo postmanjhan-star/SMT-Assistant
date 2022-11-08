@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { NGi, NGrid, NP, NSpace, NUpload, NUploadDragger } from 'naive-ui';
+import { useMeta } from 'vue-meta';
+
+
+useMeta( { title: 'Fuji Mounter Assistant' } );
 
 const uploadUrl = '/api/smt/fuji_mounter/upload_fst'
 </script>

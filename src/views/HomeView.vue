@@ -6,7 +6,9 @@ import { RouterView, useRouter } from "vue-router";
 import { materialMenuOptions, purchaseMenuOptions, systemMenuOptions } from "../menuOptions";
 import { useAccountStore } from '../stores/account';
 import { useAuthStore } from '../stores/auth';
+import { useMeta } from 'vue-meta';
 
+useMeta( { title: 'WMS' } );
 const router = useRouter();
 const appTitle = import.meta.env.VITE_APP_TITLE;
 const appEnv = import.meta.env.MODE;
