@@ -15,6 +15,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 - 收料單建立頁面會阻擋重複的舊 ERP 收料單號。（94e93e2c）
 - 發料會排除已過期之單包，手動指定單包代碼則不論過期與否。（d7141c7c）
 - 網頁標題會根據當前所在應用而變，WMS / SMT / ...。（2b378302）
+- 增加松下打件機上料助手。（）
 ### Changed
 - 倉儲管理頁改為按編輯鈕才可編輯。（f2204e1e）
 - Fuji 打件機上料助手網址變更為 /smt/fuji-mounter。（1cb3481a）

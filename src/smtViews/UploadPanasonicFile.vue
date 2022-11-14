@@ -3,9 +3,9 @@ import { NGi, NGrid, NP, NSpace, NUpload, NUploadDragger } from 'naive-ui';
 import { useMeta } from 'vue-meta';
 
 
-useMeta( { title: 'Fuji Mounter Assistant' } );
+useMeta( { title: 'Panasonic Mounter Assistant' } );
 
-const uploadUrl = '/api/smt/fuji_mounter/upload_fst';
+const uploadUrl = '/api/smt/panasonic_mounter/upload_csv';
 </script>
 
 
@@ -18,10 +18,10 @@ const uploadUrl = '/api/smt/fuji_mounter/upload_fst';
 
         <n-gi></n-gi>
         <n-gi>
-          <n-upload accept=".fst" :multiple="false" :action=uploadUrl>
+          <n-upload accept=".csv" :multiple="false" :action=uploadUrl>
             <n-upload-dragger>
               <n-p style="font-size: xx-large">📄</n-p>
-              <n-p>點擊或者拖動文件到該區域來上傳</n-p>
+              <n-p>點擊或者拖動 Panasonic 打件機 CSV 文件到該區域來上傳</n-p>
             </n-upload-dragger>
           </n-upload>
         </n-gi>

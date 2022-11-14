@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputGroup, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputGroup, NInputNumber, NSelect, NSpace, SelectOption, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, MaterialsService, OpenAPI, ReceiveCreate, ReceiveItemCreate, ReceivesService, VendorsService } from '../client';
@@ -56,49 +56,49 @@ const materialAdditionFormValue = ref<GridReceiveItem>( {
 } )
 
 const rowData = ref<GridReceiveItem[]>( [] );
-const columnDefs: ColDef[] = [
-  { field: "material_idno", headerName: '物料代碼', editable: false },
-  { field: "material_name", headerName: '物料名稱', editable: false },
-  { field: "total_qty", headerName: '來料數量' },
-  { field: "qualify_qty", headerName: '驗收數量' },
-];
-
-const defaultColDef = {
-  editable: true,
-  filter: true,
-  sortable: true,
-  resizable: true,
-}
 
 const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
+  // GRID OPTIONS
+  // Column Definitions
+  columnDefs: [
+    { field: "material_idno", headerName: '物料代碼', editable: false },
+    { field: "material_name", headerName: '物料名稱', editable: false },
+    { field: "total_qty", headerName: '來料數量' },
+    { field: "qualify_qty", headerName: '驗收數量' },
+  ],
+  defaultColDef: { editable: true, filter: true, sortable: true, resizable: true },
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true,
 
+  // Miscellaneous
+  debug: false,
+
+  // Pagination
+  pagination: true,
+
+  // Rendering
+  suppressColumnVirtualisation: true,
+
+  // RowModel
+  getRowId: ( params: GetRowIdParams ) => { return params.data.id; },
+
+  // Scrolling
+  debounceVerticalScrollbar: true,
+
+  // Selection
+  enableCellTextSelection: true,
   rowSelection: 'single',
   suppressCellFocus: true,
+
+  // Styling
+  suppressRowTransform: true,
 }
 
-type VendorIdnoOptions = {
-  label: string; // idno
-  value: number; // id
-};
-
-type VendorNameOptions = {
-  label: string; // name
-  value: number; // id
-};
-
-const vendor_idno_options = ref<VendorIdnoOptions[]>( [] );
-const vendor_name_options = ref<VendorNameOptions[]>( [] );
+const vendor_idno_options = ref<SelectOption[]>( [] );
+const vendor_name_options = ref<SelectOption[]>( [] );
 
 onBeforeMount( async () => {
   try {
@@ -109,8 +109,6 @@ onBeforeMount( async () => {
     }
   } catch ( error ) { message.error( '無法取得供應商清單' ); }
 } )
-
-function getRowId ( params: GetRowIdParams ) { return params.data.id; }
 
 async function onGridReady ( params: GridReadyEvent ) {
   gridApi.value = params.api;
@@ -333,7 +331,7 @@ async function onClickCreateReceiveButton ( event: Event ) {
 
               <div style="height: 600px; overflow-x: scroll; width: 100%;">
                 <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
-                  :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
+                  :gridOptions=" gridOptions " :onGridReady=" onGridReady ">
                 </ag-grid-vue>
               </div>
 
