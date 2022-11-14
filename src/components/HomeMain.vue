@@ -46,8 +46,8 @@ main .n-card {
 .n-grid > div {
   border: 1px solid white;
   border-radius: 4px;
-  background-color: hsla(0, 0%, 100%, 0.6);
-  backdrop-filter: blur(20px);
+  background-color: hsla(0, 0%, 100%, 0.8);
+  /* backdrop-filter: blur(20px); */
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4);
 }

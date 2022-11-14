@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NButton, NCard, NForm, NFormItem, NGi, NGrid, NImage, NInput, useMessage } from 'naive-ui';
+import { FormInst, FormRules, NA, NButton, NCard, NForm, NFormItem, NGi, NGrid, NImage, NInput, useMessage, NSpace } from 'naive-ui';
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { Body_login_for_access_token, SessionService } from '../client';
 import { useAccountStore } from '../stores/account';
 import { useAuthStore } from '../stores/auth';
-import imgUrl from '@/assets/fuji2.webp'
+import fujiMounterAssistantIconUrl from '@/assets/fuji2.webp'
+import panasonicMounterAssistantIconUrl from '@/assets/panasonic.webp'
 
 const props = defineProps( { message: String } );
 const message = useMessage();
@@ -89,15 +90,24 @@ async function onClickLoginButton ( event: Event ) {
                 </n-form>
 
             </n-card>
-            <div style="text-align: center; margin-top: 1rem;">
-                <router-link to="/smt/fuji-mounter" #=" { navigate, href } " custom>
-                    <n-a :href=" href " @click=" navigate ">
-                        <n-image :src=" imgUrl " width="80" preview-disabled lazy alt="Fuji 打件機上料助手"
-                            style="border-radius: 20px; border: 0.1px solid hsla(0, 0%, 100%, 0.2)"></n-image><br>
-                        Fuji 打件機<br />上料助手
-                    </n-a>
-                </router-link>
-            </div>
+            <n-card size="huge" hoverable style="margin-top: 1rem;">
+                <n-space justify="center" size="large">
+                    <router-link to="/smt/fuji-mounter" #=" { navigate, href } " custom>
+                        <n-a :href=" href " @click=" navigate ">
+                            <n-image class="app-icon" :src=" fujiMounterAssistantIconUrl " width="80" preview-disabled lazy alt="Fuji 打件機上料助手"></n-image><br>
+                            富士打件機<br />上料助手
+                        </n-a>
+                    </router-link>
+
+                    <router-link to="/smt/panasonic-mounter" #=" { navigate, href } " custom>
+                        <n-a :href=" href " @click=" navigate ">
+                            <n-image class="app-icon" :src=" panasonicMounterAssistantIconUrl " width="80" preview-disabled lazy alt="Panasonic 打件機上料助手"></n-image><br>
+                            松下打件機<br />上料助手
+                        </n-a>
+                    </router-link>
+                </n-space>
+            </n-card>
+
         </n-gi>
         <n-gi span="0 s:1"></n-gi>
     </n-grid>
@@ -120,8 +130,9 @@ async function onClickLoginButton ( event: Event ) {
 }
 
 .n-card {
-    background-color: hsla(0, 0%, 100%, 0.6);
-    backdrop-filter: blur(8px);
+    background-color: hsla(0, 0%, 100%, 0.8);
+    /* backdrop-filter: blur(8px); */
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .n-card-cover {
@@ -129,16 +140,25 @@ async function onClickLoginButton ( event: Event ) {
 }
 
 .n-a {
-    color: white;
     font-size: xx-small;
     text-decoration: none;
-    background-color: hsla(0, 0%, 0%, 0.2);
-    padding: 12px 12px 8px 12px;
     display: inline-block;
     border-radius: 24px;
+    text-align: center;
+    color: var(--n-title-text-color);
 }
 
-.n-a:hover {
-    background-color: hsla(0, 0%, 0%, 0.22);
+.app-icon {
+    border-radius: 20px;
+    /* border: 0.1px solid hsla(0, 0%, 0%, 0.2); */
+    box-shadow: 0px 4px 20px -16px hsl(0, 0%, 0%);
+    transition: transform 0.2s;
+    will-change: transform;
+}
+
+.app-icon:hover {
+    will-change: transform;
+    transform: scale(1.06);
+    transition: transform 0.2s;
 }
 </style>
