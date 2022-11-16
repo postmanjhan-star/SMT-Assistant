@@ -17,7 +17,7 @@ const rules: FormRules = {
   mounterIdno: { required: true, message: '請輸入機台號', trigger: [ 'input', 'blur' ], },
 };
 
-const workSheetSideOptions = [ { label: '工件正面', value: 'TOP' }, { label: '工件反面', value: 'BOTTOM' } ]
+const workSheetSideOptions = [ { label: '工件正面', value: 'TOP' }, { label: '工件反面', value: 'BOTTOM' }, { label: '工件正反面', value: 'DUPLEX' } ]
 const machineSideOptions = [ { label: '機台前面', value: '1' }, { label: '機台背面', value: '2' } ]
 
 

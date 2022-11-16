@@ -5,7 +5,6 @@ export const $PanasonicMounterFileRead = {
     properties: {
         id: {
     type: 'number',
-    isRequired: true,
 },
         product_idno: {
     type: 'string',
@@ -21,7 +20,6 @@ export const $PanasonicMounterFileRead = {
 },
         board_side: {
     type: 'string',
-    isRequired: true,
 },
         panasonic_mounter_file_items: {
     type: 'array',

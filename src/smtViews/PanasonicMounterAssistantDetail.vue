@@ -15,7 +15,7 @@ const router = useRouter();
 const message = useMessage();
 useMeta( { title: 'Panasonic Mounter Assistant' } );
 
-const mounterDataArray = ref<PanasonicMounterFileRead[]>();
+const mounterData = ref<PanasonicMounterFileRead>();
 
 const slotFormValue = ref( { slotIdno: '' } );
 const slotIdnoInput = ref<InputInst>();
@@ -41,7 +41,7 @@ const gridOptions: GridOptions = {
   // Column Definitions
   columnDefs: [
     { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { true: '✅', false: '❌' } },
-    { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 80 },
+    { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
     { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
     { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
     { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
@@ -58,6 +58,7 @@ const gridOptions: GridOptions = {
   undoRedoCellEditing: true,
 
   // Miscellaneous
+  rowBuffer: 100,
   valueCache: true,
   debug: false,
   suppressParentsInRowNodes: true,
@@ -74,7 +75,7 @@ const gridOptions: GridOptions = {
 
   // RowModel
   rowModelType: 'clientSide',
-  getRowId: ( params: GetRowIdParams ) => { return params.data.id; },
+  getRowId: ( params: GetRowIdParams ) => { return `${ params.data.slotIdno }-${ params.data.subSlotIdno }`; },
 
   // Scrolling
   debounceVerticalScrollbar: true,
@@ -102,7 +103,7 @@ const gridOptions: GridOptions = {
 
 onMounted( async () => {
   try {
-    mounterDataArray.value = await SmtService.getPanasonicMounterMaterialSlotPairs( {
+    mounterData.value = await SmtService.getPanasonicMounterMaterialSlotPairs( {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
       boardSide: route.query.workSheetSide.toString(),
@@ -114,8 +115,7 @@ onMounted( async () => {
     else if ( error instanceof ApiError && error.status === 503 ) { router.push( '/404' ) }
   }
 
-  const mounterData = mounterDataArray.value[ 0 ]
-  for ( let materialSlotPair of mounterData.panasonic_mounter_file_items ) {
+  for ( let materialSlotPair of mounterData.value.panasonic_mounter_file_items ) {
     rowData.value.push( {
       correct: null,
       id: materialSlotPair.id,
@@ -169,7 +169,7 @@ function speak ( text: string ) {
 
 
 function getMaterialMatchedRow ( materialIdno: string ) {
-  for ( let row of rowData.value ) { if ( materialIdno == row.materialIdno ) { return row; } }
+  for ( let row of rowData.value ) { if ( materialIdno === row.materialIdno ) { return row } }
   throw Error
 }
 
@@ -185,7 +185,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
 
   // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
   try {
-    materialInventory = await SmtService.getMaterialInventory( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } )
+    materialInventory = await SmtService.getMaterialInventoryForSmt( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } )
   } catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       await playErrorTone();
@@ -193,21 +193,28 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
       materialFormValue.value.materialInventoryIdno = '';
       return false;
     }
+    if ( error instanceof ApiError && error.status === 503 ) {
+      await playErrorTone();
+      message.error( '條碼查詢失敗' );
+      materialFormValue.value.materialInventoryIdno = '';
+      return false;
+    }
   }
 
-  try {
-    materialMatchedRow = getMaterialMatchedRow( materialInventory.material_idno );
-    const rowNode = gridOptions.api.getRowNode( materialMatchedRow.id.toString() )
-    rowNode.setSelected( true )
-    gridOptions.api.ensureIndexVisible( rowNode.rowIndex, 'middle' )
-    speak( rowNode.data.slotIdno )
-    speak( rowNode.data.subSlotIdno )
-  } catch ( error ) {
-    await playErrorTone();
-    message.warning( '表格內無此物料' );
-    materialFormValue.value.materialInventoryIdno = '';
+  try { materialMatchedRow = getMaterialMatchedRow( materialInventory.material_idno ) }
+  catch ( error ) {
+    await playErrorTone()
+    message.warning( '表格內無此物料' )
+    materialFormValue.value.materialInventoryIdno = ''
     return false;
   }
+
+  const rowNode = gridOptions.api.getRowNode( `${materialMatchedRow.slotIdno}-${materialMatchedRow.subSlotIdno}` )
+  rowNode.setSelected( true )
+  gridOptions.api.ensureIndexVisible( rowNode.rowIndex, 'middle' )
+  // speak( rowNode.data.slotIdno ) // Do not give a user voice hint here.
+  // speak( rowNode.data.subSlotIdno ) // Do not give a user voice hint here.
+
   slotIdnoInput.value.focus();
 }
 
@@ -215,14 +222,14 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
 
 async function onSubmitSlotForm ( event: Event ) {
   let inputSlotIdno = slotFormValue.value.slotIdno.trim(); // Format: 10010-L for dual-type feeder, 10010 for single-type feeder.
-  const rowNode = gridOptions.api.getRowNode( materialMatchedRow.id.toString() )
-
   if ( !!inputSlotIdno === false ) {
     message.warning( '請輸入插槽位置' );
     return false;
   }
 
-  const [ inputSlotSlot, inputSlotSubSlot ] = inputSlotIdno.split( '-' )
+  const rowNode = gridOptions.api.getRowNode( `${materialMatchedRow.slotIdno}-${materialMatchedRow.subSlotIdno}` )
+
+  const [ inputSlotSlot, inputSlotSubSlot = '' ] = inputSlotIdno.split( '-' )
 
   // In case of slot idnos not match.
   if ( inputSlotSlot != materialMatchedRow.slotIdno || inputSlotSubSlot != materialMatchedRow.subSlotIdno ) {
@@ -269,11 +276,11 @@ function hideVirtualKeyboard () {
         <template #title><span style="white-space: nowrap">{{ route.params.mounterIdno }}</span></template>
         <template #default>
           <n-space size="small">
-            <n-p>工單：<n-tag type="info" size="large">{{ route.params.workOrderIdno }}</n-tag>
+            <n-p>工單：<n-tag type="info" size="small">{{ route.params.workOrderIdno }}</n-tag>
             </n-p>
-            <n-p>工件面向：<n-tag type="info" size="large">{{ route.query.workSheetSide }}</n-tag>
+            <n-p>工件面向：<n-tag type="info" size="small">{{ route.query.workSheetSide }}</n-tag>
             </n-p>
-            <n-p>機台面向：<n-tag type="info" size="large">{{ route.query.machineSide }}</n-tag>
+            <n-p>機台面向：<n-tag type="info" size="small">{{ route.query.machineSide }}</n-tag>
             </n-p>
           </n-space>
         </template>
