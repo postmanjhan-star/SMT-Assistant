@@ -184,6 +184,18 @@ const routes: RouteRecordRaw[] = [
         path: '/smt/fuji-mounter/upload_fst',
         component: () => import( "../smtViews/UploadFujiFile.vue" ),
       },
+      {
+        path: '/smt/panasonic-mounter',
+        component: () => import( "../smtViews/PanasonicMounterAssistantHome.vue" ),
+      },
+      {
+        path: '/smt/panasonic-mounter/upload_csv',
+        component: () => import( "../smtViews/UploadPanasonicFile.vue" ),
+      },
+      {
+        path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',
+        component: () => import( "../smtViews/PanasonicMounterAssistantDetail.vue" ),
+      },
     ],
   },
   {

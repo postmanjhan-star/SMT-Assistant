@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { darkTheme, GlobalThemeOverrides, NConfigProvider, NMenu, NSpace } from 'naive-ui';
+import { darkTheme, GlobalThemeOverrides, NConfigProvider, NEl, NSpace } from 'naive-ui';
 import { h, ref } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
 
@@ -46,11 +46,10 @@ const menuOptions = [
 
     <!-- Hide unused menu -->
     <!--<main style="min-height: calc(100vh - 60px); background-color: #44403c;">-->
-    <main style="min-height: calc(100vh - 18px); background-color: #44403c;">
 
+    <n-el tag="main" style="min-height: calc(100vh - 18px); background-color: var(--body-color);">
       <router-view></router-view>
-
-    </main>
+    </n-el>
   </n-config-provider>
 </template>
     

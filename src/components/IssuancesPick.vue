@@ -18,7 +18,7 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const formRef = ref<FormInst | null>( null );
 const headerFormValue = ref( { memo: '' } );
 
-const dsKey = ref( 0 ); // The 'KEY' to update vue-dataset. It taks me whole day to figure out the way to update a component.
+const dsReRenderKey = ref( 0 ); // The 'KEY' to update vue-dataset. It takes me whole day to figure out the way to update a component.
 
 type IssuanceItem = {
   id: number,
@@ -51,7 +51,7 @@ onBeforeMount( async () => {
         picked: issuanceItem.picked,
       } )
     }
-    dsKey.value += 1;
+    dsReRenderKey.value += 1;
   } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/404' ); } }
 } );
 
@@ -287,7 +287,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
               <div style="border: 1px solid hsla(0, 0%, 80%, 1);">
 
-                <dataset v-slot=" { ds } " :ds-data=" issuanceItemData " :key=" dsKey ">
+                <dataset v-slot=" { ds } " :ds-data=" issuanceItemData " :key=" dsReRenderKey ">
 
                   <div
                     style="background-color: hsla(0, 0%, 92%, 1); padding: 1rem; display: grid; grid-template-columns: repeat(auto-fill, 200px); gap: 1rem;">

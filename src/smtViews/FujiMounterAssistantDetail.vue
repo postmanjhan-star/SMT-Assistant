@@ -2,14 +2,16 @@
 import { InputInst, NEl, NForm, NFormItem, NGi, NGrid, NInput, NPageHeader, useMessage } from 'naive-ui';
 import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
+import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialInventoriesService, FujiMounterFileRead, SmtService, StErpService } from '../client';
+import { ApiError, FujiMounterFileRead, MaterialInventoriesService, SmtService, StErpService } from '../client';
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
 const route = useRoute();
 const router = useRouter();
 const message = useMessage();
+useMeta( { title: 'Fuji Mounter Assistant' } );
 
 const fstDataArray = ref<FujiMounterFileRead[]>();
 
