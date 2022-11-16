@@ -5,11 +5,9 @@ export const $PanasonicMounterFileItemRead = {
     properties: {
         id: {
     type: 'number',
-    isRequired: true,
 },
         panasonic_mounter_file_id: {
     type: 'number',
-    isRequired: true,
 },
         stage_idno: {
     type: 'string',
@@ -33,7 +31,6 @@ export const $PanasonicMounterFileItemRead = {
 },
         reference_idno: {
     type: 'string',
-    isRequired: true,
 },
         smd_description: {
     type: 'string',
