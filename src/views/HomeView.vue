@@ -36,7 +36,7 @@ async function onSelectAccountMenu ( key: string ) {
       <n-layout-header style="padding: 16px;">
         <n-space item-style="" justify="space-between">
           <div style="">
-            <n-popover trigger="click" style="max-width: 80vw; max-height: 90vh;" scrollable>
+            <n-popover trigger="click" style="max-width: 80vw; max-height: 80vh;" scrollable>
               <template #trigger>
                 <n-button style="font-size: 24px; vertical-align: middle; margin-right: 20px;" text>
                   <n-icon>

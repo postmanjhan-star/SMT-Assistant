@@ -75,10 +75,24 @@ mounterIdno?: string,
  *
  * 供料器设置
  * 机器编号,机器名,工作台,插槽,子插槽,元件,供应,贴装点,"40X85-009B-T2-TOP参考编号",元件说明,替代元件,薄型单式,供料器类型
- * 1,"A-NPM-W2-8+16",1,10010,L,"45110-020F-50",P0804_S,3,"NTC1,NTC2,NTC3","0805/SDNT2012X103F3950FTF","",,双
- * 1,"A-NPM-W2-8+16",2,20019,,"8825K-0002-S0",E1608_S,6,"D10,D11,D12,D13,D14,D15","5.0SMDJ130CA/DO-214A","",,单
+ * 1,"A1-NPM-W2-8+16",1,10010,L,"45110-020F-50",P0804_S,3,"NTC1,NTC2,NTC3","0805/SDNT2012X103F3950FTF","",,双
+ * 1,"A1-NPM-W2-8+16",2,20019,,"8825K-0002-S0",E1608_S,6,"D10,D11,D12,D13,D14,D15","5.0SMDJ130CA/DO-214A","",,单
  * ,,,,,"321-208P01-S0",E3220_L,3,"P1,P2,P3","2.54×2.54/高18mm/2×4,SMT排针",""
+ * ```
  *
+ * 另一種 top / bottom 混合的格式範例:
+ *
+ * ```
+ * 生产数据: 40Y85-010A-T2-B+T
+ * 描述:
+ * 产品: 40Y85-010A-T2-BOT
+ * 产品: 40Y85-010A-T2-TOP
+ *
+ * 供料器设置
+ * 机器编号,机器名,工作台,插槽,子插槽,元件,供应,贴装点,"40Y85-010A-T2-BOT","40Y85-010A-T2-TOP","40Y85-010A-T2-BOT参考编号","40Y85-010A-T2-TOP参考编号",元件说明,替代元件,薄型单式,供料器类型
+ * 1,"A1-NPM-W2-8+16",1,10007,L,"88120-0001-S0",E0804_S,28,0,28,"","TVS200,TVS201,TVS202,TVS401,TVS402,TVS404,TVS405","SMF16A-MS-H","",,双
+ * 1,"A1-NPM-W2-8+16",1,10007,R,"43010-630K-60",E0804_S,104,32,72,"C2,C3,C400,C401,C402,C403,C417,C418","C500,C501,C502,C509,C510,C511,C513,C514,C515,C521,C522,C523,C525,C526,C527,C533,C534,C535","1206/10uF/25V/X7R","",,双
+ * 1,"A1-NPM-W2-8+16",2,21001,,"90100-0002-S1",托盘,4,0,4,"","U2","R7F7016944AFP/QFP48","",
  * ```
      * @returns PanasonicMounterFileRead Successful Response
      * @throws ApiError
@@ -87,7 +101,7 @@ mounterIdno?: string,
 formData,
 }: {
 formData: Body_upload_panasonic_mounter_csv,
-}): CancelablePromise<PanasonicMounterFileRead> {
+}): CancelablePromise<Array<PanasonicMounterFileRead>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/smt/panasonic_mounter/upload_csv',
@@ -114,7 +128,7 @@ workOrderIdno: string,
 mounterIdno: string,
 boardSide?: string,
 machineSide?: string,
-}): CancelablePromise<Array<PanasonicMounterFileRead>> {
+}): CancelablePromise<PanasonicMounterFileRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/smt/panasonic_mounter/{mounter_idno}/{work_order_idno}',
@@ -137,7 +151,7 @@ machineSide?: string,
      * @returns SmtMaterialInventory Successful Response
      * @throws ApiError
      */
-    public static getMaterialInventory({
+    public static getMaterialInventoryForSmt({
 materialInventoryIdno,
 }: {
 materialInventoryIdno: string,
