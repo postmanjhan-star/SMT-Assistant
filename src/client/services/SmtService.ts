@@ -126,8 +126,8 @@ machineSide,
 }: {
 workOrderIdno: string,
 mounterIdno: string,
-boardSide?: string,
-machineSide?: string,
+boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
+machineSide?: '1' | '2',
 }): CancelablePromise<PanasonicMounterFileRead> {
         return __request(OpenAPI, {
             method: 'GET',

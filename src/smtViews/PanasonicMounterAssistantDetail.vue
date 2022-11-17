@@ -106,8 +106,8 @@ onMounted( async () => {
     mounterData.value = await SmtService.getPanasonicMounterMaterialSlotPairs( {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
-      boardSide: route.query.workSheetSide.toString(),
-      machineSide: route.query.machineSide.toString(),
+      boardSide: route.query.workSheetSide.toString() as 'TOP' | 'BOTTOM' | 'DUPLEX',
+      machineSide: route.query.machineSide.toString() as '1' | '2',
     } )
   }
   catch ( error ) {
