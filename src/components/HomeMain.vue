@@ -47,7 +47,7 @@ main .n-card {
   border: 1px solid white;
   border-radius: 4px;
   background-color: hsla(0, 0%, 100%, 0.8);
-  /* backdrop-filter: blur(20px); */
+  backdrop-filter: unset;
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4);
 }

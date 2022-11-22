@@ -131,7 +131,7 @@ async function onClickLoginButton ( event: Event ) {
 
 .n-card {
     background-color: hsla(0, 0%, 100%, 0.8);
-    /* backdrop-filter: blur(8px); */
+    backdrop-filter: unset;
     -webkit-backdrop-filter: blur(20px);
 }
 

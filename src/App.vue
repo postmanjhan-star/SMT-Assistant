@@ -29,6 +29,7 @@ useMeta( { title: 'Start' } );
 </script>
 
 <template>
+  <!-- The ghost component for vue-meta -->
   <metainfo></metainfo>
   <n-config-provider :locale=" zhTW " :date-locale=" dateZhTW " inline-theme-disabled
     :theme-overrides=" lightThemeOverrides ">

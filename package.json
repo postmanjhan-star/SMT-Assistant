@@ -6,10 +6,11 @@
     "build:production": "NODE_OPTIONS=--max_old_space_size=1024 vite build",
     "build:staging": "vite build --mode staging",
     "preview": "vite preview --port 5173",
-    "test:unit": "vitest --environment jsdom",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "generate": "openapi --input http://localhost/api/openapi.json --output ./src/client --exportSchemas true --useOptions",
-    "test": "vitest"
+    "test": "vitest",
+    "test:unit": "vitest --environment jsdom",
+    "coverage": "vitest run --coverage"
   },
   "dependenciesComments": {
     "@antfu/utils": "@antfu/utils v0.6.1 has a bug. Skip it."
@@ -33,6 +34,7 @@
     "vue-router": "4.1.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.28.0",
     "@rushstack/eslint-patch": "^1.1.0",
     "@testing-library/vue": "^6.4.2",
     "@vitejs/plugin-vue": "^3.1.2",
