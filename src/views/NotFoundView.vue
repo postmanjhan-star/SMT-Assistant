@@ -1,12 +1,12 @@
-<script setup>
+<script setup lang="ts">
+import { NButton, NResult } from 'naive-ui';
+import { useMeta } from 'vue-meta';
 import { useRouter } from 'vue-router';
-import { NResult, NButton } from 'naive-ui';
 
 const router = useRouter();
+useMeta( { title: '404' } )
 
-function handleButtonClick () {
-  router.push( '/home' );
-}
+function handleButtonClick () { router.push( '/' ) }
 </script>
 
 <template>
