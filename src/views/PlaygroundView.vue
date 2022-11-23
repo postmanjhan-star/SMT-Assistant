@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { darkTheme, GlobalThemeOverrides, NButton, NConfigProvider, NForm, NFormItemGi, NGi, NGrid, NInput, NMenu, NSpace, useMessage, FormRules, FormInst, InputInst } from 'naive-ui';
+import { darkTheme, dateZhTW, FormInst, GlobalThemeOverrides, InputInst, NButton, NConfigProvider, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, zhTW } from 'naive-ui';
 import { h, onMounted, ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, StErpService } from '../client';
-
-
-const message = useMessage();
-const router = useRouter();
+import { RouterLink } from 'vue-router';
+import { ApiError } from '../client';
 
 
 const darkThemeOverrides: GlobalThemeOverrides = {
@@ -23,8 +19,8 @@ const activeKey = ref<string | null>( 'smt-home' );
 
 
 const menuOptions = [
-  { label: () => h( RouterLink, { to: '/accounts' }, { default: () => 'Home' } ), key: 'smt-home' },
-  { label: () => h( RouterLink, { to: '/accounts' }, { default: () => 'Settings' } ), key: 'smt-settings' },
+  { label: () => h( RouterLink, { to: '/wms/accounts' }, { default: () => 'Home' } ), key: 'smt-home' },
+  { label: () => h( RouterLink, { to: '/wms/accounts' }, { default: () => 'Settings' } ), key: 'smt-settings' },
 ];
 
 
@@ -44,13 +40,12 @@ onMounted( async () => {
 
 async function onClickSubmitButton ( event: Event ) {
   if ( !!formValue.value.workOrderIdno === false ) {
-    message.warning( '請輸入工單號' );
     return false;
   }
 
   try { }
   catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此工單' ); }
+    if ( error instanceof ApiError && error.status === 404 ) { }
     else { throw error; }
   }
 }
@@ -61,7 +56,8 @@ async function onClickSubmitButton ( event: Event ) {
 
 
 <template>
-  <n-config-provider :theme=" darkTheme " :theme-overrides=" darkThemeOverrides ">
+  <n-config-provider :theme=" darkTheme " :theme-overrides=" darkThemeOverrides " :locale=" zhTW "
+    :date-locale=" dateZhTW " inline-theme-disabled>
     <header style="position: sticky; top: 0; z-index: 2;">
       <n-layout-header style="padding: 9px;">
         <n-space item-style="" justify="space-between">
@@ -78,12 +74,12 @@ async function onClickSubmitButton ( event: Event ) {
       <div style="padding: 1rem;">
 
         <n-space vertical size="large" style="padding: 1rem;">
-          <n-form size="large" :model="formValue" ref="formRef">
+          <n-form size="large" :model=" formValue " ref="formRef">
             <n-grid cols="1 s:3" responsive="screen">
 
               <n-gi></n-gi>
               <n-form-item-gi label="工單號">
-                <n-input type="text" size="large" v-model:value.lazy="formValue.workOrderIdno"
+                <n-input type="text" size="large" v-model:value.lazy=" formValue.workOrderIdno "
                   ref="workOrderIdnoInput" />
               </n-form-item-gi>
               <n-gi></n-gi>
