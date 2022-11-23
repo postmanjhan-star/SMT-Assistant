@@ -8,9 +8,9 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
 ## Unreleased
 ### Added
-- 增加起始頁。（）
+- 增加起始頁。（7cc889ba）
 ### Changed
-- 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（）
+- 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（7cc889ba）
 ### Deprecated
 ### Removed
 ### Fixed
