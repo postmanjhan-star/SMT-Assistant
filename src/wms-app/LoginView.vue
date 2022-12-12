@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NButton, NCard, NForm, NFormItem, NGi, NGrid, NImage, NInput, useMessage, NSpace } from 'naive-ui';
+import { FormInst, FormRules, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, useMessage } from 'naive-ui';
 import { onMounted, ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { Body_login_for_access_token, SessionService } from '../client';
 import { useAccountStore } from '../stores/account';
 import { useAuthStore } from '../stores/auth';
-import fujiMounterAssistantIconUrl from '@/assets/fuji2.webp'
-import panasonicMounterAssistantIconUrl from '@/assets/panasonic.webp'
 
 const props = defineProps( { message: String } );
 const message = useMessage();
@@ -78,11 +76,11 @@ async function onClickLoginButton ( event: Event ) {
                     ref="formRef">
                     <n-form-item show-require-mark label="帳號" path="username">
                         <n-input v-model:value.lazy=" formValue.username " autofocus
-                            :input-props=" { autocomplete: 'username' } "></n-input>
+                            :input-props=" { autocomplete: 'username', id: 'username' } "></n-input>
                     </n-form-item>
                     <n-form-item show-require-mark label="密碼" path="password">
                         <n-input type="password" v-model:value.lazy=" formValue.password "
-                            :input-props=" { autocomplete: 'current-password' } "></n-input>
+                            :input-props=" { autocomplete: 'current-password', id: 'password' } "></n-input>
                     </n-form-item>
                     <n-form-item>
                         <n-button type="primary" block @click=" onClickLoginButton( $event ) ">登入</n-button>

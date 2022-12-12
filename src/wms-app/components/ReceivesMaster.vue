@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { GetRowIdParams, GridOptions, RowDoubleClickedEvent, RowNode } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
@@ -15,52 +15,68 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref();
-const gridColumnApi = ref();
-
 const rowData = ref<ReceiveRead[]>( [] );
 
-const defaultColDef: ColDef = {
-  filter: true,
-  sortable: true,
-  flex: 1,
-  resizable: true,
-}
-
-const columnDefs: ColDef[] = [
-  { field: "idno", headerName: '收料單號' },
-  { field: "vendor_idno", headerName: '供應商代號' },
-  { field: "vendor_name", headerName: '供應商名稱' },
-  { field: "st_receive_idno", headerName: '舊 ERP 收料單號' },
-  { field: "st_mbr_idno", headerName: '舊 ERP 隨車交貨單號' },
-];
-
 const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
+  // PROPERTIES
+  // Column Definitions
+  columnDefs: [
+    { field: "idno", headerName: '收料單號' },
+    { field: "vendor_idno", headerName: '供應商代號' },
+    { field: "vendor_name", headerName: '供應商名稱' },
+    { field: "st_receive_idno", headerName: '舊 ERP 收料單號' },
+    { field: "st_mbr_idno", headerName: '舊 ERP 隨車交貨單號' },
+  ],
+  defaultColDef: { filter: true, sortable: true, flex: 1, resizable: true },
+
+  // Column Moving
+  suppressMovableColumns: false,
+  suppressColumnMoveAnimation: true,
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true,
 
+  // Miscellaneous
+  rowBuffer: 100,
+  debug: false,
+  suppressParentsInRowNodes: true,
+
+  // Pagination
+  pagination: true,
+
+  // Rendering
+  enableCellChangeFlash: true,
+  suppressColumnVirtualisation: true,
+  suppressRowVirtualisation: false,
+  domLayout: 'normal',
+  getBusinessKeyForNode: ( node: RowNode<ReceiveRead> ) => { return node.data.id.toString() },
+
+  // RowModel
+  rowModelType: 'clientSide',
+  getRowId: ( params: GetRowIdParams ) => { return params.data.id },
+
+  // Scrolling
+  debounceVerticalScrollbar: true,
+
+  // Selection
+  enableCellTextSelection: true,
   rowSelection: 'single',
   suppressCellFocus: true,
+
+  // Styling
+  suppressRowTransform: true,
+
+  // Tooltips
+  enableBrowserTooltips: false,
+
+  // EVENTS
+  // Selection
   onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/wms/receives/${ event.data.idno }` ),
 }
 
 onBeforeMount( async () => { rowData.value = await ReceivesService.getRecentReceives(); } );
-
-function getRowId ( params: GetRowIdParams ) { return params.data.id; }
-
-function onGridReady ( params: GridReadyEvent ) {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-};
 
 function handleCreateReceiveButtonClick () { router.push( '/wms/receives/create' ); }
 
@@ -68,7 +84,7 @@ async function handleGenerateLabelsButtonClick () {
   let receive: ReceiveRead;
 
   // Get selected row
-  const selectedRows: ReceiveRead[] = gridApi.value.getSelectedRows();
+  const selectedRows: ReceiveRead[] = gridOptions.api.getSelectedRows();
 
   // Check if a row is selected
   if ( selectedRows.length === 0 ) {
@@ -120,9 +136,10 @@ async function handleGenerateLabelsButtonClick () {
 
         </n-space>
 
-        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
-          :getRowId=" getRowId " :onGridReady=" onGridReady ">
-        </ag-grid-vue>
+        <div style="height: 400px;">
+          <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; " :gridOptions=" gridOptions ">
+          </ag-grid-vue>
+        </div>
 
       </n-space>
     </div>

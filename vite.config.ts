@@ -9,17 +9,8 @@ import Components from 'unplugin-vue-components/vite';
 // https://vitejs.dev/config/
 /** @type {import('vite').UserConfig} */
 export default ( {
-  plugins: [
-    vue(),
-    Components( {
-      resolvers: [ NaiveUiResolver() ]
-    } ),
-  ],
-  resolve: {
-    alias: {
-      "@": fileURLToPath( new URL( "./src", import.meta.url ) ),
-    },
-  },
+  plugins: [ vue(), Components( { resolvers: [ NaiveUiResolver() ] } ), ],
+  resolve: { alias: { "@": fileURLToPath( new URL( "./src", import.meta.url ) ) }, },
   test: {
     // 启用类似 jest 的全局测试 API
     globals: true,
