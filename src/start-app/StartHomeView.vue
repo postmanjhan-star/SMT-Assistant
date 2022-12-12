@@ -78,7 +78,7 @@ onMounted( () => { if ( props.message ) message.warning( props.message ); } )
 }
 
 .n-a {
-    font-size: xx-small;
+    font-size: smaller;
     text-decoration: none;
     display: inline-block;
     border-radius: 24px;

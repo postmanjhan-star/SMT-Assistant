@@ -10,7 +10,7 @@ import { ApiError, MaterialsService, OpenAPI, ReceiveCreate, ReceiveItemCreate, 
 import { useAuthStore } from '../../stores/auth';
 
 const message = useMessage();
-const router = useRouter();
+const router = useRouter()
 const props = defineProps( {
   st_receive_idno: String,
   st_vendor_id: Number,

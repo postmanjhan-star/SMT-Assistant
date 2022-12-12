@@ -10,12 +10,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const columns = [
-  {
-    title: '帳號',
-    key: 'username',
-  },
-]
+const columns = [ { title: '帳號', key: 'username', } ]
 
 const rowProps = ( row: AccountRead ) => {
   return {
@@ -29,15 +24,10 @@ const data = reactive<AccountRead[]>( [] );
 
 onBeforeMount( async () => {
   let AccountsData = await AccountsService.getRecentAccounts();
-  for ( let row of AccountsData ) {
-    data.push( row );
-  }
-  // console.debug( 'data:\n', data );
+  for ( let row of AccountsData ) { data.push( row ) }
 } );
 
-function handleCreateAccountButtonClick () {
-  router.push( '/wms/accounts/create' );
-}
+function handleCreateAccountButtonClick () { router.push( '/wms/accounts/create' ) }
 </script>
 
 

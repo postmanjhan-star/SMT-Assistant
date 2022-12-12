@@ -58,7 +58,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/storages',
-            component: () => import( "../wms-app/components/StoragesMain.vue" ),
+            component: () => import( "../wms-app/components/StoragesMaster.vue" ),
           },
           {
             path: '/wms/storages/create',
@@ -118,7 +118,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/receives',
-            component: () => import( "../wms-app/components/ReceivesMain.vue" ),
+            component: () => import( "../wms-app/components/ReceivesMaster.vue" ),
           },
           {
             path: '/wms/receives/create',
@@ -178,6 +178,26 @@ const routes: RouteRecordRaw[] = [
           {
             path: '/wms/st_erp_work_orders/:idno',
             component: () => import( "../wms-app/components/StErpWorkOrdersDetail.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks',
+            component: () => import( "../wms-app/seastone/SeastoneRacksMaster.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/create',
+            component: () => import( "../wms-app/seastone/SeastoneRacksCreate.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/:rack_idno',
+            component: () => import( "../wms-app/seastone/SeastoneRacksDetail.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/:rack_idno/edit',
+            component: () => import( "../wms-app/seastone/SeastoneRacksEdit.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/:rack_idno/create_cell',
+            component: () => import( "../wms-app/seastone/SeastoneRackCellCreate.vue" ),
           },
         ],
       },
