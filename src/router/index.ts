@@ -7,194 +7,235 @@ import { useAuthStore } from "../stores/auth";
 // 这些都会传递给 `createRouter`
 const routes: RouteRecordRaw[] = [
   {
-    path: "/",
-    name: "Login",
+    path: '',
     meta: { requiresAuth: false },
-    component: () => import( "../views/LoginView.vue" ),
-    props: true,
-  },
-  {
-    path: "/home",
-    meta: { requiresAuth: true },
-    component: () => import( "../views/HomeView.vue" ),
+    component: () => import( '../start-app/StartAppView.vue' ),
     children: [
       {
-        path: '',
-        component: () => import( "../components/HomeMain.vue" ),
+        path: "",
+        name: "StartHome",
+        meta: { requiresAuth: false },
+        component: () => import( "../start-app/StartHomeView.vue" ),
+        props: true,
+      }
+    ]
+  },
+  {
+    path: '/wms',
+    meta: { requiresAuth: false },
+    component: () => import( '../wms-app/WmsAppView.vue' ),
+    children: [
+      {
+        path: "login",
+        name: "WmsLogin",
+        meta: { requiresAuth: false },
+        component: () => import( "../wms-app/LoginView.vue" ),
+        props: true,
       },
       {
-        path: "/accounts",
-        meta: { requiredAuthModule: [ "see_system_group" ] },
-        component: () => import( "../components/AccountsMaster.vue" ),
-      },
-      {
-        path: '/accounts/create',
-        meta: { requiredAuthModule: [ 'see_system_group' ] },
-        component: () => import( "../components/AccountsCreate.vue" ),
-      },
-      {
-        path: '/accounts/:idno',
-        meta: { requiredAuthModule: [ 'see_system_group' ] },
-        component: () => import( "../components/AccountsItem.vue" ),
-      },
-      {
-        path: '/storages',
-        component: () => import( "../components/StoragesMain.vue" ),
-      },
-      {
-        path: '/storages/create',
-        component: () => import( "../components/StoragesCreate.vue" ),
-      },
-      {
-        path: '/storages/:id',
-        component: () => import( "../components/StoragesDetail.vue" ),
-      },
-      {
-        path: '/storages/:id/edit',
-        component: () => import( "../components/StoragesEdit.vue" ),
-      },
-      {
-        path: '/materials',
-        component: () => import( "../components/MaterialsMaster.vue" ),
-      },
-      {
-        path: '/materials/create_raw_material',
-        component: () => import( "../components/MaterialsCreateRawMaterial.vue" ),
-      },
-      {
-        path: '/materials/create_product',
-        component: () => import( "../components/MaterialsCreateProduct.vue" ),
-      },
-      {
-        path: '/materials/create_in_process_material',
-        component: () => import( "../components/MaterialsCreateInProcessMaterial.vue" ),
-      },
-      {
-        path: '/materials/:idno',
-        component: () => import( "../components/MaterialsDetail.vue" ),
-      },
-      {
-        path: '/materials/:idno/edit',
-        component: () => import( "../components/MaterialsEditMaster.vue" ),
-      },
-      {
-        path: '/vendors',
-        component: () => import( "../components/VendorsMain.vue" ),
-      },
-      {
-        path: '/vendors/create',
-        component: () => import( "../components/VendorsCreate.vue" ),
-      },
-      {
-        path: '/vendors/:idno',
-        component: () => import( "../components/VendorsItem.vue" ),
-      },
-      {
-        path: '/epicor_receives',
-        component: () => import( "../components/EpicorReceivesMain.vue" ),
-      },
-      {
-        path: '/epicor_receives/:vendor_num/:pack_slip',
-        component: () => import( "../components/EpicorReceivesItem.vue" ),
-      },
-      {
-        path: '/receives',
-        component: () => import( "../components/ReceivesMain.vue" ),
-      },
-      {
-        path: '/receives/create',
-        name: 'receivesCreate',
-        component: () => import( "../components/ReceivesCreate.vue" ),
-        props: route => ( {
-          st_receive_idno: route.params.st_receive_idno,
-          st_vendor_id: Number( route.params.st_vendor_id ),
-          st_mbr_idno: route.params.st_mbr_idno,
-          st_purchase_idno: route.params.st_purchase_idno,
-          material_idno: route.params.material_idno,
-          total_qty: Number( route.params.total_qty ),
-          qualify_qty: Number( route.params.qualify_qty ),
-          st_barcodes: route.params.st_barcodes,
-        } ),
-      },
-      {
-        path: '/receives/:idno',
-        component: () => import( "../components/ReceivesItem.vue" ),
-      },
-      {
-        path: '/transfers',
-        component: () => import( "../components/MaterialInventoryTransferMain.vue" ),
-      },
-      {
-        path: '/issuances',
-        component: () => import( "../components/IssuancesMain.vue" ),
-      },
-      {
-        path: '/issuances/create',
-        component: () => import( "../components/IssuancesCreate.vue" ),
-      },
-      {
-        path: '/issuances/:idno',
-        component: () => import( "../components/IssuancesItem.vue" ),
-      },
-      {
-        path: '/issuances/:idno/pick',
-        component: () => import( "../components/IssuancesPick.vue" ),
-      },
-      {
-        path: '/issuance_returns',
-        component: () => import( "../components/IssuanceReturnsMaster.vue" ),
-      },
-      {
-        path: '/issuance_returns/create',
-        component: () => import( "../components/IssuanceReturnsCreate.vue" ),
-      },
-      {
-        path: '/st_erp_receives',
-        component: () => import( "../components/StErpReceivesMaster.vue" ),
-      },
-      {
-        path: '/st_erp_work_orders',
-        component: () => import( "../components/StErpWorkOrdersMaster.vue" ),
-      },
-      {
-        path: '/st_erp_work_orders/:idno',
-        component: () => import( "../components/StErpWorkOrdersDetail.vue" ),
+        path: "home",
+        meta: { requiresAuth: true },
+        component: () => import( "../wms-app/WmsHomeView.vue" ),
+        children: [
+          {
+            path: '',
+            component: () => import( "../wms-app/components/HomeMain.vue" ),
+          },
+          {
+            path: "/wms/accounts",
+            meta: { requiredAuthModule: [ "see_system_group" ] },
+            component: () => import( "../wms-app/components/AccountsMaster.vue" ),
+          },
+          {
+            path: '/wms/accounts/create',
+            meta: { requiredAuthModule: [ 'see_system_group' ] },
+            component: () => import( "../wms-app/components/AccountsCreate.vue" ),
+          },
+          {
+            path: '/wms/accounts/:idno',
+            meta: { requiredAuthModule: [ 'see_system_group' ] },
+            component: () => import( "../wms-app/components/AccountsItem.vue" ),
+          },
+          {
+            path: '/wms/storages',
+            component: () => import( "../wms-app/components/StoragesMaster.vue" ),
+          },
+          {
+            path: '/wms/storages/create',
+            component: () => import( "../wms-app/components/StoragesCreate.vue" ),
+          },
+          {
+            path: '/wms/storages/:id',
+            component: () => import( "../wms-app/components/StoragesDetail.vue" ),
+          },
+          {
+            path: '/wms/storages/:id/edit',
+            component: () => import( "../wms-app/components/StoragesEdit.vue" ),
+          },
+          {
+            path: '/wms/materials',
+            component: () => import( "../wms-app/components/MaterialsMaster.vue" ),
+          },
+          {
+            path: '/wms/materials/create_raw_material',
+            component: () => import( "../wms-app/components/MaterialsCreateRawMaterial.vue" ),
+          },
+          {
+            path: '/wms/materials/create_product',
+            component: () => import( "../wms-app/components/MaterialsCreateProduct.vue" ),
+          },
+          {
+            path: '/wms/materials/create_in_process_material',
+            component: () => import( "../wms-app/components/MaterialsCreateInProcessMaterial.vue" ),
+          },
+          {
+            path: '/wms/materials/:idno',
+            component: () => import( "../wms-app/components/MaterialsDetail.vue" ),
+          },
+          {
+            path: '/wms/materials/:idno/edit',
+            component: () => import( "../wms-app/components/MaterialsEditMaster.vue" ),
+          },
+          {
+            path: '/wms/vendors',
+            component: () => import( "../wms-app/components/VendorsMain.vue" ),
+          },
+          {
+            path: '/wms/vendors/create',
+            component: () => import( "../wms-app/components/VendorsCreate.vue" ),
+          },
+          {
+            path: '/wms/vendors/:idno',
+            component: () => import( "../wms-app/components/VendorsItem.vue" ),
+          },
+          {
+            path: '/wms/epicor_receives',
+            component: () => import( "../wms-app/components/EpicorReceivesMain.vue" ),
+          },
+          {
+            path: '/wms/epicor_receives/:vendor_num/:pack_slip',
+            component: () => import( "../wms-app/components/EpicorReceivesItem.vue" ),
+          },
+          {
+            path: '/wms/receives',
+            component: () => import( "../wms-app/components/ReceivesMaster.vue" ),
+          },
+          {
+            path: '/wms/receives/create',
+            name: 'receivesCreate',
+            component: () => import( "../wms-app/components/ReceivesCreate.vue" ),
+            props: route => ( {
+              st_receive_idno: route.params.st_receive_idno,
+              st_vendor_id: Number( route.params.st_vendor_id ),
+              st_mbr_idno: route.params.st_mbr_idno,
+              st_purchase_idno: route.params.st_purchase_idno,
+              material_idno: route.params.material_idno,
+              total_qty: Number( route.params.total_qty ),
+              qualify_qty: Number( route.params.qualify_qty ),
+              st_barcodes: route.params.st_barcodes,
+            } ),
+          },
+          {
+            path: '/wms/receives/:idno',
+            component: () => import( "../wms-app/components/ReceivesItem.vue" ),
+          },
+          {
+            path: '/wms/transfers',
+            component: () => import( "../wms-app/components/MaterialInventoryTransferMain.vue" ),
+          },
+          {
+            path: '/wms/issuances',
+            component: () => import( "../wms-app/components/IssuancesMain.vue" ),
+          },
+          {
+            path: '/wms/issuances/create',
+            component: () => import( "../wms-app/components/IssuancesCreate.vue" ),
+          },
+          {
+            path: '/wms/issuances/:idno',
+            component: () => import( "../wms-app/components/IssuancesItem.vue" ),
+          },
+          {
+            path: '/wms/issuances/:idno/pick',
+            component: () => import( "../wms-app/components/IssuancesPick.vue" ),
+          },
+          {
+            path: '/wms/issuance_returns',
+            component: () => import( "../wms-app/components/IssuanceReturnsMaster.vue" ),
+          },
+          {
+            path: '/wms/issuance_returns/create',
+            component: () => import( "../wms-app/components/IssuanceReturnsCreate.vue" ),
+          },
+          {
+            path: '/wms/st_erp_receives',
+            component: () => import( "../wms-app/components/StErpReceivesMaster.vue" ),
+          },
+          {
+            path: '/wms/st_erp_work_orders',
+            component: () => import( "../wms-app/components/StErpWorkOrdersMaster.vue" ),
+          },
+          {
+            path: '/wms/st_erp_work_orders/:idno',
+            component: () => import( "../wms-app/components/StErpWorkOrdersDetail.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks',
+            component: () => import( "../wms-app/seastone/SeastoneRacksMaster.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/create',
+            component: () => import( "../wms-app/seastone/SeastoneRacksCreate.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/:rack_idno',
+            component: () => import( "../wms-app/seastone/SeastoneRacksDetail.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/:rack_idno/edit',
+            component: () => import( "../wms-app/seastone/SeastoneRacksEdit.vue" ),
+          },
+          {
+            path: '/wms/seastone_racks/:rack_idno/create_cell',
+            component: () => import( "../wms-app/seastone/SeastoneRackCellCreate.vue" ),
+          },
+        ],
       },
     ],
   },
   {
-    path: "/issuances/:idno/print",
+    path: "/wms/issuances/:idno/print",
     meta: { requiresAuth: true },
-    component: () => import( "../views/IssuancesPickingUpPrintView.vue" ),
+    component: () => import( "../wms-app/IssuancesPickingUpPrintView.vue" ),
   },
   {
     path: "/smt",
     meta: { requiresAuth: false },
-    component: () => import( "../smtViews/HomeView.vue" ),
+    component: () => import( "../smt-app/HomeView.vue" ),
     children: [
       {
         path: '/smt/fuji-mounter',
-        component: () => import( "../smtViews/FujiMounterAssistantHome.vue" ),
+        component: () => import( "../smt-app/FujiMounterAssistantHome.vue" ),
       },
       {
         path: '/smt/fuji-mounter/:mounterIdno/:workOrderIdno',
-        component: () => import( "../smtViews/FujiMounterAssistantDetail.vue" ),
+        component: () => import( "../smt-app/FujiMounterAssistantDetail.vue" ),
       },
       {
         path: '/smt/fuji-mounter/upload_fst',
-        component: () => import( "../smtViews/UploadFujiFile.vue" ),
+        component: () => import( "../smt-app/UploadFujiFile.vue" ),
       },
       {
         path: '/smt/panasonic-mounter',
-        component: () => import( "../smtViews/PanasonicMounterAssistantHome.vue" ),
+        component: () => import( "../smt-app/PanasonicMounterAssistantHome.vue" ),
       },
       {
         path: '/smt/panasonic-mounter/upload_csv',
-        component: () => import( "../smtViews/UploadPanasonicFile.vue" ),
+        component: () => import( "../smt-app/UploadPanasonicFile.vue" ),
       },
       {
         path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',
-        component: () => import( "../smtViews/PanasonicMounterAssistantDetail.vue" ),
+        component: () => import( "../smt-app/PanasonicMounterAssistantDetail.vue" ),
       },
     ],
   },
@@ -205,23 +246,31 @@ const routes: RouteRecordRaw[] = [
     component: () => import( "../views/PlaygroundView.vue" ),
   },
   {
-    path: "/403",
-    name: "Forbidden",
+    path: "/http-status",
+    name: "HttpStatus",
     meta: { requiresAuth: false },
-    component: () => import( "../views/ForbiddenView.vue" ),
-  },
-  {
-    path: "/404",
-    name: "NotFound",
-    meta: { requiresAuth: false },
-    component: () => import( "../views/NotFoundView.vue" ),
-  },
-  {
-    path: "/:pathMatch(.*)",
-    name: "NotFound",
-    meta: { requiresAuth: false },
-    // beforeEnter(to, from) {window.location.href = '/404'},
-    component: () => import( "../views/NotFoundView.vue" ),
+    component: () => import( "../views/HttpStatusView.vue" ),
+    children: [
+      {
+        path: "403",
+        name: "Forbidden",
+        meta: { requiresAuth: false },
+        component: () => import( "../views/ForbiddenView.vue" ),
+      },
+      {
+        path: "404",
+        name: "NotFound",
+        meta: { requiresAuth: false },
+        component: () => import( "../views/NotFoundView.vue" ),
+      },
+      {
+        path: "/:pathMatch(.*)",
+        name: "NotFound",
+        meta: { requiresAuth: false },
+        // beforeEnter(to, from) {window.location.href = '/http-status/404'},
+        component: () => import( "../views/NotFoundView.vue" ),
+      },
+    ],
   },
 ]
 
@@ -240,7 +289,7 @@ router.beforeEach( async ( to, from ) => {
   // 检查用户是否已登录
   if ( authStore.isAuthenticated === false && to.meta.requiresAuth ) {
     // 将用户重定向到登录页面
-    return { name: 'Login' };
+    return { name: 'WmsLogin' };
   }
 
   // Refresh `refresh_token` & `access_token` with every request
@@ -248,12 +297,12 @@ router.beforeEach( async ( to, from ) => {
     try { await authStore.refreshToken(); }
     catch ( error ) {
       await authStore.logout();
-      return { name: 'Login', params: { message: '登錄過期，請重新登入' } };
+      return { name: 'WmsLogin', params: { message: '登錄過期，請重新登入' } };
     }
   }
 
   const requiredAuthModule = to.meta.requiredAuthModule as string[];
-  if ( requiredAuthModule?.includes( 'see_system_group' ) && !accountStore.authorizedModules.includes( 'see_system_group' ) ) { return { path: '/403' } }
+  if ( requiredAuthModule?.includes( 'see_system_group' ) && !accountStore.authorizedModules.includes( 'see_system_group' ) ) { return { path: '/http-status/403' } }
 } );
 
 export default router;

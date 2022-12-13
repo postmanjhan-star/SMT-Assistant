@@ -1,15 +1,16 @@
 {
   "name": "soda-web",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "scripts": {
     "dev": "vite",
     "build:production": "NODE_OPTIONS=--max_old_space_size=1024 vite build",
     "build:staging": "vite build --mode staging",
     "preview": "vite preview --port 5173",
-    "test:unit": "vitest --environment jsdom",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "generate": "openapi --input http://localhost/api/openapi.json --output ./src/client --exportSchemas true --useOptions",
-    "test": "vitest"
+    "test": "vitest",
+    "test:unit": "vitest --environment jsdom",
+    "coverage": "vitest run --coverage"
   },
   "dependenciesComments": {
     "@antfu/utils": "@antfu/utils v0.6.1 has a bug. Skip it."
@@ -24,6 +25,7 @@
     "ag-grid-vue3": "^28.2.0",
     "client-oauth2": "^4.3.3",
     "dataclass": "^2.0.0",
+    "ip-num": "^1.5.0",
     "jose": "^4.8.1",
     "pinia": "^2.0.13",
     "tone": "^14.7.77",
@@ -33,19 +35,21 @@
     "vue-router": "4.1.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
+    "@playwright/test": "^1.28.1",
     "@rushstack/eslint-patch": "^1.1.0",
     "@testing-library/vue": "^6.4.2",
-    "@vitejs/plugin-vue": "^3.1.2",
+    "@vitejs/plugin-vue": "^4.0.0",
     "@vue/eslint-config-prettier": "^7.0.0",
     "@vue/test-utils": "^2.0.0-rc.20",
     "eslint": "^8.5.0",
     "eslint-plugin-vue": "^9.6.0",
-    "happy-dom": "^7.5.12",
+    "happy-dom": "^8.1.0",
     "jsdom": "^20.0.1",
     "naive-ui": "^2.29.0",
     "openapi-typescript-codegen": "^0.23.0",
     "unplugin-vue-components": "^0.22.8",
-    "vite": "^3.1.8",
+    "vite": "^4.0.0",
     "vitest": "^0.25.1"
   }
 }
