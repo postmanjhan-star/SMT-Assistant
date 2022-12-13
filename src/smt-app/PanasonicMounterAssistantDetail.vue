@@ -301,7 +301,8 @@ function hideVirtualKeyboard () {
           <n-form size="small" :model=" materialFormValue " @submit.prevent=" onSubmitMaterialInventoryForm( $event ) ">
             <n-form-item label="物料單包條碼">
               <n-input type="text" size="large" v-model:value.lazy=" materialFormValue.materialInventoryIdno " autofocus
-                ref="materialInventoryIdnoInput" @focus=" hideVirtualKeyboard() " />
+                ref="materialInventoryIdnoInput" @focus=" hideVirtualKeyboard() "
+                :input-props=" { id: 'materialInventoryIdnoInput' } " />
             </n-form-item>
           </n-form>
         </n-gi>
@@ -309,7 +310,8 @@ function hideVirtualKeyboard () {
         <n-gi>
           <n-form size="small" :model=" slotFormValue " @submit.prevent=" onSubmitSlotForm( $event ) ">
             <n-form-item label="打件機料件槽位">
-              <n-input type="text" size="large" v-model:value.lazy=" slotFormValue.slotIdno " ref="slotIdnoInput" />
+              <n-input type="text" size="large" v-model:value.lazy=" slotFormValue.slotIdno " ref="slotIdnoInput"
+                :input-props=" { id: 'slotIdnoInput' } " />
             </n-form-item>
           </n-form>
         </n-gi>

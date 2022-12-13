@@ -49,18 +49,18 @@ async function onClickSubmitButton ( event: Event ) {
       machineSide: formValue.value.machineSide,
 
       // For testing and debugging. Example: http://127.0.0.1/smt/panasonic-mounter?testing_mode=1&testing_product_idno=40X76-002A-T3
-      testingMode: route.query.testing_mode === '1'? true : false,
-      testingProductIdno: route.query.testing_product_idno? route.query.testing_product_idno.toString() : null,
+      testingMode: route.query.testing_mode === '1' ? true : false,
+      testingProductIdno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
     } )
     router.push( {
       path: `/smt/panasonic-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }`,
       query: {
         work_sheet_side: formValue.value.workSheetSide.trim(),
         machine_side: formValue.value.machineSide.trim(),
-        
+
         // For testing and debugging. Example: http://127.0.0.1/smt/panasonic-mounter/A1-NPM-W2/H0001?testing_mode=1&testing_product_idno=40X76-002A-T3
-        testing_mode: route.query.testing_mode === '1'? '1' : null,
-        testing_product_idno: route.query.testing_product_idno? route.query.testing_product_idno.toString() : null,
+        testing_mode: route.query.testing_mode === '1' ? '1' : null,
+        testing_product_idno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
       }
     } );
   }
@@ -89,13 +89,14 @@ async function onClickSubmitButton ( event: Event ) {
           <n-gi></n-gi>
           <n-form-item-gi label="工單號" show-require-mark path="workOrderIdno">
             <n-input type="text" size="large" autofocus v-model:value.lazy=" formValue.workOrderIdno "
-              ref="workOrderIdnoInput" />
+              ref="workOrderIdnoInput" :input-props=" { id: 'workOrderIdno' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 
           <n-gi></n-gi>
           <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
-            <n-input type="text" size="large" v-model:value.lazy=" formValue.mounterIdno " />
+            <n-input type="text" size="large" v-model:value.lazy=" formValue.mounterIdno "
+              :input-props=" { id: 'mounterIdno' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 
