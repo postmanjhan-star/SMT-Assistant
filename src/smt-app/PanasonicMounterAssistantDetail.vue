@@ -33,7 +33,7 @@ type RowModel = {
 }
 const rowData = ref<RowModel[]>( [] );
 
-let materialMatchedRow: RowModel
+let materialMatchedRowArray: RowModel[]
 
 
 const gridOptions: GridOptions = {
@@ -82,7 +82,7 @@ const gridOptions: GridOptions = {
 
   // Selection
   enableCellTextSelection: true,
-  rowSelection: 'single',
+  rowSelection: 'multiple',
   suppressCellFocus: true,
 
   // Styling
@@ -106,8 +106,12 @@ onMounted( async () => {
     mounterData.value = await SmtService.getPanasonicMounterMaterialSlotPairs( {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
-      boardSide: route.query.workSheetSide.toString() as 'TOP' | 'BOTTOM' | 'DUPLEX',
-      machineSide: route.query.machineSide.toString() as '1' | '2',
+      boardSide: route.query.work_sheet_side.toString() as 'TOP' | 'BOTTOM' | 'DUPLEX',
+      machineSide: route.query.machine_side.toString() as '1' | '2', // 1 = front, 2 = back
+
+      // For testing and debugging. Example: http://127.0.0.1/smt/panasonic-mounter/A1-NPM-W2/H0001?work_sheet_side=DUPLEX&machine_side=1&testing_mode=1&testing_product_idno=40X76-002A-T3
+      testingMode: route.query.testing_mode === '1' ? true : false,
+      testingProductIdno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
     } )
   }
   catch ( error ) {
@@ -168,15 +172,17 @@ function speak ( text: string ) {
 
 
 
-function getMaterialMatchedRow ( materialIdno: string ) {
-  for ( let row of rowData.value ) { if ( materialIdno === row.materialIdno ) { return row } }
-  throw Error
+function getMaterialMatchedRowArray ( materialIdno: string ): RowModel[] {
+  const matchedRow: RowModel[] = []
+  for ( let row of rowData.value ) { if ( materialIdno === row.materialIdno ) { matchedRow.push( row ) } }
+  if ( matchedRow.length > 0 ) { return matchedRow }
+  else { throw Error }
 }
 
 
 
 async function onSubmitMaterialInventoryForm ( event: Event ) {
-  if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) {
+  if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) { // A3573382
     message.warning( '請輸入物料號' );
     return false;
   }
@@ -201,7 +207,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
     }
   }
 
-  try { materialMatchedRow = getMaterialMatchedRow( materialInventory.material_idno ) }
+  try { materialMatchedRowArray = getMaterialMatchedRowArray( materialInventory.material_idno ) }
   catch ( error ) {
     await playErrorTone()
     message.warning( '表格內無此物料' )
@@ -209,9 +215,11 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
     return false;
   }
 
-  const rowNode = gridOptions.api.getRowNode( `${materialMatchedRow.slotIdno}-${materialMatchedRow.subSlotIdno}` )
-  rowNode.setSelected( true )
-  gridOptions.api.ensureIndexVisible( rowNode.rowIndex, 'middle' )
+  for ( let row of materialMatchedRowArray ) {
+    const rowNode = gridOptions.api.getRowNode( `${ row.slotIdno }-${ row.subSlotIdno }` )
+    rowNode.setSelected( true )
+    gridOptions.api.ensureIndexVisible( rowNode.rowIndex, 'middle' )
+  }
   // speak( rowNode.data.slotIdno ) // Do not give a user voice hint here.
   // speak( rowNode.data.subSlotIdno ) // Do not give a user voice hint here.
 
@@ -227,34 +235,36 @@ async function onSubmitSlotForm ( event: Event ) {
     return false;
   }
 
-  const rowNode = gridOptions.api.getRowNode( `${materialMatchedRow.slotIdno}-${materialMatchedRow.subSlotIdno}` )
-
   const [ inputSlotSlot, inputSlotSubSlot = '' ] = inputSlotIdno.split( '-' )
 
-  // In case of slot idnos not match.
-  if ( inputSlotSlot != materialMatchedRow.slotIdno || inputSlotSubSlot != materialMatchedRow.subSlotIdno ) {
-    materialMatchedRow.correct = false;
-    materialMatchedRow.materialInventoryIdno = ''
-    rowNode.setData( materialMatchedRow )
-    await playErrorTone();
-    message.error( '錯誤' );
+  for ( let row of materialMatchedRowArray ) {
+    const rowNode = gridOptions.api.getRowNode( `${ row.slotIdno }-${ row.subSlotIdno }` )
+
+    // In case of slot idnos not match.
+    if ( inputSlotSlot != row.slotIdno || inputSlotSubSlot != row.subSlotIdno ) {
+      row.correct = false;
+      row.materialInventoryIdno = ''
+      rowNode.setData( row )
+      await playErrorTone();
+      message.error( '錯誤' );
+
+      slotFormValue.value.slotIdno = '';
+      materialFormValue.value.materialInventoryIdno = '';
+      materialInventoryIdnoInput.value.focus();
+      return false;
+    }
+
+    // In case of slot idnos match.
+    row.correct = true;
+    row.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
+    rowNode.setData( row )
+    await playSuccseTone();
 
     slotFormValue.value.slotIdno = '';
     materialFormValue.value.materialInventoryIdno = '';
     materialInventoryIdnoInput.value.focus();
-    return false;
+    return true;
   }
-
-  // In case of slot idnos match.
-  materialMatchedRow.correct = true;
-  materialMatchedRow.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
-  rowNode.setData( materialMatchedRow )
-  await playSuccseTone();
-
-  slotFormValue.value.slotIdno = '';
-  materialFormValue.value.materialInventoryIdno = '';
-  materialInventoryIdnoInput.value.focus();
-  return true;
 }
 
 
@@ -278,9 +288,9 @@ function hideVirtualKeyboard () {
           <n-space size="small">
             <n-p>工單：<n-tag type="info" size="small">{{ route.params.workOrderIdno }}</n-tag>
             </n-p>
-            <n-p>工件面向：<n-tag type="info" size="small">{{ route.query.workSheetSide }}</n-tag>
+            <n-p>工件面向：<n-tag type="info" size="small">{{ route.query.work_sheet_side }}</n-tag>
             </n-p>
-            <n-p>機台面向：<n-tag type="info" size="small">{{ route.query.machineSide }}</n-tag>
+            <n-p>機台面向：<n-tag type="info" size="small">{{ route.query.machine_side }}</n-tag>
             </n-p>
           </n-space>
         </template>
