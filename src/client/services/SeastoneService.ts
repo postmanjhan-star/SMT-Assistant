@@ -113,7 +113,7 @@ requestBody: Array<SeastoneSmartRackCellCreateWithoutRackId>,
 }): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/seastone_smart_rack{rack_idno}/create_cell',
+            url: '/seastone_smart_rack/{rack_idno}/create_cell',
             path: {
                 'rack_idno': rackIdno,
             },
