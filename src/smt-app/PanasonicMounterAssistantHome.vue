@@ -2,9 +2,10 @@
 import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, useMessage } from 'naive-ui';
 import { ref } from 'vue';
 import { useMeta } from 'vue-meta';
-import { RouterLink, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, SmtService } from '../client';
 
+const route = useRoute()
 const router = useRouter();
 const message = useMessage();
 useMeta( { title: 'Panasonic Mounter Assistant' } );
@@ -43,15 +44,23 @@ async function onClickSubmitButton ( event: Event ) {
   try {
     const mounterDataArray = await SmtService.getPanasonicMounterMaterialSlotPairs( {
       workOrderIdno: formValue.value.workOrderIdno.trim(),
-      mounterIdno: formValue.value.mounterIdno.trim(),
+      mounterIdno: formValue.value.mounterIdno.trim(), // A1-NPM-W2
       boardSide: formValue.value.workSheetSide,
       machineSide: formValue.value.machineSide,
-    } );
+
+      // For testing and debugging. Example: http://127.0.0.1/smt/panasonic-mounter?testing_mode=1&testing_product_idno=40X76-002A-T3
+      testingMode: route.query.testing_mode === '1' ? true : false,
+      testingProductIdno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
+    } )
     router.push( {
       path: `/smt/panasonic-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }`,
       query: {
-        workSheetSide: formValue.value.workSheetSide.trim(),
-        machineSide: formValue.value.machineSide.trim(),
+        work_sheet_side: formValue.value.workSheetSide.trim(),
+        machine_side: formValue.value.machineSide.trim(),
+
+        // For testing and debugging. Example: http://127.0.0.1/smt/panasonic-mounter/A1-NPM-W2/H0001?testing_mode=1&testing_product_idno=40X76-002A-T3
+        testing_mode: route.query.testing_mode === '1' ? '1' : null,
+        testing_product_idno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
       }
     } );
   }
@@ -80,13 +89,14 @@ async function onClickSubmitButton ( event: Event ) {
           <n-gi></n-gi>
           <n-form-item-gi label="工單號" show-require-mark path="workOrderIdno">
             <n-input type="text" size="large" autofocus v-model:value.lazy=" formValue.workOrderIdno "
-              ref="workOrderIdnoInput" />
+              ref="workOrderIdnoInput" :input-props=" { id: 'workOrderIdnoInput' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 
           <n-gi></n-gi>
           <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
-            <n-input type="text" size="large" v-model:value.lazy=" formValue.mounterIdno " />
+            <n-input type="text" size="large" v-model:value.lazy=" formValue.mounterIdno "
+              :input-props=" { id: 'mounterIdnoInput' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 

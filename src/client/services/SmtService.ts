@@ -123,11 +123,15 @@ workOrderIdno,
 mounterIdno,
 boardSide,
 machineSide,
+testingMode = false,
+testingProductIdno,
 }: {
 workOrderIdno: string,
 mounterIdno: string,
 boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
 machineSide?: '1' | '2',
+testingMode?: boolean,
+testingProductIdno?: string,
 }): CancelablePromise<PanasonicMounterFileRead> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -139,6 +143,8 @@ machineSide?: '1' | '2',
             query: {
                 'board_side': boardSide,
                 'machine_side': machineSide,
+                'testing_mode': testingMode,
+                'testing_product_idno': testingProductIdno,
             },
             errors: {
                 422: `Validation Error`,
