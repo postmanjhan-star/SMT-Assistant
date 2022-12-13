@@ -69,8 +69,8 @@ onMounted( () => { if ( props.message ) message.warning( props.message ); } )
 
 .n-card {
     background-color: hsla(0, 0%, 100%, 0.6);
-    backdrop-filter: unset;
     -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: unset;
 }
 
 .n-card-cover {
