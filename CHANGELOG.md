@@ -12,7 +12,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 - 增加智慧料架管理模組。（9db9f70a）
 ### Changed
 - 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（7cc889ba）
-- 松下打件機助手支援一料多槽比對。（）
+- 松下打件機助手支援一料多槽比對。（3695dc37）
 ### Deprecated
 ### Removed
 ### Fixed
