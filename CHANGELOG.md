@@ -10,6 +10,8 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ### Added
 - 增加起始頁。（7cc889ba）
 - 增加智慧料架管理模組。（9db9f70a）
+- 松下打件機助手 CSV 上傳頁增加更明確的成功與失敗訊息。（dcc3a97e）
+- 松下打件機助手 CSV 上傳頁增加 CSV 輸出選項說明。（dcc3a97e）
 ### Changed
 - 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（7cc889ba）
 - 松下打件機助手支援一料多槽比對。（3695dc37）
