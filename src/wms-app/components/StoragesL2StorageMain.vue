@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { GridOptions, GridReadyEvent, RowDataUpdatedEvent, ViewportChangedEvent } from 'ag-grid-community';
-import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, RowNode, ViewportChangedEvent } from 'ag-grid-community';
+import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { ref } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { L1StorageMaterialBalance, OpenAPI, StoragesService } from '../../client';
+import { L2StorageRead, OpenAPI, StoragesService } from '../../client/index';
 import { useAuthStore } from '../../stores/auth';
 
 const route = useRoute();
@@ -16,9 +16,8 @@ const gridOptions: GridOptions = {
     // PROPERTIES
     // Column Definitions
     columnDefs: [
-        { field: "l2_storage_idno", headerName: '儲位代碼' },
-        { field: "material_idno", headerName: '物料代碼' },
-        { field: "balance", headerName: '庫存數量', type: 'rightAligned', valueFormatter: ( params ) => { return params.value.toLocaleString(); } },
+        { field: "idno", headerName: '儲位代碼' },
+        { field: "name", headerName: '儲位名稱' },
     ],
     defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
 
@@ -43,9 +42,11 @@ const gridOptions: GridOptions = {
     suppressColumnVirtualisation: true,
     suppressRowVirtualisation: false,
     domLayout: 'normal',
-        
+    getBusinessKeyForNode: ( node: RowNode<L2StorageRead> ) => { return node.data.id.toString() },
+
     // RowModel
     rowModelType: 'clientSide',
+    getRowId: ( params: GetRowIdParams ) => { return params.data.id },
 
     // Scrolling
     debounceVerticalScrollbar: true,
@@ -69,19 +70,20 @@ const gridOptions: GridOptions = {
     onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
 }
 
-const rowData = ref<L1StorageMaterialBalance[]>( [] );
+const rowData = ref<L2StorageRead[]>( [] );
 
-async function onGridReady ( event: GridReadyEvent ) {
-    rowData.value = await StoragesService.getStorageMaterialsBalance( { l1Id: Number( route.params.id ) } );
+
+onBeforeMount( async () => {
+    const L1Storage = await StoragesService.getStorage( { l1Id: Number( route.params.id ) } );
+    rowData.value = L1Storage.l2_storages;
     gridOptions.api.setRowData( rowData.value )
-};
+} );
 </script>
 
 
 <template>
     <div style="height: 600px; overflow-x: scroll; width: 100%;">
-        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; " :gridOptions=" gridOptions "
-            :onGridReady=" onGridReady ">
-        </ag-grid-vue>
+        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
+            :gridOptions=" gridOptions "></ag-grid-vue>
     </div>
 </template>
