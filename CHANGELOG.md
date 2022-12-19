@@ -15,7 +15,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ### Changed
 - 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（7cc889ba）
 - 松下打件機助手支援一料多槽比對。（3695dc37）
-- 倉位管理內頁把儲位的檢視與編輯分離成獨立的頁籤。（）
+- 倉位管理內頁把儲位的檢視與編輯分離成獨立的頁籤。（f6ac1d78）
 ### Deprecated
 ### Removed
 ### Fixed

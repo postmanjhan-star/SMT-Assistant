@@ -73,6 +73,10 @@ const routes: RouteRecordRaw[] = [
             component: () => import( "../wms-app/components/StoragesEdit.vue" ),
           },
           {
+            path: '/wms/storages/:id/edit-inner-storages',
+            component: () => import( "../wms-app/components/StoragesL2StorageBatchEdit.vue" ),
+          },
+          {
             path: '/wms/materials',
             component: () => import( "../wms-app/components/MaterialsMaster.vue" ),
           },

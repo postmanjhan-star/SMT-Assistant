@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, NTabPane, NTabs } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { ApiError, OpenAPI, SeastoneService, SeastoneSmartRackReadWithChildren } from '../../client/index';
-import { useAuthStore } from '../../stores/auth';
-import SeastoneRackCellsMaster from "./SeastoneRackCellsMaster.vue";
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, NTabPane, NTabs } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ApiError, OpenAPI, SeastoneService, SeastoneSmartRackReadWithChildren } from '../../client/index'
+import { useAuthStore } from '../../stores/auth'
+import SeastoneRackCellsMaster from "./SeastoneRackCellsMaster.vue"
 
-const authStore = useAuthStore();
-OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+const authStore = useAuthStore()
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ]
 
-const router = useRouter();
-const route = useRoute();
+const router = useRouter()
+const route = useRoute()
 
 const formValue = ref<SeastoneSmartRackReadWithChildren>( {
   id: 0,
@@ -24,7 +24,7 @@ const formValue = ref<SeastoneSmartRackReadWithChildren>( {
 } );
 
 let tabDefaultValue: string
-switch (route.query['tab']) {
+switch ( route.query[ 'tab' ] ) {
   case 'properties':
     tabDefaultValue = 'properties'
     break
@@ -33,7 +33,7 @@ switch (route.query['tab']) {
     break
   default:
     tabDefaultValue = 'properties'
-    break;
+    break
 }
 
 onBeforeMount( async () => {
@@ -43,7 +43,7 @@ onBeforeMount( async () => {
 
 
 
-function onClickEditButton ( event: Event ) { router.push( `/wms/seastone_racks/${ route.params.rack_idno.toString() }/edit` ); }
+function onClickEditButton ( event: Event ) { router.push( `/wms/seastone_racks/${ route.params.rack_idno.toString() }/edit` ) }
 </script>
 
 

@@ -14,6 +14,22 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
 const formValue = ref<StorageRead>( { id: 0, idno: '', name: '', type: StorageTypeEnum.INTERNAL_WAREHOUSE, l2_storages: [] } );
 
+let tabDefaultValue: string
+switch ( route.query[ 'tab' ] ) {
+  case 'properties':
+    tabDefaultValue = 'properties'
+    break
+  case 'l2_storages':
+    tabDefaultValue = 'l2_storages'
+    break
+  case 'materials':
+    tabDefaultValue = 'materials'
+    break
+  default:
+    tabDefaultValue = 'properties'
+    break
+}
+
 onBeforeMount( async () => { formValue.value = await StoragesService.getStorage( { l1Id: Number( route.params.id ) } ) } )
 
 function onClickEditButton ( event: Event ) { router.push( `/wms/storages/${ route.params.id.toString() }/edit` ); }
@@ -44,10 +60,9 @@ function onClickEditButton ( event: Event ) { router.push( `/wms/storages/${ rou
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-tabs type="line" size="large">
+        <n-tabs type="line" size="large" :default-value=" tabDefaultValue ">
 
-          <n-tab-pane name="properties" tab="基本屬性">
-
+          <n-tab-pane name="properties" tab="基本屬性" display-directive="show:lazy">
             <n-space size="large" style="margin-bottom: 1rem;">
               <n-button @click=" onClickEditButton( $event ) " attr-type="button">編輯</n-button>
             </n-space>
@@ -71,11 +86,11 @@ function onClickEditButton ( event: Event ) { router.push( `/wms/storages/${ rou
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane name="l2_storages" tab="儲位管理">
+          <n-tab-pane name="l2_storages" tab="儲位管理" display-directive="show:lazy">
             <storages-l2-storage-main></storages-l2-storage-main>
           </n-tab-pane>
 
-          <n-tab-pane name="materials" tab="物料一覽">
+          <n-tab-pane name="materials" tab="物料一覽" display-directive="show:lazy">
             <storages-material-balance></storages-material-balance>
           </n-tab-pane>
         </n-tabs>

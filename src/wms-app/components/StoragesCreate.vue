@@ -114,12 +114,13 @@ async function handleCreateStorageButtonClick ( event ) {
 
             <n-form-item-gi show-require-mark label="倉位代碼" path="idno" autofocus>
               <n-input v-model:value.lazy=" formValue.idno " autofocus
-                :input-props=" { style: 'text-transform: uppercase;' } ">
+                :input-props=" { style: 'text-transform: uppercase;', id: 'l1-storage-idno' } ">
               </n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="倉位名稱" path="name">
-              <n-input v-model:value.lazy=" formValue.name " :input-props=" { style: 'text-transform: uppercase;' } ">
+              <n-input v-model:value.lazy=" formValue.name "
+                :input-props=" { style: 'text-transform: uppercase;', id: 'l1-storage-name' } ">
               </n-input>
             </n-form-item-gi>
 
