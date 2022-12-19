@@ -1,7 +1,7 @@
-import { faker } from '@faker-js/faker/locale/zh_TW';
-import { expect, test } from '@playwright/test';
+import { faker } from '@faker-js/faker/locale/zh_TW'
+import { expect, test } from '@playwright/test'
 
-import { SeastoneSmartRackCreate } from '../src/client/index';
+import { SeastoneSmartRackCreate } from '../src/client/index'
 
 faker.setLocale( 'zh_TW' )
 

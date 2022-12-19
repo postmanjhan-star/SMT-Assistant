@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, L1StorageUpdate, OpenAPI, StoragesService } from '../../client';
-import { useAuthStore } from '../../stores/auth';
-import StorageSubItem from "./StoragesSubItem.vue";
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { ApiError, L1StorageUpdate, OpenAPI, StoragesService } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
-const route = useRoute();
-const router = useRouter();
-const message = useMessage();
+const route = useRoute()
+const router = useRouter()
+const message = useMessage()
 
-const authStore = useAuthStore();
-OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+const authStore = useAuthStore()
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ]
 
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<L1StorageUpdate>( { id: 0, idno: '', name: '' } );
@@ -104,6 +103,5 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
         </n-form>
       </n-space>
     </div>
-    <storage-sub-item></storage-sub-item>
   </main>
 </template>

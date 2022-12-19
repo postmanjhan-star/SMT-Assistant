@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, RowNode, ViewportChangedEvent } from 'ag-grid-community';
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { onBeforeMount, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { L2StorageRead, OpenAPI, StoragesService } from '../../client/index';
-import { useAuthStore } from '../../stores/auth';
+import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, RowNode, ViewportChangedEvent } from 'ag-grid-community'
+import "ag-grid-community/dist/styles/ag-grid.css" // Core grid CSS, always needed
+import "ag-grid-community/dist/styles/ag-theme-alpine.css" // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { NButton, NSpace } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { L2StorageRead, OpenAPI, StoragesService } from '../../client/index'
+import { useAuthStore } from '../../stores/auth'
 
-const route = useRoute();
-const authStore = useAuthStore();
-OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ]
 
 const gridOptions: GridOptions = {
     // PROPERTIES
@@ -53,7 +55,8 @@ const gridOptions: GridOptions = {
 
     // Selection
     enableCellTextSelection: true, // Add a div.ag-cell-wrapper element
-    rowSelection: 'single',
+    rowSelection: 'multiple',
+    rowMultiSelectWithClick: true,
     suppressCellFocus: true,
 
     // Styling
@@ -78,10 +81,15 @@ onBeforeMount( async () => {
     rowData.value = L1Storage.l2_storages;
     gridOptions.api.setRowData( rowData.value )
 } );
+
+function onClickBatchEditButton ( event: Event ) { router.push( `/wms/storages/${ route.params.id.toString() }/edit-inner-storages` ) }
 </script>
 
 
 <template>
+    <n-space size="large" style="margin-bottom: 1rem;">
+        <n-button @click=" onClickBatchEditButton( $event ) " attr-type="button">批次編輯</n-button>
+    </n-space>
     <div style="height: 600px; overflow-x: scroll; width: 100%;">
         <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
             :gridOptions=" gridOptions "></ag-grid-vue>
