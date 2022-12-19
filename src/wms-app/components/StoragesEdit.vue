@@ -59,7 +59,7 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -73,7 +73,12 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
           <n-a :href=" href " @click=" navigate ">倉位管理</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>{{ formValue.idno.toUpperCase() }}</n-breadcrumb-item>
+      <n-breadcrumb-item>
+        <router-link :to=" `/wms/storages/${ formValue.id }` " #=" { navigate, href } " custom>
+          <n-a :href=" href " @click=" navigate ">{{ formValue.idno.toUpperCase() }}</n-a>
+        </router-link>
+
+      </n-breadcrumb-item>
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
@@ -105,3 +110,11 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
     </div>
   </main>
 </template>
+
+
+
+<style>
+main {
+  background-image: url('/pattern.svg');
+}
+</style>
