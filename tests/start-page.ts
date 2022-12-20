@@ -8,4 +8,5 @@ export class StartPage {
 
     async goto () { await this.page.goto( '/' ); }
     async clickWmsApp () { await this.page.getByText( 'WMS' ).click() }
+    async clickPanasonicMounterAssistant () { await this.page.getByRole( 'link', { name: '松下打件機\n上料助手' } ).click() }
 }

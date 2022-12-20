@@ -11,20 +11,49 @@ import { StorageCreate } from '../src/client/index'
 faker.setLocale( 'zh_TW' )
 
 
-const fakeL1IdnoNum1 = faker.random.numeric( 2 )
-const fakeL1IdnoNum2 = faker.random.numeric( 2 )
 
-const fakeL2IdnoAlpha = faker.random.alpha( { casing: 'upper' } )
-const fakeL2IdnoNum1 = faker.random.numeric( 2 )
-const fakeL2IdnoNum2 = faker.random.numeric( 2 )
+const firstFakeL1ConstructureData = {
+  l1IdnoNum1: faker.random.numeric( 2 ),
+  l1IdnoNum2: faker.random.numeric( 2 ),
 
-const storageCreate: StorageCreate = {
-  idno: `F${ fakeL1IdnoNum1 }-W${ fakeL1IdnoNum2 }`, // F01-W05
-  name: `F${ fakeL1IdnoNum1 }-W${ fakeL1IdnoNum2 }`,
+  l2IdnoAlpha: faker.random.alpha( { casing: 'upper' } ),
+  l2idnoNum1: faker.random.numeric( 2 ),
+  l2idnoNum2: faker.random.numeric( 2 ),
+}
+
+
+
+const secondFakeL1ConstructureData = {
+  l1IdnoNum1: faker.random.numeric( 2 ),
+  l1IdnoNum2: faker.random.numeric( 2 ),
+
+  l2IdnoAlpha: faker.random.alpha( { casing: 'upper' } ),
+  l2idnoNum1: faker.random.numeric( 2 ),
+  l2idnoNum2: faker.random.numeric( 2 ),
+}
+
+
+
+const storageCreate1: StorageCreate = {
+  idno: `F${ firstFakeL1ConstructureData.l1IdnoNum1 }-W${ firstFakeL1ConstructureData.l1IdnoNum2 }`, // F01-W05
+  name: `F${ firstFakeL1ConstructureData.l1IdnoNum1 }-W${ firstFakeL1ConstructureData.l1IdnoNum2 }`,
   l2_storages: [
       {
-          idno: `R${ fakeL2IdnoAlpha }-S${ fakeL2IdnoNum1 }-L${ fakeL2IdnoNum2 }`, // RA-S02-L01
-          name: `R${ fakeL2IdnoAlpha }-S${ fakeL2IdnoNum1 }-L${ fakeL2IdnoNum2 }`,
+          idno: `R${ firstFakeL1ConstructureData.l2IdnoAlpha }-S${ firstFakeL1ConstructureData.l2idnoNum1 }-L${ firstFakeL1ConstructureData.l2idnoNum2 }`, // RA-S02-L01
+          name: `R${ firstFakeL1ConstructureData.l2IdnoAlpha }-S${ firstFakeL1ConstructureData.l2idnoNum1 }-L${ firstFakeL1ConstructureData.l2idnoNum2 }`,
+      },
+  ],
+}
+
+
+
+const storageCreate2: StorageCreate = {
+  idno: `F${ secondFakeL1ConstructureData.l1IdnoNum1 }-W${ secondFakeL1ConstructureData.l1IdnoNum2 }`, // F01-W05
+  name: `F${ secondFakeL1ConstructureData.l1IdnoNum1 }-W${ secondFakeL1ConstructureData.l1IdnoNum2 }`,
+  l2_storages: [
+      {
+          idno: `R${ secondFakeL1ConstructureData.l2IdnoAlpha }-S${ secondFakeL1ConstructureData.l2idnoNum1 }-L${ secondFakeL1ConstructureData.l2idnoNum2 }`, // RA-S02-L01
+          name: `R${ secondFakeL1ConstructureData.l2IdnoAlpha }-S${ secondFakeL1ConstructureData.l2idnoNum1 }-L${ secondFakeL1ConstructureData.l2idnoNum2 }`,
       },
   ],
 }
@@ -48,33 +77,69 @@ test.describe('WMS:Storage', () => {
     await wmsHomePage.goToStorages()
 
     const wmsStorageMainPage = new WmsStorageMainPage(page)
+
+    // Create the first storage
     await wmsStorageMainPage.createL1Storage()
 
-    const wmsStorageCreatePage = new WmsStorageCreatPage(page, storageCreate)
+    let wmsStorageCreatePage = new WmsStorageCreatPage(page, storageCreate1)
     await wmsStorageCreatePage.fillL1StorageFields()
     await wmsStorageCreatePage.fillL2StorageFields()
     await wmsStorageCreatePage.createStorage()
 
-    await expect(wmsStorageMainPage.storageDataTableBody).toContainText(storageCreate.idno)
-    wmsStorageMainPage.goToL1Storage(storageCreate.idno)
+    await expect(wmsStorageMainPage.storageDataTableBody).toContainText(storageCreate1.idno)
+    await wmsStorageMainPage.goToL1Storage(storageCreate1.idno)
 
     const wmsStorageL1Page = new WmsStorageL1Page(page)
     await wmsStorageL1Page.goToL2StorageTab()
-    await expect(wmsStorageL1Page.storageL2AgGridRowContainer).toContainText(storageCreate.l2_storages[0].idno)
+    await expect(wmsStorageL1Page.storageL2AgGridRowContainer).toContainText(storageCreate1.l2_storages[0].idno)
+    await wmsStorageL1Page.goToWmsStorageMainPage()
+
+    // Create the second storage
+    await wmsStorageMainPage.createL1Storage()
+
+    wmsStorageCreatePage = new WmsStorageCreatPage(page, storageCreate2)
+    await wmsStorageCreatePage.fillL1StorageFields()
+    await wmsStorageCreatePage.fillL2StorageFields()
+    await wmsStorageCreatePage.createStorage()
+
+    await expect(wmsStorageMainPage.storageDataTableBody).toContainText(storageCreate2.idno)
+    await wmsStorageMainPage.goToL1Storage(storageCreate2.idno)
+
+    await wmsStorageL1Page.goToL2StorageTab()
+    await expect(wmsStorageL1Page.storageL2AgGridRowContainer).toContainText(storageCreate2.l2_storages[0].idno)
   })
 
-  // test('should clear text input field when an item is added', async ({ page }) => {
-  //   // create a new todo locator
-  //   const newTodo = page.getByPlaceholder('What needs to be done?');
 
-  //   // Create one todo item.
-  //   await newTodo.fill(TODO_ITEMS[0]);
-  //   await newTodo.press('Enter');
+  test('Move L2 storages to another L1 storage', async ({ page }) => {
+    const startPage = new StartPage(page)
+    await startPage.goto()
+    await startPage.clickWmsApp()
 
-  //   // Check that input is empty.
-  //   await expect(newTodo).toBeEmpty();
-  //   await checkNumberOfTodosInLocalStorage(page, 1);
-  // });
+    const wmsLoginPage = new WmsLoginPage(page)
+    await wmsLoginPage.login()
+
+    const wmsHomePage = new WmsHomePage(page)
+    await wmsHomePage.goToStorages()
+
+    const wmsStorageMainPage = new WmsStorageMainPage(page)
+    await wmsStorageMainPage.goToL1Storage(storageCreate1.idno)
+
+    const wmsStorageL1Page = new WmsStorageL1Page(page)
+    await wmsStorageL1Page.goToL2StorageTab()
+
+    await wmsStorageL1Page.selectGridRow(storageCreate1.l2_storages[0].idno)
+    await wmsStorageL1Page.clickBatchMoveButton()
+    await wmsStorageL1Page.selectMoveToStorageL1Idno(storageCreate2.idno)
+    await wmsStorageL1Page.submitBatchMoveDialog()
+
+    await expect(wmsStorageL1Page.storageL2AgGridRowContainer).not.toContainText(storageCreate1.l2_storages[0].idno)
+    await wmsStorageL1Page.goToWmsStorageMainPage()
+
+    await wmsStorageMainPage.goToL1Storage(storageCreate2.idno)
+    
+    await wmsStorageL1Page.goToL2StorageTab()
+    await expect(wmsStorageL1Page.storageL2AgGridRowContainer).toContainText(storageCreate1.l2_storages[0].idno)
+  })
 
   // test('should append new items to the bottom of the list', async ({ page }) => {
   //   // Create 3 items.
@@ -93,7 +158,7 @@ test.describe('WMS:Storage', () => {
   //   await expect(page.getByTestId('todo-title')).toHaveText(TODO_ITEMS);
   //   await checkNumberOfTodosInLocalStorage(page, 3);
   // });
-});
+})
 
 // test.describe('Mark all as completed', () => {
 //   test.beforeEach(async ({ page }) => {
