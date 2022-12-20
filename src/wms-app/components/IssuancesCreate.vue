@@ -287,9 +287,9 @@ async function onClickAddInventoryButton ( event: Event ) {
 
 function onClickRemoveRowButton ( event: Event ) {
   // Get selected row
-  const selectedRows: GridItem[] = gridOptions.api?.getSelectedRows() as GridItem[];
-  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno );
-  gridOptions.api?.setRowData( rowData.value );
+  const selectedRows: GridItem[] = gridOptions.api?.getSelectedRows() as GridItem[]
+  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno )
+  gridOptions.api?.setRowData( rowData.value )
 }
 
 
