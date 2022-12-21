@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type { L1StorageMaterialBalance } from '../models/L1StorageMaterialBalance';
 import type { L1StorageUpdate } from '../models/L1StorageUpdate';
+import type { L2StorageBatchMove } from '../models/L2StorageBatchMove';
 import type { L2StorageCreate } from '../models/L2StorageCreate';
 import type { L2StorageRead } from '../models/L2StorageRead';
 import type { L2StorageUpdate } from '../models/L2StorageUpdate';
@@ -139,7 +140,7 @@ requestBody: L2StorageCreate,
 }): CancelablePromise<L2StorageRead> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/storages/{l1_id}/l2_storages',
+            url: '/storages/{l1_id}/create-l2-storage',
             path: {
                 'l1_id': l1Id,
             },
@@ -167,6 +168,27 @@ l1Id: number,
             path: {
                 'l1_id': l1Id,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Batch Move L2 Storages
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static batchMoveL2Storages({
+requestBody,
+}: {
+requestBody: L2StorageBatchMove,
+}): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/storages/batch-move-l2-storage',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

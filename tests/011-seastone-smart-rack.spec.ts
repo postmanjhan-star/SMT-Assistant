@@ -1,7 +1,7 @@
-import { faker } from '@faker-js/faker/locale/zh_TW';
-import { expect, test } from '@playwright/test';
+import { faker } from '@faker-js/faker/locale/zh_TW'
+import { expect, test } from '@playwright/test'
 
-import { SeastoneSmartRackCreate } from '../src/client/index';
+import { SeastoneSmartRackCreate } from '../src/client/index'
 
 faker.setLocale( 'zh_TW' )
 
@@ -35,8 +35,16 @@ test( 'Creating a new rack', async ( { page } ) => {
   await page.locator( '#dev_id' ).fill( rack.dev_id )
   await page.locator( '#dev_id' ).press( 'Enter' )
 
-  const rows = page.locator( '.ag-center-cols-container > div' )
-  await rows.filter( { hasText: rack.rack_idno } ).dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
+  const rowsDiv = page.locator( '.ag-center-cols-container > div' )
+
+  let createdRowVisibleInGrid = false
+  while ( !createdRowVisibleInGrid ) {
+    if ( await page.isVisible( `text=${ rack.dev_id }` ) ) { createdRowVisibleInGrid = true }
+    else { await page.locator( 'div[ref="btNext"]' ).click() }
+  }
+
+  const rowDiv = rowsDiv.filter( { hasText: rack.rack_idno } )
+  await rowDiv.dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
 
   const heading = page.locator( '#heading1' )
   expect( await heading.textContent() ).toBe( rack.rack_idno )

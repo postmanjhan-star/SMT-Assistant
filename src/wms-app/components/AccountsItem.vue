@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSelect, NSpace, useMessage } from 'naive-ui';
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSelect, NSpace, SelectGroupOption, SelectOption, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { AccountsService, ApiError, EmployeeAccountRead, EmployeeAccountUpdate, EmployeeRoleEnum, OpenAPI } from '../../client';
@@ -20,7 +20,7 @@ const updateValue = ref<EmployeeAccountUpdate>( { full_name: '', password: '', r
 const formRef = ref<FormInst | null>( null );
 const rules: FormRules = {};
 
-const role_options = [
+const role_options: Array<SelectOption | SelectGroupOption> = [
   { label: '一般用戶', value: 'NORMAL' },
   { label: '管理員', value: 'ADMIN' },
   { label: '系統管理員', value: 'SYSTEM_ADMIN', disabled: true },
@@ -43,9 +43,9 @@ async function handleCreateAccountButtonClick ( event: Event ) {
   updateValue.value.roles = uiFormValue.value.roles;
 
   try {
-    const response = await AccountsService.updateAccountEmployee( { idno: route.params.idno.toString(), requestBody: updateValue.value } );
-    message.success( '更新成功' );
-  } catch ( error ) { message.error( '更新失敗' ); }
+    const response = await AccountsService.updateAccountEmployee( { idno: route.params.idno.toString(), requestBody: updateValue.value } )
+    message.success( '更新成功' )
+  } catch ( error ) { message.error( '更新失敗' ) }
 }
 
 </script>

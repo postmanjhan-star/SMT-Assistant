@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, L1StorageUpdate, OpenAPI, StoragesService } from '../../client';
-import { useAuthStore } from '../../stores/auth';
-import StorageSubItem from "./StoragesSubItem.vue";
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { ApiError, L1StorageUpdate, OpenAPI, StoragesService } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
-const route = useRoute();
-const router = useRouter();
-const message = useMessage();
+const route = useRoute()
+const router = useRouter()
+const message = useMessage()
 
-const authStore = useAuthStore();
-OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+const authStore = useAuthStore()
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ]
 
 const formRef = ref<FormInst | null>( null );
 const formValue = ref<L1StorageUpdate>( { id: 0, idno: '', name: '' } );
@@ -60,7 +59,7 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -74,7 +73,12 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
           <n-a :href=" href " @click=" navigate ">倉位管理</n-a>
         </router-link>
       </n-breadcrumb-item>
-      <n-breadcrumb-item>{{ formValue.idno.toUpperCase() }}</n-breadcrumb-item>
+      <n-breadcrumb-item>
+        <router-link :to=" `/wms/storages/${ formValue.id }` " #=" { navigate, href } " custom>
+          <n-a :href=" href " @click=" navigate ">{{ formValue.idno.toUpperCase() }}</n-a>
+        </router-link>
+
+      </n-breadcrumb-item>
     </n-breadcrumb>
 
     <div style="padding: 1rem;">
@@ -104,6 +108,13 @@ async function handleUpdateStorageButtonClick ( event: Event ) {
         </n-form>
       </n-space>
     </div>
-    <storage-sub-item></storage-sub-item>
   </main>
 </template>
+
+
+
+<style>
+main {
+  background-image: url('/pattern.svg');
+}
+</style>

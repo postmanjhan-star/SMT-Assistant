@@ -73,6 +73,10 @@ const routes: RouteRecordRaw[] = [
             component: () => import( "../wms-app/components/StoragesEdit.vue" ),
           },
           {
+            path: '/wms/storages/:id/edit-inner-storages',
+            component: () => import( "../wms-app/components/StoragesL2StorageBatchEdit.vue" ),
+          },
+          {
             path: '/wms/materials',
             component: () => import( "../wms-app/components/MaterialsMaster.vue" ),
           },
@@ -286,14 +290,20 @@ router.beforeEach( async ( to, from ) => {
   const authStore = useAuthStore();
   const accountStore = useAccountStore();
 
+  // Case A：頁面需登入，用戶已登入 -> 用戶登入憑證仍有效，導向目的頁、用戶登入憑證無效，導向登入頁。
+  // Case B：頁面需登入，用戶未登入 -> 導向登入頁。
+  // Case C：頁面不須登入，無論用戶有無登入 -> 導向目的頁。
+
+  // Case B
   // 检查用户是否已登录
   if ( authStore.isAuthenticated === false && to.meta.requiresAuth ) {
     // 将用户重定向到登录页面
     return { name: 'WmsLogin' };
   }
 
+  // Case A
   // Refresh `refresh_token` & `access_token` with every request
-  if ( authStore.isAuthenticated === true ) {
+  if ( authStore.isAuthenticated === true && to.meta.requiresAuth ) {
     try { await authStore.refreshToken(); }
     catch ( error ) {
       await authStore.logout();

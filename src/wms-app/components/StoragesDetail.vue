@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { ColDef, ColumnApi, GridApi, GridOptions } from 'ag-grid-community';
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NSpace, NTabPane, NTabs } from 'naive-ui';
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, NTabPane, NTabs } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { L2StorageRead, OpenAPI, StorageRead, StoragesService, StorageTypeEnum } from '../../client';
+import { OpenAPI, StorageRead, StoragesService, StorageTypeEnum } from '../../client';
 import { useAuthStore } from '../../stores/auth';
+import StoragesL2StorageMain from './StoragesL2StorageMain.vue';
 import StoragesMaterialBalance from './StoragesMaterialBalance.vue';
 
 const route = useRoute();
@@ -15,56 +12,25 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref<GridApi>();
-const gridColumnApi = ref<ColumnApi>();
-
-const defaultColDef: ColDef = {
-  editable: false,
-  filter: true,
-  sortable: true,
-  resizable: true,
-}
-
-const columnDefs: ColDef[] = [
-  { field: "idno", headerName: '儲位代碼' },
-  { field: "name", headerName: '儲位名稱' },
-];
-
-const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
-  stopEditingWhenCellsLoseFocus: true,
-  enterMovesDownAfterEdit: true,
-  undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true, // Add a div.ag-cell-wrapper element
-
-  rowSelection: 'single',
-  suppressCellFocus: true,
-}
-
 const formValue = ref<StorageRead>( { id: 0, idno: '', name: '', type: StorageTypeEnum.INTERNAL_WAREHOUSE, l2_storages: [] } );
 
-const rowData = ref<L2StorageRead[]>( [] );
+let tabDefaultValue: string
+switch ( route.query[ 'tab' ] ) {
+  case 'properties':
+    tabDefaultValue = 'properties'
+    break
+  case 'l2_storages':
+    tabDefaultValue = 'l2_storages'
+    break
+  case 'materials':
+    tabDefaultValue = 'materials'
+    break
+  default:
+    tabDefaultValue = 'properties'
+    break
+}
 
-
-onBeforeMount( async () => {
-  formValue.value = await StoragesService.getStorage( { l1Id: Number( route.params.id ) } );
-  rowData.value = formValue.value.l2_storages;
-  gridApi.value.setRowData( rowData.value );
-  gridColumnApi.value.autoSizeAllColumns();
-} );
-
-function getRowId ( params ) { return params.data.id; }
-
-function onGridReady ( params ) {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-};
+onBeforeMount( async () => { formValue.value = await StoragesService.getStorage( { l1Id: Number( route.params.id ) } ) } )
 
 function onClickEditButton ( event: Event ) { router.push( `/wms/storages/${ route.params.id.toString() }/edit` ); }
 </script>
@@ -94,10 +60,9 @@ function onClickEditButton ( event: Event ) { router.push( `/wms/storages/${ rou
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-tabs type="line" size="large">
+        <n-tabs type="line" size="large" :default-value=" tabDefaultValue ">
 
-          <n-tab-pane name="properties" tab="基本屬性">
-
+          <n-tab-pane name="properties" tab="基本屬性" display-directive="show:lazy">
             <n-space size="large" style="margin-bottom: 1rem;">
               <n-button @click=" onClickEditButton( $event ) " attr-type="button">編輯</n-button>
             </n-space>
@@ -117,19 +82,15 @@ function onClickEditButton ( event: Event ) { router.push( `/wms/storages/${ rou
                   </n-input>
                 </n-form-item-gi>
 
-                <n-gi span="2">
-                  <div style="height: 600px; overflow-x: scroll; width: 100%;">
-                    <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
-                      :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
-                    </ag-grid-vue>
-                  </div>
-                </n-gi>
-
               </n-grid>
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane name="materials" tab="物料一覽">
+          <n-tab-pane name="l2_storages" tab="儲位管理" display-directive="show:lazy">
+            <storages-l2-storage-main></storages-l2-storage-main>
+          </n-tab-pane>
+
+          <n-tab-pane name="materials" tab="物料一覽" display-directive="show:lazy">
             <storages-material-balance></storages-material-balance>
           </n-tab-pane>
         </n-tabs>
