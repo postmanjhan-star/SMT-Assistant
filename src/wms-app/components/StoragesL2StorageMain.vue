@@ -110,7 +110,7 @@ function renderLabel ( option: SelectOption | SelectGroupOption, selected: boole
             h( NText, { depth: 3 }, {
                 default: () => {
                     const matchedL1Storage = storageL1List.find( element => element.id == option.value )
-                    return matchedL1Storage.name
+                    return matchedL1Storage?.name
                 },
             } ),
         ]

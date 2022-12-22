@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Validator } from 'ip-num/Validator'
-import { FormInst, FormItemRule, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage, NSelect, SelectGroupOption, SelectOption, NText } from 'naive-ui'
-import { h, ref, VNodeChild, onMounted } from 'vue'
+import { FormInst, FormItemRule, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSelect, NSpace, NText, SelectGroupOption, SelectOption, useMessage } from 'naive-ui'
+import { h, onBeforeMount, ref, VNodeChild } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ApiError, OpenAPI, SeastoneService, SeastoneSmartRackCreate, StorageRead, StoragesService } from '../../client/index'
+import { ApiError, OpenAPI, SeastoneService, SeastoneSmartRackCreate, StorageRead, StoragesService, StorageTypeEnum } from '../../client/index'
 import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter()
@@ -17,7 +17,8 @@ const storageL1List = ref<StorageRead[]>( [] )
 
 const storageL1SelectOptions = ref<Array<SelectOption | SelectGroupOption>>( [] )
 
-onMounted( async () => {
+
+onBeforeMount( async () => {
   // Build storage L1 select options
   storageL1List.value = await StoragesService.getStorages()
   for ( let storageL1 of storageL1List.value ) { storageL1SelectOptions.value.push( { label: storageL1.idno, value: storageL1.id } ) }
@@ -83,10 +84,9 @@ function renderLabel ( option: SelectOption | SelectGroupOption, selected: boole
     [
       h( NText, { style: 'padding-end: 1em;' }, { default: () => { return option.label } } ),
       h( NText, { depth: 3 }, {
-        default: async () => {
+        default: () => {
           const matchedL1Storage = storageL1List.value.find( element => element.id == option.value )
-          return matchedL1Storage.name
-          // return 'xxx'
+          return matchedL1Storage?.name
         },
       } ),
     ]
@@ -142,8 +142,8 @@ async function onClickCreateRackButton ( event: Event ) {
           <n-grid cols="1 s:2" responsive="screen" x-gap="20">
 
             <n-form-item-gi show-require-mark label="所在倉位">
-              <n-select v-model:value.lazy=" formValue.l1_storage_id " :options=" storageL1SelectOptions "
-                filterable></n-select>
+              <n-select v-model:value.lazy=" formValue.l1_storage_id " :options=" storageL1SelectOptions " filterable
+                :render-label=" renderLabel "></n-select>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="服務主機位址" path="server_address">
