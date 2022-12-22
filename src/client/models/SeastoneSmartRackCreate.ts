@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 export type SeastoneSmartRackCreate = {
+    l1_storage_id: number;
     server_address: string;
     rack_idno: string;
     wifi_ip?: string;

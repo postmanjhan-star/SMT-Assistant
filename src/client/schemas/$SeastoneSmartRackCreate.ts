@@ -3,6 +3,10 @@
 /* eslint-disable */
 export const $SeastoneSmartRackCreate = {
     properties: {
+        l1_storage_id: {
+    type: 'number',
+    isRequired: true,
+},
         server_address: {
     type: 'string',
     isRequired: true,
