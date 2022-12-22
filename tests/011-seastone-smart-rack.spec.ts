@@ -1,39 +1,48 @@
 import { faker } from '@faker-js/faker/locale/zh_TW'
 import { expect, test } from '@playwright/test'
+import { StartPage } from './start-page'
+import { WmsHomePage } from './wms-home-page'
+import { WmsLoginPage } from './wms-login-page'
+import { WmsSmartRackCreatPage } from './wms-smart-rack-create-page'
+import { WmsSmartRackMainPage } from './wms-smart-rack-main-page'
 
 import { SeastoneSmartRackCreate } from '../src/client/index'
 
 faker.setLocale( 'zh_TW' )
 
+const storageL1Idno = 'SYSTEM'
+
 const rack: SeastoneSmartRackCreate = {
+  l1_storage_id: 1, // SYSTEM
   server_address: faker.internet.url(),
-  rack_idno: faker.random.alphaNumeric( 5, { casing: 'upper' } ),
+  rack_idno: `${ faker.random.alpha( { casing: 'upper' } ) }${ faker.random.numeric( 3, { allowLeadingZeros: true } ) }`,
   wifi_ip: faker.internet.ip(),
   wifi_mac: faker.internet.mac(),
   eth_ip: faker.internet.ip(),
   eth_mac: faker.internet.mac(),
   dev_id: faker.git.shortSha(),
 }
-console.debug( rack )
+// console.debug( rack )
 
 
 test( 'Creating a new rack', async ( { page } ) => {
-  await page.goto( '/wms/login' );
-  await page.locator( '#username' ).fill( 'admin' )
-  await page.locator( '#password' ).fill( 'adminpassword' )
-  await page.locator( '#password' ).press( 'Enter' )
 
-  await page.getByRole( 'link', { name: '智慧料架管理' } ).click()
-  await page.getByRole( 'button', { name: '建立料架' } ).click()
+  const startPage = new StartPage( page )
+  await startPage.goto()
+  await startPage.clickWmsApp()
 
-  await page.locator( '#server_address' ).fill( rack.server_address )
-  await page.locator( '#rack_idno' ).fill( rack.rack_idno )
-  await page.locator( '#wifi_ip' ).fill( rack.wifi_ip )
-  await page.locator( '#wifi_mac' ).fill( rack.wifi_mac )
-  await page.locator( '#eth_ip' ).fill( rack.eth_ip )
-  await page.locator( '#eth_mac' ).fill( rack.eth_mac )
-  await page.locator( '#dev_id' ).fill( rack.dev_id )
-  await page.locator( '#dev_id' ).press( 'Enter' )
+  const wmsLoginPage = new WmsLoginPage( page )
+  await wmsLoginPage.login()
+
+  const wmsHomePage = new WmsHomePage( page )
+  await wmsHomePage.goToSmartRacks()
+
+  const wmsSmartRackMainPage = new WmsSmartRackMainPage( page )
+  await wmsSmartRackMainPage.createSmartRack()
+
+  const wmsSmartRackCreatPage = new WmsSmartRackCreatPage( page, rack, storageL1Idno )
+  await wmsSmartRackCreatPage.fillForm()
+  await wmsSmartRackCreatPage.submit()
 
   const rowsDiv = page.locator( '.ag-center-cols-container > div' )
 
