@@ -115,8 +115,6 @@ function renderLabel ( option: SelectOption | SelectGroupOption, selected: boole
             } ),
         ]
     )
-
-
 }
 
 
@@ -129,7 +127,6 @@ async function onClickBatchMoveButton ( event: Event ) {
     toMoveStorageL1Id.value = L1Storage.id
 
     // Build storage L1 select options
-    storageL1SelectOptions = []
     storageL1List = await StoragesService.getStorages()
     for ( let storageL1 of storageL1List ) { storageL1SelectOptions.push( { label: storageL1.idno, value: storageL1.id } ) }
 
