@@ -66,6 +66,9 @@ async function onClickCreateCellButton ( event: Event ) {
     if ( error instanceof ApiError && error.status === 409 ) {
       message.error( '有重複料槽，建立失敗' )
       return false
+    } else if ( error ) {
+      message.error( '建立失敗' )
+      return false
     }
   }
 }
