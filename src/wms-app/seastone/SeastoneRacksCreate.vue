@@ -1,17 +1,28 @@
 <script setup lang="ts">
 import { Validator } from 'ip-num/Validator'
-import { FormInst, FormItemRule, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui'
-import { ref } from 'vue'
+import { FormInst, FormItemRule, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSelect, NSpace, NText, SelectGroupOption, SelectOption, useMessage } from 'naive-ui'
+import { h, onBeforeMount, ref, VNodeChild } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ApiError, OpenAPI, SeastoneService, SeastoneSmartRackCreate } from '../../client/index'
+import { ApiError, OpenAPI, SeastoneService, SeastoneSmartRackCreate, StorageRead, StoragesService, StorageTypeEnum } from '../../client/index'
 import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter()
 const message = useMessage()
 const authStore = useAuthStore()
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ]
-const formValue = ref<SeastoneSmartRackCreate>( { server_address: '', rack_idno: '', wifi_mac: '', eth_mac: '', dev_id: '' } )
+const formValue = ref<SeastoneSmartRackCreate>( { l1_storage_id: 1, server_address: '', rack_idno: '', wifi_mac: '', eth_mac: '', dev_id: '' } )
 const formRef = ref<FormInst | null>( null )
+
+const storageL1List = ref<StorageRead[]>( [] )
+
+const storageL1SelectOptions = ref<Array<SelectOption | SelectGroupOption>>( [] )
+
+
+onBeforeMount( async () => {
+  // Build storage L1 select options
+  storageL1List.value = await StoragesService.getStorages()
+  for ( let storageL1 of storageL1List.value ) { storageL1SelectOptions.value.push( { label: storageL1.idno, value: storageL1.id } ) }
+} )
 
 
 function validateIp ( ip: string ) {
@@ -66,6 +77,23 @@ const rules: FormRules = {
 }
 
 
+function renderLabel ( option: SelectOption | SelectGroupOption, selected: boolean ): VNodeChild {
+  return h(
+    'div', // HTML tag
+    null, // Tag's attributes
+    [
+      h( NText, { style: 'padding-end: 1em;' }, { default: () => { return option.label } } ),
+      h( NText, { depth: 3 }, {
+        default: () => {
+          const matchedL1Storage = storageL1List.value.find( element => element.id == option.value )
+          return matchedL1Storage?.name
+        },
+      } ),
+    ]
+  )
+}
+
+
 async function createRack ( newRackData: SeastoneSmartRackCreate ) {
   try {
     const response = await SeastoneService.createSeastoneSmartRack( { requestBody: newRackData } )
@@ -113,8 +141,14 @@ async function onClickCreateRackButton ( event: Event ) {
         <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
           <n-grid cols="1 s:2" responsive="screen" x-gap="20">
 
+            <n-form-item-gi show-require-mark label="所在倉位">
+              <n-select v-model:value.lazy=" formValue.l1_storage_id " :options=" storageL1SelectOptions " filterable
+                :render-label=" renderLabel "></n-select>
+            </n-form-item-gi>
+
             <n-form-item-gi show-require-mark label="服務主機位址" path="server_address">
-              <n-input v-model:value.lazy=" formValue.server_address " autofocus :input-props=" { id: 'server_address' } "></n-input>
+              <n-input v-model:value.lazy=" formValue.server_address "
+                :input-props=" { id: 'server_address' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="料架代碼" path="rack_idno">
