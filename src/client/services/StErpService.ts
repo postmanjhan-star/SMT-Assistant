@@ -87,7 +87,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2022-11-03',
+stReceiveDate = '2022-12-26',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -127,6 +127,14 @@ stErpReceiveIdno: string,
 
     /**
      * Get St Vendor
+     * CSV 資料順序：
+ *
+ * `廠商編號^^廠商簡稱^^廠商統編`
+ *
+ * ```
+ * idno^^name^^tax_id
+ * SA276^^達震^^24423042
+ * ```
      * @returns STVendor Successful Response
      * @throws ApiError
      */
@@ -158,7 +166,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2022-11-03',
+date = '2022-12-26',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {

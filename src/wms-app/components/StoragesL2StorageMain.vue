@@ -21,6 +21,13 @@ const gridOptions: GridOptions = {
     // PROPERTIES
     // Column Definitions
     columnDefs: [
+        {
+            field: "seastone_smart_rack_cell",
+            headerName: '智慧料架',
+            valueGetter: params => !!params.data.seastone_smart_rack_cell,
+            refData: { true: '✅', false: null },
+            // cellStyle: { textAlign: 'center' },
+        },
         { field: "idno", headerName: '儲位代碼' },
         { field: "name", headerName: '儲位名稱' },
     ],
