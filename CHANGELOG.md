@@ -10,6 +10,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ### Added
 - 增加起始頁。（7cc889ba）
 - 增加智慧料架管理模組。（9db9f70a）
+- 如一儲位為智慧料架，會顯示智慧料架標示。（）
 - 松下打件機助手 CSV 上傳頁增加更明確的成功與失敗訊息。（dcc3a97e）
 - 松下打件機助手 CSV 上傳頁增加 CSV 輸出選項說明。（dcc3a97e）
 - 儲位可搬家至其他倉，內部的所有物料也會連動。（6ac378c1）
