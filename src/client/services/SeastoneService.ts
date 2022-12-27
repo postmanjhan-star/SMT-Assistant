@@ -1,7 +1,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { LedColorEnum } from '../models/LedColorEnum';
 import type { SeastoneSmartRackCellCreateWithoutRackId } from '../models/SeastoneSmartRackCellCreateWithoutRackId';
 import type { SeastoneSmartRackCreate } from '../models/SeastoneSmartRackCreate';
 import type { SeastoneSmartRackReadWithChildren } from '../models/SeastoneSmartRackReadWithChildren';
@@ -119,34 +118,6 @@ requestBody: Array<SeastoneSmartRackCellCreateWithoutRackId>,
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Light Up Rack Cells
-     * 有可能需要跨多架同時亮燈，因此此函式只看 `cell_id_list` 亮燈，不看料架。
- *
- * `led_color`: `0`: OFF, `1`: RED, `2`: GREEN, `3`: YELLOW, `4`: BLUE, `5`: MAGENTA, `6`: CYAN, `7`: WHITE
-     * @returns boolean Successful Response
-     * @throws ApiError
-     */
-    public static lightUpRackCells({
-ledColor,
-cellIdList,
-}: {
-ledColor: LedColorEnum,
-cellIdList: Array<string>,
-}): CancelablePromise<boolean> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/seastone_smart_rack/light_up_rack_cells',
-            query: {
-                'led_color': ledColor,
-                'cell_id_list': cellIdList,
-            },
             errors: {
                 422: `Validation Error`,
             },

@@ -135,6 +135,7 @@ async function onClickBatchMoveButton ( event: Event ) {
 
     // Build storage L1 select options
     storageL1List = await StoragesService.getStorages()
+    storageL1SelectOptions = []
     for ( let storageL1 of storageL1List ) { storageL1SelectOptions.push( { label: storageL1.idno, value: storageL1.id } ) }
 
     showModal.value = true

@@ -170,9 +170,10 @@ async function onClickCreateReceiveButton ( event: Event ) {
   // Get ST ERP packs barcode from ST ERP receive idno
   try { barcodes = await StErpService.getStReceivePackBarcodes( { stErpReceiveIdno: stReceive.idno } ); }
   catch ( error ) {
-    message.error( '舊 ERP 條碼讀取失敗' );
-    loadingRef.value = false;
-    return false;
+    if ( error instanceof ApiError && error.status === 404 ) { message.error( '此收料單於舊 ERP 沒有產生條碼' ) }
+    else { message.error( '舊 ERP 條碼讀取失敗' ) }
+    loadingRef.value = false
+    return false
   }
 
   // Disable button unless a row has been selected
