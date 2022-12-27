@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDescriptions, NDescriptionsItem, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, NThing, useMessage } from 'naive-ui';
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDescriptions, NDescriptionsItem, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NSwitch, NTag, NThing, useMessage } from 'naive-ui';
 import { onBeforeMount, reactive, ref } from 'vue';
 import { Dataset, DatasetInfo, DatasetItem, DatasetPager, DatasetSearch, DatasetShow } from 'vue-dataset';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../../client';
+import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, LedColorEnum, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, SeastoneService, StoragesService, StorageTypeEnum } from '../../client';
 import { useAuthStore } from '../../stores/auth';
 
 
@@ -22,18 +22,19 @@ const dsReRenderKey = ref( 0 ); // The 'KEY' to update vue-dataset. It takes me 
 
 type IssuanceItem = {
   id: number,
-  material_idno: string,
-  material_inventory_id: number,
-  material_inventory_idno: string,
-  issue_qty: number,
-  lend_qty: number,
+  materialIdno: string,
+  materialInventoryId: number,
+  materialInventoryIdno: string,
+  issueQty: number,
+  lendQty: number,
   picked: boolean,
-};
+  l1_storage_idno: string,
+  l2_storage_idno: string,
+}
 
 
 let issuance = ref<IssuanceRead>();
 let issuanceItemData = reactive<IssuanceItem[]>( [] );
-
 
 
 onBeforeMount( async () => {
@@ -43,12 +44,14 @@ onBeforeMount( async () => {
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       issuanceItemData.push( {
         id: issuanceItem.id,
-        material_idno: issuanceItem.material_idno,
-        material_inventory_id: issuanceItem.material_inventory_id,
-        material_inventory_idno: issuanceItem.material_inventory_idno,
-        issue_qty: issuanceItem.issue_qty,
-        lend_qty: issuanceItem.lend_qty,
+        materialIdno: issuanceItem.material_idno,
+        materialInventoryId: issuanceItem.material_inventory_id,
+        materialInventoryIdno: issuanceItem.material_inventory_idno,
+        issueQty: issuanceItem.issue_qty,
+        lendQty: issuanceItem.lend_qty,
         picked: issuanceItem.picked,
+        l1_storage_idno: issuanceItem.l1_storage_idno,
+        l2_storage_idno: issuanceItem.l2_storage_idno,
       } )
     }
     dsReRenderKey.value += 1;
@@ -85,62 +88,71 @@ async function handleUpdateIssuanceButtonClick ( event: Event ) {
 
 
 
-const inventoryAdditionFormValue = ref( { inventoryIdno: '' } );
-const inventoryIdnoInput = ref();
+const pickingUpFormValue = ref( { inventoryIdno: '', smartRackCellLightUp: false } )
+const inventoryIdnoInput = ref()
+
+
+async function onClickSwitch ( event: Event ) {
+  const ledColor = pickingUpFormValue.value.smartRackCellLightUp ? LedColorEnum._4 : LedColorEnum._0
+  // Call a backend endpoint to light-up rack cells
+  await IssuancesService.lightUpIssuanceSmartRackCells( { issuanceIdno: route.params.idno.toString(), ledColor: ledColor } )
+}
+
 
 function clearAndFocusInventoryInput () {
   // Clear materialAdditionFormValue
-  inventoryAdditionFormValue.value.inventoryIdno = '';
+  pickingUpFormValue.value.inventoryIdno = ''
 
   // Focus at `material_idno` input field
-  inventoryIdnoInput.value.focus();
+  inventoryIdnoInput.value.focus()
 }
+
 
 async function onClickAddInventoryButton ( event: Event ) {
   // Block updating for a completed issuance
-  if ( issuance.value?.issuing_completed ) { return false; }
-  
+  if ( issuance.value?.issuing_completed ) { return false }
+
   // Input field cannot be empty
-  if ( inventoryAdditionFormValue.value.inventoryIdno.trim() === '' ) {
-    message.error( '請填入單包代碼' );
-    return false;
+  if ( pickingUpFormValue.value.inventoryIdno.trim() === '' ) {
+    message.error( '請填入單包代碼' )
+    return false
   }
 
   let inventory: MaterialInventoryRead;
 
   // Check if the material inventory exists
   // Handle 404 and other errors
-  try { inventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: inventoryAdditionFormValue.value.inventoryIdno.trim() } ); }
+  try { inventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: pickingUpFormValue.value.inventoryIdno.trim() } ) }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
-      clearAndFocusInventoryInput();
-      message.error( '無此單包' );
-      return false;
+      clearAndFocusInventoryInput()
+      message.error( '無此單包' )
+      return false
     } else {
-      clearAndFocusInventoryInput();
-      message.error( '讀取失敗' );
-      return false;
+      clearAndFocusInventoryInput()
+      message.error( '讀取失敗' )
+      return false
     }
   }
 
   // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance({
+  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
     materialInventoryId: inventory.id,
     onlyIssuable: true,
-  })
+  } )
   if ( balance <= 0 ) {
-    clearAndFocusInventoryInput();
-    message.error( '此單包已無可用庫存' );
-    return false;
+    clearAndFocusInventoryInput()
+    message.error( '此單包已無可用庫存' )
+    return false
   }
 
   // Check if the material inventory available (not locked by other issuances) for issuing
-  let doesThisInventoryBelongsToThisIssuance = false;
-  for ( let issuanceItem of issuanceItemData ) { if ( issuanceItem.material_inventory_id === inventory.id ) { doesThisInventoryBelongsToThisIssuance = true; } }
+  let doesThisInventoryBelongsToThisIssuance = false
+  for ( let issuanceItem of issuanceItemData ) { if ( issuanceItem.materialInventoryId === inventory.id ) { doesThisInventoryBelongsToThisIssuance = true; } }
   if ( doesThisInventoryBelongsToThisIssuance === false ) {
-    clearAndFocusInventoryInput();
-    message.error( '此單包不屬於本發料單' );
-    return false;
+    clearAndFocusInventoryInput()
+    message.error( '此單包不屬於本發料單' )
+    return false
   }
   // // Disable this check, may enable for a reason.
   // if ( inventory.issuing_locked === true && doesThisInventoryBelongsToThisIssuance === false ) {
@@ -160,16 +172,16 @@ async function onClickAddInventoryButton ( event: Event ) {
   // After all checks passed...
   if ( doesThisInventoryBelongsToThisIssuance ) {
     issuanceItemData.forEach( async ( issuanceItem, i ) => {
-      if ( issuanceItem.material_inventory_id == inventory.id ) {
+      if ( issuanceItem.materialInventoryId == inventory.id ) {
         if ( issuanceItem.picked === false ) {
           // Make the item card green.
-          issuanceItemData[ i ].picked = true;
+          issuanceItemData[ i ].picked = true
           // Ask backend to pick this item.
-          await IssuancesService.pickMaterialInventory( { materialInventoryIdno: inventory.idno, issuanceIdno: issuance.value?.idno as string } );
+          await IssuancesService.pickMaterialInventory( { materialInventoryIdno: inventory.idno, issuanceIdno: issuance.value?.idno as string } )
         }
       }
-    } );
-    clearAndFocusInventoryInput();
+    } )
+    clearAndFocusInventoryInput()
   }
 }
 
@@ -180,25 +192,25 @@ async function onClickConfirmPickingButton ( event: Event ) {
   issuance.value = await IssuancesService.getIssuance( { issuanceIdno: issuance.value?.idno as string } );
 
   // Check all issuance items' `picked` state.
-  const issuanceItems = issuance.value.issuance_items as IssuanceItemRead[] 
+  const issuanceItems = issuance.value.issuance_items as IssuanceItemRead[]
   issuanceItems.forEach( ( item, i ) => {
     if ( item.picked === false ) {
       message.error( `${ item.material_inventory_idno } 尚未備齊` );
       return false;
     }
-  } );
+  } )
 
   // Request backend to confirm the issuance. Make transfers for issuance items.
   try {
-    issuance.value = await IssuancesService.pickIssuance( { issuanceIdno: issuance.value.idno } );
-    if ( issuance.value.issuing_completed ) { message.success( `發料完成` ); }
-    if ( issuance.value.issuing_completed === false ) { throw Error; }
+    issuance.value = await IssuancesService.pickIssuance( { issuanceIdno: issuance.value.idno } )
+    if ( issuance.value.issuing_completed ) { message.success( `發料完成` ) }
+    if ( issuance.value.issuing_completed === false ) { throw Error }
   } catch ( error ) {
-    message.error( `發料失敗` );
-    return false;
+    message.error( `發料失敗` )
+    return false
   }
 
-  router.push( '/wms/issuances' );
+  router.push( '/wms/issuances' )
 }
 </script>
 
@@ -206,7 +218,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -263,11 +275,11 @@ async function onClickConfirmPickingButton ( event: Event ) {
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-form size="large" :model=" inventoryAdditionFormValue " :disabled=" issuance?.issuing_completed ">
+        <n-form size="large" :model=" pickingUpFormValue " :disabled=" issuance?.issuing_completed ">
           <n-space size="large">
 
             <n-form-item label="單包代碼">
-              <n-input ref="inventoryIdnoInput" v-model:value.lazy=" inventoryAdditionFormValue.inventoryIdno ">
+              <n-input ref="inventoryIdnoInput" v-model:value.lazy=" pickingUpFormValue.inventoryIdno ">
               </n-input>
             </n-form-item>
 
@@ -275,6 +287,14 @@ async function onClickConfirmPickingButton ( event: Event ) {
               <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
                 :disabled=" issuance?.issuing_completed " attr-type="submit">
                 +</n-button>
+            </n-form-item>
+
+            <n-form-item label="智慧料架點燈">
+              <n-switch v-model:value=" pickingUpFormValue.smartRackCellLightUp " size="large"
+                @update:value=" onClickSwitch( $event ) ">
+                <template #checked> ON </template>
+                <template #unchecked> OFF </template>
+              </n-switch>
             </n-form-item>
 
           </n-space>
@@ -306,19 +326,25 @@ async function onClickConfirmPickingButton ( event: Event ) {
                           <template #header>
                             <n-descriptions :bordered=" false " :column=" 1 " size="large" label-placement="top"
                               label-style="font-size: xx-small;">
-                              <n-descriptions-item label="單包代碼">{{ row.material_inventory_idno }}</n-descriptions-item>
+                              <n-descriptions-item label="單包代碼">{{ row.materialInventoryIdno }}</n-descriptions-item>
                             </n-descriptions>
                           </template>
                           <template #description>
                             <n-descriptions :bordered=" false " :column=" 1 " size="large" label-placement="top"
                               label-style="font-size: xx-small;">
-                              <n-descriptions-item label="物料代碼">{{ row.material_idno }}</n-descriptions-item>
+                              <n-descriptions-item label="物料代碼">{{ row.materialIdno }}</n-descriptions-item>
+                            </n-descriptions>
+                            <n-descriptions :bordered=" false " :column=" 1 " size="large" label-placement="top"
+                              label-style="font-size: xx-small;">
+                              <n-descriptions-item label="倉儲位">
+                                {{ row.l1_storage_idno }}<br />{{ row.l2_storage_idno }}
+                              </n-descriptions-item>
                             </n-descriptions>
                           </template>
                           <n-descriptions :bordered=" false " :column=" 2 " size="large" label-placement="top"
                             label-style="font-size: xx-small;">
-                            <n-descriptions-item label="發出數量">{{ row.issue_qty }}</n-descriptions-item>
-                            <n-descriptions-item label="借出數量">{{ row.lend_qty }}</n-descriptions-item>
+                            <n-descriptions-item label="發出數量">{{ row.issueQty }}</n-descriptions-item>
+                            <n-descriptions-item label="借出數量">{{ row.lendQty }}</n-descriptions-item>
                           </n-descriptions>
                           <!-- Not implement yet!
                           <template #action>
@@ -361,6 +387,10 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
 
 <style>
+main {
+  background-image: url('/pattern.svg');
+}
+
 .item-card-picked {
   border: 1px solid hsla(148, 74%, 36%, 1.0);
   padding: 1em;

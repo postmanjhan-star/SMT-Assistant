@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
+import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
 import { onBeforeMount, ref } from 'vue';
@@ -31,22 +31,14 @@ type Row = {
 
 const rowData = ref<Row[]>( [] );
 
-const defaultColDef: ColDef = {
-  filter: true,
-  sortable: true,
-  flex: 1,
-  resizable: true,
-}
-
-const columnDefs: ColDef[] = [
-  { field: "idno", headerName: '發料單號' },
-  { field: "date", headerName: '發料日期' },
-  { field: "issuingCompleted", headerName: '已發料完成' },
-];
 
 const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
+  columnDefs: [
+    { field: "idno", headerName: '發料單號' },
+    { field: "date", headerName: '發料日期' },
+    { field: "issuingCompleted", headerName: '已發料完成' },
+  ],
+  defaultColDef: { filter: true, sortable: true, flex: 1, resizable: true },
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
@@ -87,11 +79,11 @@ function onGridReady ( params: GridReadyEvent ) {
 
 
 
-function handleCreateReceiveButtonClick () { router.push( '/wms/issuances/create' ); }
+function onClickCreateReceiveButton ( event: Event ) { router.push( '/wms/issuances/create' ); }
 
 
 
-async function handleGenerateIssuanceForPrintButtonClick () {
+async function onClickGenerateIssuanceForPrintButton ( event: Event ) {
   // Get selected rows
   const selectedRows: IssuanceRead[] = gridApi.value.getSelectedRows();
 
@@ -131,7 +123,7 @@ function onClickPickButton ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -150,11 +142,12 @@ function onClickPickButton ( event: Event ) {
 
         <n-space size="large" style="">
 
-          <n-button type="primary" @click=" handleCreateReceiveButtonClick ">建立發料單</n-button>
+          <n-button type="primary" @click=" onClickCreateReceiveButton( $event ) ">建立發料單</n-button>
 
           <n-tooltip>
             <template #trigger>
-              <n-button strong secondary type="primary" @click=" handleGenerateIssuanceForPrintButtonClick ">產生紙本備料單
+              <n-button strong secondary type="primary"
+                @click=" onClickGenerateIssuanceForPrintButton( $event ) ">產生紙本備料單
               </n-button>
             </template>
             請不要讓瀏覽器封鎖新視窗
@@ -172,3 +165,11 @@ function onClickPickButton ( event: Event ) {
     </div>
   </main>
 </template>
+
+
+
+<style>
+main {
+  background-image: url('/pattern.svg');
+}
+</style>

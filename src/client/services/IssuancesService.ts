@@ -8,6 +8,7 @@ import type { IssuanceRead } from '../models/IssuanceRead';
 import type { IssuanceReturnCreate } from '../models/IssuanceReturnCreate';
 import type { IssuanceReturnRead } from '../models/IssuanceReturnRead';
 import type { IssuanceUpdate } from '../models/IssuanceUpdate';
+import type { LedColorEnum } from '../models/LedColorEnum';
 import type { MaterialInventoryRead } from '../models/MaterialInventoryRead';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -260,6 +261,34 @@ materialIdno: string,
             url: '/issuances/issuable_material_inventories/{material_idno}',
             path: {
                 'material_idno': materialIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Light Up Issuance Smart Rack Cells
+     * `led_color`: `0`: OFF, `1`: RED, `2`: GREEN, `3`: YELLOW, `4`: BLUE, `5`: MAGENTA, `6`: CYAN, `7`: WHITE
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static lightUpIssuanceSmartRackCells({
+issuanceIdno,
+ledColor,
+}: {
+issuanceIdno: string,
+ledColor?: LedColorEnum,
+}): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/issuances/{issuance_idno}/light-up',
+            path: {
+                'issuance_idno': issuanceIdno,
+            },
+            query: {
+                'led_color': ledColor,
             },
             errors: {
                 422: `Validation Error`,

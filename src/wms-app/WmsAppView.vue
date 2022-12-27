@@ -21,7 +21,7 @@ const lightThemeOverrides: GlobalThemeOverrides = {
         borderColor: lightThemeBorderColor,
     },
     Switch: {
-        railColor: lightThemeRailColor,
+        // railColor: lightThemeRailColor,
     },
 }
 
