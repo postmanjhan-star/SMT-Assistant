@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { Body_upload_material_batch_file } from '../models/Body_upload_material_batch_file';
 import type { InProcessMaterialCreate } from '../models/InProcessMaterialCreate';
 import type { InProcessMaterialRead } from '../models/InProcessMaterialRead';
 import type { InProcessMaterialUpdate } from '../models/InProcessMaterialUpdate';
@@ -380,6 +381,27 @@ requestBody: InProcessMaterialUpdate,
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Upload Material Batch File
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static uploadMaterialBatchFile({
+formData,
+}: {
+formData: Body_upload_material_batch_file,
+}): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/materials/upload_material_batch_file',
+            formData: formData,
+            mediaType: 'multipart/form-data',
             errors: {
                 422: `Validation Error`,
             },

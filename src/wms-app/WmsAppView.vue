@@ -3,9 +3,10 @@ import { dateZhTW, GlobalThemeOverrides, NConfigProvider, NMessageProvider, NNot
 import { useMeta } from 'vue-meta';
 import { RouterView } from "vue-router";
 
-const lightThemeBorderColor = 'rgba(214, 214, 214, 1.0)'; // hsla(0, 0%, 84%, 1.0)
-const lightThemeRailColor = 'rgba(153, 153, 153. 1.0)'; // hsla(0, 0%, 60%, 1.0)
-const lightThemeInputColor = 'rgba(245, 245, 245, 1.0)'; // hsla(0, 0%, 96%, 1.0)
+const lightThemeBorderColor = 'rgba(214, 214, 214, 1.0)' // hsla(0, 0%, 84%, 1.0)
+const lightThemeRailColor = 'rgba(153, 153, 153. 1.0)' // hsla(0, 0%, 60%, 1.0)
+const lightThemeInputColor = 'rgba(245, 245, 245, 1.0)' // hsla(0, 0%, 96%, 1.0)
+const lightThemeDraggerColor = 'rgba(235, 235, 235, 1.0)' // hsla(0, 0%, 92%, 1.0)
 
 /**
  * js 文件下使用这个做类型提示
@@ -23,6 +24,9 @@ const lightThemeOverrides: GlobalThemeOverrides = {
     Switch: {
         // railColor: lightThemeRailColor,
     },
+    Upload: {
+        draggerColor: lightThemeDraggerColor,
+    }
 }
 
 useMeta( { title: 'WMS' } );

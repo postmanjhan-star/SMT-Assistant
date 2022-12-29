@@ -45,7 +45,6 @@ function onUploadError ( { file, event }: { file: UploadFileInfo, event?: Progre
 
 <template>
   <div style="padding: 1rem;">
-
     <n-space vertical size="large" style="padding: 1rem;">
       <n-grid cols="1 s:3" responsive="screen" y-gap="20">
 
@@ -75,6 +74,7 @@ function onUploadError ( { file, event }: { file: UploadFileInfo, event?: Progre
       </n-grid>
     </n-space>
   </div>
+  
   <n-modal v-model:show=" showModal " preset="card" style="width: 800px; max-width: 80vw;">
     <n-card role="dialog" aria-modal="true" size="huge" :bordered=" false ">
       <template #cover>
