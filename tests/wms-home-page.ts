@@ -9,4 +9,6 @@ export class WmsHomePage {
     async goToStorages () { await this.page.getByRole( 'link', { name: '倉位管理' } ).click() }
 
     async goToSmartRacks () { await this.page.getByRole( 'link', { name: '智慧料架管理' } ).click() }
+
+    async goToMaterials () { await this.page.getByRole( 'link', { name: '物料管理' } ).click() }
 }

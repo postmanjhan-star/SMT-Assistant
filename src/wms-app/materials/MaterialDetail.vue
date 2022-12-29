@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { NButton, NInput, NInputNumber, NSpace, NTabPane, NTabs, NTag } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialRead, MaterialsService, MaterialTypeEnum, MaterialUpdate, OpenAPI, UnitEnum } from '../../client';
-import { useAuthStore } from '../../stores/auth';
-import MaterialsItemInventory from "./MaterialsItemInventory.vue";
-import MaterialsItemStock from "./MaterialsItemStock.vue";
+import { NButton, NInput, NSpace, NTabPane, NTabs, NTag } from 'naive-ui'
+import { computed, onBeforeMount, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ApiError, MaterialRead, MaterialsService, MaterialTypeEnum, OpenAPI, UnitEnum } from '../../client'
+import { useAuthStore } from '../../stores/auth'
+import MaterialItemInventory from "./MaterialItemInventory.vue"
+import MaterialItemStock from "./MaterialItemStock.vue"
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
@@ -13,20 +13,10 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const router = useRouter();
 const route = useRoute();
 
-const material = ref<MaterialRead>({
+const material = ref<MaterialRead>( {
   id: 0,
   idno: '',
-  name: '',
-  description: '',
-  unit: UnitEnum.PIECE,
-  qty_per_pack: 1,
-  expiry_days: 365,
   material_type: MaterialTypeEnum.RAW_MATERIAL,
-});
-
-const formValue = ref<MaterialUpdate>( {
-  id: 0,
-  idno: '',
   name: '',
   description: '',
   unit: UnitEnum.PIECE,
@@ -34,23 +24,24 @@ const formValue = ref<MaterialUpdate>( {
   expiry_days: 365,
 } );
 
+const formValue = computed( () => {
+  return {
+    id: material.value.id,
+    idno: material.value.idno,
+    materialType: material.value.material_type,
+    name: material.value.name,
+    description: material.value.description,
+    unit: material.value.unit,
+    qtyPerPack: material.value.qty_per_pack.toLocaleString(),
+    expiryDays: material.value.expiry_days.toLocaleString(),
+  }
+} )
 
 
 onBeforeMount( async () => {
-  try {
-    material.value = await MaterialsService.getMaterial( { idno: route.params.idno.toString() } );
-    formValue.value = {
-      id: material.value.id,
-      idno: material.value.idno,
-      name: material.value.name,
-      description: material.value.description,
-      unit: material.value.unit,
-      qty_per_pack: material.value.qty_per_pack,
-      expiry_days: material.value.expiry_days,
-    };
-  } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ); } }
+  try { material.value = await MaterialsService.getMaterial( { idno: route.params.idno.toString() } ) }
+  catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
 } );
-
 
 
 function onClickEditButton ( event: Event ) { router.push( `/wms/materials/${ route.params.idno.toString() }/edit` ); }
@@ -104,31 +95,32 @@ function onClickEditButton ( event: Event ) { router.push( `/wms/materials/${ ro
               <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
                 <n-form-item-gi label="物料代碼">
-                  <n-input v-model:value.lazy=" formValue.idno " readonly></n-input>
+                  <n-input v-model:value.lazy=" formValue.idno " readonly :input-props=" { id: 'idno' } "></n-input>
                 </n-form-item-gi>
 
                 <n-form-item-gi label="物料名稱">
-                  <n-input v-model:value.lazy=" formValue.name " readonly></n-input>
+                  <n-input v-model:value.lazy=" formValue.name " readonly :input-props=" { id: 'name' } "></n-input>
                 </n-form-item-gi>
 
                 <n-form-item-gi label="物料說明">
-                  <n-input v-model:value.lazy=" formValue.description " readonly></n-input>
+                  <n-input v-model:value.lazy=" formValue.description " readonly
+                    :input-props=" { id: 'description' } "></n-input>
                 </n-form-item-gi>
 
                 <n-form-item-gi label="基本單位">
-                  <n-select v-model:value.lazy=" formValue.unit " :show="false"></n-select>
+                  <n-input v-model:value.lazy=" formValue.unit " readonly :input-props=" { id: 'unit' } "></n-input>
                 </n-form-item-gi>
 
                 <n-form-item-gi label="基本包裝量">
-                  <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false "
-                    style="width: 100%;" readonly></n-input-number>
+                  <n-input v-model:value.lazy=" formValue.qtyPerPack " :input-props=" { id: 'qtyPerPack' } "
+                    readonly></n-input>
                 </n-form-item-gi>
 
                 <n-form-item-gi label="有效期間">
-                  <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false "
-                    style="width: 100%;" readonly>
+                  <n-input v-model:value.lazy=" formValue.expiryDays " :show-button=" false " readonly
+                    :input-props=" { id: 'expiryDays' } ">
                     <template #suffix>日</template>
-                  </n-input-number>
+                  </n-input>
                 </n-form-item-gi>
 
               </n-grid>
@@ -136,11 +128,11 @@ function onClickEditButton ( event: Event ) { router.push( `/wms/materials/${ ro
           </n-tab-pane>
 
           <n-tab-pane name="inventories" tab="料況統計">
-            <materials-item-inventory></materials-item-inventory>
+            <material-item-inventory></material-item-inventory>
           </n-tab-pane>
 
           <n-tab-pane name="stocks" tab="庫存明細">
-            <materials-item-stock></materials-item-stock>
+            <material-item-stock></material-item-stock>
           </n-tab-pane>
 
         </n-tabs>

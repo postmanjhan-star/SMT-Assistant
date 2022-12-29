@@ -78,7 +78,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/materials',
-            component: () => import( "../wms-app/components/MaterialsMaster.vue" ),
+            component: () => import( "../wms-app/materials/MaterialMaster.vue" ),
           },
           {
             path: '/wms/materials/create_raw_material',
@@ -94,11 +94,15 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/materials/:idno',
-            component: () => import( "../wms-app/components/MaterialsDetail.vue" ),
+            component: () => import( "../wms-app/materials/MaterialDetail.vue" ),
           },
           {
             path: '/wms/materials/:idno/edit',
             component: () => import( "../wms-app/components/MaterialsEditMaster.vue" ),
+          },
+          {
+            path: '/wms/materials/batch-create',
+            component: () => import( "../wms-app/materials/MaterialUploadBatchFile.vue" ),
           },
           {
             path: '/wms/vendors',
