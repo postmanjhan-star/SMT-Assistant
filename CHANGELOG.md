@@ -15,7 +15,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 - 松下打件機助手 CSV 上傳頁增加更明確的成功與失敗訊息。（dcc3a97e）
 - 松下打件機助手 CSV 上傳頁增加 CSV 輸出選項說明。（dcc3a97e）
 - 儲位可搬家至其他倉，內部的所有物料也會連動。（6ac378c1）
-- 新增用 ODS / XLSX 檔案批次建立物料功能。（）
+- 新增用 ODS / XLSX 檔案批次建立物料功能。（93e63172）
 ### Changed
 - 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（7cc889ba）
 - 松下打件機助手支援一料多槽比對。（3695dc37）
