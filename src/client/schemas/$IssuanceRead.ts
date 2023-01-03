@@ -7,6 +7,16 @@ export const $IssuanceRead = {
     type: 'number',
     isRequired: true,
 },
+        created_at: {
+    type: 'string',
+    isRequired: true,
+    format: 'date',
+},
+        updated_at: {
+    type: 'string',
+    isRequired: true,
+    format: 'date-time',
+},
         idno: {
     type: 'string',
     isRequired: true,
