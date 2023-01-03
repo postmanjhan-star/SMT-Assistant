@@ -21,6 +21,8 @@ let issuances: IssuanceRead[];
 
 type Row = {
   'id': number,
+  'createdAt': string,
+  'updatedAt': string,
   'idno': string,
   'date': string | undefined,
   'issuingCompleted': string,
@@ -34,6 +36,7 @@ const gridOptions: GridOptions = {
   // Column Definitions
   columnDefs: [
     { field: "idno", headerName: '發料單號' },
+    { field: "updatedAt", headerName: '最後異動時間' },
     { field: "date", headerName: '發料日期' },
     { field: "issuingCompleted", headerName: '已發料完成' },
   ],
@@ -95,14 +98,21 @@ const gridOptions: GridOptions = {
 
 
 onBeforeMount( async () => {
-  issuances = await IssuancesService.getIssuances();
+  issuances = await IssuancesService.getIssuances()
 
   for ( let issuance of issuances ) {
-    let issuingCompleted: string;
-    issuance.issuing_completed ? issuingCompleted = '✅' : issuingCompleted = '';
-    rowData.value.push( { id: issuance.id, idno: issuance.idno, date: issuance.date, issuingCompleted: issuingCompleted } );
+    let issuingCompleted: string
+    issuance.issuing_completed ? issuingCompleted = '✅' : issuingCompleted = ''
+    rowData.value.push( {
+      id: issuance.id,
+      createdAt: issuance.created_at,
+      updatedAt: new Date( issuance.updated_at ).toLocaleString(),
+      idno: issuance.idno,
+      date: issuance.date,
+      issuingCompleted: issuingCompleted,
+    } )
   }
-} );
+} )
 
 
 function onClickCreateReceiveButton ( event: Event ) { router.push( '/wms/issuances/create' ); }
