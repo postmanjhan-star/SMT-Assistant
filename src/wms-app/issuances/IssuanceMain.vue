@@ -33,15 +33,23 @@ const rowData = ref<Row[]>( [] );
 
 
 const gridOptions: GridOptions = {
+  // PROPERTIES
+  // Column Definitions
   columnDefs: [
     { field: "idno", headerName: '發料單號' },
     { field: "date", headerName: '發料日期' },
     { field: "issuingCompleted", headerName: '已發料完成' },
   ],
   defaultColDef: { filter: true, sortable: true, flex: 1, resizable: true },
+  
+  // Column Moving
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
+
+  // Miscellaneous
   debug: false,
   pagination: true,
   suppressColumnVirtualisation: true,
