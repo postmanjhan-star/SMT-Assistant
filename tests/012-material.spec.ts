@@ -47,10 +47,10 @@ test( 'Batch create new materials from a ODS file', async ( { page } ) => {
   const odsFilePath = './tests/material_create_test_1.0.ods'
 
   const material = generateMaterial()
-  console.debug( material )
+  // console.debug( material )
 
   const odsFileUpdated = updateBatchOdsFile( odsFilePath, material )
-  console.debug( odsFileUpdated )
+  // console.debug( odsFileUpdated )
 
   const startPage = new StartPage( page )
   await startPage.goto()
@@ -83,7 +83,7 @@ test( 'Batch create new materials from a ODS file', async ( { page } ) => {
   const rowDiv = rowsDiv.filter( { hasText: material.idno } )
   await rowDiv.dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
 
-  await page.waitForTimeout(300) // Force wait!!!
+  await page.waitForTimeout(500) // Force wait!!!
 
   const idno = page.locator( '#idno' )
   expect( await idno.inputValue() ).toBe( material.idno )
