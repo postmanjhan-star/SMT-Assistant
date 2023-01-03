@@ -153,7 +153,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/issuances',
-            component: () => import( "../wms-app/components/IssuancesMain.vue" ),
+            component: () => import( "../wms-app/issuances/IssuanceMain.vue" ),
           },
           {
             path: '/wms/issuances/create',

@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
-import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
-import { IssuanceRead, IssuancesService, OpenAPI } from '../../client';
-import { useAuthStore } from '../../stores/auth';
+import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, RowDoubleClickedEvent, RowNode, ViewportChangedEvent } from "ag-grid-community"
+import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NH1, NSpace, NTooltip, useMessage } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { IssuanceRead, IssuancesService, OpenAPI } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 
 
@@ -17,13 +17,12 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref();
-const gridColumnApi = ref();
-
 let issuances: IssuanceRead[];
 
 type Row = {
   'id': number,
+  'createdAt': string,
+  'updatedAt': string,
   'idno': string,
   'date': string | undefined,
   'issuingCompleted': string,
@@ -33,50 +32,87 @@ const rowData = ref<Row[]>( [] );
 
 
 const gridOptions: GridOptions = {
+  // PROPERTIES
+  // Column Definitions
   columnDefs: [
     { field: "idno", headerName: '發料單號' },
+    { field: "updatedAt", headerName: '最後異動時間' },
     { field: "date", headerName: '發料日期' },
     { field: "issuingCompleted", headerName: '已發料完成' },
   ],
   defaultColDef: { filter: true, sortable: true, flex: 1, resizable: true },
+
+  // Column Moving
+  suppressMovableColumns: false,
+  suppressColumnMoveAnimation: true,
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true,
 
+  // Miscellaneous
+  rowBuffer: 100,
+  debug: false,
+  suppressParentsInRowNodes: true,
+
+  // Pagination
+  pagination: true,
+
+  // Rendering
+  enableCellChangeFlash: true,
+  suppressColumnVirtualisation: true,
+  suppressRowVirtualisation: false,
+  domLayout: 'normal',
+  getBusinessKeyForNode: ( node: RowNode<Row> ) => { return node.data.id.toString() },
+
+  // RowModel
+  rowModelType: 'clientSide',
+  getRowId: ( params: GetRowIdParams ) => { return params.data.id },
+
+  // Scrolling
+  debounceVerticalScrollbar: true,
+
+  // Selection
+  enableCellTextSelection: true,
   rowSelection: 'single',
   suppressCellFocus: true,
+
+  // Styling
+  suppressRowTransform: true,
+
+  // Tooltips
+  enableBrowserTooltips: false,
+
+  // EVENTS
+  // Miscellaneous
+  onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
+
+  // RowModel: Client-Side
+  onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
+
+  // Selection
   onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => router.push( `/wms/issuances/${ event.data.idno }` ),
 }
 
 
 
 onBeforeMount( async () => {
-  issuances = await IssuancesService.getIssuances();
+  issuances = await IssuancesService.getIssuances()
 
   for ( let issuance of issuances ) {
-    let issuingCompleted: string;
-    issuance.issuing_completed ? issuingCompleted = '✅' : issuingCompleted = '';
-    rowData.value.push( { id: issuance.id, idno: issuance.idno, date: issuance.date, issuingCompleted: issuingCompleted } );
+    let issuingCompleted: string
+    issuance.issuing_completed ? issuingCompleted = '✅' : issuingCompleted = ''
+    rowData.value.push( {
+      id: issuance.id,
+      createdAt: issuance.created_at,
+      updatedAt: new Date( issuance.updated_at ).toLocaleString(),
+      idno: issuance.idno,
+      date: issuance.date,
+      issuingCompleted: issuingCompleted,
+    } )
   }
-} );
-
-
-
-function getRowId ( params: GetRowIdParams ) { return params.data.id; }
-
-
-
-function onGridReady ( params: GridReadyEvent ) {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-};
-
+} )
 
 
 function onClickCreateReceiveButton ( event: Event ) { router.push( '/wms/issuances/create' ); }
@@ -85,7 +121,7 @@ function onClickCreateReceiveButton ( event: Event ) { router.push( '/wms/issuan
 
 async function onClickGenerateIssuanceForPrintButton ( event: Event ) {
   // Get selected rows
-  const selectedRows: IssuanceRead[] = gridApi.value.getSelectedRows();
+  const selectedRows: IssuanceRead[] = gridOptions.api.getSelectedRows()
 
   // Check if any row is selected
   if ( selectedRows.length === 0 ) {
@@ -105,7 +141,7 @@ async function onClickGenerateIssuanceForPrintButton ( event: Event ) {
 
 function onClickPickButton ( event: Event ) {
   // Get selected rows
-  const selectedRows: Row[] = gridApi.value.getSelectedRows();
+  const selectedRows: Row[] = gridOptions.api.getSelectedRows()
 
   // Check if any row is selected
   if ( selectedRows.length === 0 ) {
@@ -157,8 +193,7 @@ function onClickPickButton ( event: Event ) {
 
         </n-space>
 
-        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
-          :getRowId=" getRowId " :onGridReady=" onGridReady ">
+        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions ">
         </ag-grid-vue>
 
       </n-space>
