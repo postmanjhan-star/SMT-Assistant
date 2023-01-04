@@ -4,7 +4,7 @@ import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, FujiMounterFileRead, MaterialInventoriesService, SmtService, StErpService } from '../client';
+import { ApiError, FujiMounterFileRead, MaterialInventoriesService, SmtService, StErpService, STPartPack, STReceivePack } from '../client';
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
@@ -157,8 +157,9 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
     }
   } else {
     try {
-      // To be switched to ST ERP part pack API
-      const partPack = await StErpService.getStErpReceivePack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } )
+      let partPack: STPartPack | STReceivePack
+      try { partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } ) }
+      catch { partPack = await StErpService.getStErpReceivePack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } ) } // To be deprecated
       matereialIdnoFromInput = partPack.part_idno
     } catch ( error ) {
       if ( error instanceof ApiError && error.status === 404 ) {
