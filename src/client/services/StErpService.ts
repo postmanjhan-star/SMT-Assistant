@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { STPart } from '../models/STPart';
+import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
 import type { STReceivePack } from '../models/STReceivePack';
 import type { STVendor } from '../models/STVendor';
@@ -50,20 +51,18 @@ partIdno: string,
     }
 
     /**
-     * Get St Erp Receive Pack
-     * CSV 資料順序：
- *
- * 條碼編號^^本包數量^^驗收數量^^本包序號^^總包數^^收料單號^^材料編號^^單位^^廠商編號^^收料日期
- *
- * `pack_idno^^pack_qty^^total_qualify_qty^^pack_sequence_idno^^total_pack_sequence_idno^^receive_id^^part_idno^^unit^^vendor_idno^^receive_date`
-     * @returns STReceivePack Successful Response
+     * Get St Erp Part Pack
+     * 資料：
+ * 條碼編號 ^^ 本包數量 ^^ 驗收數量 ^^ 本包序號 ^^ 總包數 ^^ 材料編號 ^^ 單位 ^^ 廠商編號 ^^ 製造日期
+ * pack_idno^^pack_qty^^total_qualify_qty^^pack_sequence_idno^^total_pack_sequence_idno^^part_idno^^unit^^vendor_idno^^manufacturing_date
+     * @returns STPartPack Successful Response
      * @throws ApiError
      */
-    public static getStErpReceivePack({
+    public static getStErpPartPack({
 stPackIdno,
 }: {
 stPackIdno: string,
-}): CancelablePromise<STReceivePack> {
+}): CancelablePromise<STPartPack> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/parts/pack/{st_pack_idno}',
@@ -118,6 +117,33 @@ stErpReceiveIdno: string,
             url: '/st_erp/receives/{st_erp_receive_idno}/barcodes',
             path: {
                 'st_erp_receive_idno': stErpReceiveIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get St Erp Receive Pack
+     * CSV 資料順序：
+ *
+ * 條碼編號^^本包數量^^驗收數量^^本包序號^^總包數^^收料單號^^材料編號^^單位^^廠商編號^^收料日期
+ *
+ * `pack_idno^^pack_qty^^total_qualify_qty^^pack_sequence_idno^^total_pack_sequence_idno^^receive_id^^part_idno^^unit^^vendor_idno^^receive_date`
+     * @returns STReceivePack Successful Response
+     * @throws ApiError
+     */
+    public static getStErpReceivePack({
+stPackIdno,
+}: {
+stPackIdno: string,
+}): CancelablePromise<STReceivePack> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/receives/pack/{st_pack_idno}',
+            path: {
+                'st_pack_idno': stPackIdno,
             },
             errors: {
                 422: `Validation Error`,
