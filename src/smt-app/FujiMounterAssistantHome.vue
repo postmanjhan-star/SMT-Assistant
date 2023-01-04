@@ -62,13 +62,14 @@ async function onClickSubmitButton ( event: Event ) {
           <n-gi></n-gi>
           <n-form-item-gi label="工單號" show-require-mark path="workOrderIdno">
             <n-input type="text" size="large" autofocus v-model:value.lazy=" formValue.workOrderIdno "
-              ref="workOrderIdnoInput" />
+              ref="workOrderIdnoInput" :input-props=" { id: 'workOrderIdnoInput' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 
           <n-gi></n-gi>
           <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
-            <n-input type="text" size="large" v-model:value.lazy=" formValue.mounterIdno " />
+            <n-input type="text" size="large" v-model:value.lazy=" formValue.mounterIdno "
+              :input-props=" { id: 'mounterIdnoInput' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 
