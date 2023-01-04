@@ -2,8 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { STPart } from '../models/STPart';
-import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
+import type { STReceivePack } from '../models/STReceivePack';
 import type { STVendor } from '../models/STVendor';
 import type { STWorkOrder } from '../models/STWorkOrder';
 import type { STWorkOrderItem } from '../models/STWorkOrderItem';
@@ -50,20 +50,20 @@ partIdno: string,
     }
 
     /**
-     * Get St Erp Part Pack
+     * Get St Erp Receive Pack
      * CSV 資料順序：
  *
  * 條碼編號^^本包數量^^驗收數量^^本包序號^^總包數^^收料單號^^材料編號^^單位^^廠商編號^^收料日期
  *
  * `pack_idno^^pack_qty^^total_qualify_qty^^pack_sequence_idno^^total_pack_sequence_idno^^receive_id^^part_idno^^unit^^vendor_idno^^receive_date`
-     * @returns STPartPack Successful Response
+     * @returns STReceivePack Successful Response
      * @throws ApiError
      */
-    public static getStErpPartPack({
+    public static getStErpReceivePack({
 stPackIdno,
 }: {
 stPackIdno: string,
-}): CancelablePromise<STPartPack> {
+}): CancelablePromise<STReceivePack> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/parts/pack/{st_pack_idno}',
@@ -87,7 +87,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2022-12-26',
+stReceiveDate = '2023-01-04',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -166,7 +166,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2022-12-26',
+date = '2023-01-04',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {

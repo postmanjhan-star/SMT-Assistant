@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type STPartPack = {
+export type STReceivePack = {
     pack_idno: string;
     pack_qty: number;
     total_qualify_qty: number;

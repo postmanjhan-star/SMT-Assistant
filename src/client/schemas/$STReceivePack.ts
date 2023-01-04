@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $STPartPack = {
+export const $STReceivePack = {
     properties: {
         pack_idno: {
     type: 'string',
