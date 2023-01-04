@@ -66,6 +66,12 @@ const storageCreate2: StorageCreate = {
 
 test.describe('WMS:Storage', () => {
   test('Create a new storage', async ({ page }) => {
+    // Coverage APIs are only supported on Chromium-based browsers.
+    try {
+      await page.coverage.startJSCoverage()
+      await page.coverage.startCSSCoverage()
+    } catch (error) {console.error(error)}
+
     const startPage = new StartPage(page)
     await startPage.goto()
     await startPage.clickWmsApp()
@@ -102,13 +108,22 @@ test.describe('WMS:Storage', () => {
     await wmsStorageCreatePage.fillL2StorageFields()
     await wmsStorageCreatePage.createStorage()
 
-    await page.waitForLoadState() // This may be useless.
+    await page.waitForTimeout(700)
 
     await expect(wmsStorageMainPage.storageDataTableBody).toContainText(storageCreate2.idno)
     await wmsStorageMainPage.goToL1Storage(storageCreate2.idno)
 
     await wmsStorageL1Page.goToL2StorageTab()
     await expect(wmsStorageL1Page.storageL2AgGridRowContainer).toContainText(storageCreate2.l2_storages[0].idno)
+
+    // Coverage APIs are only supported on Chromium-based browsers.
+    try {
+      const jsCoverage = await page.coverage.stopJSCoverage()
+      const cssCoverage = await page.coverage.stopCSSCoverage()
+      for (const entry of cssCoverage) {
+        console.debug(entry)
+      }
+    } catch (error) {console.error(error)}
   })
 
 
