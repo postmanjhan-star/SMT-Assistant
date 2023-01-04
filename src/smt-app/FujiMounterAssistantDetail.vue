@@ -157,25 +157,26 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
     }
   } else {
     try {
-      const partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } );
-      matereialIdnoFromInput = partPack.part_idno;
+      // To be switched to ST ERP part pack API
+      const partPack = await StErpService.getStErpReceivePack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } )
+      matereialIdnoFromInput = partPack.part_idno
     } catch ( error ) {
       if ( error instanceof ApiError && error.status === 404 ) {
-        await playErrorTone();
-        message.warning( '查無此條碼' );
-        materialFormValue.value.materialInventoryIdno = '';
-        return false;
+        await playErrorTone()
+        message.warning( '查無此條碼' )
+        materialFormValue.value.materialInventoryIdno = ''
+        return false
       }
     }
   }
 
-  const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput );
-  const utterance = new SpeechSynthesisUtterance( `${materialMatchedRow.slotSide} ${materialMatchedRow.slotNumber}` );
-  utterance.lang = 'zh-CN'; // zh-TW 會把「B1」唸成「地下一樓」…
-  speechSynthesis.speak( utterance );
-  materialMatchedRow.highlight = true;
+  const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput )
+  const utterance = new SpeechSynthesisUtterance( `${ materialMatchedRow.slotSide } ${ materialMatchedRow.slotNumber }` )
+  utterance.lang = 'zh-CN' // zh-TW 會把「B1」唸成「地下一樓」…
+  speechSynthesis.speak( utterance )
+  materialMatchedRow.highlight = true
   scrollToRow( materialMatchedRow.materialIdno )
-  slotIdnoInput.value.focus();
+  slotIdnoInput.value.focus()
 }
 
 
