@@ -1,5 +1,5 @@
 {
-	debug
+	# debug
 	auto_https disable_redirects
 	email 102573@sentecgroup.com
 }

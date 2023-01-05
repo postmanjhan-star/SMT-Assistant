@@ -249,7 +249,8 @@ async function onClickConfirmPickingButton ( event: Event ) {
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi label="備註" span="3">
-              <n-input v-model:value.memo=" headerFormValue.memo "></n-input>
+              <n-input v-model:value.memo=" headerFormValue.memo " type="textarea"
+                :input-props=" { id: 'memo' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi span="3">

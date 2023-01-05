@@ -45,6 +45,12 @@ const config: PlaywrightTestConfig = {
 
     /* Automatically capture full page screenshot on test failure */
     screenshot: { mode: 'only-on-failure', fullPage: true },
+
+    video: 'retain-on-failure',
+
+    trace: 'retain-on-failure',
+
+    slowMo: 100,
   },
 
   /* Configure projects for major browsers */

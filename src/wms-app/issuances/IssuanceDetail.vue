@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, useMessage } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../../client';
-import { useAuthStore } from '../../stores/auth';
+import { GetRowIdParams, GridOptions } from "ag-grid-community"
+import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, useMessage } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 
 
@@ -18,13 +18,8 @@ const route = useRoute();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref();
-const gridColumnApi = ref();
-
 const formRef = ref<FormInst | null>( null );
 const headerFormValue = ref( { memo: '' } );
-
-
 
 type GridItem = {
   id: number,
@@ -35,50 +30,56 @@ type GridItem = {
   lend_qty: number,
 };
 
-
-
 const rowData = ref<GridItem[]>( [] );
-const columnDefs: ColDef[] = [
-  { field: "material_idno", headerName: '物料代碼', editable: false },
-  { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
-  { field: "issue_qty", headerName: '發出數量' },
-  { field: "lend_qty", headerName: '借出數量' },
-];
-
-
-
-const defaultColDef = {
-  editable: true,
-  filter: true,
-  sortable: true,
-  flex: 1, // Every columns have the same portion of width
-  resizable: true,
-}
-
-
 
 const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
+  // PROPERTIES
+  // Column Definitions
+  columnDefs: [
+    { field: "material_idno", headerName: '物料代碼', editable: false },
+    { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
+    { field: "issue_qty", headerName: '發出數量' },
+    { field: "lend_qty", headerName: '借出數量' },
+  ],
+  defaultColDef: { editable: true, filter: true, sortable: true, flex: 1, resizable: true },
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true,
 
+  // Miscellaneous
+  debug: false,
+
+  // Pagination
+  pagination: true,
+
+  // Rendering
+  suppressColumnVirtualisation: true,
+
+  // RowModel
+  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
+
+  // Scrolling
+  debounceVerticalScrollbar: true,
+
+  // Selection
+  enableCellTextSelection: true,
   rowSelection: 'single',
   suppressCellFocus: true,
+
+  // Styling
+  suppressRowTransform: true,
+
+  // EVENTS
+  // Miscellaneous
 }
 
 const issuance = ref<IssuanceRead>();
 
 onBeforeMount( async () => {
   try {
-    issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
+    issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } )
     headerFormValue.value.memo = issuance.value.memo;
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       rowData.value.push( {
@@ -90,47 +91,33 @@ onBeforeMount( async () => {
         lend_qty: issuanceItem.lend_qty,
       } )
     }
-    gridApi.value.setRowData( rowData.value );
-  } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ); } }
-} );
-
-
-
-function getRowId ( params: GetRowIdParams ) { return params.data.material_inventory_id; }
-
-
-
-async function onGridReady ( params: GridReadyEvent ) {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-};
-
-
+    gridOptions.api.setRowData( rowData.value )
+  } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
+} )
 
 const loadingRef = ref( false );
 const loading = loadingRef;
 
 
-
 async function handleUpdateIssuanceButtonClick ( event: Event ) {
   // Block updating for a completed issuance
-  if ( issuance.value?.issuing_completed ) { return false; }
-  
-  loadingRef.value = true;
+  if ( issuance.value?.issuing_completed ) { return false }
+
+  loadingRef.value = true
 
   // Build issuance body
-  const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo };
+  const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo }
 
   // Create issuance
-  try { issuance.value = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ); }
+  try { issuance.value = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ) }
   catch ( error ) {
-    message.error( '更新失敗' );
-    loadingRef.value = false;
-    return false;
+    message.error( '更新失敗' )
+    loadingRef.value = false
+    return false
   }
 
-  message.success( `發料單 ${ issuance.value.idno } 更新成功` );
-  router.push( '/wms/issuances' );
+  message.success( `發料單 ${ issuance.value.idno } 更新成功` )
+  router.push( '/wms/issuances' )
 }
 
 
@@ -172,13 +159,13 @@ async function onClickAddInventoryButton ( event: Event ) {
   }
 
   // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance({
+  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
     materialInventoryId: inventory.id,
     onlyIssuable: true,
-  })
+  } )
   if ( balance <= 0 ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
+    message.error( '此單包已無可用庫存' )
+    return false
   }
 
   // Check if the material inventory is in-stock
@@ -194,7 +181,7 @@ async function onClickAddInventoryButton ( event: Event ) {
     const item = await IssuancesService.addIssuanceItem( {
       issuanceIdno: route.params.idno.toString(),
       requestBody: { material_inventory_id: inventory.id, issue_qty: balance, lend_qty: 0, },
-    } );
+    } )
 
     // Add the responsed issuance item to grid
     rowData.value.unshift( {
@@ -205,18 +192,18 @@ async function onClickAddInventoryButton ( event: Event ) {
       issue_qty: item.issue_qty,
       lend_qty: item.lend_qty,
     } )
-    gridApi.value.setRowData( rowData.value );
+    gridOptions.api.setRowData( rowData.value )
 
-    message.success( '已增加成功 👍' );
+    message.success( '已增加成功 👍' )
 
     // Clear materialAdditionFormValue
-    inventoryAdditionFormValue.value.inventoryIdno = '';
+    inventoryAdditionFormValue.value.inventoryIdno = ''
 
     // Focus at `material_idno` input field
-    inventoryIdnoInput.value.focus();
+    inventoryIdnoInput.value.focus()
   } catch ( error ) {
-    message.error( '增加失敗' );
-    return false;
+    message.error( '增加失敗' )
+    return false
   }
 }
 
@@ -224,28 +211,28 @@ async function onClickAddInventoryButton ( event: Event ) {
 
 async function onClickRemoveRowButton ( event: Event ) {
   // Block updating for a completed issuance
-  if ( issuance.value?.issuing_completed ) { return false; }
-  
+  if ( issuance.value?.issuing_completed ) { return false }
+
   // Get selected rows
-  const selectedRows: GridItem[] = gridApi.value.getSelectedRows();
-  if ( selectedRows.length === 0 ) { return false; }
+  const selectedRows: GridItem[] = gridOptions.api.getSelectedRows()
+  if ( selectedRows.length === 0 ) { return false }
   if ( selectedRows.length > 1 ) {
-    message.warning( '請選擇單列' );
-    return false;
+    message.warning( '請選擇單列' )
+    return false
   }
 
-  const selectedRow = selectedRows[ 0 ];
+  const selectedRow = selectedRows[ 0 ]
 
   try {
-    const success = await IssuancesService.removeItem( { issuanceItemId: selectedRow.id, issuanceIdno: route.params.idno.toString(), } );
-    message.success( '已刪除 🗑️' );
+    const success = await IssuancesService.removeItem( { issuanceItemId: selectedRow.id, issuanceIdno: route.params.idno.toString(), } )
+    message.success( '已刪除 🗑️' )
 
     // Remove the row from grid
-    rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno );
-    gridApi.value.setRowData( rowData.value );
+    rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno )
+    gridOptions.api.setRowData( rowData.value )
   } catch ( error ) {
-    message.error( '刪除失敗' );
-    return false;
+    message.error( '刪除失敗' )
+    return false
   }
 }
 </script>
@@ -285,7 +272,8 @@ async function onClickRemoveRowButton ( event: Event ) {
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi label="備註" span="3">
-              <n-input v-model:value.memo=" headerFormValue.memo "></n-input>
+              <n-input v-model:value.memo=" headerFormValue.memo " type="textarea"
+                :input-props=" { id: 'memo' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi span="3">
@@ -337,9 +325,12 @@ async function onClickRemoveRowButton ( event: Event ) {
               </n-button>
             </n-space>
 
-            <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; "
-              :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady ">
-            </ag-grid-vue>
+            <div style="height: 600px; overflow-x: scroll; width: 100%;">
+              <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
+                :gridOptions=" gridOptions ">
+              </ag-grid-vue>
+            </div>
+
           </n-gi>
 
         </n-grid>

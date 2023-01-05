@@ -157,15 +157,15 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/issuances/create',
-            component: () => import( "../wms-app/components/IssuancesCreate.vue" ),
+            component: () => import( "../wms-app/issuances/IssuanceCreate.vue" ),
           },
           {
             path: '/wms/issuances/:idno',
-            component: () => import( "../wms-app/components/IssuancesItem.vue" ),
+            component: () => import( "../wms-app/issuances/IssuanceDetail.vue" ),
           },
           {
             path: '/wms/issuances/:idno/pick',
-            component: () => import( "../wms-app/components/IssuancesPick.vue" ),
+            component: () => import( "../wms-app/issuances/IssuancePick.vue" ),
           },
           {
             path: '/wms/issuance_returns',
