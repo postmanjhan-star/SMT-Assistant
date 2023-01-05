@@ -9,8 +9,6 @@ import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client';
 import { useAuthStore } from '../../stores/auth';
 
-
-
 const message = useMessage();
 const router = useRouter();
 
@@ -23,8 +21,6 @@ const headerFormValue = ref( { memo: '' } );
 const materialIdnoInput = ref();
 const materialUnit = ref();
 const materialInventoryIdnoInput = ref();
-
-
 
 type GridItem = {
   material_idno: string,
@@ -299,7 +295,7 @@ const loading = loadingRef;
 
 
 
-async function handleCreateIssuanceButtonClick ( event: Event ) {
+async function onClickCreateIssuanceButton ( event: Event ) {
   loadingRef.value = true;
 
   // Build issuance body
@@ -341,7 +337,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -367,7 +363,8 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi label="備註" span="3">
-              <n-input v-model:value.memo=" headerFormValue.memo "></n-input>
+              <n-input v-model:value.memo=" headerFormValue.memo " type="textarea"
+                :input-props=" { id: 'memo' } "></n-input>
             </n-form-item-gi>
 
             <n-gi span="3">
@@ -383,7 +380,7 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
                   <n-form-item label="物料代碼">
                     <n-input v-model:value.lazy=" materialAdditionFormValue.material_idno " ref="materialIdnoInput"
-                      @blur=" onBlurMaterialIdnoInputField() ">
+                      @blur=" onBlurMaterialIdnoInputField() " :input-props=" { id: 'material_idno' } ">
                     </n-input>
                   </n-form-item>
 
@@ -398,14 +395,14 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
 
                   <n-form-item label="需求數量">
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.quantity " :show-button=" false "
-                      :min=" 0 " :precision=" 0 " :default-value=" 0 ">
+                      :min=" 0 " :precision=" 0 " :default-value=" 0 " id="quantity">
                       <template #suffix> {{ materialUnit }} </template>
                     </n-input-number>
                   </n-form-item>
 
                   <n-form-item>
                     <n-button type="primary" secondary strong @click=" onClickAddMaterialButton( $event ) "
-                      attr-type="submit">+</n-button>
+                      attr-type="submit" id="add_by_material">+</n-button>
                   </n-form-item>
 
                 </n-space>
@@ -443,7 +440,8 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
             </n-gi>
 
             <n-form-item-gi span="3">
-              <n-button type="primary" block @click=" handleCreateIssuanceButtonClick( $event ) " attr-type="submit"
+              <!-- To prevent unintend submit the form, set the attr-type as `button`, not `submit`.  -->
+              <n-button type="primary" block @click=" onClickCreateIssuanceButton( $event ) " attr-type="button"
                 :loading=" loading ">
                 建立發料單
               </n-button>
@@ -455,3 +453,11 @@ async function handleCreateIssuanceButtonClick ( event: Event ) {
     </div>
   </main>
 </template>
+
+
+
+<style>
+main {
+  background-image: url('/pattern.svg');
+}
+</style>

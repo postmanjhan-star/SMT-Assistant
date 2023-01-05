@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { dateZhTW, GlobalThemeOverrides, NConfigProvider, NTag, zhTW } from 'naive-ui';
-import { onMounted, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, OpenAPI } from "../client";
-import { useAuthStore } from '../stores/auth';
+import { dateZhTW, GlobalThemeOverrides, NConfigProvider, NTag, zhTW } from 'naive-ui'
+import { onMounted, ref } from "vue"
+import { useMeta } from 'vue-meta'
+import { useRoute, useRouter } from "vue-router"
+import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, OpenAPI } from "../client"
+import { useAuthStore } from '../stores/auth'
 
 
 const authStore = useAuthStore();
@@ -36,18 +37,20 @@ const lightThemeOverrides: GlobalThemeOverrides = {
 
 const issuance = ref<IssuanceRead>( {
     id: 0,
+    created_at: '',
+    updated_at: '',
     idno: '',
     date: '',
     employee_id: 0,
     memo: '',
     issuing_completed: false,
-} );
+} )
 
 type Picking = IssuanceItemRead & {}
 
-const pickings = ref<Picking[]>( [] );
+const pickings = ref<Picking[]>( [] )
 
-
+useMeta( { title: `發料備料單 ${ issuance.value.idno }` } ) // Reactive does not work here. Minor.
 
 onMounted( async () => {
     try { issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } ); }
@@ -75,6 +78,10 @@ onMounted( async () => {
                                     已發料
                                 </n-tag>
                             </h1>
+                            <aside>
+                                <p>Memo</p>
+                                <p>{{ issuance.memo }}</p>
+                            </aside>
                             <!-- <vue-barcode value="5901234123457" :options=" { format: 'EAN13' } "></vue-barcode> -->
                         </th>
                     </tr>
@@ -88,7 +95,7 @@ onMounted( async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(  item, index  ) in pickings">
+                    <tr v-for="(   item, index   ) in pickings">
                         <td class="row-index">{{ index + 1 }}</td>
                         <td>
                             <n-tag size="large" strong v-if=" item?.picked ">已備料</n-tag>
@@ -153,11 +160,24 @@ body {
     box-shadow: 0px 4px 20px -4px hsla(0, 0%, 80%, 0.4);
 }
 
+p {
+    line-height: 100%;
+}
+
 h1 {
     margin-top: 0;
-    margin-bottom: 0;
+    margin-bottom: 1rem;
     font-weight: normal;
     font-size: 200%;
+    line-height: 100%;
+}
+
+
+aside {
+    padding-block: 0.01rem;
+    padding-inline: 1rem;
+    background-color: hsla(0, 0%, 84%, 1.0);
+    margin-block-end: 1rem;
 }
 
 table {
