@@ -43,6 +43,13 @@ const issuance = ref<IssuanceRead>( {
     date: '',
     employee_id: 0,
     memo: '',
+    st_erp_work_order_idno: '',
+    st_erp_work_order_date: null,
+    st_erp_work_order_due_date: null,
+    st_erp_product_idno: '',
+    st_erp_product_due_quanity: null,
+    st_erp_production_department: '',
+    st_erp_production_line: '',
     issuing_completed: false,
 } )
 
@@ -67,8 +74,8 @@ onMounted( async () => {
         :theme-overrides=" lightThemeOverrides ">
 
         <main>
-            <table>
-                <!-- `thead` repeats on every printed page -->
+            <table id="main-table">
+                <!-- `thead` repeats on every printed page. Do not move header parts out to otherwhere. -->
                 <thead>
                     <tr>
                         <th colspan="6">
@@ -78,14 +85,41 @@ onMounted( async () => {
                                     已發料
                                 </n-tag>
                             </h1>
-                            <aside>
-                                <p>Memo</p>
-                                <p>{{ issuance.memo }}</p>
-                            </aside>
+                            <table id="issuance-table">
+                                <tbody>
+                                    <tr>
+                                        <th>舊 ERP 工令編號</th>
+                                        <td colspan="3">{{ issuance.st_erp_work_order_idno }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>舊 ERP 工令日期</th>
+                                        <td>{{ issuance.st_erp_work_order_date }}</td>
+
+                                        <th>舊 ERP 計劃完工日期</th>
+                                        <td>{{ issuance.st_erp_work_order_due_date }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>舊 ERP 成品編號</th>
+                                        <td>{{ issuance.st_erp_product_idno }}</td>
+                                        <th>舊 ERP 計畫成品數量</th>
+                                        <td>{{ issuance.st_erp_product_due_quanity }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>舊 ERP 製造部門</th>
+                                        <td>{{ issuance.st_erp_production_department }}</td>
+                                        <th>舊 ERP 生產線別</th>
+                                        <td>{{ issuance.st_erp_production_line }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>備註</th>
+                                        <td colspan="3">{{ issuance.memo }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                             <!-- <vue-barcode value="5901234123457" :options=" { format: 'EAN13' } "></vue-barcode> -->
                         </th>
                     </tr>
-                    <tr>
+                    <tr id="main-table-head-row">
                         <th class="row-index">項次</th>
                         <th></th>
                         <th>單包代碼</th>
@@ -95,7 +129,7 @@ onMounted( async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(   item, index   ) in pickings">
+                    <tr v-for="( item, index ) in pickings">
                         <td class="row-index">{{ index + 1 }}</td>
                         <td>
                             <n-tag size="large" strong v-if=" item?.picked ">已備料</n-tag>
@@ -170,6 +204,7 @@ h1 {
     font-weight: normal;
     font-size: 200%;
     line-height: 100%;
+    text-align: left;
 }
 
 
@@ -180,46 +215,73 @@ aside {
     margin-block-end: 1rem;
 }
 
-table {
+#main-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-tbody>tr:nth-child(odd) {
+#main-table>tbody>tr:nth-child(odd) {
     background-color: hsla(0, 0%, 94%, 1.0);
 }
 
-th {
+#main-table #main-table-head-row th {
     padding: 0;
     text-align: left;
     border-bottom: 1px solid hsla(0, 0%, 20%, 1.0);
 }
 
-td {
+#main-table>tbody td {
     padding: 0;
     border-bottom: 1px solid hsla(0, 0%, 80%, 1.0);
 }
 
-.row-index {
+#main-table .row-index {
     /* width: 4rem; */
     font-variant-numeric: tabular-nums;
-    text-align: center;
+    text-align: center !important;
 }
 
-.inventory-idno {
+#main-table .inventory-idno {
     /* width: 15rem; */
     font-weight: bold;
     font-size: 120%;
 }
 
-.material-idno {
+#main-table .material-idno {
     font-size: 120%;
     font-weight: bold;
     font-variant-numeric: slashed-zero;
 }
 
-.material-information {
+#main-table .material-information {
     /* width: 40%; */
     font-size: 100%;
+}
+
+#issuance-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-block: 2rem;
+}
+
+#issuance-table th {
+    /* border-block: 1px solid hsla(0, 0%, 80%, 1.0) !important; */
+    /* border: ipx solid black !important; */
+    width: 10em;
+    text-align: right;
+    padding-block: 0.2em;
+    padding-inline: 0.4em;
+    border: 1px solid hsla(0, 0%, 80%, 1.0);
+    background-color: hsla(0, 0%, 92%, 1.0);
+    vertical-align: top;
+}
+
+#issuance-table td {
+    /* border: initial; */
+    font-weight: normal;
+    text-align: left;
+    border: 1px solid hsla(0, 0%, 80%, 1.0);
+    padding-block: 0.2em;
+    padding-inline: 0.4em;
 }
 </style>

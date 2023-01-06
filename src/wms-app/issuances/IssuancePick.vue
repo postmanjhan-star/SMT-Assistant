@@ -3,7 +3,7 @@ import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDescriptions, NDe
 import { onBeforeMount, reactive, ref } from 'vue';
 import { Dataset, DatasetInfo, DatasetItem, DatasetPager, DatasetSearch, DatasetShow } from 'vue-dataset';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, LedColorEnum, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, SeastoneService, StoragesService, StorageTypeEnum } from '../../client';
+import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, LedColorEnum, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../../client';
 import { useAuthStore } from '../../stores/auth';
 
 
@@ -15,8 +15,17 @@ const route = useRoute();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const formRef = ref<FormInst | null>( null );
-const headerFormValue = ref( { memo: '' } );
+const formRef = ref<FormInst | null>( null )
+const headerFormValue = ref( {
+  st_erp_work_order_idno: '',
+  st_erp_work_order_date: null,
+  st_erp_work_order_due_date: null,
+  st_erp_product_idno: '',
+  st_erp_product_due_quanity: null,
+  st_erp_production_department: '',
+  st_erp_production_line: '',
+  memo: ''
+} )
 
 const dsReRenderKey = ref( 0 ); // The 'KEY' to update vue-dataset. It takes me whole day to figure out the way to update a component.
 
@@ -39,8 +48,16 @@ let issuanceItemData = reactive<IssuanceItem[]>( [] );
 
 onBeforeMount( async () => {
   try {
-    issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } );
-    headerFormValue.value.memo = issuance.value.memo;
+    issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } )
+    headerFormValue.value.st_erp_work_order_idno = issuance.value.st_erp_work_order_idno
+    headerFormValue.value.st_erp_work_order_date = issuance.value.st_erp_work_order_date
+    headerFormValue.value.st_erp_work_order_due_date = issuance.value.st_erp_work_order_due_date
+    headerFormValue.value.st_erp_product_idno = issuance.value.st_erp_product_idno
+    headerFormValue.value.st_erp_product_due_quanity = issuance.value.st_erp_product_due_quanity.toLocaleString()
+    headerFormValue.value.st_erp_production_department = issuance.value.st_erp_production_department
+    headerFormValue.value.st_erp_production_line = issuance.value.st_erp_production_line
+    headerFormValue.value.memo = issuance.value.memo
+
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       issuanceItemData.push( {
         id: issuanceItem.id,
@@ -236,7 +253,6 @@ async function onClickConfirmPickingButton ( event: Event ) {
     </n-breadcrumb>
 
 
-
     <div style="padding: 1rem;">
       <n-h1 prefix="bar" style="font-size: 1.4rem;">
         {{ $route.params.idno.toString().toUpperCase() }} 備料作業
@@ -247,6 +263,43 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
         <n-form size="large" :model=" headerFormValue " ref="formRef" :disabled=" issuance?.issuing_completed ">
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
+
+            <n-form-item-gi label="舊 ERP 工令編號">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_work_order_idno " readonly
+                :input-props=" { id: 'st_erp_work_order_idno' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 工令日期">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_work_order_date " readonly
+                :input-props=" { id: 'st_erp_work_order_date' } " />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 計劃完工日期">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_work_order_due_date " readonly
+                :input-props=" { id: 'st_erp_work_order_due_date' } " />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 成品編號">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_product_idno " readonly
+                :input-props=" { id: 'st_erp_product_idno' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 計畫成品數量">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_product_due_quanity " readonly
+                :input-props=" { id: 'st_erp_product_due_quanity' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi span="0 s:1"></n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 製造部門">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_production_department " readonly
+                :input-props=" { id: 'st_erp_production_department' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 生產線別">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_production_line " readonly
+                :input-props=" { id: 'st_erp_production_line' } "></n-input>
+            </n-form-item-gi>
 
             <n-form-item-gi label="備註" span="3">
               <n-input v-model:value.memo=" headerFormValue.memo " type="textarea"
@@ -265,7 +318,6 @@ async function onClickConfirmPickingButton ( event: Event ) {
 
       </n-space>
     </div>
-
 
 
     <div style="padding: 1rem;">

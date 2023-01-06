@@ -3,7 +3,7 @@ import { GetRowIdParams, GridOptions } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, useMessage } from 'naive-ui'
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, NTag, useMessage } from 'naive-ui'
 import { onBeforeMount, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
@@ -18,8 +18,17 @@ const route = useRoute();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const formRef = ref<FormInst | null>( null );
-const headerFormValue = ref( { memo: '' } );
+const formRef = ref<FormInst | null>( null )
+const headerFormValue = ref( {
+  st_erp_work_order_idno: '',
+  st_erp_work_order_date: null,
+  st_erp_work_order_due_date: null,
+  st_erp_product_idno: '',
+  st_erp_product_due_quanity: null,
+  st_erp_production_department: '',
+  st_erp_production_line: '',
+  memo: ''
+} )
 
 type GridItem = {
   id: number,
@@ -80,7 +89,15 @@ const issuance = ref<IssuanceRead>();
 onBeforeMount( async () => {
   try {
     issuance.value = await IssuancesService.getIssuance( { issuanceIdno: route.params.idno.toString() } )
-    headerFormValue.value.memo = issuance.value.memo;
+    headerFormValue.value.st_erp_work_order_idno = issuance.value.st_erp_work_order_idno
+    headerFormValue.value.st_erp_work_order_date = issuance.value.st_erp_work_order_date
+    headerFormValue.value.st_erp_work_order_due_date = issuance.value.st_erp_work_order_due_date
+    headerFormValue.value.st_erp_product_idno = issuance.value.st_erp_product_idno
+    headerFormValue.value.st_erp_product_due_quanity = issuance.value.st_erp_product_due_quanity.toLocaleString()
+    headerFormValue.value.st_erp_production_department = issuance.value.st_erp_production_department
+    headerFormValue.value.st_erp_production_line = issuance.value.st_erp_production_line
+    headerFormValue.value.memo = issuance.value.memo
+
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       rowData.value.push( {
         id: issuanceItem.id,
@@ -95,8 +112,8 @@ onBeforeMount( async () => {
   } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
 } )
 
-const loadingRef = ref( false );
-const loading = loadingRef;
+const loadingRef = ref( false )
+const loading = loadingRef
 
 
 async function handleUpdateIssuanceButtonClick ( event: Event ) {
@@ -121,10 +138,8 @@ async function handleUpdateIssuanceButtonClick ( event: Event ) {
 }
 
 
-
 const inventoryAdditionFormValue = ref( { inventoryIdno: '' } );
 const inventoryIdnoInput = ref();
-
 
 
 async function onClickAddInventoryButton ( event: Event ) {
@@ -258,8 +273,6 @@ async function onClickRemoveRowButton ( event: Event ) {
       <n-breadcrumb-item>{{ $route.params.idno.toString().toUpperCase() }}</n-breadcrumb-item>
     </n-breadcrumb>
 
-
-
     <div style="padding: 1rem;">
       <n-h1 prefix="bar" style="font-size: 1.4rem;">
         發料單 {{ $route.params.idno.toString().toUpperCase() }}
@@ -270,6 +283,43 @@ async function onClickRemoveRowButton ( event: Event ) {
 
         <n-form size="large" :model=" headerFormValue " ref="formRef" :disabled=" issuance?.issuing_completed ">
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
+
+            <n-form-item-gi label="舊 ERP 工令編號">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_work_order_idno " readonly
+                :input-props=" { id: 'st_erp_work_order_idno' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 工令日期">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_work_order_date " readonly
+                :input-props=" { id: 'st_erp_work_order_date' } " />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 計劃完工日期">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_work_order_due_date " readonly
+                :input-props=" { id: 'st_erp_work_order_due_date' } " />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 成品編號">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_product_idno " readonly
+                :input-props=" { id: 'st_erp_product_idno' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 計畫成品數量">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_product_due_quanity " readonly
+                :input-props=" { id: 'st_erp_product_due_quanity' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi span="0 s:1"></n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 製造部門">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_production_department " readonly
+                :input-props=" { id: 'st_erp_production_department' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 生產線別">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_production_line " readonly
+                :input-props=" { id: 'st_erp_production_line' } "></n-input>
+            </n-form-item-gi>
 
             <n-form-item-gi label="備註" span="3">
               <n-input v-model:value.memo=" headerFormValue.memo " type="textarea"
