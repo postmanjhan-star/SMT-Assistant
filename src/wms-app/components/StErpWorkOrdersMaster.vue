@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ColDef, ColumnApi, GridApi, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { format, fromUnixTime, getTime } from 'date-fns';
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NH1, NSpace, useMessage } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, STPart, STWorkOrder } from '../../client';
-import { useAuthStore } from '../../stores/auth';
-
+import { ColDef, ColumnApi, GridApi, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community"
+import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { format, fromUnixTime, getTime } from 'date-fns'
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NH1, NSpace, useMessage } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, STPart, STWorkOrder } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 const message = useMessage();
 const router = useRouter();

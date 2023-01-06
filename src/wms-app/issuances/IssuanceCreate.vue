@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridOptions } from "ag-grid-community";
-import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui';
-import { ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client';
-import { useAuthStore } from '../../stores/auth';
+import { GetRowIdParams, GridOptions } from "ag-grid-community"
+import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { format } from 'date-fns'
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui'
+import { ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 const message = useMessage();
 const router = useRouter();
@@ -15,8 +16,17 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const formRef = ref<FormInst | null>( null );
-const headerFormValue = ref( { memo: '' } );
+const formRef = ref<FormInst | null>( null )
+const headerFormValue = ref( {
+  st_erp_work_order_idno: '',
+  st_erp_work_order_date: null,
+  st_erp_work_order_due_date: null,
+  st_erp_product_idno: '',
+  st_erp_product_due_quanity: null,
+  st_erp_production_department: '',
+  st_erp_production_line: '',
+  memo: '',
+} )
 
 const materialIdnoInput = ref();
 const materialUnit = ref();
@@ -289,17 +299,24 @@ function onClickRemoveRowButton ( event: Event ) {
 }
 
 
-
 const loadingRef = ref( false );
 const loading = loadingRef;
 
 
-
 async function onClickCreateIssuanceButton ( event: Event ) {
-  loadingRef.value = true;
+  loadingRef.value = true
 
   // Build issuance body
-  const issuanceCreate: IssuanceCreate = { memo: headerFormValue.value.memo };
+  const issuanceCreate: IssuanceCreate = {
+    memo: headerFormValue.value.memo,
+    st_erp_work_order_idno: headerFormValue.value.st_erp_work_order_idno,
+    st_erp_work_order_date: format( headerFormValue.value.st_erp_work_order_date, 'yyyy-MM-dd' ),
+    st_erp_work_order_due_date: format( headerFormValue.value.st_erp_work_order_due_date, 'yyyy-MM-dd' ),
+    st_erp_product_idno: headerFormValue.value.st_erp_product_idno,
+    st_erp_product_due_quanity: Number( headerFormValue.value.st_erp_product_due_quanity ),
+    st_erp_production_department: headerFormValue.value.st_erp_production_department,
+    st_erp_production_line: headerFormValue.value.st_erp_production_line,
+  }
 
   // Create issuance
   let issuance: IssuanceRead;
@@ -362,12 +379,50 @@ async function onClickCreateIssuanceButton ( event: Event ) {
         <n-form size="large" :model=" headerFormValue " ref="formRef">
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
-            <n-form-item-gi label="備註" span="3">
-              <n-input v-model:value.memo=" headerFormValue.memo " type="textarea"
+            <n-form-item-gi label="舊 ERP 工令編號">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_work_order_idno "
+                :input-props=" { id: 'st_erp_work_order_idno' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 工令日期">
+              <n-date-picker v-model:value.lazy=" headerFormValue.st_erp_work_order_date " type="date"
+                id="st_erp_work_order_date" style="width: 100%;" :input-readonly=" false " />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 計劃完工日期">
+              <n-date-picker v-model:value.lazy=" headerFormValue.st_erp_work_order_due_date " type="date"
+                id="st_erp_work_order_due_date" style="width: 100%;" :input-readonly=" false " />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 成品編號">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_product_idno "
+                :input-props=" { id: 'st_erp_product_idno' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 計畫成品數量">
+              <n-input-number v-model:value.lazy=" headerFormValue.st_erp_product_due_quanity " :show-button=" false "
+                :min=" 0 " :precision=" 0 " :default-value=" 0 " id="st_erp_product_due_quanity" style="width: 100%;">
+              </n-input-number>
+            </n-form-item-gi>
+
+            <n-form-item-gi span="0 s:1"></n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 製造部門">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_production_department "
+                :input-props=" { id: 'st_erp_production_department' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="舊 ERP 生產線別">
+              <n-input v-model:value.lazy=" headerFormValue.st_erp_production_line "
+                :input-props=" { id: 'st_erp_production_line' } "></n-input>
+            </n-form-item-gi>
+
+            <n-form-item-gi label="備註" span="4">
+              <n-input v-model:value.lazy=" headerFormValue.memo " type="textarea"
                 :input-props=" { id: 'memo' } "></n-input>
             </n-form-item-gi>
 
-            <n-gi span="3">
+            <n-gi span="4">
               <n-divider />
             </n-gi>
 
