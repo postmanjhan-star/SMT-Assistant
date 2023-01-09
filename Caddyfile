@@ -7,9 +7,9 @@
 http:// {
 	encode zstd gzip
 
-	log {
-		# output file /var/log/access.log
-	}
+	# log {
+	# 	output file /var/log/access.log
+	# }
 
 	handle_path /api/* {
 		reverse_proxy :8000
