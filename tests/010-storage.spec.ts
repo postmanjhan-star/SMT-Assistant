@@ -108,7 +108,7 @@ test.describe('WMS:Storage', () => {
     await wmsStorageCreatePage.fillL2StorageFields()
     await wmsStorageCreatePage.createStorage()
 
-    await page.waitForTimeout(700)
+    await page.waitForTimeout(800)
 
     await expect(wmsStorageMainPage.storageDataTableBody).toContainText(storageCreate2.idno)
     await wmsStorageMainPage.goToL1Storage(storageCreate2.idno)
