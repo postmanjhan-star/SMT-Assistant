@@ -75,7 +75,7 @@ const gridOptions: GridOptions = {
 
   // RowModel
   rowModelType: 'clientSide',
-  getRowId: ( params: GetRowIdParams ) => { return `${ params.data.slotIdno }-${ params.data.subSlotIdno }`; },
+  getRowId: ( params: GetRowIdParams ) => { return `${ params.data.slotIdno }-${ params.data.subSlotIdno }` },
 
   // Scrolling
   debounceVerticalScrollbar: true,

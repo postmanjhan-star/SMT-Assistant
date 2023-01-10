@@ -73,11 +73,14 @@ const gridOptions: GridOptions = {
 function getRowId ( params: GetRowIdParams ) { return params.data.idno; }
 
 async function updateReceiveList ( date: Date ) {
-  let receiveList: STReceiveHeader[];
-  try { receiveList = await StErpService.getStReceiveList( { stReceiveDate: format( date, 'yyyy-MM-dd' ) } ); }
+  let receiveList: STReceiveHeader[]
+  try { receiveList = await StErpService.getStReceiveList( { stReceiveDate: format( date, 'yyyy-MM-dd' ) } ) }
   catch ( error ) {
-    message.warning( '無資料' );
-    return false;
+    if ( error instanceof ApiError && error.status === 404 ) { message.warning( '無資料' ) }
+    else if ( error instanceof ApiError && error.status === 502 ) { message.warning( 'ERP 連線錯誤，請確認 ERP 連線。' ) }
+    else if ( error instanceof ApiError && error.status === 504 ) { message.warning( 'ERP 連線超時，請確認 ERP 連線。' ) }
+    else { message.warning( '錯誤' ) }
+    return false
   }
   rowData.value = []
   for ( let receive of receiveList ) {
@@ -91,8 +94,8 @@ async function updateReceiveList ( date: Date ) {
       stPurchaseIdno: receive.st_purchase_idno,
     } )
   }
-  gridApi.value.setRowData( rowData.value );
-  gridColumnApi.value.autoSizeAllColumns();
+  gridApi.value.setRowData( rowData.value )
+  gridColumnApi.value.autoSizeAllColumns()
 }
 
 async function onGridReady ( params: GridReadyEvent ) {
