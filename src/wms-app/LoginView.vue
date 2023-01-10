@@ -45,15 +45,15 @@ async function onClickLoginButton ( event: Event ) {
     formRef.value?.validate( async ( errors ) => {
         if ( !errors ) {
             // Login and get token
-            await login( formValue.value.username, formValue.value.password );
+            await login( formValue.value.username, formValue.value.password )
 
             // Use token to get account information, authorized modules, etc...
-            await getAccountInformation();
+            await getAccountInformation()
 
             // Navigate to a protected resource
             redirectToHome();
-        } else { message.error( '請輸入帳號密碼' ); }
-    } );
+        } else { message.error( '請輸入帳號密碼' ) }
+    } )
 }
 </script>
 

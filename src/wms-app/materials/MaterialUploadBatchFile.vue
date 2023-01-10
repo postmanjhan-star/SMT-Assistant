@@ -36,14 +36,13 @@ function onClickUploadButton ( event: Event ) { uploadRef.value?.submit() }
 async function customRequest (
   { file, data, headers, withCredentials, action, onFinish, onError, onProgress }: UploadCustomRequestOptions
 ) {
-  console.debug( file )
+  // console.debug( file )
   try {
     await MaterialsService.uploadMaterialBatchFile( { formData: { file: file.file } } )
     message.success( `${ file.name } 上傳成功` )
     uploadRef.value?.clear()
     onFinish()
   } catch ( error ) {
-    // console.error( error )
     if ( error instanceof ApiError && error.status === 409 ) {
       message.error( `物料有重複，上傳失敗`, { keepAliveOnHover: true } )
     } else {
