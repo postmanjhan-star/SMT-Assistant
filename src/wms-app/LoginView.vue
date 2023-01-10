@@ -14,17 +14,15 @@ const router = useRouter();
 const authStore = useAuthStore();
 const accountStore = useAccountStore();
 
-const formRef = ref<FormInst | null>( null );
-const formValue = ref<Body_login_for_access_token>( { username: '', password: '' } );
+const formRef = ref<FormInst | null>( null )
+const formValue = ref<Body_login_for_access_token>( { username: '', password: '' } )
 const rules: FormRules = {
     username: { required: true, message: '請輸入帳號', trigger: [ 'blur' ], },
     password: { required: true, message: '請輸入密碼', trigger: [ 'input', 'blur' ], }
-};
-
+}
 
 
 onMounted( () => { if ( props.message ) message.warning( props.message ); } );
-
 
 
 async function login ( username: string, password: string ) {
@@ -37,13 +35,10 @@ async function login ( username: string, password: string ) {
 }
 
 
-
 async function getAccountInformation () { await accountStore.setAuthorizedModules(); }
 
 
-
 function redirectToHome () { router.push( '/wms/home' ); }
-
 
 
 async function onClickLoginButton ( event: Event ) {
