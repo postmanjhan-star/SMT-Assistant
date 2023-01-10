@@ -8,5 +8,9 @@ export const $Body_upload_panasonic_mounter_csv = {
     isRequired: true,
     format: 'binary',
 },
+        product_ver: {
+    type: 'string',
+    isRequired: true,
+},
     },
 } as const;

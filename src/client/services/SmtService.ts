@@ -43,9 +43,13 @@ formData: Body_upload_fst,
     public static getFujiMounterMaterialSlotPairsByWorkOrder({
 workOrderIdno,
 mounterIdno,
+testingMode = false,
+testingProductIdno,
 }: {
 workOrderIdno: string,
 mounterIdno?: string,
+testingMode?: boolean,
+testingProductIdno?: string,
 }): CancelablePromise<Array<FujiMounterFileRead>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -55,6 +59,8 @@ mounterIdno?: string,
             },
             query: {
                 'mounter_idno': mounterIdno,
+                'testing_mode': testingMode,
+                'testing_product_idno': testingProductIdno,
             },
             errors: {
                 422: `Validation Error`,
