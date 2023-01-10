@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community"
+import { GetRowIdParams, GridOptions, GridReadyEvent, RowDataUpdatedEvent, RowNode, ViewportChangedEvent } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
@@ -16,9 +16,6 @@ const message = useMessage();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const gridApi = ref();
-const gridColumnApi = ref();
-
 const dateForm = ref( { dateTimestamp: getTime( new Date() ) } );
 
 type Row = {
@@ -33,51 +30,81 @@ type Row = {
 
 const rowData = ref<Row[]>( [] );
 
-
-const defaultColDef: ColDef = {
-  editable: false,
-  filter: true,
-  sortable: true,
-  resizable: true,
-}
-
-const columnDefs: ColDef[] = [
-  { field: "idno", headerName: '舊 ERP 收料單號' },
-  { field: "stVendorIdno", headerName: '供應商代碼' },
-  { field: "stPartIdno", headerName: '物料代碼' },
-  { field: "totalQty", headerName: '來料數量' },
-  { field: "qualifyQty", headerName: '驗收數量' },
-  { field: "stMbrIdno", headerName: '舊 ERP 隨車交貨單號' },
-  { field: "stPurchaseIdno", headerName: '內部採購單號' },
-]
-
 const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
+  // PROPERTIES
+  // Column Definitions
+  columnDefs: [
+    { field: "idno", headerName: '舊 ERP 收料單號' },
+    { field: "stVendorIdno", headerName: '供應商代碼' },
+    { field: "stPartIdno", headerName: '物料代碼' },
+    { field: "totalQty", headerName: '來料數量' },
+    { field: "qualifyQty", headerName: '驗收數量' },
+    { field: "stMbrIdno", headerName: '舊 ERP 隨車交貨單號' },
+    { field: "stPurchaseIdno", headerName: '內部採購單號' },
+  ],
+  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+
+  // Column Moving
+  suppressMovableColumns: false,
+  suppressColumnMoveAnimation: true,
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true,
 
+  // Miscellaneous
+  rowBuffer: 100,
+  valueCache: true,
+  debug: false,
+  suppressParentsInRowNodes: true,
+
+  // Pagination
+  pagination: true,
+
+  // Rendering
+  enableCellChangeFlash: true,
+  suppressColumnVirtualisation: true,
+  suppressRowVirtualisation: false,
+  domLayout: 'normal',
+  getBusinessKeyForNode: ( node: RowNode<Row> ) => { return node.data.idno },
+
+  // RowModel
+  rowModelType: 'clientSide',
+  getRowId: ( params: GetRowIdParams ) => { return params.data.idno },
+
+  // Scrolling
+  debounceVerticalScrollbar: true,
+
+  // Selection
+  enableCellTextSelection: true,
   rowSelection: 'single',
   suppressCellFocus: true,
+
+  // Styling
+  suppressRowTransform: true,
+
+  // Tooltips
+  enableBrowserTooltips: true,
+
+  // EVENTS
+  // Miscellaneous
+  onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
+
+  // RowModel: Client-Side
+  onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
 }
 
 
-
-function getRowId ( params: GetRowIdParams ) { return params.data.idno; }
-
 async function updateReceiveList ( date: Date ) {
-  let receiveList: STReceiveHeader[];
-  try { receiveList = await StErpService.getStReceiveList( { stReceiveDate: format( date, 'yyyy-MM-dd' ) } ); }
+  let receiveList: STReceiveHeader[]
+  try { receiveList = await StErpService.getStReceiveList( { stReceiveDate: format( date, 'yyyy-MM-dd' ) } ) }
   catch ( error ) {
-    message.warning( '無資料' );
-    return false;
+    if ( error instanceof ApiError && error.status === 404 ) { message.warning( '無資料' ) }
+    else if ( error instanceof ApiError && error.status === 502 ) { message.warning( 'ERP 連線錯誤，請確認 ERP 連線。' ) }
+    else if ( error instanceof ApiError && error.status === 504 ) { message.warning( 'ERP 連線超時，請確認 ERP 連線。' ) }
+    else { message.warning( '錯誤' ) }
+    return false
   }
   rowData.value = []
   for ( let receive of receiveList ) {
@@ -91,15 +118,10 @@ async function updateReceiveList ( date: Date ) {
       stPurchaseIdno: receive.st_purchase_idno,
     } )
   }
-  gridApi.value.setRowData( rowData.value );
-  gridColumnApi.value.autoSizeAllColumns();
+  gridOptions.api.setRowData( rowData.value )
 }
 
-async function onGridReady ( params: GridReadyEvent ) {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-  await updateReceiveList( new Date() );
-}
+async function onGridReady ( params: GridReadyEvent ) { await updateReceiveList( new Date() ) }
 
 
 async function onSubmitDateQuery ( event: Event ) {
@@ -114,59 +136,59 @@ const loading = loadingRef;
 
 
 async function onClickCreateReceiveButton ( event: Event ) {
-  loadingRef.value = true;
+  loadingRef.value = true
 
-  let stReceive: Row;
-  let vendor: VendorRead;
-  let material: MaterialRead;
-  let receive: ReceiveRead | null;
-  let barcodes: string[] = [];
+  let stReceive: Row
+  let vendor: VendorRead
+  let material: MaterialRead
+  let receive: ReceiveRead | null
+  let barcodes: string[] = []
 
   // Get selected row
-  const selectedRows: Row[] = gridApi.value.getSelectedRows();
+  const selectedRows: Row[] = gridOptions.api.getSelectedRows()
   if ( selectedRows.length === 0 ) {
-    message.warning( '請選擇舊 ERP 收料單' );
-    loadingRef.value = false;
-    return false;
-  } else { stReceive = selectedRows[ 0 ]; }
+    message.warning( '請選擇舊 ERP 收料單' )
+    loadingRef.value = false
+    return false
+  } else { stReceive = selectedRows[ 0 ] }
 
   // Only allow qualify_qty > 0
   if ( stReceive.qualifyQty <= 0 ) {
-    message.warning( '驗收數量為零，請驗收後重試' );
-    loadingRef.value = false;
-    return false;
+    message.warning( '驗收數量為零，請驗收後重試' )
+    loadingRef.value = false
+    return false
   }
 
   // Check if vendor and material exist in WMS
   try {
-    vendor = await VendorsService.getVendor( { idno: stReceive.stVendorIdno } );
-    material = await MaterialsService.getMaterial( { idno: stReceive.stPartIdno } );
+    vendor = await VendorsService.getVendor( { idno: stReceive.stVendorIdno } )
+    material = await MaterialsService.getMaterial( { idno: stReceive.stPartIdno } )
   } catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '請先建立 WMS 供應商與物料主檔' );
-      loadingRef.value = false;
-      return false;
+      message.error( '請先建立 WMS 供應商與物料主檔' )
+      loadingRef.value = false
+      return false
     }
     else {
-      message.error( '建立失敗' );
-      loadingRef.value = false;
-      return false;
+      message.error( '建立失敗' )
+      loadingRef.value = false
+      return false
     }
   }
 
   // If the ST receive idno is already in WMS receive idno, stop importing.
   try {
-    receive = await ReceivesService.getReceive( { receiveIdno: stReceive.idno } );
-  } catch ( error ) { receive = null; }
+    receive = await ReceivesService.getReceive( { receiveIdno: stReceive.idno } )
+  } catch ( error ) { receive = null }
 
   if ( receive ) {
-    message.error( '此收料單已匯入過，不可重複匯入' );
-    loadingRef.value = false;
-    return false;
+    message.error( '此收料單已匯入過，不可重複匯入' )
+    loadingRef.value = false
+    return false
   }
 
   // Get ST ERP packs barcode from ST ERP receive idno
-  try { barcodes = await StErpService.getStReceivePackBarcodes( { stErpReceiveIdno: stReceive.idno } ); }
+  try { barcodes = await StErpService.getStReceivePackBarcodes( { stErpReceiveIdno: stReceive.idno } ) }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) { message.error( '此收料單於舊 ERP 沒有產生條碼' ) }
     else { message.error( '舊 ERP 條碼讀取失敗' ) }
@@ -189,7 +211,7 @@ async function onClickCreateReceiveButton ( event: Event ) {
       qualify_qty: stReceive.qualifyQty,
       st_barcodes: barcodes,
     }
-  } );
+  } )
 }
 </script>
 
@@ -241,10 +263,8 @@ async function onClickCreateReceiveButton ( event: Event ) {
 
         <div style="height: 600px; overflow-x: scroll; width: 100%;">
           <ag-grid-vue class="ag-theme-alpine" style="height: 100%; " :gridOptions=" gridOptions "
-            :getRowId=" getRowId " :onGridReady=" onGridReady " :rowData=" rowData "></ag-grid-vue>
+            :onGridReady=" onGridReady " :rowData=" rowData "></ag-grid-vue>
         </div>
-
-
       </n-space>
     </div>
   </main>

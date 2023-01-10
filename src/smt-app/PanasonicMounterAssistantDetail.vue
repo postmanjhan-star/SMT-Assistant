@@ -75,7 +75,7 @@ const gridOptions: GridOptions = {
 
   // RowModel
   rowModelType: 'clientSide',
-  getRowId: ( params: GetRowIdParams ) => { return `${ params.data.slotIdno }-${ params.data.subSlotIdno }`; },
+  getRowId: ( params: GetRowIdParams ) => { return `${ params.data.slotIdno }-${ params.data.subSlotIdno }` },
 
   // Scrolling
   debounceVerticalScrollbar: true,
@@ -183,8 +183,8 @@ function getMaterialMatchedRowArray ( materialIdno: string ): RowModel[] {
 
 async function onSubmitMaterialInventoryForm ( event: Event ) {
   if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) { // A3573382
-    message.warning( '請輸入物料號' );
-    return false;
+    message.warning( '請輸入物料號' )
+    return false
   }
 
   let materialInventory: SmtMaterialInventory
@@ -193,18 +193,14 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
   try {
     materialInventory = await SmtService.getMaterialInventoryForSmt( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } )
   } catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) {
-      await playErrorTone();
-      message.warning( '查無此條碼' );
-      materialFormValue.value.materialInventoryIdno = '';
-      return false;
-    }
-    if ( error instanceof ApiError && error.status === 503 ) {
-      await playErrorTone();
-      message.error( '條碼查詢失敗' );
-      materialFormValue.value.materialInventoryIdno = '';
-      return false;
-    }
+    await playErrorTone()
+    if ( error instanceof ApiError && error.status === 404 ) { message.warning( '查無此條碼' ) }
+    else if ( error instanceof ApiError && error.status === 504 ) { message.error( 'ERP 連線超時，請確認 ERP 連線。' ) }
+    else if ( error instanceof ApiError && error.status === 502 ) { message.error( 'ERP 連線錯誤，請確認 ERP 連線。' ) }
+    else if ( error instanceof ApiError && error.status === 500 ) { message.error( '條碼查詢失敗' ) }
+    else { message.error( '錯誤' ) }
+    materialFormValue.value.materialInventoryIdno = ''
+    return false
   }
 
   try { materialMatchedRowArray = getMaterialMatchedRowArray( materialInventory.material_idno ) }
@@ -212,7 +208,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
     await playErrorTone()
     message.warning( '表格內無此物料' )
     materialFormValue.value.materialInventoryIdno = ''
-    return false;
+    return false
   }
 
   for ( let row of materialMatchedRowArray ) {
@@ -223,7 +219,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
   // speak( rowNode.data.slotIdno ) // Do not give a user voice hint here.
   // speak( rowNode.data.subSlotIdno ) // Do not give a user voice hint here.
 
-  slotIdnoInput.value.focus();
+  slotIdnoInput.value.focus()
 }
 
 

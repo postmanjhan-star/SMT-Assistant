@@ -162,12 +162,14 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
       catch { partPack = await StErpService.getStErpReceivePack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } ) } // To be deprecated
       matereialIdnoFromInput = partPack.part_idno
     } catch ( error ) {
-      if ( error instanceof ApiError && error.status === 404 ) {
-        await playErrorTone()
-        message.warning( '查無此條碼' )
-        materialFormValue.value.materialInventoryIdno = ''
-        return false
-      }
+      await playErrorTone()
+      if ( error instanceof ApiError && error.status === 404 ) { message.warning( '查無此條碼' ) }
+      else if ( error instanceof ApiError && error.status === 502 ) { message.warning( 'ERP 連線錯誤，請確認 ERP 連線。' ) }
+      else if ( error instanceof ApiError && error.status === 504 ) { message.warning( 'ERP 連線超時，請確認 ERP 連線。' ) }
+      else if ( error instanceof ApiError && error.status === 500 ) { message.warning( '後臺錯誤' ) }
+      else { message.warning( '錯誤' ) }
+      materialFormValue.value.materialInventoryIdno = ''
+      return false
     }
   }
 
