@@ -19,6 +19,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 - 新增用 ODS / XLSX 檔案批次建立物料功能。（93e63172）
 - 紙本備料單增加備註欄。（059288b9）
 - 發料備料模組皆增加舊 ERP 工單之欄位。（3799ae4f、c86f49fa、c3a82194）
+- 改善錯誤訊息。（）
 ### Changed
 - 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（7cc889ba）
 - 松下打件機助手支援一料多槽比對。（3695dc37）
