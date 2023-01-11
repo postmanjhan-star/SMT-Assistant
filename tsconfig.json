@@ -10,5 +10,7 @@
         "types": ["vite/client", "vitest/globals"],
         "skipLibCheck": true,
     },
-    "exclude": ["./dist/**/*"] // To prevent the error of 'Cannot write file XXX because it would overwrite input file.'
+    "exclude": [
+        "./dist/**/*", // To prevent the error of 'Cannot write file XXX because it would overwrite input file.'
+    ] 
 }
