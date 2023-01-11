@@ -27,6 +27,9 @@ test.describe( 'SMT:Panasonic', () => {
 
 
   test( 'Go to Panasonic Mounter Assistant', async ( { page } ) => {
+    const workIdno = 'ZZ9999'
+    const productIdno = '40X76-002A-T3'
+    const mounterIdno = 'A1-NPM-W2'
     const testingProductIdno = '40X76-002A-T3'
 
     const startPage = new StartPage( page )
@@ -35,7 +38,7 @@ test.describe( 'SMT:Panasonic', () => {
 
     const smtPanasonicMainPage = new SmtPanasonicMainPage( page )
     await smtPanasonicMainPage.enableTestingMode( testingProductIdno )
-    await smtPanasonicMainPage.fillForm()
+    await smtPanasonicMainPage.fillForm( workIdno, productIdno, mounterIdno )
     await smtPanasonicMainPage.submitForm()
 
     await page.locator( '#materialInventoryIdnoInput' ).fill( 'A3573382' )
