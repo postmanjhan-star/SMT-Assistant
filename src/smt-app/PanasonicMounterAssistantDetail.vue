@@ -106,6 +106,7 @@ onMounted( async () => {
     mounterData.value = await SmtService.getPanasonicMounterMaterialSlotPairs( {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
+      productIdno: route.query.product_idno.toString().trim(),
       boardSide: route.query.work_sheet_side.toString() as 'TOP' | 'BOTTOM' | 'DUPLEX',
       machineSide: route.query.machine_side.toString() as '1' | '2', // 1 = front, 2 = back
 
@@ -129,7 +130,7 @@ onMounted( async () => {
       materialInventoryIdno: '',
     } )
   }
-} );
+} )
 
 
 
@@ -283,6 +284,8 @@ function hideVirtualKeyboard () {
         <template #default>
           <n-space size="small">
             <n-p>工單：<n-tag type="info" size="small">{{ route.params.workOrderIdno }}</n-tag>
+            </n-p>
+            <n-p>成品料號：<n-tag type="info" size="small">{{ route.query.product_idno }}</n-tag>
             </n-p>
             <n-p>工件面向：<n-tag type="info" size="small">{{ route.query.work_sheet_side }}</n-tag>
             </n-p>
