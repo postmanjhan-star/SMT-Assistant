@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { InputInst, NEl, NForm, NFormItem, NGi, NGrid, NInput, NPageHeader, useMessage } from 'naive-ui';
-import * as Tone from 'tone';
-import { onMounted, ref } from 'vue';
-import { useMeta } from 'vue-meta';
-import { useRoute, useRouter } from 'vue-router';
-import { ApiError, FujiMounterFileRead, MaterialInventoriesService, SmtService, StErpService, STPartPack, STReceivePack } from '../client';
+/// <reference types="node" />
+import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NPageHeader, NSpace, useMessage } from 'naive-ui'
+import { TabulatorFull as Tabulator } from 'tabulator-tables' //import Tabulator library
+import "tabulator-tables/dist/css/tabulator_midnight.min.css"
+import * as Tone from 'tone'
+import { onMounted, ref } from 'vue'
+import { useMeta } from 'vue-meta'
+import { useRoute, useRouter } from 'vue-router'
+import { ApiError, FujiMounterFileRead, SmtMaterialInventory, SmtService } from '../client'
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
@@ -30,12 +33,13 @@ type fstEntry = {
   slotIdno: string,
   materialIdno: string,
   materialInventoryIdno: string,
-  highlight: boolean,
   correct: boolean | null,
 }
-const fstDataTable = ref<fstEntry[]>( [] );
-let matereialIdnoFromInput: string;
+const fstDataTable = ref<fstEntry[]>( [] )
+let matereialIdnoFromInput: string
 
+const tabulator = ref<Tabulator | null>( null ) //variable to hold your table
+const table = ref<HTMLDivElement | null>( null ) //reference to your table element
 
 onMounted( async () => {
   try {
@@ -58,18 +62,35 @@ onMounted( async () => {
         slotIdno: `${ masterData.mounter_idno }-${ detailData.stage }-${ detailData.slot }`,
         materialIdno: detailData.part_number,
         materialInventoryIdno: '',
-        highlight: false,
         correct: null,
       } )
     }
   }
-  console.debug( fstDataTable.value )
+  // console.debug( fstDataTable.value )
+
+  //instantiate Tabulator when element is mounted
+  tabulator.value = new Tabulator( table.value, {
+    height: '100%', // set height of table (in CSS or here), this enables the Virtual DOM and improves render speed dramatically (can be any valid css height value)
+    data: fstDataTable.value, //link data to table
+    layout: "fitColumns", //fit columns to width of table (optional)
+    layoutColumnsOnNewData: true,
+    reactiveData: true, //enable data reactivity
+    locale: true, //auto detect the current language.
+    columnDefaults: {title: '', headerSort: false, resizable: false },
+    columns: [ //define table columns
+      { title: "", field: "correct", hozAlign: "center", headerHozAlign: 'center', formatter: "tickCross", formatterParams: { crossElement: null } },
+      { title: "機台", field: "mounterIdno", hozAlign: "center", headerHozAlign: 'center' },
+      { title: "PCB 板打件面", field: "boardSide", hozAlign: "center", headerHozAlign: 'center' },
+      { title: "機台面向", field: "slotSide", hozAlign: "center", headerHozAlign: 'center' },
+      { title: "槽位", field: "slotNumber" },
+      { title: "物料號", field: "materialIdno" },
+      { title: "單包條碼", field: "materialInventoryIdno" },
+    ],
+  } )
 } )
 
 
-
-function onClickBackArrow ( event: Event ) { router.push( `/smt/fuji-mounter/` ); }
-
+function onClickBackArrow ( event: Event ) { router.push( `/smt/fuji-mounter/` ) }
 
 
 function parseSlotIdno ( slotIdno: string ) {
@@ -91,22 +112,10 @@ function parseSlotIdno ( slotIdno: string ) {
 }
 
 
-
-function scrollToRow ( id: string ) {
-  const row = document.querySelector( `[id='${ id }']` );
-  if ( !!row === false ) {
-    message.warning( '無此位置' );
-    throw Error;
-  }
-  row.scrollIntoView( { behavior: 'smooth' } );
-}
-
-
-
 async function playSuccseTone () {
-  await Tone.start();
+  await Tone.start()
   //create a synth and connect it to the main output (your speakers)
-  const synth = new Tone.Synth().toDestination();
+  const synth = new Tone.Synth().toDestination()
   //play a middle 'C' for the duration of an 8th note
   const now = Tone.now()
   synth.triggerAttackRelease( "C4", "8n", now )
@@ -115,12 +124,11 @@ async function playSuccseTone () {
 }
 
 
-
 async function playErrorTone () {
-  await Tone.start();
+  await Tone.start()
   //create a synth and connect it to the main output (your speakers)
-  const synth = new Tone.Synth().toDestination();
-  Tone.start();
+  const synth = new Tone.Synth().toDestination()
+  Tone.start()
   const now = Tone.now()
   synth.triggerAttackRelease( "D4", "8n", now )
   // synth.triggerAttackRelease("A4", "8n", now + 0.1)
@@ -128,112 +136,93 @@ async function playErrorTone () {
 }
 
 
-
 function getMaterialMatchedRow ( materialIdno: string ) {
   for ( let row of fstDataTable.value ) {
-    if ( materialIdno == row.materialIdno ) { return row; }
+    if ( materialIdno == row.materialIdno ) { return row }
   }
 }
 
 
-
 async function onSubmitMaterialInventoryForm ( event: Event ) {
   if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) {
-    message.warning( '請輸入物料號' );
+    message.warning( '請輸入物料號' )
     return false;
   }
 
   // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
-  if ( materialFormValue.value.materialInventoryIdno.trim().slice( 0, 4 ) == 'MINV' ) {
-    try {
-      const materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } );
-      matereialIdnoFromInput = materialInventory.material_idno;
-    } catch ( error ) {
-      if ( error instanceof ApiError && error.status === 404 ) {
-        await playErrorTone();
-        message.warning( '查無此條碼' );
-        materialFormValue.value.materialInventoryIdno = '';
-        return false;
-      }
-    }
-  } else {
-    try {
-      let partPack: STPartPack | STReceivePack
-      try { partPack = await StErpService.getStErpPartPack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } ) }
-      catch { partPack = await StErpService.getStErpReceivePack( { stPackIdno: materialFormValue.value.materialInventoryIdno.trim() } ) } // To be deprecated
-      matereialIdnoFromInput = partPack.part_idno
-    } catch ( error ) {
-      await playErrorTone()
-      if ( error instanceof ApiError && error.status === 404 ) { message.warning( '查無此條碼' ) }
-      else if ( error instanceof ApiError && error.status === 502 ) { message.warning( 'ERP 連線錯誤，請確認 ERP 連線。' ) }
-      else if ( error instanceof ApiError && error.status === 504 ) { message.warning( 'ERP 連線超時，請確認 ERP 連線。' ) }
-      else if ( error instanceof ApiError && error.status === 500 ) { message.warning( '後臺錯誤' ) }
-      else { message.warning( '錯誤' ) }
-      materialFormValue.value.materialInventoryIdno = ''
-      return false
-    }
+  let materialInventory: SmtMaterialInventory
+  try {
+    materialInventory = await SmtService.getMaterialInventoryForSmt( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } )
+    matereialIdnoFromInput = materialInventory.material_idno
+    // matereialIdnoFromInput = '90400-0002-S0' // For testing
+  } catch ( error ) {
+    await playErrorTone()
+    if ( error instanceof ApiError && error.status === 404 ) { message.warning( '查無此條碼' ) }
+    else if ( error instanceof ApiError && error.status === 504 ) { message.error( 'ERP 連線超時，請確認 ERP 連線。' ) }
+    else if ( error instanceof ApiError && error.status === 502 ) { message.error( 'ERP 連線錯誤，請確認 ERP 連線。' ) }
+    else if ( error instanceof ApiError && error.status === 500 ) { message.error( '條碼查詢失敗' ) }
+    else { message.error( '錯誤' ) }
+    materialFormValue.value.materialInventoryIdno = ''
+    return false
   }
 
   const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput )
-  const utterance = new SpeechSynthesisUtterance( `${ materialMatchedRow.slotSide } ${ materialMatchedRow.slotNumber }` )
-  utterance.lang = 'zh-CN' // zh-TW 會把「B1」唸成「地下一樓」…
-  speechSynthesis.speak( utterance )
-  materialMatchedRow.highlight = true
-  scrollToRow( materialMatchedRow.materialIdno )
+  // // 不要提示用戶槽位，多此一舉。
+  // const utterance = new SpeechSynthesisUtterance( `${ materialMatchedRow.slotSide } ${ materialMatchedRow.slotNumber }` )
+  // utterance.lang = 'zh-CN' // zh-TW 會把「B1」唸成「地下一樓」…
+  // speechSynthesis.speak( utterance )
+  tabulator.value.selectRow( [materialMatchedRow.id] )
+  tabulator.value.scrollToRow( materialMatchedRow.id )
   slotIdnoInput.value.focus()
 }
 
 
 
 async function onSubmitSlotForm ( event: Event ) {
-  let inputSlotIdno = slotFormValue.value.slotIdno.trim();
+  let inputSlotIdno = slotFormValue.value.slotIdno.trim()
   if ( !!inputSlotIdno === false ) {
-    message.warning( '請輸入插槽位置' );
-    return false;
+    message.warning( '請輸入插槽位置' )
+    return false
   }
 
-  const [ inputMachineIdno, inputSlotSide, inputSlotNumber ] = parseSlotIdno( inputSlotIdno );
+  // Parse and convert inputSlotIdno XP1B1-1-30 to XP1B1-A-30
+  //                             ^             ^
+  const [ inputMachineIdno, inputSlotSide, inputSlotNumber ] = parseSlotIdno( inputSlotIdno )
+  inputSlotIdno = `${ inputMachineIdno }-${ inputSlotSide }-${ inputSlotNumber }`
 
-  // Converse inputSlotIdno  XP1B1-1-30 to XP1B1-A-30
-  //                               ^             ^
-  inputSlotIdno = `${ inputMachineIdno }-${ inputSlotSide }-${ inputSlotNumber }`;
-
-  const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput );
+  const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput )
 
   // In case of slot idnos not match.
   if ( inputSlotIdno != materialMatchedRow.slotIdno ) {
-    materialMatchedRow.correct = false;
-    materialMatchedRow.highlight = false;
-    await playErrorTone();
-    message.error( '錯誤' );
-    slotFormValue.value.slotIdno = '';
-    materialFormValue.value.materialInventoryIdno = '';
-    materialInventoryIdnoInput.value.focus();
-    return false;
+    materialMatchedRow.correct = false
+    tabulator.value.deselectRow( materialMatchedRow.id )
+    await playErrorTone()
+    message.error( '錯誤' )
+    slotFormValue.value.slotIdno = ''
+    materialFormValue.value.materialInventoryIdno = ''
+    materialInventoryIdnoInput.value.focus()
+    return false
   }
 
   // In case of slot idnos match.
-  materialMatchedRow.correct = true;
-  materialMatchedRow.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
-  await playSuccseTone();
-  materialMatchedRow.highlight = false;
+  materialMatchedRow.correct = true
+  materialMatchedRow.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim()
+  await playSuccseTone()
+  tabulator.value.deselectRow( materialMatchedRow.id )
 
-  slotFormValue.value.slotIdno = '';
-  materialFormValue.value.materialInventoryIdno = '';
-  materialInventoryIdnoInput.value.focus();
-  return true;
+  slotFormValue.value.slotIdno = ''
+  materialFormValue.value.materialInventoryIdno = ''
+  materialInventoryIdnoInput.value.focus()
+  return true
 }
-
-// Take background colors from https://windicss.org/utilities/general/colors.html
 </script>
 
 
 
 <template>
   <n-space vertical size="large"
-    style="padding: 18px 1rem 0 1rem; position: sticky; top: 18px; background-color: #292524; border-bottom: 2px solid #1c1917;">
-    <n-page-header @back=" onClickBackArrow( $event ) " :title="route.params.workOrderIdno.toString()" style="">
-    </n-page-header>
+    style="padding: 18px 1rem 0 1rem; position: sticky; top: 18px; background-color: var(--modal-color);">
+    <n-page-header @back=" onClickBackArrow( $event ) " :title="route.params.workOrderIdno.toString()"></n-page-header>
 
     <n-grid cols="1 s:2" responsive="screen" x-gap="20">
       <n-gi>
@@ -256,51 +245,22 @@ async function onSubmitSlotForm ( event: Event ) {
 
   </n-space>
 
-  <n-space vertical size="large" style="padding: 1rem;">
-    <n-grid cols="1 s:1" responsive="screen" x-gap="20">
-
-      <n-gi>
-        <n-table size="large" :striped=" false " :bordered=" false " :single-line=" true "
-          style="box-shadow: 0px 4px 20px -4px hsla(0, 0%, 20%, 1.0);">
-          <thead>
-            <tr>
-              <th style="width: 40px;"></th>
-              <th>機台</th>
-              <th>PCB 板打件面</th>
-              <th>位置</th>
-              <th>物料號</th>
-              <th>單包條碼</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Chromium does not handle `scroll-margin-top` correctly. Firefox and WebKit are OK. -->
-            <n-el tag="tr" v-for="( row, index ) in fstDataTable" :key=" row.id " :id=" row.materialIdno "
-              style="scroll-margin-top: 180px;" :class=" row.highlight ? 'row-highlight' : '' ">
-              <td><span v-if=" row.correct ">✅</span></td>
-              <td>{{ row.mounterIdno }}</td>
-              <td>{{ row.boardSide }}</td>
-              <td>{{ row.slotSide }}{{ row.slotNumber }}</td>
-              <td>{{ row.materialIdno }}</td>
-              <td>{{ row.materialInventoryIdno }}</td>
-            </n-el>
-          </tbody>
-        </n-table>
-      </n-gi>
-
-    </n-grid>
-
-  </n-space>
+  <div style="padding: 1rem">
+    <div ref="table"></div>
+  </div>
 </template>
 
 
 
 <style>
-.row-highlight {
-  outline: 1px solid var(--primary-color);
-  outline-offset: -2px;
+.tabulator-col,
+.tabulator-cell {
+  border: unset !important;
 }
 
-.row-highlight td {
-  background-color: var(--primary-color-suppl);
+.tabulator-selected {
+  outline: 1px solid var(--primary-color);
+  outline-offset: -1px;
+  background-color: var(--primary-color-suppl) !important;
 }
 </style>
