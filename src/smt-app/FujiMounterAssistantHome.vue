@@ -1,49 +1,44 @@
 <script setup lang="ts">
-import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui';
-import { onMounted, ref } from 'vue';
-import { useMeta } from 'vue-meta';
-import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, SmtService } from '../client';
+import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui'
+import { ref } from 'vue'
+import { useMeta } from 'vue-meta'
+import { RouterLink, useRouter } from 'vue-router'
+import { ApiError, SmtService } from '../client'
 
-const router = useRouter();
-const message = useMessage();
-useMeta( { title: 'Fuji Mounter Assistant' } );
+const router = useRouter()
+const message = useMessage()
+useMeta( { title: 'Fuji Mounter Assistant' } )
 
-const formRef = ref<FormInst | null>( null );
-const formValue = ref( { workOrderIdno: '', mounterIdno: '' } );
-const workOrderIdnoInput = ref<InputInst>();
+const formRef = ref<FormInst | null>( null )
+const formValue = ref( { workOrderIdno: '', mounterIdno: '' } )
+const workOrderIdnoInput = ref<InputInst>()
 const rules: FormRules = {
   workOrderIdno: { required: true, message: '請輸入工單號', trigger: [ 'blur' ], },
   mounterIdno: { required: true, message: '請輸入機台號', trigger: [ 'input', 'blur' ], }
-};
-
-onMounted( async () => {
-  // const workOrders = await StErpService.getStWorkOrders();
-} );
-
+}
 
 
 async function onClickSubmitButton ( event: Event ) {
-  try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } ); }
+  try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } ) }
   catch ( error ) {
-    message.error( '請輸入必填爛位' );
-    return false;
+    message.error( '請輸入必填爛位' )
+    return false
   }
 
   try {
-    const mounterData = await SmtService.getFujiMounterMaterialSlotPairsByWorkOrder( {
+    const mounterData = await SmtService.getFujiMounterMaterialSlotPairs( {
       workOrderIdno: formValue.value.workOrderIdno.trim(),
       mounterIdno: formValue.value.mounterIdno.trim(),
-    } );
-    router.push( `/smt/fuji-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }` );
+    } )
+    router.push( `/smt/fuji-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }` )
   }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '查無資料' );
+      message.error( '查無資料' )
       return false;
     }
     if ( error instanceof ApiError && error.status === 503 ) {
-      message.error( 'ERP 工單查詢失敗' );
+      message.error( 'ERP 工單查詢失敗' )
       return false;
     }
   }

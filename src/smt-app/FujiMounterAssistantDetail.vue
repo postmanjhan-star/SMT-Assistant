@@ -39,12 +39,12 @@ let matereialIdnoFromInput: string;
 
 onMounted( async () => {
   try {
-    fstDataArray.value = await SmtService.getFujiMounterMaterialSlotPairsByWorkOrder( {
+    fstDataArray.value = await SmtService.getFujiMounterMaterialSlotPairs( {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
     } )
   }
-  catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ); } }
+  catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
 
   for ( let masterData of fstDataArray.value ) {
     for ( let detailData of masterData.fuji_mounter_file_items ) {
@@ -63,7 +63,7 @@ onMounted( async () => {
     }
   }
   console.debug( fstDataTable.value )
-} );
+} )
 
 
 

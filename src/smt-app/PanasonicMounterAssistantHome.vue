@@ -39,7 +39,7 @@ const machineSideOptions = [ { label: '機台前面', value: '1' }, { label: '�
 
 
 async function onClickSubmitButton ( event: Event ) {
-  try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } ) }
+  try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error } } ) }
   catch ( error ) {
     message.error( '請輸入必填爛位' )
     return false
