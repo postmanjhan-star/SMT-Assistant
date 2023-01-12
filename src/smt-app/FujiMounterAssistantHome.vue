@@ -10,16 +10,17 @@ const message = useMessage()
 useMeta( { title: 'Fuji Mounter Assistant' } )
 
 const formRef = ref<FormInst | null>( null )
-const formValue = ref( { workOrderIdno: '', mounterIdno: '' } )
+const formValue = ref( { workOrderIdno: '', mounterIdno: '', productIdno: '' } )
 const workOrderIdnoInput = ref<InputInst>()
 const rules: FormRules = {
   workOrderIdno: { required: true, message: '請輸入工單號', trigger: [ 'blur' ], },
+  productIdno: { required: true, message: '請輸入成品料號', trigger: [ 'blur', 'input' ] },
   mounterIdno: { required: true, message: '請輸入機台號', trigger: [ 'input', 'blur' ], }
 }
 
 
 async function onClickSubmitButton ( event: Event ) {
-  try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error; } } ) }
+  try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error } } ) }
   catch ( error ) {
     message.error( '請輸入必填爛位' )
     return false
@@ -28,18 +29,22 @@ async function onClickSubmitButton ( event: Event ) {
   try {
     const mounterData = await SmtService.getFujiMounterMaterialSlotPairs( {
       workOrderIdno: formValue.value.workOrderIdno.trim(),
+      productIdno: formValue.value.productIdno.trim(),
       mounterIdno: formValue.value.mounterIdno.trim(),
     } )
-    router.push( `/smt/fuji-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }` )
+    router.push( {
+      path: `/smt/fuji-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }`,
+      query: { product_idno: formValue.value.productIdno.trim() },
+    } )
   }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '查無資料' )
-      return false;
+      return false
     }
     if ( error instanceof ApiError && error.status === 503 ) {
       message.error( 'ERP 工單查詢失敗' )
-      return false;
+      return false
     }
   }
 }
@@ -56,21 +61,26 @@ async function onClickSubmitButton ( event: Event ) {
 
           <n-gi></n-gi>
           <n-form-item-gi label="工單號" show-require-mark path="workOrderIdno">
-            <n-input type="text" size="large" autofocus v-model:value.lazy=" formValue.workOrderIdno "
-              ref="workOrderIdnoInput" :input-props=" { id: 'workOrderIdnoInput' } " />
+            <n-input autofocus v-model:value.lazy=" formValue.workOrderIdno " ref="workOrderIdnoInput"
+              :input-props=" { id: 'workOrderIdnoInput' } " />
+          </n-form-item-gi>
+          <n-gi></n-gi>
+
+          <n-gi></n-gi>
+          <n-form-item-gi label="成品料號" show-require-mark path="productIdno">
+            <n-input v-model:value.lazy=" formValue.productIdno " :input-props=" { id: 'productIdnoInput' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 
           <n-gi></n-gi>
           <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
-            <n-input type="text" size="large" v-model:value.lazy=" formValue.mounterIdno "
-              :input-props=" { id: 'mounterIdnoInput' } " />
+            <n-input v-model:value.lazy=" formValue.mounterIdno " :input-props=" { id: 'mounterIdnoInput' } " />
           </n-form-item-gi>
           <n-gi></n-gi>
 
           <n-gi></n-gi>
           <n-form-item-gi>
-            <n-button type="primary" block size="large" @click=" onClickSubmitButton( $event ) " attr-type="submit">
+            <n-button type="primary" block @click=" onClickSubmitButton( $event ) " attr-type="submit">
               確定</n-button>
           </n-form-item-gi>
           <n-gi></n-gi>

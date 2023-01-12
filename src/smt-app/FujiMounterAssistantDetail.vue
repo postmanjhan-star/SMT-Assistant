@@ -42,6 +42,7 @@ onMounted( async () => {
     fstDataArray.value = await SmtService.getFujiMounterMaterialSlotPairs( {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
+      productIdno: route.query.product_idno.toString().trim(),
     } )
   }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
