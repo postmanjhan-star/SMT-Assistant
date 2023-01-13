@@ -8,6 +8,16 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
 ## Unreleased
 ### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+---
+
+## 1.1.2 - 2023-01-13
+### Added
 - 增加起始頁。（7cc889ba）
 - 增加智慧料架管理模組。（9db9f70a）
 - 如一儲位為智慧料架，會顯示智慧料架標示。（3af61e86）
@@ -29,10 +39,6 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 - 富士打件機助手比對表格改為 Tabulator。（c55b1954）
 - 倉位管理內頁把儲位的檢視與編輯分離成獨立的頁籤。（f6ac1d78、c1b7efba）
 - 發料備料單之備註欄位改為多行。（059288b9）
-### Deprecated
-### Removed
-### Fixed
-### Security
 
 ---
 
