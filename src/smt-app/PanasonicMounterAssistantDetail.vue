@@ -226,10 +226,10 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
 
 
 async function onSubmitSlotForm ( event: Event ) {
-  let inputSlotIdno = slotFormValue.value.slotIdno.trim(); // Format: 10010-L for dual-type feeder, 10010 for single-type feeder.
+  let inputSlotIdno = slotFormValue.value.slotIdno.trim() // Format: 10010-L for dual-type feeder, 10010 for single-type feeder.
   if ( !!inputSlotIdno === false ) {
-    message.warning( '請輸入插槽位置' );
-    return false;
+    message.warning( '請輸入插槽位置' )
+    return false
   }
 
   const [ inputSlotSlot, inputSlotSubSlot = '' ] = inputSlotIdno.split( '-' )
@@ -239,28 +239,32 @@ async function onSubmitSlotForm ( event: Event ) {
 
     // In case of slot idnos not match.
     if ( inputSlotSlot != row.slotIdno || inputSlotSubSlot != row.subSlotIdno ) {
-      row.correct = false;
+      row.correct = false
       row.materialInventoryIdno = ''
-      rowNode.setData( row )
-      await playErrorTone();
-      message.error( '錯誤' );
 
-      slotFormValue.value.slotIdno = '';
-      materialFormValue.value.materialInventoryIdno = '';
-      materialInventoryIdnoInput.value.focus();
-      return false;
+      rowNode.setData( row )
+      rowNode.setSelected( false )
+      await playErrorTone()
+      message.error( '錯誤' )
+
+      slotFormValue.value.slotIdno = ''
+      materialFormValue.value.materialInventoryIdno = ''
+      materialInventoryIdnoInput.value.focus()
+      return false
     }
 
     // In case of slot idnos match.
-    row.correct = true;
-    row.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim();
-    rowNode.setData( row )
-    await playSuccseTone();
+    row.correct = true
+    row.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim()
 
-    slotFormValue.value.slotIdno = '';
-    materialFormValue.value.materialInventoryIdno = '';
-    materialInventoryIdnoInput.value.focus();
-    return true;
+    rowNode.setData( row )
+    rowNode.setSelected( false )
+    await playSuccseTone()
+
+    slotFormValue.value.slotIdno = ''
+    materialFormValue.value.materialInventoryIdno = ''
+    materialInventoryIdnoInput.value.focus()
+    return true
   }
 }
 

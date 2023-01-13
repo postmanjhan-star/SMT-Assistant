@@ -146,7 +146,7 @@ function getMaterialMatchedRow ( materialIdno: string ) {
 async function onSubmitMaterialInventoryForm ( event: Event ) {
   if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) {
     message.warning( '請輸入物料號' )
-    return false;
+    return false
   }
 
   // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
