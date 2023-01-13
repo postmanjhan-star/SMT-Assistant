@@ -76,7 +76,7 @@ onMounted( async () => {
     layoutColumnsOnNewData: true,
     reactiveData: true, //enable data reactivity
     locale: true, //auto detect the current language.
-    columnDefaults: {title: '', headerSort: false, resizable: false },
+    columnDefaults: { title: '', headerSort: false, resizable: false },
     columns: [ //define table columns
       { title: "", field: "correct", hozAlign: "center", headerHozAlign: 'center', formatter: "tickCross", formatterParams: { crossElement: null } },
       { title: "機台", field: "mounterIdno", hozAlign: "center", headerHozAlign: 'center' },
@@ -167,11 +167,17 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
   }
 
   const materialMatchedRow = getMaterialMatchedRow( matereialIdnoFromInput )
+  if ( !materialMatchedRow ) {
+    await playErrorTone()
+    message.warning( '表格內無此物料' )
+    materialFormValue.value.materialInventoryIdno = ''
+    return false
+  }
   // // 不要提示用戶槽位，多此一舉。
   // const utterance = new SpeechSynthesisUtterance( `${ materialMatchedRow.slotSide } ${ materialMatchedRow.slotNumber }` )
   // utterance.lang = 'zh-CN' // zh-TW 會把「B1」唸成「地下一樓」…
   // speechSynthesis.speak( utterance )
-  tabulator.value.selectRow( [materialMatchedRow.id] )
+  tabulator.value.selectRow( [ materialMatchedRow.id ] )
   tabulator.value.scrollToRow( materialMatchedRow.id )
   slotIdnoInput.value.focus()
 }
