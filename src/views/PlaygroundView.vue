@@ -1,101 +1,40 @@
 <script setup lang="ts">
-import { darkTheme, dateZhTW, FormInst, GlobalThemeOverrides, InputInst, NButton, NConfigProvider, NForm, NFormItemGi, NGi, NGrid, NInput, NSpace, zhTW } from 'naive-ui';
-import { h, onMounted, ref } from 'vue';
-import { RouterLink } from 'vue-router';
-import { ApiError } from '../client';
+import { TabulatorFull as Tabulator } from 'tabulator-tables' //import Tabulator library
+import "tabulator-tables/dist/css/tabulator.min.css"
+import { onMounted, reactive, ref } from 'vue'
 
 
-const darkThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    fontWeightStrong: "600",
-    inputColor: 'rgba(255, 255, 255, 0.1)'
-  },
-};
-
-
-
-const activeKey = ref<string | null>( 'smt-home' );
-
-
-
-const menuOptions = [
-  { label: () => h( RouterLink, { to: '/wms/accounts' }, { default: () => 'Home' } ), key: 'smt-home' },
-  { label: () => h( RouterLink, { to: '/wms/accounts' }, { default: () => 'Settings' } ), key: 'smt-settings' },
-];
-
-
-
-const formRef = ref<FormInst | null>( null )
-const formValue = ref( { workOrderIdno: '' } );
-const workOrderIdnoInput = ref<InputInst>();
-
+const table = ref( null ) //reference to your table element
+const tabulator = ref( null ) //variable to hold your table
+const tableData = reactive( [ //data for table to display
+  { id: 1, name: "Oli Bob", age: "12", col: "red", dob: "" },
+  { id: 2, name: "Mary May", age: "1", col: "blue", dob: "14/05/1982" },
+  { id: 3, name: "Christine Lobowski", age: "42", col: "green", dob: "22/05/1982" },
+  { id: 4, name: "Brendon Philips", age: "125", col: "orange", dob: "01/08/1980" },
+  { id: 5, name: "Margret Marmajuke", age: "16", col: "yellow", dob: "31/01/1999" },
+] )
 
 
 onMounted( async () => {
-  workOrderIdnoInput.value.focus();
-  // const workOrders = await StErpService.getStWorkOrders();
-} );
-
-
-
-async function onClickSubmitButton ( event: Event ) {
-  if ( !!formValue.value.workOrderIdno === false ) {
-    return false;
-  }
-
-  try { }
-  catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) { }
-    else { throw error; }
-  }
-}
-
-// Take background colors from https://windicss.org/utilities/general/colors.html
+  //instantiate Tabulator when element is mounted
+  tabulator.value = new Tabulator( table.value, {
+    height: '100%', // set height of table (in CSS or here), this enables the Virtual DOM and improves render speed dramatically (can be any valid css height value)
+    data: tableData, //link data to table
+    layout: "fitColumns", //fit columns to width of table (optional)
+    reactiveData: true, //enable data reactivity
+    locale: true, //auto detect the current language.
+    columns: [ //define table columns
+      { title: "Name", field: "name", width: 150, headerFilter: "input" },
+      { title: "Age", field: "age", hozAlign: "left", formatter: "progress", headerFilter: 'progress' },
+      { title: "Favourite Color", field: "col", headerFilter: 'list' },
+      { title: "Date Of Birth", field: "dob", sorter: "date", hozAlign: "center", headerFilter: 'date' },
+    ],
+  } )
+} )
 </script>
 
 
 
 <template>
-  <n-config-provider :theme=" darkTheme " :theme-overrides=" darkThemeOverrides " :locale=" zhTW "
-    :date-locale=" dateZhTW " inline-theme-disabled>
-    <header style="position: sticky; top: 0; z-index: 2;">
-      <n-layout-header style="padding: 9px;">
-        <n-space item-style="" justify="space-between">
-          <!-- Hide unused menu -->
-          <!-- <n-menu v-model:value="activeKey" mode="horizontal" :options="menuOptions" /> -->
-        </n-space>
-      </n-layout-header>
-    </header>
-
-    <!-- Hide unused menu -->
-    <!--<main style="min-height: calc(100vh - 60px); background-color: #27272A;">-->
-    <main style="min-height: calc(100vh - 18px); background-color: #27272A;">
-
-      <div style="padding: 1rem;">
-
-        <n-space vertical size="large" style="padding: 1rem;">
-          <n-form size="large" :model=" formValue " ref="formRef">
-            <n-grid cols="1 s:3" responsive="screen">
-
-              <n-gi></n-gi>
-              <n-form-item-gi label="工單號">
-                <n-input type="text" size="large" v-model:value.lazy=" formValue.workOrderIdno "
-                  ref="workOrderIdnoInput" />
-              </n-form-item-gi>
-              <n-gi></n-gi>
-
-              <n-gi></n-gi>
-              <n-gi span="1">
-                <n-button type="primary" block size="large" @click=" onClickSubmitButton( $event ) " attr-type="submit">
-                  確定</n-button>
-              </n-gi>
-              <n-gi></n-gi>
-
-            </n-grid>
-          </n-form>
-        </n-space>
-      </div>
-    </main>
-  </n-config-provider>
+  <div ref="table" style="height: 200px; z-index: 9999999"></div>
 </template>
-    

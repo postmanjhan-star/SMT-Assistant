@@ -6,15 +6,17 @@ import { StartPage } from './start-page'
 
 test.describe( 'SMT:Fuji', () => {
   test( 'Go to Fuji Mounter Assistant', async ( { page } ) => {
-    const testingProductIdno = '40Y85-009B-T3VST'
+    const workOrder = 'ZZ9999'
+    const productIdno = '40Y85-009B-T3VST'
+    const mounterIdno = 'XP2B1'
 
     const startPage = new StartPage( page )
     await startPage.goto()
     await startPage.clickFujiMounterAssistant()
 
     const smtFujiMainPage = new SmtFujiMainPage( page )
-    await smtFujiMainPage.enableTestingMode( testingProductIdno )
-    await smtFujiMainPage.fillForm()
+    await smtFujiMainPage.enableTestingMode( productIdno )
+    await smtFujiMainPage.fillForm( workOrder, productIdno, mounterIdno )
     await smtFujiMainPage.submitForm()
 
     // await page.locator( '#materialInventoryIdnoInput' ).fill( 'A3573382' )

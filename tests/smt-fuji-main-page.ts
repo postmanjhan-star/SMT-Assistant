@@ -17,9 +17,10 @@ export class SmtFujiMainPage {
         await this.page.goto( url.toString() ) // http://127.0.0.1/smt/fuji-mounter?testing_mode=1&testing_product_idno=40Y85-009B-T3VST
     }
 
-    async fillForm () {
-        await this.page.locator( '#workOrderIdnoInput' ).fill( 'ZZ9999' )
-        await this.page.locator( '#mounterIdnoInput' ).fill( 'XP143' )
+    async fillForm ( workOrder: string, productIdno: string, mounterIdno: string ) {
+        await this.page.locator( '#workOrderIdnoInput' ).fill( workOrder )
+        await this.page.locator( '#productIdnoInput' ).fill( productIdno )
+        await this.page.locator( '#mounterIdnoInput' ).fill( mounterIdno )
     }
 
     async submitForm () { await this.page.getByRole( 'button', { name: '確定' } ).click() }

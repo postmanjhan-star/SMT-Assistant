@@ -36,17 +36,19 @@ formData: Body_upload_fst,
     }
 
     /**
-     * Get Fuji Mounter Material Slot Pairs By Work Order
+     * Get Fuji Mounter Material Slot Pairs
      * @returns FujiMounterFileRead Successful Response
      * @throws ApiError
      */
-    public static getFujiMounterMaterialSlotPairsByWorkOrder({
+    public static getFujiMounterMaterialSlotPairs({
 workOrderIdno,
+productIdno,
 mounterIdno,
 testingMode = false,
 testingProductIdno,
 }: {
 workOrderIdno: string,
+productIdno?: string,
 mounterIdno?: string,
 testingMode?: boolean,
 testingProductIdno?: string,
@@ -58,6 +60,7 @@ testingProductIdno?: string,
                 'work_order_idno': workOrderIdno,
             },
             query: {
+                'product_idno': productIdno,
                 'mounter_idno': mounterIdno,
                 'testing_mode': testingMode,
                 'testing_product_idno': testingProductIdno,
