@@ -178,7 +178,7 @@ async function onSubmitMaterialInventoryForm ( event: Event ) {
   // utterance.lang = 'zh-CN' // zh-TW 會把「B1」唸成「地下一樓」…
   // speechSynthesis.speak( utterance )
   tabulator.value.selectRow( [ materialMatchedRow.id ] )
-  tabulator.value.scrollToRow( materialMatchedRow.id )
+  await tabulator.value.scrollToRow( materialMatchedRow.id, 'center' )
   slotIdnoInput.value.focus()
 }
 
@@ -227,7 +227,7 @@ async function onSubmitSlotForm ( event: Event ) {
 
 <template>
   <n-space vertical size="large"
-    style="padding: 18px 1rem 0 1rem; position: sticky; top: 18px; background-color: var(--modal-color);">
+    style="padding: 18px 1rem 0 1rem; position: sticky; top: 18px; background-color: var(--modal-color); z-index: 1;">
     <n-page-header @back=" onClickBackArrow( $event ) " :title="route.params.workOrderIdno.toString()"></n-page-header>
 
     <n-grid cols="1 s:2" responsive="screen" x-gap="20">
