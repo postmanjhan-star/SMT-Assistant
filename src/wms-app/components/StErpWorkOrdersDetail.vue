@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, NTag } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, MaterialsService, OpenAPI, StErpService, STWorkOrder, STWorkOrderItem } from '../../client';
-import { useAuthStore } from '../../stores/auth';
-
-
+import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community"
+import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { NA, NBreadcrumb, NBreadcrumbItem, NFormItemGi, NGrid, NH1, NInput, NSpace } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { ApiError, MaterialsService, OpenAPI, StErpService, STWorkOrder, STWorkOrderItem } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter();
 const route = useRoute();
@@ -28,9 +26,7 @@ const headerFormValue = ref( {
   quantity: 0,
   productionDepartment: '',
   productionLine: '',
-} );
-
-
+} )
 
 type GridItem = {
   workOrderIdno: string,
@@ -41,11 +37,9 @@ type GridItem = {
   issuedQuantity: number,
   shortageQuantity: number,
   productionPosition: string,
-};
+}
 
-
-
-const rowData = ref<GridItem[]>( [] );
+const rowData = ref<GridItem[]>( [] )
 const columnDefs: ColDef[] = [
   // { field: "workOrderIdno", headerName: '工令編號' },
   // { field: "productIdno", headerName: '成品編號' },
@@ -55,9 +49,7 @@ const columnDefs: ColDef[] = [
   // { field: "issuedQuantity", headerName: '實發數量' },
   // { field: "shortageQuantity", headerName: '欠料數量' },
   { field: "productionPosition", headerName: '配料位置' },
-];
-
-
+]
 
 const defaultColDef: ColDef = {
   editable: false,
@@ -65,8 +57,6 @@ const defaultColDef: ColDef = {
   sortable: true,
   resizable: true,
 }
-
-
 
 const gridOptions: GridOptions = {
   columnDefs: columnDefs,

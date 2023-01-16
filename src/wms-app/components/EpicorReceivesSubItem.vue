@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ColDef, GridOptions } from "ag-grid-community";
-import "ag-grid-community/dist/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/dist/styles/ag-theme-alpine.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { NH2, NSpace } from 'naive-ui';
-import { onBeforeMount, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { EpicorReceiveDetail, EpicorService, OpenAPI } from '../../client';
-import { useAuthStore } from '../../stores/auth';
+import { ColDef, GridOptions } from "ag-grid-community"
+import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { NH2, NSpace } from 'naive-ui'
+import { onBeforeMount, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { EpicorReceiveDetail, EpicorService, OpenAPI } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 
 const authStore = useAuthStore();
