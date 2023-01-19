@@ -12,6 +12,8 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ### Deprecated
 ### Removed
 ### Fixed
+- [Hotfix] 修正發料項目沒有正確顯示的問題。（a5ffd83f）
+- [Hotfix] 修正發料單無法建立的問題。（a5ffd83f）
 ### Security
 
 ---
