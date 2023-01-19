@@ -107,8 +107,7 @@ test.describe('WMS:Storage', () => {
     await wmsStorageCreatePage.fillL1StorageFields()
     await wmsStorageCreatePage.fillL2StorageFields()
     await wmsStorageCreatePage.createStorage()
-
-    await page.waitForTimeout(800)
+    await page.waitForTimeout(2000)
 
     await expect(wmsStorageMainPage.storageDataTableBody).toContainText(storageCreate2.idno)
     await wmsStorageMainPage.goToL1Storage(storageCreate2.idno)
@@ -120,9 +119,7 @@ test.describe('WMS:Storage', () => {
     try {
       const jsCoverage = await page.coverage.stopJSCoverage()
       const cssCoverage = await page.coverage.stopCSSCoverage()
-      for (const entry of cssCoverage) {
-        console.debug(entry)
-      }
+      for (const entry of cssCoverage) {console.debug(entry)}
     } catch (error) {console.error(error)}
   })
 

@@ -93,7 +93,7 @@ onBeforeMount( async () => {
     headerFormValue.value.st_erp_work_order_date = issuance.value.st_erp_work_order_date
     headerFormValue.value.st_erp_work_order_due_date = issuance.value.st_erp_work_order_due_date
     headerFormValue.value.st_erp_product_idno = issuance.value.st_erp_product_idno
-    headerFormValue.value.st_erp_product_due_quanity = issuance.value.st_erp_product_due_quanity.toLocaleString()
+    headerFormValue.value.st_erp_product_due_quanity = issuance.value.st_erp_product_due_quanity?.toLocaleString()
     headerFormValue.value.st_erp_production_department = issuance.value.st_erp_production_department
     headerFormValue.value.st_erp_production_line = issuance.value.st_erp_production_line
     headerFormValue.value.memo = issuance.value.memo
@@ -256,7 +256,7 @@ async function onClickRemoveRowButton ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -353,8 +353,8 @@ async function onClickRemoveRowButton ( event: Event ) {
           <n-space size="large">
 
             <n-form-item label="單包代碼">
-              <n-input ref="inventoryIdnoInput" v-model:value.lazy=" inventoryAdditionFormValue.inventoryIdno ">
-              </n-input>
+              <n-input ref="inventoryIdnoInput" v-model:value.lazy=" inventoryAdditionFormValue.inventoryIdno "
+                :input-props=" { id: 'inventoryIdnoInput' } "></n-input>
             </n-form-item>
 
             <n-form-item>
@@ -388,3 +388,11 @@ async function onClickRemoveRowButton ( event: Event ) {
     </div>
   </main>
 </template>
+
+
+
+<style>
+main {
+  background-image: url('/pattern.svg');
+}
+</style>
