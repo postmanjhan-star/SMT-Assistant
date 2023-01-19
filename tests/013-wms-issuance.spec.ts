@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker/locale/zh_TW'
 import { APIRequestContext, expect, test } from '@playwright/test'
 import { sample } from 'lodash'
-import { IssuanceCreate, MaterialRead } from '../src/client/index'
+import { IssuanceCreate as string, MaterialInventoryRead, MaterialRead } from '../src/client/index'
 import { StartPage } from './start-page'
 import { WmsHomePage } from './wms-home-page'
 import { WmsIssuanceCreatPage } from './wms-issuance-create-page'
@@ -10,7 +10,7 @@ import { WmsLoginPage } from './wms-login-page'
 
 faker.setLocale( 'zh_TW' )
 
-function generateIssuanceCreate (): IssuanceCreate { return { memo: faker.lorem.lines() } }
+function generateIssuanceMemo (): string { return faker.lorem.lines() }
 
 async function getRandomMaterial ( request: APIRequestContext ) {
   const response = await request.get( '/api/materials/' )
@@ -45,7 +45,10 @@ test.describe( 'WMS:Issuance', () => {
     const wmsIssuanceMainPage = new WmsIssuanceMainPage( page )
     await wmsIssuanceMainPage.createIssuance()
 
-    const issuanceCreate = generateIssuanceCreate()
+    const wmsIssuanceCreatPage = new WmsIssuanceCreatPage( page )
+
+    const issuanceMemo = generateIssuanceMemo()
+    await wmsIssuanceCreatPage.fillMemo( issuanceMemo )
 
     let material: MaterialRead
     let materialIssuableBalance: number
@@ -54,33 +57,41 @@ test.describe( 'WMS:Issuance', () => {
       materialIssuableBalance = await getMaterialIssuableBalance( requestContext, material.idno )
       if ( materialIssuableBalance > 0 ) { break }
     }
-
     const q = faker.datatype.number( { min: 1, max: materialIssuableBalance } )
+    await wmsIssuanceCreatPage.addIssuanceItemByMaterialIdno( material.idno, q )
 
-    const wmsIssuanceCreatPage = new WmsIssuanceCreatPage( page, issuanceCreate.memo, material.idno, q )
-    await wmsIssuanceCreatPage.fillMemo()
-    await page.waitForTimeout(800) // Force wait!!!
-    await wmsIssuanceCreatPage.addIssuanceItem()
-    await page.waitForTimeout(1200) // Force wait!!!
-    await wmsIssuanceCreatPage.submit()
-    await page.waitForTimeout(1200) // Force wait!!!
-
-    let rowsDivHandle = await page.waitForSelector( '.ag-center-cols-container > div' ) // Magic wait!!!
-
-    await page.waitForTimeout(600) // Force wait!!!
-
+    while ( true ) {
+      material = await getRandomMaterial( requestContext )
+      materialIssuableBalance = await getMaterialIssuableBalance( requestContext, material.idno )
+      if ( materialIssuableBalance > 0 ) { break }
+    }
+    const response = await requestContext.get( `/api/issuances/issuable_material_inventories/${ material.idno }` )
+    const inventoryList: MaterialInventoryRead[] = await response.json()
+    // console.debug( inventoryList )
+    const inventory = sample( inventoryList )
+    await wmsIssuanceCreatPage.addIssuanceItemByInventoryIdno( inventory.idno )
     let rowsDiv = page.locator( '.ag-center-cols-container > div' )
-    let firstRowDiv = rowsDiv.first().dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
+    let row = rowsDiv.filter( { hasText: inventory.idno } )
+    expect( row ).toBeTruthy()
 
-    await page.waitForTimeout(1200) // Force wait!!!
+    await wmsIssuanceCreatPage.submit()
+
+    await page.waitForTimeout( 1000 ) // Force wait!!!
+    let rowsDivHandle = await page.waitForSelector( '.ag-center-cols-container > div' ) // Magic wait!!!
+    rowsDiv = page.locator( '.ag-center-cols-container > div' )
+    let firstRowDiv = rowsDiv.first().dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
+    await page.waitForTimeout( 1000 ) // Force wait!!!
 
     const memo = page.locator( '#memo' )
-    expect( await memo.inputValue() ).toBe( issuanceCreate.memo )
+    expect( await memo.inputValue() ).toBe( issuanceMemo )
 
     rowsDivHandle = await page.waitForSelector( '.ag-center-cols-container > div' ) // Magic wait!!!
 
     rowsDiv = page.locator( '.ag-center-cols-container > div' )
-    const row = rowsDiv.filter( { hasText: material.idno } )
+    row = rowsDiv.filter( { hasText: material.idno } )
+    expect( row ).toBeTruthy()
+
+    row = rowsDiv.filter( { hasText: inventory.idno } )
     expect( row ).toBeTruthy()
   } )
 } )

@@ -310,8 +310,8 @@ async function onClickCreateIssuanceButton ( event: Event ) {
   const issuanceCreate: IssuanceCreate = {
     memo: headerFormValue.value.memo,
     st_erp_work_order_idno: headerFormValue.value.st_erp_work_order_idno,
-    st_erp_work_order_date: format( headerFormValue.value.st_erp_work_order_date, 'yyyy-MM-dd' ),
-    st_erp_work_order_due_date: format( headerFormValue.value.st_erp_work_order_due_date, 'yyyy-MM-dd' ),
+    st_erp_work_order_date: headerFormValue.value.st_erp_work_order_date ? format( headerFormValue.value.st_erp_work_order_date, 'yyyy-MM-dd' ) : null,
+    st_erp_work_order_due_date: headerFormValue.value.st_erp_work_order_due_date ? format( headerFormValue.value.st_erp_work_order_due_date, 'yyyy-MM-dd' ) : null,
     st_erp_product_idno: headerFormValue.value.st_erp_product_idno,
     st_erp_product_due_quanity: Number( headerFormValue.value.st_erp_product_due_quanity ),
     st_erp_production_department: headerFormValue.value.st_erp_production_department,
@@ -320,11 +320,12 @@ async function onClickCreateIssuanceButton ( event: Event ) {
 
   // Create issuance
   let issuance: IssuanceRead;
-  try { issuance = await IssuancesService.createIssuance( { requestBody: issuanceCreate } ); }
+  try { issuance = await IssuancesService.createIssuance( { requestBody: issuanceCreate } ) }
   catch ( error ) {
-    message.error( '建立失敗' );
-    loadingRef.value = false;
-    return false;
+    console.error( error.message )
+    message.error( '建立失敗' )
+    loadingRef.value = false
+    return false
   }
 
   // Build issuance items body
@@ -468,12 +469,12 @@ async function onClickCreateIssuanceButton ( event: Event ) {
 
                   <n-form-item label="單包代碼">
                     <n-input v-model:value.lazy=" materialInventoryFormValue.material_inventory_idno "
-                      ref="materialInventoryIdnoInput"> </n-input>
+                      :input-props=" { id: 'inventoryIdnoInput' } " ref="materialInventoryIdnoInput"> </n-input>
                   </n-form-item>
 
                   <n-form-item>
                     <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                      attr-type="submit">+</n-button>
+                      attr-type="submit" id="addByInventory">+</n-button>
                   </n-form-item>
 
                 </n-space>
