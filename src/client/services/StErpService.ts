@@ -86,7 +86,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2023-01-04',
+stReceiveDate = '2023-01-31',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -192,7 +192,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2023-01-04',
+date = '2023-01-31',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
@@ -214,7 +214,10 @@ date?: string,
  *
  * 工令編號^^成品編號^^發料日期^^計劃完工日期^^工令數量^^製造部門^^生產線別
  *
- * `work_order_idno^^product_idno^^issue_date^^due_date^^quantity^^production_department^^production_line`
+ * ```
+ * work_order_idno^^product_idno^^issue_date^^due_date^^quantity^^production_department^^production_line
+ * HO3499^^40X85-010A-T1^^20221209^^20221213^^500^^VF11^^VMF1
+ * ```
      * @returns STWorkOrder Successful Response
      * @throws ApiError
      */
@@ -253,6 +256,28 @@ workOrderIdno: string,
         return __request(OpenAPI, {
             method: 'GET',
             url: '/st_erp/work_orders/{work_order_idno}/items',
+            path: {
+                'work_order_idno': workOrderIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Convert St Erp Work Order To Wms Issuance
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static convertStErpWorkOrderToWmsIssuance({
+workOrderIdno,
+}: {
+workOrderIdno: string,
+}): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/st_erp/work_orders/{work_order_idno}/to-wms-issuance',
             path: {
                 'work_order_idno': workOrderIdno,
             },

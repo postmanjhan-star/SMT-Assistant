@@ -31,7 +31,6 @@ export const $IssuanceRead = {
 },
         memo: {
     type: 'string',
-    isRequired: true,
 },
         issuing_completed: {
     type: 'boolean',
