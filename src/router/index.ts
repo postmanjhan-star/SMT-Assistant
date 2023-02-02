@@ -98,7 +98,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/materials/:idno/edit',
-            component: () => import( "../wms-app/components/MaterialsEditMaster.vue" ),
+            component: () => import( "../wms-app/materials/MaterialEditMaster.vue" ),
           },
           {
             path: '/wms/materials/batch-create',
