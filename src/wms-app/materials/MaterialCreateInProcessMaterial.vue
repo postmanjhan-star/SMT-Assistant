@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { ApiError, InProcessMaterialCreate, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, UnitEnum } from '../../client';
-import { useAuthStore } from '../../stores/auth';
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, SelectOption, useMessage } from 'naive-ui'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ApiError, InProcessMaterialCreate, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, UnitEnum } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
@@ -22,7 +22,7 @@ const formValue = ref<InProcessMaterialCreate>( {
   expiry_days: 365,
 } )
 
-const unit_options = [
+const unitOptions: SelectOption[] = [
   { label: 'PIECE', value: 'PIECE' },
   { label: 'ROLL', value: 'ROLL' },
   { label: 'PLATE', value: 'PLATE' },
@@ -140,7 +140,7 @@ async function onClickImportFromStErpButton ( event: Event ) {
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本單位" path="unit">
-              <n-select v-model:value.lazy=" formValue.unit " :options=" unit_options "></n-select>
+              <n-select v-model:value.lazy=" formValue.unit " :options=" unitOptions "></n-select>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本包裝量">
