@@ -22,16 +22,8 @@ const formValue = ref<InProcessMaterialCreate>( {
   expiry_days: 365,
 } )
 
-const unitOptions: SelectOption[] = [
-  { label: 'PIECE', value: 'PIECE' },
-  { label: 'ROLL', value: 'ROLL' },
-  { label: 'PLATE', value: 'PLATE' },
-  { label: 'CM', value: 'CM' },
-  { label: 'BOX', value: 'BOX' },
-  { label: 'PACK', value: 'PACK' },
-  { label: 'SHEET', value: 'SHEET' },
-  { label: 'BAG', value: 'BAG' },
-]
+const unitOptions: SelectOption[] = []
+for ( let unit in UnitEnum ) { unitOptions.push( { label: unit, value: unit } ) }
 
 const rules: FormRules = {
   idno: { required: true, message: '請输入物料代碼', trigger: [ 'blur' ] },
