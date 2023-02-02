@@ -120,15 +120,15 @@ async function onClickImportFromStErpButton ( event: Event ) {
 
             <n-form-item-gi show-require-mark label="物料代碼" path="idno" autofocus>
               <n-input v-model:value.lazy=" formValue.idno " autofocus
-                :input-props=" { style: 'text-transform: uppercase;' } "></n-input>
+                :input-props=" { style: 'text-transform: uppercase;', id: 'idno' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="物料名稱" path="name">
-              <n-input v-model:value.lazy=" formValue.name "></n-input>
+              <n-input v-model:value.lazy=" formValue.name " :input-props=" { id: 'name' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi label="物料說明" path="description">
-              <n-input v-model:value.lazy=" formValue.description "></n-input>
+              <n-input v-model:value.lazy=" formValue.description " :input-props=" { id: 'description' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本單位" path="unit">
@@ -137,12 +137,13 @@ async function onClickImportFromStErpButton ( event: Event ) {
 
             <n-form-item-gi show-require-mark label="基本包裝量">
               <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 1 " style="width: 100%;"></n-input-number>
+                :precision=" 0 " :default-value=" 1 " style="width: 100%;" id="qty_per_pack"></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="有效期間">
               <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 365 " style="width: 100%;"><template #suffix>日</template>
+                :precision=" 0 " :default-value=" 365 " style="width: 100%;" id="expiry_days">
+                <template #suffix>日</template>
               </n-input-number>
             </n-form-item-gi>
 

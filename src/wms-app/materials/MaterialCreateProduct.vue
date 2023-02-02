@@ -142,7 +142,8 @@ async function onClickImportFromStErpButton ( event: Event ) {
 
             <n-form-item-gi show-require-mark label="有效期間">
               <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 365 " style="width: 100%;" id="expiry_days"><template #suffix>日</template>
+                :precision=" 0 " :default-value=" 365 " style="width: 100%;" id="expiry_days">
+                <template #suffix>日</template>
               </n-input-number>
             </n-form-item-gi>
 
