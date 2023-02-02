@@ -11,16 +11,16 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const message = useMessage();
 const router = useRouter();
 
-const formRef = ref<FormInst | null>( null );
+const formRef = ref<FormInst | null>( null )
 const formValue = ref<ProductCreate>( {
   idno: '',
   material_type: MaterialTypeEnum.PRODUCT,
   name: '',
   description: '',
-  unit: 'PIECE' as UnitEnum,
+  unit: UnitEnum.PIECE,
   qty_per_pack: 1,
   expiry_days: 365,
-} );
+} )
 
 const unit_options = [
   { label: 'PIECE', value: 'PIECE' },
