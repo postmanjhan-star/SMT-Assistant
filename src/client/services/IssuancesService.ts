@@ -79,7 +79,6 @@ requestBody: IssuanceUpdate,
 
     /**
      * Create Issuance
-     * Do not make transfers on issuance creating. Make transfers on `pick_issuance()`.
      * @returns IssuanceRead Successful Response
      * @throws ApiError
      */
@@ -101,6 +100,7 @@ requestBody: IssuanceCreate,
 
     /**
      * Create Issuance Items
+     * For add mulitiple issuance items
      * @returns IssuanceItemRead Successful Response
      * @throws ApiError
      */
@@ -127,6 +127,7 @@ requestBody: Array<IssuanceItemCreate>,
 
     /**
      * Add Issuance Item
+     * For add single issuance item
      * @returns IssuanceItemRead Successful Response
      * @throws ApiError
      */

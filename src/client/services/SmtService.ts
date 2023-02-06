@@ -14,6 +14,28 @@ import { request as __request } from '../core/request';
 export class SmtService {
 
     /**
+     * Get Material Inventory
+     * @returns SmtMaterialInventory Successful Response
+     * @throws ApiError
+     */
+    public static getMaterialInventoryForSmt({
+materialInventoryIdno,
+}: {
+materialInventoryIdno: string,
+}): CancelablePromise<SmtMaterialInventory> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/material_inventory/{material_inventory_idno}',
+            path: {
+                'material_inventory_idno': materialInventoryIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Upload Fst
      * 40X980123-T1-XP1B1-T.fst
      * @returns FujiMounterFileRead Successful Response
@@ -157,28 +179,6 @@ testingProductIdno?: string,
                 'machine_side': machineSide,
                 'testing_mode': testingMode,
                 'testing_product_idno': testingProductIdno,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Material Inventory
-     * @returns SmtMaterialInventory Successful Response
-     * @throws ApiError
-     */
-    public static getMaterialInventoryForSmt({
-materialInventoryIdno,
-}: {
-materialInventoryIdno: string,
-}): CancelablePromise<SmtMaterialInventory> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/material_inventory/{material_inventory_idno}',
-            path: {
-                'material_inventory_idno': materialInventoryIdno,
             },
             errors: {
                 422: `Validation Error`,

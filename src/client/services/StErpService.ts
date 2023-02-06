@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { IssuanceRead } from '../models/IssuanceRead';
 import type { STPart } from '../models/STPart';
 import type { STPartPack } from '../models/STPartPack';
 import type { STReceiveHeader } from '../models/STReceiveHeader';
@@ -86,7 +87,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2023-01-31',
+stReceiveDate = '2023-02-06',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -192,7 +193,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2023-01-31',
+date = '2023-02-06',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
@@ -267,14 +268,14 @@ workOrderIdno: string,
 
     /**
      * Convert St Erp Work Order To Wms Issuance
-     * @returns boolean Successful Response
+     * @returns IssuanceRead Successful Response
      * @throws ApiError
      */
     public static convertStErpWorkOrderToWmsIssuance({
 workOrderIdno,
 }: {
 workOrderIdno: string,
-}): CancelablePromise<boolean> {
+}): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/st_erp/work_orders/{work_order_idno}/to-wms-issuance',

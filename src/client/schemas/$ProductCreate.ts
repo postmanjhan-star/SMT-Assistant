@@ -20,7 +20,10 @@ export const $ProductCreate = {
     type: 'string',
 },
         unit: {
+    type: 'all-of',
+    contains: [{
     type: 'UnitEnum',
+}],
     isRequired: true,
 },
         qty_per_pack: {
