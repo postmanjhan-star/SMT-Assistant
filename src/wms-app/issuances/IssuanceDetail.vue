@@ -45,12 +45,12 @@ const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "material_idno", headerName: '物料代碼', editable: false },
-    { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
+    { field: "material_idno", headerName: '物料代碼' },
+    { field: "material_inventory_idno", headerName: '單包代碼' },
     { field: "issue_qty", headerName: '發出數量' },
     { field: "lend_qty", headerName: '借出數量' },
   ],
-  defaultColDef: { editable: true, filter: true, sortable: true, flex: 1, resizable: true },
+  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
 
   // Editing
   stopEditingWhenCellsLoseFocus: true,
