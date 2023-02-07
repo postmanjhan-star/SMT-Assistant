@@ -1,13 +1,15 @@
 import { faker } from '@faker-js/faker/locale/zh_TW'
+import { sample } from 'lodash'
 import { expect, test } from '@playwright/test'
 import { readFile, utils, writeFile } from 'xlsx'
 import { StartPage } from './start-page'
 import { WmsHomePage } from './wms-home-page'
 import { WmsLoginPage } from './wms-login-page'
 import { WmsMaterialBatchCreatPage } from './wms-material-batch-create-page'
+import { WmsMaterialCreatProductPage } from './wms-material-create-product-page'
 import { WmsMaterialMainPage } from './wms-material-main-page'
 
-import { MaterialCreate, MaterialTypeEnum, UnitEnum } from '../src/client/index'
+import { MaterialCreate, MaterialTypeEnum, ProductCreate, UnitEnum } from '../src/client/index'
 
 
 
@@ -19,11 +21,17 @@ function generateMaterial () {
     material_type: MaterialTypeEnum.RAW_MATERIAL,
     name: faker.commerce.productMaterial(),
     description: faker.commerce.productAdjective(),
-    unit: UnitEnum.PIECE,
+    unit: UnitEnum[sample(Object.keys(UnitEnum))],
     qty_per_pack: faker.datatype.number( { min: 1, max: 2000 } ),
     expiry_days: faker.datatype.number( { min: 365, max: 3650 } ),
   }
   return material
+}
+
+function generateProductOfMaterial () {
+  const material = generateMaterial()
+  const p: ProductCreate = material
+  return p
 }
 
 
@@ -42,15 +50,57 @@ function updateBatchOdsFile ( odsFilePath: string, material: MaterialCreate ) {
 }
 
 
+
+test( 'Create a new material of product', async ( { page } ) => {
+  const productOfMaterial: ProductCreate = generateProductOfMaterial()
+
+  const startPage = new StartPage( page )
+  await startPage.goto()
+  await startPage.clickWmsApp()
+
+  const wmsLoginPage = new WmsLoginPage( page )
+  await wmsLoginPage.login()
+
+  const wmsHomePage = new WmsHomePage( page )
+  await wmsHomePage.goToMaterials()
+
+  const wmsMaterialMainPage = new WmsMaterialMainPage( page )
+  await wmsMaterialMainPage.createProduct()
+
+  const wmsMaterialCreatProductPage = new WmsMaterialCreatProductPage( page, productOfMaterial )
+  await wmsMaterialCreatProductPage.fillForm()
+  await wmsMaterialCreatProductPage.submit()
+
+  const rowsDivHandle = await page.waitForSelector( '.ag-center-cols-container > div' ) // Magic wait!!!
+  const rowsDiv = page.locator( '.ag-center-cols-container > div' )
+  let createdRowVisibleInGrid = false
+  while ( !createdRowVisibleInGrid ) {
+    if ( await page.isVisible( `text=${ productOfMaterial.idno }` ) ) { createdRowVisibleInGrid = true }
+    else { await page.locator( 'div[ref="btNext"]' ).click() }
+  }
+
+  const rowDiv = rowsDiv.filter( { hasText: productOfMaterial.idno } )
+  await rowDiv.dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
+
+  await page.waitForTimeout( 500 ) // Force wait!!!
+
+  expect( await page.locator( '#idno' ).inputValue() ).toBe( productOfMaterial.idno )
+  expect( await page.locator( '#name' ).inputValue() ).toBe( productOfMaterial.name )
+  expect( await page.locator( '#description' ).inputValue() ).toBe( productOfMaterial.description )
+  expect( await page.locator( '#unit' ).inputValue() ).toBe( productOfMaterial.unit )
+  expect( await page.locator( '#qtyPerPack' ).inputValue() ).toBe( productOfMaterial.qty_per_pack.toLocaleString() )
+  expect( await page.locator( '#expiryDays' ).inputValue() ).toBe( productOfMaterial.expiry_days.toLocaleString() )
+} )
+
+
+
 test( 'Batch create new materials from a ODS file', async ( { page } ) => {
 
   const odsFilePath = './tests/material_create_test_1.0.ods'
 
   const material = generateMaterial()
-  // console.debug( material )
 
   const odsFileUpdated = updateBatchOdsFile( odsFilePath, material )
-  // console.debug( odsFileUpdated )
 
   const startPage = new StartPage( page )
   await startPage.goto()
@@ -83,23 +133,12 @@ test( 'Batch create new materials from a ODS file', async ( { page } ) => {
   const rowDiv = rowsDiv.filter( { hasText: material.idno } )
   await rowDiv.dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
 
-  await page.waitForTimeout(500) // Force wait!!!
+  await page.waitForTimeout( 500 ) // Force wait!!!
 
-  const idno = page.locator( '#idno' )
-  expect( await idno.inputValue() ).toBe( material.idno )
-
-  const name = page.locator( '#name' )
-  expect( await name.inputValue() ).toBe( material.name )
-
-  const description = page.locator( '#description' )
-  expect( await description.inputValue() ).toBe( material.description )
-
-  const unit = page.locator( '#unit' )
-  expect( await unit.inputValue() ).toBe( material.unit )
-
-  const qty_per_pack = page.locator( '#qtyPerPack' )
-  expect( await qty_per_pack.inputValue() ).toBe( material.qty_per_pack.toLocaleString() )
-
-  const expiry_days = page.locator( '#expiryDays' )
-  expect( await expiry_days.inputValue() ).toBe( material.expiry_days.toLocaleString() )
+  expect( await page.locator( '#idno' ).inputValue() ).toBe( material.idno )
+  expect( await page.locator( '#name' ).inputValue() ).toBe( material.name )
+  expect( await page.locator( '#description' ).inputValue() ).toBe( material.description )
+  expect( await page.locator( '#unit' ).inputValue() ).toBe( material.unit )
+  expect( await page.locator( '#qtyPerPack' ).inputValue() ).toBe( material.qty_per_pack.toLocaleString() )
+  expect( await page.locator( '#expiryDays' ).inputValue() ).toBe( material.expiry_days.toLocaleString() )
 } )

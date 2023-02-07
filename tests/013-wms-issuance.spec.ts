@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker/locale/zh_TW'
 import { APIRequestContext, expect, test } from '@playwright/test'
 import { sample } from 'lodash'
-import { IssuanceCreate as string, MaterialInventoryRead, MaterialRead } from '../src/client/index'
+import { MaterialInventoryRead, MaterialRead } from '../src/client/index'
 import { StartPage } from './start-page'
 import { WmsHomePage } from './wms-home-page'
 import { WmsIssuanceCreatPage } from './wms-issuance-create-page'

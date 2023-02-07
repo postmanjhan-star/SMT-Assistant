@@ -11,7 +11,7 @@ export type IssuanceRead = {
     idno: string;
     date?: string;
     employee_id: number;
-    memo: string;
+    memo?: string;
     issuing_completed: boolean;
     issuance_items?: Array<IssuanceItemRead>;
     st_erp_work_order_idno?: string;

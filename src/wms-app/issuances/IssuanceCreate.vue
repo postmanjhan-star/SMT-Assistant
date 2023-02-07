@@ -202,8 +202,10 @@ async function onClickAddMaterialButton ( event: Event ) {
     let lend_qty = 0;
 
     if ( i == issuedMaterialInventories.length - 1 ) {
-      lend_qty = lendQuantity;
-      issue_qty = inventoryBalance - lend_qty;
+      lend_qty = lendQuantity
+      lend_qty = parseFloat( lend_qty.toFixed( 4 ) )
+      issue_qty = inventoryBalance - lend_qty
+      issue_qty = parseFloat( issue_qty.toFixed( 4 ) )
     }
 
     // Add material inventories into the grid
@@ -339,11 +341,12 @@ async function onClickCreateIssuanceButton ( event: Event ) {
   }
 
   // Create issuance items
-  try { const issuanceItems = await IssuancesService.createIssuanceItems( { issuanceIdno: issuance.idno, requestBody: issuanceItemsCreate } ); }
+  try { const issuanceItems = await IssuancesService.createIssuanceItems( { issuanceIdno: issuance.idno, requestBody: issuanceItemsCreate } ) }
   catch ( error ) {
-    message.error( '建立失敗' );
-    loadingRef.value = false;
-    return false;
+    if ( error instanceof ApiError ) { console.error( error.body ) }
+    message.error( '建立失敗' )
+    loadingRef.value = false
+    return false
   }
 
   message.success( `發料單 ${ issuance.idno } 建立成功` );
@@ -451,7 +454,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
 
                   <n-form-item label="需求數量">
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.quantity " :show-button=" false "
-                      :min=" 0 " :precision=" 0 " :default-value=" 0 " id="quantity">
+                      :min=" 0 " :precision=" 4 " :default-value=" 0 " id="quantity">
                       <template #suffix> {{ materialUnit }} </template>
                     </n-input-number>
                   </n-form-item>

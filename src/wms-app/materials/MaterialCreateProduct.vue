@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, useMessage } from 'naive-ui';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, ProductCreate, StErpService, UnitEnum } from '../../client';
-import { useAuthStore } from '../../stores/auth';
+import { FormInst, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NInputNumber, NSelect, NSpace, SelectOption, useMessage } from 'naive-ui'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, ProductCreate, StErpService, UnitEnum } from '../../client'
+import { useAuthStore } from '../../stores/auth'
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
@@ -11,27 +11,19 @@ OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 const message = useMessage();
 const router = useRouter();
 
-const formRef = ref<FormInst | null>( null );
+const formRef = ref<FormInst | null>( null )
 const formValue = ref<ProductCreate>( {
   idno: '',
   material_type: MaterialTypeEnum.PRODUCT,
   name: '',
   description: '',
-  unit: 'PIECE' as UnitEnum,
+  unit: UnitEnum.PIECE,
   qty_per_pack: 1,
   expiry_days: 365,
-} );
+} )
 
-const unit_options = [
-  { label: 'PIECE', value: 'PIECE' },
-  { label: 'ROLL', value: 'ROLL' },
-  { label: 'PLATE', value: 'PLATE' },
-  { label: 'CM', value: 'CM' },
-  { label: 'BOX', value: 'BOX' },
-  { label: 'PACK', value: 'PACK' },
-  { label: 'SHEET', value: 'SHEET' },
-  { label: 'BAG', value: 'BAG' },
-]
+const unitOptions: SelectOption[] = []
+for ( let unit in UnitEnum ) { unitOptions.push( { label: unit, value: unit } ) }
 
 const rules: FormRules = {
   idno: { required: true, message: '請输入物料代碼', trigger: [ 'blur' ] },
@@ -128,29 +120,30 @@ async function onClickImportFromStErpButton ( event: Event ) {
 
             <n-form-item-gi show-require-mark label="物料代碼" path="idno" autofocus>
               <n-input v-model:value.lazy=" formValue.idno " autofocus
-                :input-props=" { style: 'text-transform: uppercase;' } "></n-input>
+                :input-props=" { style: 'text-transform: uppercase;', id: 'idno' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="物料名稱" path="name">
-              <n-input v-model:value.lazy=" formValue.name "></n-input>
+              <n-input v-model:value.lazy=" formValue.name " :input-props=" { id: 'name' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi label="物料說明" path="description">
-              <n-input v-model:value.lazy=" formValue.description "></n-input>
+              <n-input v-model:value.lazy=" formValue.description " :input-props=" { id: 'description' } "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本單位" path="unit">
-              <n-select v-model:value.lazy=" formValue.unit " :options=" unit_options "></n-select>
+              <n-select v-model:value.lazy=" formValue.unit " :options=" unitOptions "></n-select>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本包裝量">
               <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 1 " style="width: 100%;"></n-input-number>
+                :precision=" 0 " :default-value=" 1 " style="width: 100%;" id="qty_per_pack"></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="有效期間">
               <n-input-number v-model:value.lazy=" formValue.expiry_days " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 365 " style="width: 100%;"><template #suffix>日</template>
+                :precision=" 0 " :default-value=" 365 " style="width: 100%;" id="expiry_days">
+                <template #suffix>日</template>
               </n-input-number>
             </n-form-item-gi>
 

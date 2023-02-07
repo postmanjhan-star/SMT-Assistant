@@ -4,9 +4,9 @@ import { onBeforeMount, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError, MaterialRead, MaterialsService, MaterialTypeEnum, MaterialUpdate, OpenAPI, UnitEnum } from '../../client';
 import { useAuthStore } from '../../stores/auth';
-import MaterialsEditRawMaterial from "./MaterialsEditRawMaterial.vue";
-import MaterialsEditProduct from "./MaterialsEditProduct.vue";
-import MaterialsEditInProcessMaterial from './MaterialsEditInProcessMaterial.vue';
+import MaterialEditRawMaterial from "./MaterialEditRawMaterial.vue";
+import MaterialEditProduct from "./MaterialEditProduct.vue";
+import MaterialEditInProcessMaterial from './MaterialEditInProcessMaterial.vue';
 
 
 const authStore = useAuthStore();
@@ -91,13 +91,13 @@ onBeforeMount( async () => {
         </n-tag>
       </n-h1>
 
-      <materials-edit-raw-material v-if="material.material_type == MaterialTypeEnum.RAW_MATERIAL">
-      </materials-edit-raw-material>
+      <material-edit-raw-material v-if="material.material_type == MaterialTypeEnum.RAW_MATERIAL">
+      </material-edit-raw-material>
 
-      <materials-edit-product v-if="material.material_type == MaterialTypeEnum.PRODUCT">
-      </materials-edit-product>
+      <material-edit-product v-if="material.material_type == MaterialTypeEnum.PRODUCT">
+      </material-edit-product>
 
-      <materials-edit-in-process-material v-if="material.material_type == MaterialTypeEnum.IN_PROCESS_MATERIAL"></materials-edit-in-process-material>
+      <material-edit-in-process-material v-if="material.material_type == MaterialTypeEnum.IN_PROCESS_MATERIAL"></material-edit-in-process-material>
 
     </div>
   </main>

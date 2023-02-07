@@ -82,15 +82,15 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/materials/create_raw_material',
-            component: () => import( "../wms-app/components/MaterialsCreateRawMaterial.vue" ),
+            component: () => import( "../wms-app/materials/MaterialCreateRawMaterial.vue" ),
           },
           {
             path: '/wms/materials/create_product',
-            component: () => import( "../wms-app/components/MaterialsCreateProduct.vue" ),
+            component: () => import( "../wms-app/materials/MaterialCreateProduct.vue" ),
           },
           {
             path: '/wms/materials/create_in_process_material',
-            component: () => import( "../wms-app/components/MaterialsCreateInProcessMaterial.vue" ),
+            component: () => import( "../wms-app/materials/MaterialCreateInProcessMaterial.vue" ),
           },
           {
             path: '/wms/materials/:idno',
@@ -98,7 +98,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/materials/:idno/edit',
-            component: () => import( "../wms-app/components/MaterialsEditMaster.vue" ),
+            component: () => import( "../wms-app/materials/MaterialEditMaster.vue" ),
           },
           {
             path: '/wms/materials/batch-create',
