@@ -9,6 +9,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ## Unreleased
 ### Added
 ### Changed
+- 支援小數點。（92e98249）
 ### Deprecated
 ### Removed
 ### Fixed
