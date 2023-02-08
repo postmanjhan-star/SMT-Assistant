@@ -1,53 +1,86 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community"
+import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, RowNode, ViewportChangedEvent } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
 import { NSpace, NStatistic } from 'naive-ui'
-import { onBeforeMount, ref } from 'vue'
+import { computed, onBeforeMount, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { InventoryChangeCauseEnum, MaterialsService, MaterialStockRecord } from '../../client'
 
 const route = useRoute();
 
-const inStockBalance = ref<Number>( 0 );
-const inProductionBalacne = ref<number>( 0 );
-const inLendingBalance = ref<number>( 0 );
+const inStockBalance = ref<Number>( 0 )
+const inProductionBalacne = ref<number>( 0 )
+const inLendingBalance = ref<number>( 0 )
 
-const gridApi = ref();
-const gridColumnApi = ref();
-const materialStockRecords = ref<MaterialStockRecord[]>( [] );
-const rowData = ref<any[]>( [] );
+const inStockBalanceString = computed( () => { return inStockBalance.value.toLocaleString( undefined, { maximumFractionDigits: 4 } ) } )
+const inProductionBalacneString = computed( () => { return inProductionBalacne.value.toLocaleString( undefined, { maximumFractionDigits: 4 } ) } )
+const inLendingBalanceString = computed( () => { return inLendingBalance.value.toLocaleString( undefined, { maximumFractionDigits: 4 } ) } )
 
-const columnDefs: ColDef[] = [
-    { field: "date", headerName: '日期' },
-    { field: "delta_qty", headerName: '異動數量' },
-    { field: "cause", headerName: '異動原因' },
-];
-
-const defaultColDef = {
-    editable: false,
-    filter: true,
-    sortable: true,
-    flex: 1, // Every columns have the same portion of width
-    resizable: true,
-}
+const materialStockRecords = ref<MaterialStockRecord[]>( [] )
+const rowData = ref<any[]>( [] )
 
 const gridOptions: GridOptions = {
-    columnDefs: columnDefs,
-    defaultColDef: defaultColDef,
+    // GRID OPTIONS
+    // Column Definitions
+    columnDefs: [
+        { field: "date", headerName: '日期' },
+        { field: "delta_qty", headerName: '異動數量' },
+        { field: "cause", headerName: '異動原因' },
+    ],
+    defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+
+    // Column Moving
+    suppressMovableColumns: false,
+    suppressColumnMoveAnimation: true,
+
+    // Editing
     stopEditingWhenCellsLoseFocus: true,
     enterMovesDownAfterEdit: true,
     undoRedoCellEditing: true,
-    debug: false,
-    pagination: true,
-    suppressColumnVirtualisation: true,
-    suppressRowTransform: true,
-    debounceVerticalScrollbar: true,
-    enableCellTextSelection: true,
 
+    // Miscellaneous
+    rowBuffer: 100,
+    debug: false,
+    suppressParentsInRowNodes: true,
+
+    // Pagination
+    pagination: true,
+
+    // Rendering
+    enableCellChangeFlash: true,
+    suppressColumnVirtualisation: true,
+    suppressRowVirtualisation: false,
+    domLayout: 'normal',
+    getBusinessKeyForNode: ( node: RowNode ) => { return node.data.id.toString() },
+
+    // RowModel
+    rowModelType: 'clientSide',
+    getRowId: ( params: GetRowIdParams ) => { return params.data.id; },
+
+    // Scrolling
+    debounceVerticalScrollbar: false,
+
+    // Selection
+    enableCellTextSelection: true,
     rowSelection: 'single',
     suppressCellFocus: true,
+
+    // Styling
+    suppressRowTransform: true,
+
+    // Tooltips
+    enableBrowserTooltips: false,
+
+    // EVENTS
+    // Miscellaneous
+    onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
+
+    // RowModel: Client-Side
+    onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
+
+    // Selection
 }
 
 function translateCause ( cause: InventoryChangeCauseEnum ) {
@@ -62,10 +95,10 @@ function translateCause ( cause: InventoryChangeCauseEnum ) {
 }
 
 onBeforeMount( async () => {
-    inStockBalance.value = await MaterialsService.getMaterialInStockBalance( { materialIdno: route.params.idno.toString() } );
-    inProductionBalacne.value = await MaterialsService.getMaterialInProductionBalance( { materialIdno: route.params.idno.toString() } );
-    inLendingBalance.value = await MaterialsService.getMaterialInLendingBalance( { materialIdno: route.params.idno.toString() } );
-    materialStockRecords.value = await MaterialsService.getMaterialStockRecords( { idno: route.params.idno.toString() } );
+    inStockBalance.value = await MaterialsService.getMaterialInStockBalance( { materialIdno: route.params.idno.toString() } )
+    inProductionBalacne.value = await MaterialsService.getMaterialInProductionBalance( { materialIdno: route.params.idno.toString() } )
+    inLendingBalance.value = await MaterialsService.getMaterialInLendingBalance( { materialIdno: route.params.idno.toString() } )
+    materialStockRecords.value = await MaterialsService.getMaterialStockRecords( { idno: route.params.idno.toString() } )
 
     let rowId = 1
     for ( let materialStockRecord of materialStockRecords.value ) {
@@ -76,28 +109,21 @@ onBeforeMount( async () => {
             cause: translateCause( materialStockRecord.cause ),
         }
         rowData.value.push( row );
-        rowId++;
+        rowId++
     }
-} );
-
-function getRowId ( params: GetRowIdParams ) { return params.data.id; }
-
-async function onGridReady ( params: GridReadyEvent ) {
-    gridApi.value = params.api;
-    gridColumnApi.value = params.columnApi;
-};
+} )
 </script>
 
 <template>
     <n-space size="large" vertical>
         <n-space size="large">
-            <n-statistic label="可用數量" tabular-nums>{{ inStockBalance.toLocaleString() }}</n-statistic>
-            <n-statistic label="在製數量" tabular-nums>{{ inProductionBalacne.toLocaleString() }}</n-statistic>
-            <n-statistic label="借出數量" tabular-nums>{{ inLendingBalance.toLocaleString() }}</n-statistic>
+            <n-statistic label="可用數量" tabular-nums>{{ inStockBalanceString }}</n-statistic>
+            <n-statistic label="在製數量" tabular-nums>{{ inProductionBalacneString }}</n-statistic>
+            <n-statistic label="借出數量" tabular-nums>{{ inLendingBalanceString }}</n-statistic>
         </n-space>
 
-        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; " :gridOptions=" gridOptions "
-            :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+        <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; "
+            :gridOptions=" gridOptions "></ag-grid-vue>
     </n-space>
 
 </template>

@@ -86,7 +86,7 @@ async function onClickImportFromStErpButton ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -136,8 +136,8 @@ async function onClickImportFromStErpButton ( event: Event ) {
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本包裝量">
-              <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 1 " style="width: 100%;" id="qty_per_pack"></n-input-number>
+              <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 0.0001 "
+                :precision=" 4 " :default-value=" 1 " style="width: 100%;" id="qty_per_pack"></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="有效期間">
@@ -161,5 +161,7 @@ async function onClickImportFromStErpButton ( event: Event ) {
 </template>
 
 <style>
-
+main {
+  background-image: url('/pattern.svg');
+}
 </style>

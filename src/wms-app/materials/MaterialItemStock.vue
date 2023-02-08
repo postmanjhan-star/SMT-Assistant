@@ -54,7 +54,7 @@ const gridOptions: GridOptions = {
     getRowId: ( params: GetRowIdParams ) => { return params.data.id; },
 
     // Scrolling
-    debounceVerticalScrollbar: true,
+    debounceVerticalScrollbar: false,
 
     // Selection
     enableCellTextSelection: true,

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ColDef, GetRowIdParams, GridOptions, GridReadyEvent } from "ag-grid-community"
-import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
-import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
+import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, RowNode, ViewportChangedEvent } from "ag-grid-community"
+import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
+import "ag-grid-community/styles/ag-theme-alpine.css"; // Optional theme CSS
+import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDivider, NForm, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputGroup, NSelect, NSpace, useMessage } from 'naive-ui'
 import { onBeforeMount, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -39,36 +39,66 @@ type GridReceiveItem = ReceiveItemCreate & {
   material_name: string | undefined;
 };
 const rowData = ref<GridReceiveItem[]>( [] );
-const columnDefs: ColDef[] = [
-  { field: "material_idno", headerName: '物料代碼', editable: false },
-  { field: "material_name", headerName: '物料名稱', editable: false },
-  { field: "total_qty", headerName: '來料數量' },
-  { field: "qualify_qty", headerName: '驗收數量' },
-];
-
-const defaultColDef = {
-  editable: true,
-  filter: true,
-  sortable: true,
-  flex: 1, // Every columns have the same portion of width
-  resizable: true,
-}
 
 const gridOptions: GridOptions = {
-  columnDefs: columnDefs,
-  defaultColDef: defaultColDef,
+  // PROPERTIES
+  // Column Definitions
+  columnDefs: [
+    { field: "material_idno", headerName: '物料代碼' },
+    { field: "material_name", headerName: '物料名稱' },
+    { field: "total_qty", headerName: '來料數量' },
+    { field: "qualify_qty", headerName: '驗收數量' },
+  ],
+  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+
+  // Column Moving
+  suppressMovableColumns: false,
+  suppressColumnMoveAnimation: true,
+
+  // Editing
   stopEditingWhenCellsLoseFocus: true,
   enterMovesDownAfterEdit: true,
   undoRedoCellEditing: true,
-  debug: false,
-  pagination: true,
-  suppressColumnVirtualisation: true,
-  suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
-  enableCellTextSelection: true,
 
+  // Miscellaneous
+  rowBuffer: 100,
+  debug: false,
+  suppressParentsInRowNodes: true,
+
+  // Pagination
+  pagination: true,
+
+  // Rendering
+  enableCellChangeFlash: true,
+  suppressColumnVirtualisation: true,
+  suppressRowVirtualisation: false,
+  domLayout: 'normal',
+  getBusinessKeyForNode: ( node: RowNode<GridReceiveItem> ) => { return node.data.id.toString() },
+
+  // RowModel
+  rowModelType: 'clientSide',
+  getRowId: ( params: GetRowIdParams ) => { return params.data.id },
+
+  // Scrolling
+  debounceVerticalScrollbar: false,
+
+  // Selection
+  enableCellTextSelection: true,
   rowSelection: 'single',
   suppressCellFocus: true,
+
+  // Styling
+  suppressRowTransform: true,
+
+  // Tooltips
+  enableBrowserTooltips: false,
+
+  // EVENTS
+  // Miscellaneous
+  onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
+
+  // RowModel: Client-Side
+  onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
 }
 
 type VendorIdnoOptions = {
@@ -112,13 +142,6 @@ onBeforeMount( async () => {
   } catch ( error ) { message.error( '無法取得供應商' ); }
 } )
 
-function getRowId ( params: GetRowIdParams ) { return params.data.id; }
-
-async function onGridReady ( params: GridReadyEvent ) {
-  gridApi.value = params.api;
-  gridColumnApi.value = params.columnApi;
-};
-
 let newRowId = -1
 function addReceiveItemToGrid ( receiveItem: GridReceiveItem ) {
   rowData.value.unshift( {
@@ -128,9 +151,9 @@ function addReceiveItemToGrid ( receiveItem: GridReceiveItem ) {
     material_name: receiveItem.material_name,
     total_qty: receiveItem.total_qty,
     qualify_qty: receiveItem.qualify_qty,
-  } );
-  gridApi.value.setRowData( rowData.value );
-  newRowId--;
+  } )
+  gridOptions.api.setRowData( rowData.value )
+  newRowId--
 }
 
 
@@ -174,14 +197,14 @@ async function handleUpdateReceiveButtonClick ( event: Event ) {
             <n-form-item-gi label="舊 ERP 收料單號">
               <n-input-group>
 
-                <n-input v-model:value.st_recieve_idno=" receiveForm.st_receive_idno " disabled placeholder="">
+                <n-input v-model:value.lazy=" receiveForm.st_receive_idno " disabled placeholder="">
                 </n-input>
 
               </n-input-group>
             </n-form-item-gi>
 
             <n-form-item-gi label="舊 ERP 隨車交貨單號">
-              <n-input v-model:value.st_mbr_idno=" receiveForm.st_mbr_idno " disabled placeholder=""></n-input>
+              <n-input v-model:value.lazy=" receiveForm.st_mbr_idno " disabled placeholder=""></n-input>
             </n-form-item-gi>
 
             <n-gi span="3">
@@ -201,16 +224,16 @@ async function handleUpdateReceiveButtonClick ( event: Event ) {
             </n-form-item-gi>
 
             <n-form-item-gi label="供應商出貨單號">
-              <n-input v-model:value.vendor_shipping_idno=" receiveForm.vendor_shipping_idno " disabled placeholder="">
+              <n-input v-model:value.lazy=" receiveForm.vendor_shipping_idno " disabled placeholder="">
               </n-input>
             </n-form-item-gi>
 
             <n-form-item-gi label="內部採購單號">
-              <n-input v-model:value.purchase_idno=" receiveForm.purchase_idno " disabled placeholder=""></n-input>
+              <n-input v-model:value.lazy=" receiveForm.purchase_idno " disabled placeholder=""></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi label="備註" span="3">
-              <n-input v-model:value.memo=" receiveForm.memo "></n-input>
+              <n-input v-model:value.lazy=" receiveForm.memo "></n-input>
             </n-form-item-gi>
 
             <n-gi span="3">
@@ -221,8 +244,11 @@ async function handleUpdateReceiveButtonClick ( event: Event ) {
 
               <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">物料</n-h2>
 
-              <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 400px; "
-                :gridOptions=" gridOptions " :getRowId=" getRowId " :onGridReady=" onGridReady "></ag-grid-vue>
+              <div style="height: 600px; overflow-x: scroll; width: 100%;">
+                <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%; "
+                  :gridOptions=" gridOptions "></ag-grid-vue>
+              </div>
+
             </n-gi>
 
             <n-form-item-gi span="3">

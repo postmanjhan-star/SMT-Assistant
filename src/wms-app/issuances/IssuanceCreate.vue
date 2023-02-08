@@ -86,7 +86,7 @@ const gridOptions: GridOptions = {
   getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
 
   // Scrolling
-  debounceVerticalScrollbar: true,
+  debounceVerticalScrollbar: false,
 
   // Selection
   enableCellTextSelection: true,
@@ -446,7 +446,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
                   <n-form-item label="可發料數量">
                     <!-- Naive UI 數字輸入框目前不支援 tabindex 屬性 -->
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.issuable_balance "
-                      :show-button=" false " :min=" 0 " :precision=" 0 " :default-value=" 0 " readonly tabindex="-1"
+                      :show-button=" false " :min=" 0 " :precision=" 4 " :default-value=" 0 " readonly tabindex="-1"
                       :input-props=" { tabindex: -1 } ">
                       <template #suffix> {{ materialUnit }} </template>
                     </n-input-number>

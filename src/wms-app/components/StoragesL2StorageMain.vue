@@ -61,7 +61,7 @@ const gridOptions: GridOptions = {
     getRowId: ( params: GetRowIdParams ) => { return params.data.id },
 
     // Scrolling
-    debounceVerticalScrollbar: true,
+    debounceVerticalScrollbar: false,
 
     // Selection
     enableCellTextSelection: true, // Add a div.ag-cell-wrapper element

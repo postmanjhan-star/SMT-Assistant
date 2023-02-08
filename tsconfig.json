@@ -9,6 +9,7 @@
         "jsx": "preserve",
         "types": ["vite/client", "vitest/globals"],
         "skipLibCheck": true,
+        "allowSyntheticDefaultImports": true, // For v8-to-istanbul, but does not work.
     },
     "exclude": [
         "./dist/**/*", // To prevent the error of 'Cannot write file XXX because it would overwrite input file.'

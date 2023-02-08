@@ -136,8 +136,8 @@ async function onClickImportFromStErpButton ( event: Event ) {
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="基本包裝量">
-              <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 1 "
-                :precision=" 0 " :default-value=" 1 " style="width: 100%;" id="qty_per_pack"></n-input-number>
+              <n-input-number v-model:value.lazy=" formValue.qty_per_pack " :show-button=" false " :min=" 0.0001 "
+                :precision=" 4 " :default-value=" 1 " style="width: 100%;" id="qty_per_pack"></n-input-number>
             </n-form-item-gi>
 
             <n-form-item-gi show-require-mark label="有效期間">

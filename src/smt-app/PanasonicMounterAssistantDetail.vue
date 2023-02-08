@@ -78,7 +78,7 @@ const gridOptions: GridOptions = {
   getRowId: ( params: GetRowIdParams ) => { return `${ params.data.slotIdno }-${ params.data.subSlotIdno }` },
 
   // Scrolling
-  debounceVerticalScrollbar: true,
+  debounceVerticalScrollbar: false,
 
   // Selection
   enableCellTextSelection: true,

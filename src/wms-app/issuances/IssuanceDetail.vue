@@ -70,7 +70,7 @@ const gridOptions: GridOptions = {
   getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
 
   // Scrolling
-  debounceVerticalScrollbar: true,
+  debounceVerticalScrollbar: false,
 
   // Selection
   enableCellTextSelection: true,
