@@ -21,6 +21,7 @@ export class SmtFujiMainPage {
         await this.page.locator( '#workOrderIdnoInput' ).fill( workOrder )
         await this.page.locator( '#productIdnoInput' ).fill( productIdno )
         await this.page.locator( '#mounterIdnoInput' ).fill( mounterIdno )
+        await this.page.getByText( '工件正反面' ).click()
     }
 
     async submitForm () { await this.page.getByRole( 'button', { name: '確定' } ).click() }
