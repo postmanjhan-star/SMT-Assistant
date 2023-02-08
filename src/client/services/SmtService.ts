@@ -64,12 +64,14 @@ formData: Body_upload_fst,
      */
     public static getFujiMounterMaterialSlotPairs({
 workOrderIdno,
+boardSide,
 productIdno,
 mounterIdno,
 testingMode = false,
 testingProductIdno,
 }: {
 workOrderIdno: string,
+boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
 productIdno?: string,
 mounterIdno?: string,
 testingMode?: boolean,
@@ -82,6 +84,7 @@ testingProductIdno?: string,
                 'work_order_idno': workOrderIdno,
             },
             query: {
+                'board_side': boardSide,
                 'product_idno': productIdno,
                 'mounter_idno': mounterIdno,
                 'testing_mode': testingMode,

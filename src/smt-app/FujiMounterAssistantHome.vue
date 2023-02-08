@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FormInst, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NSpace, useMessage } from 'naive-ui'
+import { FormInst, FormItemRule, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, useMessage } from 'naive-ui'
 import { ref } from 'vue'
 import { useMeta } from 'vue-meta'
 import { RouterLink, useRouter } from 'vue-router'
@@ -10,12 +10,24 @@ const message = useMessage()
 useMeta( { title: 'Fuji Mounter Assistant' } )
 
 const formRef = ref<FormInst | null>( null )
-const formValue = ref( { workOrderIdno: '', mounterIdno: '', productIdno: '' } )
+const formValue = ref<
+  { workOrderIdno: string, mounterIdno: string, productIdno: string, workSheetSide: "TOP" | "BOTTOM" | "DUPLEX" }
+>(
+  { workOrderIdno: '', mounterIdno: '', productIdno: '', workSheetSide: null }
+)
+
 const workOrderIdnoInput = ref<InputInst>()
+
+const workSheetSideOptions = [ { label: '工件正面', value: 'TOP' }, { label: '工件反面', value: 'BOTTOM' }, { label: '工件正反面', value: 'DUPLEX' } ]
+
 const rules: FormRules = {
   workOrderIdno: { required: true, message: '請輸入工單號', trigger: [ 'blur' ], },
   productIdno: { required: true, message: '請輸入成品料號', trigger: [ 'blur', 'input' ] },
-  mounterIdno: { required: true, message: '請輸入機台號', trigger: [ 'input', 'blur' ], }
+  mounterIdno: { required: true, message: '請輸入機台號', trigger: [ 'input', 'blur' ], },
+  workSheetSide: {
+    required: true, message: '請選擇工件正反面', trigger: [ 'change' ],
+    validator: ( rule: FormItemRule, value: string ) => { return ( value != undefined ? true : false ) },
+  },
 }
 
 
@@ -29,12 +41,16 @@ async function onClickSubmitButton ( event: Event ) {
   try {
     const mounterData = await SmtService.getFujiMounterMaterialSlotPairs( {
       workOrderIdno: formValue.value.workOrderIdno.trim(),
+      boardSide: formValue.value.workSheetSide,
       productIdno: formValue.value.productIdno.trim(),
       mounterIdno: formValue.value.mounterIdno.trim(),
     } )
     router.push( {
       path: `/smt/fuji-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }`,
-      query: { product_idno: formValue.value.productIdno.trim() },
+      query: {
+        product_idno: formValue.value.productIdno.trim(),
+        work_sheet_side: formValue.value.workSheetSide.trim(),
+      },
     } )
   }
   catch ( error ) {
@@ -75,6 +91,15 @@ async function onClickSubmitButton ( event: Event ) {
           <n-gi></n-gi>
           <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
             <n-input v-model:value.lazy=" formValue.mounterIdno " :input-props=" { id: 'mounterIdnoInput' } " />
+          </n-form-item-gi>
+          <n-gi></n-gi>
+
+          <n-gi></n-gi>
+          <n-form-item-gi show-require-mark label="工件面向" path="workSheetSide">
+            <n-radio-group v-model:value.lazy=" formValue.workSheetSide ">
+              <n-radio-button v-for=" worksheetSide in workSheetSideOptions" :label=" worksheetSide.label "
+                :key=" worksheetSide.label " :value=" worksheetSide.value "></n-radio-button>
+            </n-radio-group>
           </n-form-item-gi>
           <n-gi></n-gi>
 

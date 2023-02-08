@@ -47,6 +47,7 @@ onMounted( async () => {
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
       productIdno: route.query.product_idno.toString().trim(),
+      boardSide: route.query.work_sheet_side.toString() as 'TOP' | 'BOTTOM' | 'DUPLEX',
     } )
   }
   catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
