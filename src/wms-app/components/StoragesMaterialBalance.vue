@@ -48,7 +48,7 @@ const gridOptions: GridOptions = {
     rowModelType: 'clientSide',
 
     // Scrolling
-    debounceVerticalScrollbar: true,
+    debounceVerticalScrollbar: false,
 
     // Selection
     enableCellTextSelection: true, // Add a div.ag-cell-wrapper element

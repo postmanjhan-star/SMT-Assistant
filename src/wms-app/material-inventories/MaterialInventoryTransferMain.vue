@@ -52,7 +52,7 @@ const gridOptions: GridOptions = {
   paginationPageSize: 15,
   suppressColumnVirtualisation: true,
   suppressRowTransform: true,
-  debounceVerticalScrollbar: true,
+  debounceVerticalScrollbar: false,
   enableCellTextSelection: true,
 
   rowModelType: 'clientSide',
@@ -263,7 +263,7 @@ async function onClickMakeTransferButton ( event: Event ) {
 
             <n-form-item label="單包代碼">
               <!-- inputmode need to be dynamic controled by a button -->
-              <n-input v-model:value.vendor_shipping_idno=" materialInventoryAdditionFormValue.idno "
+              <n-input v-model:value.lazy=" materialInventoryAdditionFormValue.idno "
                 ref="materialInventoryIdnoInput" autofocus clearable :input-props=" { inputmode: 'none' } "></n-input>
             </n-form-item>
 

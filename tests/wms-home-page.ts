@@ -12,5 +12,7 @@ export class WmsHomePage {
 
     async goToMaterials () { await this.page.getByRole( 'link', { name: '物料管理' } ).click() }
     
+    async goToReceives () { await this.page.getByRole( 'link', { name: '收料作業' } ).click() }
+
     async goToIssuances () { await this.page.getByRole( 'link', { name: '發料備料作業' } ).click() }
 }

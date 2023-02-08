@@ -97,7 +97,7 @@ async function onClickCreateIssuanceReturnButton ( event: Event ) {
 
             <n-form-item-gi label="退回數量">
               <n-input-number v-model:value.lazy=" issuanceReturnCreationFormValue.returnQuantity "
-                :show-button=" false " style="width: 100%;" :min=" 0 " :precision=" 0 " :default-value=" 0 ">
+                :show-button=" false " style="width: 100%;" :min=" 0 " :precision=" 4 " :default-value=" 0 ">
               </n-input-number>
             </n-form-item-gi>
 

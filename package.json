@@ -30,6 +30,7 @@
     "pinia": "^2.0.13",
     "tabulator-tables": "^5.4.3",
     "tone": "^14.7.77",
+    "v8-to-istanbul": "^9.0.1",
     "vue": "^3.2.41",
     "vue-dataset": "^3.4.8",
     "vue-meta": "^3.0.0-alpha.10",

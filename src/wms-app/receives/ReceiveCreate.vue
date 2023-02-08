@@ -83,10 +83,10 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
 
   // RowModel
-  getRowId: ( params: GetRowIdParams ) => { return params.data.id; },
+  getRowId: ( params: GetRowIdParams ) => { return params.data.id },
 
   // Scrolling
-  debounceVerticalScrollbar: true,
+  debounceVerticalScrollbar: false,
 
   // Selection
   enableCellTextSelection: true,
@@ -102,12 +102,12 @@ const vendor_name_options = ref<SelectOption[]>( [] );
 
 onBeforeMount( async () => {
   try {
-    const vendors = await VendorsService.getVendors();
+    const vendors = await VendorsService.getVendors()
     for ( let vendor of vendors ) {
-      vendor_idno_options.value.push( { label: vendor.idno, value: vendor.id, } );
-      vendor_name_options.value.push( { label: vendor.name, value: vendor.id, } );
+      vendor_idno_options.value.push( { label: vendor.idno, value: vendor.id, } )
+      vendor_name_options.value.push( { label: vendor.name, value: vendor.id, } )
     }
-  } catch ( error ) { message.error( '無法取得供應商清單' ); }
+  } catch ( error ) { message.error( '無法取得供應商清單' ) }
 } )
 
 async function onGridReady ( params: GridReadyEvent ) {
@@ -232,7 +232,7 @@ async function onClickCreateReceiveButton ( event: Event ) {
 
 <template>
   <main
-    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-image: url('/pattern.svg'); background-repeat: repeat-x; background-position: center; background-size: cover;">
+    style="min-height: calc(100vh - 60px); background-color: hsla(0, 0%, 92%, 1.0); background-repeat: repeat-x; background-position: center; background-size: cover;">
     <n-breadcrumb
       style="padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4); position: relative; background-color: white; z-index: 1; overflow: auto;">
       <n-breadcrumb-item>
@@ -259,12 +259,12 @@ async function onClickCreateReceiveButton ( event: Event ) {
 
             <n-form-item-gi label="舊 ERP 收料單號" path="st_recieve_idno">
               <n-input-group>
-                <n-input v-model:value.st_recieve_idno=" headerFormValue.st_receive_idno "></n-input>
+                <n-input v-model:value.lazy=" headerFormValue.st_receive_idno "></n-input>
               </n-input-group>
             </n-form-item-gi>
 
             <n-form-item-gi label="舊 ERP 隨車交貨單號">
-              <n-input v-model:value.st_mbr_idno=" headerFormValue.st_mbr_idno "></n-input>
+              <n-input v-model:value.lazy=" headerFormValue.st_mbr_idno "></n-input>
             </n-form-item-gi>
 
             <n-gi span="3">
@@ -275,24 +275,24 @@ async function onClickCreateReceiveButton ( event: Event ) {
               <n-input-group>
 
                 <n-select v-model:value.lazy=" headerFormValue.vendor_id " :options=" vendor_idno_options " filterable
-                  :fallback-option=" false " placeholder="供應商代號"></n-select>
+                  :fallback-option=" false " placeholder="供應商代號" :input-props=" { id: 'vendor-idno-input' } "></n-select>
 
                 <n-select v-model:value.lazy=" headerFormValue.vendor_id " :options=" vendor_name_options " filterable
-                  :fallback-option=" false " placeholder="供應商名稱"></n-select>
+                  :fallback-option=" false " placeholder="供應商名稱" :input-props=" { id: 'vendor-name-input' } "></n-select>
 
               </n-input-group>
             </n-form-item-gi>
 
             <n-form-item-gi label="供應商出貨單號">
-              <n-input v-model:value.vendor_shipping_idno=" headerFormValue.vendor_shipping_idno "></n-input>
+              <n-input v-model:value.lazy=" headerFormValue.vendor_shipping_idno "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi label="內部採購單號">
-              <n-input v-model:value.purchase_idno=" headerFormValue.purchase_idno "></n-input>
+              <n-input v-model:value.lazy=" headerFormValue.purchase_idno "></n-input>
             </n-form-item-gi>
 
             <n-form-item-gi label="備註" span="3">
-              <n-input v-model:value.memo=" headerFormValue.memo "></n-input>
+              <n-input v-model:value.lazy=" headerFormValue.memo "></n-input>
             </n-form-item-gi>
 
             <n-gi span="3">
@@ -307,18 +307,18 @@ async function onClickCreateReceiveButton ( event: Event ) {
                 <n-space size="large" style="margin-bottom: 1rem; margin-top: 0.4rem;">
 
                   <n-form-item label="物料代碼">
-                    <n-input v-model:value.vendor_shipping_idno=" materialAdditionFormValue.material_idno "
-                      ref="materialIdnoInput"></n-input>
+                    <n-input v-model:value.lazy=" materialAdditionFormValue.material_idno "
+                      ref="materialIdnoInput" :input-props=" { id: 'material_idno' } "></n-input>
                   </n-form-item>
 
                   <n-form-item label="來料數量">
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.total_qty " :show-button=" false "
-                      :min=" 0 " :precision=" 0 " :default-value=" 0 "></n-input-number>
+                      :min=" 0 " :precision=" 4 " :default-value=" 0 " id="total_qty"></n-input-number>
                   </n-form-item>
 
                   <n-form-item label="驗收數量">
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.qualify_qty " :show-button=" false "
-                      :min=" 0 " :precision=" 0 " :default-value=" 0 "></n-input-number>
+                      :min=" 0 " :precision=" 4 " :default-value=" 0 " id="qualify_qty"></n-input-number>
                   </n-form-item>
 
                   <n-form-item>
@@ -350,3 +350,11 @@ async function onClickCreateReceiveButton ( event: Event ) {
     </div>
   </main>
 </template>
+
+
+
+<style>
+main {
+  background-image: url('/pattern.svg');
+}
+</style>

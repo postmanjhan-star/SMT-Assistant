@@ -56,7 +56,7 @@ const gridOptions: GridOptions = {
   getRowId: ( params: GetRowIdParams ) => { return params.data.id },
 
   // Scrolling
-  debounceVerticalScrollbar: true,
+  debounceVerticalScrollbar: false, // 打開會讓卷軸棒慢半拍
 
   // Selection
   enableCellTextSelection: true,

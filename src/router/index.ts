@@ -131,7 +131,7 @@ const routes: RouteRecordRaw[] = [
           {
             path: '/wms/receives/create',
             name: 'receivesCreate',
-            component: () => import( "../wms-app/components/ReceivesCreate.vue" ),
+            component: () => import( "../wms-app/receives/ReceiveCreate.vue" ),
             props: route => ( {
               st_receive_idno: route.params.st_receive_idno,
               st_vendor_id: Number( route.params.st_vendor_id ),
@@ -145,11 +145,11 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/receives/:idno',
-            component: () => import( "../wms-app/components/ReceivesItem.vue" ),
+            component: () => import( "../wms-app/receives/ReceiveDetail.vue" ),
           },
           {
             path: '/wms/transfers',
-            component: () => import( "../wms-app/components/MaterialInventoryTransferMain.vue" ),
+            component: () => import( "../wms-app/material-inventories/MaterialInventoryTransferMain.vue" ),
           },
           {
             path: '/wms/issuances',
@@ -173,7 +173,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: '/wms/issuance_returns/create',
-            component: () => import( "../wms-app/components/IssuanceReturnsCreate.vue" ),
+            component: () => import( "../wms-app/issuances/IssuanceReturnCreate.vue" ),
           },
           {
             path: '/wms/st_erp_receives',

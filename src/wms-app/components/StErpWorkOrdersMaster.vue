@@ -66,7 +66,7 @@ const gridOptions: GridOptions = {
     pagination: true,
     suppressColumnVirtualisation: true,
     suppressRowTransform: true,
-    debounceVerticalScrollbar: true,
+    debounceVerticalScrollbar: false,
     enableCellTextSelection: true,
 
     rowSelection: 'single',

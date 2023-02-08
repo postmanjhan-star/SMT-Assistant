@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NButton, NInput, NSpace, NTabPane, NTabs, NTag } from 'naive-ui'
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGrid, NH1, NInput, NSpace, NTabPane, NTabs, NTag } from 'naive-ui'
 import { computed, onBeforeMount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, MaterialRead, MaterialsService, MaterialTypeEnum, OpenAPI, UnitEnum } from '../../client'
@@ -32,7 +32,7 @@ const formValue = computed( () => {
     name: material.value.name,
     description: material.value.description,
     unit: material.value.unit,
-    qtyPerPack: material.value.qty_per_pack.toLocaleString(),
+    qtyPerPack: material.value.qty_per_pack.toLocaleString( undefined, { maximumFractionDigits: 4 } ),
     expiryDays: material.value.expiry_days.toLocaleString(),
   }
 } )
