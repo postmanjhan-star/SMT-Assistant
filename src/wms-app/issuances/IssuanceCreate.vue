@@ -4,7 +4,7 @@ import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
 import { format } from 'date-fns'
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui'
+import { FormInst, FormItemRule, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui'
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
@@ -16,7 +16,6 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const formRef = ref<FormInst | null>( null )
 const headerFormValue = ref( {
   st_erp_work_order_idno: '',
   st_erp_work_order_date: null,
@@ -40,17 +39,26 @@ type GridItem = {
   lendQty: number,
 }
 
+const materialAdditionFormRef = ref<FormInst | null>( null )
+const rules: FormRules = {
+  materialIdno: { required: true, message: '請輸入物料代碼', trigger: [ 'blur', 'input', 'change' ] },
+  quantity: {
+    required: true, message: '請輸入數量', trigger: [ 'blur', 'input', 'change' ], type: 'number',
+    validator: ( rule: FormItemRule, value: number ) => { return ( value > 0 ) },
+  },
+}
+
 type MaterialAdditionFormValue = {
-  material_idno: string,
-  issuable_balance: number,
+  materialIdno: string,
+  issuableBalance: number,
   quantity: number,
-};
+}
 
 const materialAdditionFormValue = ref<MaterialAdditionFormValue>( {
-  material_idno: '',
-  issuable_balance: 0,
+  materialIdno: '',
+  issuableBalance: 0,
   quantity: 0,
-} );
+} )
 
 const materialInventoryFormValue = ref( {
   material_inventory_idno: '',
@@ -61,8 +69,8 @@ const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
+    { field: "materialInventoryIdno", headerName: '單包代碼', editable: true },
     { field: "materialIdno", headerName: '物料代碼', editable: false },
-    { field: "materialInventoryIdno", headerName: '單包代碼', editable: false },
     { field: "totalQty", headerName: '合計數量', editable: false },
     { field: "issueQty", headerName: '發出數量', editable: true },
     { field: "lendQty", headerName: '借出數量', editable: true },
@@ -100,7 +108,7 @@ const gridOptions: GridOptions = {
 
   // EVENTS
   // Miscellaneous
-  onGridReady: () => {},
+  onGridReady: () => { },
   onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
 
   // RowModel: Client-Side
@@ -110,16 +118,16 @@ const gridOptions: GridOptions = {
 
 
 async function onBlurMaterialIdnoInputField () {
-  if ( materialAdditionFormValue.value.material_idno.trim() ) {
+  if ( materialAdditionFormValue.value.materialIdno.trim() ) {
     try {
       // Update in-stock value and unit
-      const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } );
+      const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.materialIdno.trim() } );
       const issuableBalance = await MaterialsService.getMaterialInStockBalance( {
-        materialIdno: materialAdditionFormValue.value.material_idno.trim(),
+        materialIdno: materialAdditionFormValue.value.materialIdno.trim(),
         onlyIssuable: true,
       } );
       materialUnit.value = material.unit;
-      materialAdditionFormValue.value.issuable_balance = issuableBalance;
+      materialAdditionFormValue.value.issuableBalance = issuableBalance;
     } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { materialUnit.value = ''; } }
   }
 }
@@ -146,21 +154,12 @@ function addItemToGrid ( item: GridItem ) {
 async function onClickAddMaterialButton ( event: Event ) {
   // Take expired material inventory in thie function is NOT allowed.
 
-  // Quantity should greater than zero
-  if ( materialAdditionFormValue.value.quantity <= 0 ) {
-    message.error( '數量應大於零' )
-    return false
-  }
-
-  // `material_idno` cannot be empty
-  if ( materialAdditionFormValue.value.material_idno.trim() === '' ) {
-    message.error( '請填入物料代碼' )
-    return false
-  }
+  try { await materialAdditionFormRef.value?.validate( async ( error ) => { if ( error ) { throw error } } ) }
+  catch ( error ) { return false }
 
   // Check if the material exists
   // Handle 404 and other errors
-  try { const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } ) }
+  try { const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.materialIdno.trim() } ) }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
       message.error( '無此物料' )
@@ -172,38 +171,34 @@ async function onClickAddMaterialButton ( event: Event ) {
   }
 
   // Check if quantity in-stock is enough
-  const materialInStockBalance = await IssuancesService.getMaterialIssuableBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } )
+  const materialInStockBalance = await IssuancesService.getMaterialIssuableBalance( { materialIdno: materialAdditionFormValue.value.materialIdno.trim() } )
   if ( materialAdditionFormValue.value.quantity > materialInStockBalance ) {
     message.error( `庫存數量 ${ materialInStockBalance.toLocaleString() }，需求數量不可大於庫存數量` )
     return false
   }
 
-  // Clear the material's all inventories in grid
-  rowData.value = rowData.value.filter( row => row.materialIdno !== materialAdditionFormValue.value.material_idno.trim() )
-  gridOptions.api?.setRowData( rowData.value )
-
   // Take demand inventories
-  let askedQuantity = materialAdditionFormValue.value.quantity
-  let issuedQuantity = 0
-  let issuedMaterialInventories: MaterialInventoryRead[] = []
-  const materialInventories = await IssuancesService.getIssuableMaterialInventories( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } )
-  while ( issuedQuantity < askedQuantity ) {
-    const materialInventory = materialInventories.shift() as MaterialInventoryRead
+  let toAskQuantity = materialAdditionFormValue.value.quantity
+  let toIssueQuantity = 0
+  let toIssueMaterialInventories: MaterialInventoryRead[] = []
+  const issuableMaterialInventoryArray = await IssuancesService.getIssuableMaterialInventories( { materialIdno: materialAdditionFormValue.value.materialIdno.trim() } )
+  while ( toIssueQuantity < toAskQuantity ) {
+    const materialInventory = issuableMaterialInventoryArray.shift()
     const materialInventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: materialInventory.id } )
-    issuedQuantity += materialInventoryBalance
-    issuedMaterialInventories.push( materialInventory as MaterialInventoryRead )
+    toIssueQuantity += materialInventoryBalance
+    toIssueMaterialInventories.push( materialInventory )
   }
-  let lendQuantity = issuedQuantity - askedQuantity
-  issuedQuantity -= lendQuantity
+  let toLendQuantity = toIssueQuantity - toAskQuantity
+  toIssueQuantity -= toLendQuantity
 
   // Build grid row data
-  issuedMaterialInventories.forEach( async ( inventory, i ) => {
+  toIssueMaterialInventories.forEach( async ( inventory, i ) => {
     const inventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: inventory.id } )
     let issue_qty = inventoryBalance
     let lend_qty = 0
 
-    if ( i == issuedMaterialInventories.length - 1 ) {
-      lend_qty = lendQuantity
+    if ( i == toIssueMaterialInventories.length - 1 ) {
+      lend_qty = toLendQuantity
       lend_qty = parseFloat( lend_qty.toFixed( 4 ) )
       issue_qty = inventoryBalance - lend_qty
       issue_qty = parseFloat( issue_qty.toFixed( 4 ) )
@@ -220,8 +215,8 @@ async function onClickAddMaterialButton ( event: Event ) {
   } )
 
   // Clear materialAdditionFormValue
-  materialAdditionFormValue.value.material_idno = ''
-  materialAdditionFormValue.value.issuable_balance = 0
+  materialAdditionFormValue.value.materialIdno = ''
+  materialAdditionFormValue.value.issuableBalance = 0
   materialAdditionFormValue.value.quantity = 0
 
   // Focus at `material_idno` input field
@@ -381,7 +376,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-form size="large" :model=" headerFormValue " ref="formRef">
+        <n-form size="large" :model=" headerFormValue ">
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi label="舊 ERP 工令編號">
@@ -435,25 +430,25 @@ async function onClickCreateIssuanceButton ( event: Event ) {
 
               <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">物料</n-h2>
 
-              <n-form size="large" :model=" materialAdditionFormValue ">
+              <n-form size="large" :model=" materialAdditionFormValue " :rules=" rules " ref="materialAdditionFormRef">
                 <n-space size="large">
 
-                  <n-form-item label="物料代碼">
-                    <n-input v-model:value.lazy=" materialAdditionFormValue.material_idno " ref="materialIdnoInput"
+                  <n-form-item label="物料代碼" path="materialIdno">
+                    <n-input v-model:value.lazy=" materialAdditionFormValue.materialIdno " ref="materialIdnoInput"
                       @blur=" onBlurMaterialIdnoInputField() " :input-props=" { id: 'material_idno' } ">
                     </n-input>
                   </n-form-item>
 
                   <n-form-item label="可發料數量">
                     <!-- Naive UI 數字輸入框目前不支援 tabindex 屬性 -->
-                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.issuable_balance "
+                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.issuableBalance "
                       :show-button=" false " :min=" 0 " :precision=" 4 " :default-value=" 0 " readonly tabindex="-1"
                       :input-props=" { tabindex: -1 } ">
                       <template #suffix> {{ materialUnit }} </template>
                     </n-input-number>
                   </n-form-item>
 
-                  <n-form-item label="需求數量">
+                  <n-form-item label="需求數量" path="quantity">
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.quantity " :show-button=" false "
                       :min=" 0 " :precision=" 4 " :default-value=" 0 " id="quantity">
                       <template #suffix> {{ materialUnit }} </template>
