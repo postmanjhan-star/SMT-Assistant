@@ -33,11 +33,11 @@ const materialUnit = ref();
 const materialInventoryIdnoInput = ref();
 
 type GridItem = {
-  material_idno: string,
-  material_inventory_id: number,
-  material_inventory_idno: string,
-  issue_qty: number,
-  lend_qty: number,
+  materialIdno: string,
+  materialInventoryId: number,
+  materialInventoryIdno: string,
+  issueQty: number,
+  lendQty: number,
 }
 
 type MaterialAdditionFormValue = {
@@ -61,10 +61,10 @@ const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "material_idno", headerName: '物料代碼', editable: false },
-    { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
-    { field: "issue_qty", headerName: '發出數量', editable: false },
-    { field: "lend_qty", headerName: '借出數量', editable: false },
+    { field: "materialIdno", headerName: '物料代碼', editable: false },
+    { field: "materialInventoryIdno", headerName: '單包代碼', editable: false },
+    { field: "issueQty", headerName: '發出數量', editable: false },
+    { field: "lendQty", headerName: '借出數量', editable: false },
   ],
   defaultColDef: { editable: true, filter: true, sortable: true, resizable: true },
 
@@ -126,15 +126,15 @@ async function onBlurMaterialIdnoInputField () {
 
 function addItemToGrid ( item: GridItem ) {
   // Remove old, duplicated one
-  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== item.material_inventory_idno )
+  rowData.value = rowData.value.filter( row => row.materialInventoryIdno !== item.materialInventoryIdno )
 
   // Add
   rowData.value.unshift( {
-    material_idno: item.material_idno,
-    material_inventory_id: item.material_inventory_id,
-    material_inventory_idno: item.material_inventory_idno,
-    issue_qty: item.issue_qty,
-    lend_qty: item.lend_qty,
+    materialIdno: item.materialIdno,
+    materialInventoryId: item.materialInventoryId,
+    materialInventoryIdno: item.materialInventoryIdno,
+    issueQty: item.issueQty,
+    lendQty: item.lendQty,
   } )
   gridOptions.api?.setRowData( rowData.value )
   gridOptions.columnApi?.autoSizeAllColumns()
@@ -178,7 +178,7 @@ async function onClickAddMaterialButton ( event: Event ) {
   }
 
   // Clear the material's all inventories in grid
-  rowData.value = rowData.value.filter( row => row.material_idno !== materialAdditionFormValue.value.material_idno.trim() );
+  rowData.value = rowData.value.filter( row => row.materialIdno !== materialAdditionFormValue.value.material_idno.trim() );
   gridOptions.api?.setRowData( rowData.value );
 
   // Take demand inventories
@@ -210,11 +210,11 @@ async function onClickAddMaterialButton ( event: Event ) {
 
     // Add material inventories into the grid
     addItemToGrid( {
-      material_idno: inventory.material_idno,
-      material_inventory_id: inventory.id,
-      material_inventory_idno: inventory.idno,
-      issue_qty: issue_qty,
-      lend_qty: lend_qty,
+      materialIdno: inventory.material_idno,
+      materialInventoryId: inventory.id,
+      materialInventoryIdno: inventory.idno,
+      issueQty: issue_qty,
+      lendQty: lend_qty,
     } )
   } )
 
@@ -277,11 +277,11 @@ async function onClickAddInventoryButton ( event: Event ) {
 
   // Add material inventories into the grid
   addItemToGrid( {
-    material_idno: materialInventory.material_idno,
-    material_inventory_id: materialInventory.id,
-    material_inventory_idno: materialInventory.idno,
-    issue_qty: balance,
-    lend_qty: 0,
+    materialIdno: materialInventory.material_idno,
+    materialInventoryId: materialInventory.id,
+    materialInventoryIdno: materialInventory.idno,
+    issueQty: balance,
+    lendQty: 0,
   } )
 
   // Clear materialAdditionFormValue
@@ -296,7 +296,7 @@ async function onClickAddInventoryButton ( event: Event ) {
 function onClickRemoveRowButton ( event: Event ) {
   // Get selected row
   const selectedRows: GridItem[] = gridOptions.api?.getSelectedRows() as GridItem[]
-  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno )
+  rowData.value = rowData.value.filter( row => row.materialInventoryIdno !== selectedRows[ 0 ].materialInventoryIdno )
   gridOptions.api?.setRowData( rowData.value )
 }
 
@@ -334,9 +334,9 @@ async function onClickCreateIssuanceButton ( event: Event ) {
   const issuanceItemsCreate: IssuanceItemCreate[] = [];
   for ( let row of rowData.value ) {
     issuanceItemsCreate.push( {
-      material_inventory_id: row.material_inventory_id,
-      issue_qty: row.issue_qty,
-      lend_qty: row.lend_qty,
+      material_inventory_id: row.materialInventoryId,
+      issue_qty: row.issueQty,
+      lend_qty: row.lendQty,
     } )
   }
 
