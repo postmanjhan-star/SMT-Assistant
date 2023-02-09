@@ -37,13 +37,15 @@ type GridItem = {
   materialInventoryIdno: string,
   issueQty: number,
   lendQty: number,
+  retainQty: number,
+  totalQty: number,
 }
 
 const materialAdditionFormRef = ref<FormInst | null>( null )
 const rules: FormRules = {
   materialIdno: { required: true, message: '請輸入物料代碼', trigger: [ 'blur', 'input', 'change' ] },
   quantity: {
-    required: true, message: '請輸入數量', trigger: [ 'blur', 'input', 'change' ], type: 'number',
+    required: true, message: '請輸入數量', trigger: [ 'input', 'change' ], type: 'number',
     validator: ( rule: FormItemRule, value: number ) => { return ( value > 0 ) },
   },
 }
@@ -93,7 +95,7 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
 
   // RowModel
-  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id },
+  getRowId: ( params: GetRowIdParams<GridItem> ) => { return params.data.materialInventoryId.toString() },
 
   // Scrolling
   debounceVerticalScrollbar: false,
@@ -137,15 +139,8 @@ async function onBlurMaterialIdnoInputField () {
 function addItemToGrid ( item: GridItem ) {
   // Remove old, duplicated one
   rowData.value = rowData.value.filter( row => row.materialInventoryIdno !== item.materialInventoryIdno )
-
   // Add
-  rowData.value.unshift( {
-    materialIdno: item.materialIdno,
-    materialInventoryId: item.materialInventoryId,
-    materialInventoryIdno: item.materialInventoryIdno,
-    issueQty: item.issueQty,
-    lendQty: item.lendQty,
-  } )
+  rowData.value.unshift( item )
   gridOptions.api?.setRowData( rowData.value )
 }
 
@@ -194,24 +189,23 @@ async function onClickAddMaterialButton ( event: Event ) {
   // Build grid row data
   toIssueMaterialInventories.forEach( async ( inventory, i ) => {
     const inventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: inventory.id } )
-    let issue_qty = inventoryBalance
-    let lend_qty = 0
 
-    if ( i == toIssueMaterialInventories.length - 1 ) {
-      lend_qty = toLendQuantity
-      lend_qty = parseFloat( lend_qty.toFixed( 4 ) )
-      issue_qty = inventoryBalance - lend_qty
-      issue_qty = parseFloat( issue_qty.toFixed( 4 ) )
-    }
-
-    // Add material inventories into the grid
-    addItemToGrid( {
+    const gridItem: GridItem = {
       materialIdno: inventory.material_idno,
       materialInventoryId: inventory.id,
       materialInventoryIdno: inventory.idno,
-      issueQty: issue_qty,
-      lendQty: lend_qty,
-    } )
+      issueQty: inventoryBalance,
+      lendQty: 0,
+      retainQty: 0,
+      totalQty: inventoryBalance,
+    }
+
+    if ( i == toIssueMaterialInventories.length - 1 ) {
+      gridItem.lendQty = parseFloat( toLendQuantity.toFixed( 4 ) )
+      gridItem.issueQty = parseFloat( (inventoryBalance - gridItem.lendQty).toFixed( 4 ) )
+    }
+
+    addItemToGrid( gridItem )
   } )
 
   // Clear materialAdditionFormValue
@@ -278,6 +272,8 @@ async function onClickAddInventoryButton ( event: Event ) {
     materialInventoryIdno: materialInventory.idno,
     issueQty: balance,
     lendQty: 0,
+    retainQty: 0,
+    totalQty: balance,
   } )
 
   // Clear materialAdditionFormValue
