@@ -38,7 +38,7 @@ type GridItem = {
   material_inventory_idno: string,
   issue_qty: number,
   lend_qty: number,
-};
+}
 
 type MaterialAdditionFormValue = {
   material_idno: string,
@@ -83,7 +83,7 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
 
   // RowModel
-  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
+  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id },
 
   // Scrolling
   debounceVerticalScrollbar: false,
@@ -103,7 +103,7 @@ const gridOptions: GridOptions = {
 
   // // RowModel: Client-Side
   // onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
-};
+}
 
 
 
@@ -126,7 +126,7 @@ async function onBlurMaterialIdnoInputField () {
 
 function addItemToGrid ( item: GridItem ) {
   // Remove old, duplicated one
-  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== item.material_inventory_idno );
+  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== item.material_inventory_idno )
 
   // Add
   rowData.value.unshift( {
@@ -135,9 +135,9 @@ function addItemToGrid ( item: GridItem ) {
     material_inventory_idno: item.material_inventory_idno,
     issue_qty: item.issue_qty,
     lend_qty: item.lend_qty,
-  } );
-  gridOptions.api?.setRowData( rowData.value );
-  gridOptions.columnApi?.autoSizeAllColumns();
+  } )
+  gridOptions.api?.setRowData( rowData.value )
+  gridOptions.columnApi?.autoSizeAllColumns()
 }
 
 
@@ -197,9 +197,9 @@ async function onClickAddMaterialButton ( event: Event ) {
 
   // Build grid row data
   issuedMaterialInventories.forEach( async ( inventory, i ) => {
-    const inventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: inventory.id } );
-    let issue_qty = inventoryBalance;
-    let lend_qty = 0;
+    const inventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: inventory.id } )
+    let issue_qty = inventoryBalance
+    let lend_qty = 0
 
     if ( i == issuedMaterialInventories.length - 1 ) {
       lend_qty = lendQuantity
@@ -215,7 +215,7 @@ async function onClickAddMaterialButton ( event: Event ) {
       material_inventory_idno: inventory.idno,
       issue_qty: issue_qty,
       lend_qty: lend_qty,
-    } );
+    } )
   } )
 
   // Clear materialAdditionFormValue
@@ -282,13 +282,13 @@ async function onClickAddInventoryButton ( event: Event ) {
     material_inventory_idno: materialInventory.idno,
     issue_qty: balance,
     lend_qty: 0,
-  } );
+  } )
 
   // Clear materialAdditionFormValue
-  materialInventoryFormValue.value.material_inventory_idno = '';
+  materialInventoryFormValue.value.material_inventory_idno = ''
 
   // Focus at `material_idno` input field
-  materialInventoryIdnoInput.value.focus();
+  materialInventoryIdnoInput.value.focus()
 }
 
 
@@ -337,7 +337,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
       material_inventory_id: row.material_inventory_id,
       issue_qty: row.issue_qty,
       lend_qty: row.lend_qty,
-    } );
+    } )
   }
 
   // Create issuance items
