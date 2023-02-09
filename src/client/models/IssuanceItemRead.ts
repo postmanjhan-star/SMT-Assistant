@@ -17,5 +17,6 @@ export type IssuanceItemRead = {
     l2_storage_idno?: string;
     issue_qty: number;
     lend_qty: number;
+    retain_qty?: number;
     picked: boolean;
 };

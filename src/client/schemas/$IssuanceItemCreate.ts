@@ -14,5 +14,8 @@ export const $IssuanceItemCreate = {
         lend_qty: {
     type: 'number',
 },
+        retain_qty: {
+    type: 'number',
+},
     },
 } as const;

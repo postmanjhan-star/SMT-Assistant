@@ -55,6 +55,9 @@ export const $IssuanceItemRead = {
     type: 'number',
     isRequired: true,
 },
+        retain_qty: {
+    type: 'number',
+},
         picked: {
     type: 'boolean',
     isRequired: true,
