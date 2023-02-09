@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridOptions } from "ag-grid-community"
+import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, ViewportChangedEvent } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
@@ -63,10 +63,12 @@ const gridOptions: GridOptions = {
   columnDefs: [
     { field: "materialIdno", headerName: '物料代碼', editable: false },
     { field: "materialInventoryIdno", headerName: '單包代碼', editable: false },
-    { field: "issueQty", headerName: '發出數量', editable: false },
-    { field: "lendQty", headerName: '借出數量', editable: false },
+    { field: "totalQty", headerName: '合計數量', editable: false },
+    { field: "issueQty", headerName: '發出數量', editable: true },
+    { field: "lendQty", headerName: '借出數量', editable: true },
+    { field: "retainQty", headerName: '保留數量', editable: true },
   ],
-  defaultColDef: { editable: true, filter: true, sortable: true, resizable: true },
+  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
 
   // Editing
   stopEditingWhenCellsLoseFocus: true,
@@ -96,13 +98,13 @@ const gridOptions: GridOptions = {
   // Styling
   suppressRowTransform: true,
 
-  // // EVENTS
-  // // Miscellaneous
-  // onGridReady: () => {},
-  // onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
+  // EVENTS
+  // Miscellaneous
+  onGridReady: () => {},
+  onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
 
-  // // RowModel: Client-Side
-  // onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
+  // RowModel: Client-Side
+  onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
 }
 
 
@@ -137,7 +139,6 @@ function addItemToGrid ( item: GridItem ) {
     lendQty: item.lendQty,
   } )
   gridOptions.api?.setRowData( rowData.value )
-  gridOptions.columnApi?.autoSizeAllColumns()
 }
 
 
@@ -147,53 +148,53 @@ async function onClickAddMaterialButton ( event: Event ) {
 
   // Quantity should greater than zero
   if ( materialAdditionFormValue.value.quantity <= 0 ) {
-    message.error( '數量應大於零' );
-    return false;
+    message.error( '數量應大於零' )
+    return false
   }
 
   // `material_idno` cannot be empty
   if ( materialAdditionFormValue.value.material_idno.trim() === '' ) {
-    message.error( '請填入物料代碼' );
-    return false;
+    message.error( '請填入物料代碼' )
+    return false
   }
 
   // Check if the material exists
   // Handle 404 and other errors
-  try { const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } ); }
+  try { const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } ) }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '無此物料' );
-      return false;
+      message.error( '無此物料' )
+      return false
     } else {
-      message.error( '物料讀取失敗' );
-      return false;
+      message.error( '物料讀取失敗' )
+      return false
     }
   }
 
   // Check if quantity in-stock is enough
-  const materialInStockBalance = await IssuancesService.getMaterialIssuableBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
+  const materialInStockBalance = await IssuancesService.getMaterialIssuableBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } )
   if ( materialAdditionFormValue.value.quantity > materialInStockBalance ) {
-    message.error( `庫存數量 ${ materialInStockBalance.toLocaleString() }，需求數量不可大於庫存數量` );
-    return false;
+    message.error( `庫存數量 ${ materialInStockBalance.toLocaleString() }，需求數量不可大於庫存數量` )
+    return false
   }
 
   // Clear the material's all inventories in grid
-  rowData.value = rowData.value.filter( row => row.materialIdno !== materialAdditionFormValue.value.material_idno.trim() );
-  gridOptions.api?.setRowData( rowData.value );
+  rowData.value = rowData.value.filter( row => row.materialIdno !== materialAdditionFormValue.value.material_idno.trim() )
+  gridOptions.api?.setRowData( rowData.value )
 
   // Take demand inventories
-  let askedQuantity = materialAdditionFormValue.value.quantity;
-  let issuedQuantity = 0;
-  let issuedMaterialInventories: MaterialInventoryRead[] = [];
-  const materialInventories = await IssuancesService.getIssuableMaterialInventories( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
+  let askedQuantity = materialAdditionFormValue.value.quantity
+  let issuedQuantity = 0
+  let issuedMaterialInventories: MaterialInventoryRead[] = []
+  const materialInventories = await IssuancesService.getIssuableMaterialInventories( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } )
   while ( issuedQuantity < askedQuantity ) {
-    const materialInventory = materialInventories.shift() as MaterialInventoryRead;
-    const materialInventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: materialInventory.id } );
-    issuedQuantity += materialInventoryBalance;
-    issuedMaterialInventories.push( materialInventory as MaterialInventoryRead );
+    const materialInventory = materialInventories.shift() as MaterialInventoryRead
+    const materialInventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: materialInventory.id } )
+    issuedQuantity += materialInventoryBalance
+    issuedMaterialInventories.push( materialInventory as MaterialInventoryRead )
   }
-  let lendQuantity = issuedQuantity - askedQuantity;
-  issuedQuantity -= lendQuantity;
+  let lendQuantity = issuedQuantity - askedQuantity
+  issuedQuantity -= lendQuantity
 
   // Build grid row data
   issuedMaterialInventories.forEach( async ( inventory, i ) => {
@@ -219,12 +220,12 @@ async function onClickAddMaterialButton ( event: Event ) {
   } )
 
   // Clear materialAdditionFormValue
-  materialAdditionFormValue.value.material_idno = '';
-  materialAdditionFormValue.value.issuable_balance = 0;
-  materialAdditionFormValue.value.quantity = 0;
+  materialAdditionFormValue.value.material_idno = ''
+  materialAdditionFormValue.value.issuable_balance = 0
+  materialAdditionFormValue.value.quantity = 0
 
   // Focus at `material_idno` input field
-  materialIdnoInput.value.focus();
+  materialIdnoInput.value.focus()
 }
 
 
