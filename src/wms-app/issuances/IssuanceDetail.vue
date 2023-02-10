@@ -37,6 +37,8 @@ type GridItem = {
   materialInventoryIdno: string,
   issueQty: number,
   lendQty: number,
+  retainQty: number,
+  totalQty: number,
 }
 
 const rowData = ref<GridItem[]>( [] );
@@ -45,12 +47,126 @@ const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "materialIdno", headerName: '物料代碼' },
-    { field: "materialInventoryIdno", headerName: '單包代碼' },
-    { field: "issueQty", headerName: '發出數量' },
-    { field: "lendQty", headerName: '借出數量' },
+    {
+      field: "materialInventoryIdno", headerName: '單包代碼',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return true } },
+      async onCellValueChanged ( params ) {
+        // Make pinned row as an input of creating a new issuance item
+        // Take expired material inventory from here is **allowed**.
+
+        // `material_inventory_idno` cannot be empty
+        if ( !!!params.newValue ) {
+          message.error( '請填入單包代碼' )
+          return false
+        }
+
+        // Check if the material inventory exists
+        // Handle 404 and other errors
+        let materialInventory: MaterialInventoryRead
+        try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: params.newValue.trim() } ) }
+        catch ( error ) {
+          if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此單包' ) }
+          else { message.error( '讀取失敗' ) }
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory available (not locked) for issuing
+        if ( materialInventory.issuing_locked === true ) {
+          message.error( '此單包已被其他發料單使用' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory's quantity is larger than 0
+        const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
+          materialInventoryId: materialInventory.id,
+          onlyIssuable: true,
+        } )
+        if ( balance <= 0 ) {
+          message.error( '此單包已無可用庫存' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory is in-stock
+        const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } )
+        if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
+          message.error( '此單包已無可用庫存' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        params.data.materialIdno = materialInventory.material_idno
+        params.data.materialInventoryId = materialInventory.id
+        params.data.materialInventoryIdno = materialInventory.idno
+        params.data.totalQty = balance
+        params.data.issueQty = balance
+        params.data.retainQty = 0
+        params.data.lendQty = 0
+        params.columnApi.autoSizeAllColumns()
+        // addItemToGrid( params.data )
+        params.api.setPinnedTopRowData( [ {} ] )
+        params.api.refreshCells()
+      },
+    },
+    { field: "materialIdno", headerName: '物料代碼', editable: false },
+    { field: "totalQty", headerName: '合計數量', editable: false, type: 'numericColumn', cellEditor: false },
+    {
+      field: "issueQty", headerName: '發出數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue > params.data.totalQty ) { return false }
+        params.data.issueQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.retainQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.lendQty = 0
+        updateIssuanceItem()
+        return true
+      }
+    },
+    {
+      field: "retainQty", headerName: '保留數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.retainQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.lendQty = 0
+        updateIssuanceItem()
+        return true
+      },
+    },
+    {
+      field: "lendQty", headerName: '借出數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.lendQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.retainQty = 0
+        updateIssuanceItem()
+        return true
+      }
+    },
   ],
-  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+  defaultColDef: {
+    editable: true, filter: true, sortable: true, resizable: true,
+    valueFormatter: ( params ) => {
+      if ( params.node.rowPinned === 'top' && !!!params.value && params.colDef.field == 'materialInventoryIdno' ) {
+        return '請輸入' + params.colDef.headerName
+      }
+    },
+  },
 
   // Editing
   stopEditingWhenCellsLoseFocus: true,
@@ -64,7 +180,11 @@ const gridOptions: GridOptions = {
   pagination: true,
 
   // Rendering
+  enableCellChangeFlash: true,
   suppressColumnVirtualisation: true,
+
+  // Row Pinning
+  pinnedTopRowData: [ {} ],
 
   // RowModel
   getRowId: ( params: GetRowIdParams<GridItem> ) => { return params.data.materialInventoryId.toString() },
@@ -73,15 +193,21 @@ const gridOptions: GridOptions = {
   debounceVerticalScrollbar: false,
 
   // Selection
-  enableCellTextSelection: true,
   rowSelection: 'single',
-  suppressCellFocus: true,
+  rowMultiSelectWithClick: true,
+  enableCellTextSelection: true,
+  suppressCellFocus: false,
 
   // Styling
+  getRowStyle: ( params ) => { if ( params.node.rowPinned ) { return { 'font-weight': 'bold' } } },
   suppressRowTransform: true,
 
   // EVENTS
   // Miscellaneous
+  onViewportChanged: ( event ) => { event.columnApi.autoSizeAllColumns() },
+
+  // RowModel: Client-Side
+  onRowDataUpdated: ( event ) => { event.columnApi.autoSizeAllColumns() },
 }
 
 const issuance = ref<IssuanceRead>();
@@ -106,6 +232,8 @@ onBeforeMount( async () => {
         materialInventoryIdno: issuanceItem.material_inventory_idno,
         issueQty: issuanceItem.issue_qty,
         lendQty: issuanceItem.lend_qty,
+        retainQty: issuanceItem.retain_qty,
+        totalQty: issuanceItem.issue_qty + issuanceItem.lend_qty + issuanceItem.retain_qty,
       } )
     }
     gridOptions.api.setRowData( rowData.value )
@@ -206,6 +334,8 @@ async function onClickAddInventoryButton ( event: Event ) {
       materialInventoryIdno: item.material_inventory_idno,
       issueQty: item.issue_qty,
       lendQty: item.lend_qty,
+      retainQty: item.retain_qty,
+      totalQty: balance,
     } )
     gridOptions.api.setRowData( rowData.value )
 
@@ -249,6 +379,11 @@ async function onClickRemoveRowButton ( event: Event ) {
     message.error( '刪除失敗' )
     return false
   }
+}
+
+
+function updateIssuanceItem () {
+
 }
 </script>
 
