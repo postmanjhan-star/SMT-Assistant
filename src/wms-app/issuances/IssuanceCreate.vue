@@ -71,14 +71,111 @@ const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "materialInventoryIdno", headerName: '單包代碼', editable: true },
+    {
+      field: "materialInventoryIdno", headerName: '單包代碼',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return true } },
+      async onCellValueChanged ( params ) {
+        // Make pinned row as an input of creating a new issuance item
+        // Take expired material inventory from here is **allowed**.
+
+        // `material_inventory_idno` cannot be empty
+        if ( !!!params.newValue ) {
+          message.error( '請填入單包代碼' )
+          return false
+        }
+
+        // Check if the material inventory exists
+        // Handle 404 and other errors
+        let materialInventory: MaterialInventoryRead
+        try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: params.newValue.trim() } ) }
+        catch ( error ) {
+          if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此單包' ) }
+          else { message.error( '讀取失敗' ) }
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory available (not locked) for issuing
+        if ( materialInventory.issuing_locked === true ) {
+          message.error( '此單包已被其他發料單使用' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory's quantity is larger than 0
+        const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
+          materialInventoryId: materialInventory.id,
+          onlyIssuable: true,
+        } )
+        if ( balance <= 0 ) {
+          message.error( '此單包已無可用庫存' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory is in-stock
+        const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } )
+        if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
+          message.error( '此單包已無可用庫存' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        params.data.materialIdno = materialInventory.material_idno
+        params.data.materialInventoryId = materialInventory.id
+        params.data.materialInventoryIdno = materialInventory.idno
+        params.data.totalQty = balance
+        params.data.issueQty = balance
+        params.data.retainQty = 0
+        params.data.lendQty = 0
+        params.columnApi.autoSizeAllColumns()
+        addItemToGrid( params.data )
+        params.api.setPinnedTopRowData( [ {} ] )
+        params.api.refreshCells()
+      },
+    },
     { field: "materialIdno", headerName: '物料代碼', editable: false },
-    { field: "totalQty", headerName: '合計數量', editable: false },
-    { field: "issueQty", headerName: '發出數量', editable: true },
-    { field: "lendQty", headerName: '借出數量', editable: true },
-    { field: "retainQty", headerName: '保留數量', editable: true },
+    { field: "totalQty", headerName: '合計數量', editable: false, type: 'numericColumn' },
+    {
+      field: "issueQty", headerName: '發出數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( params.newValue > params.data.totalQty ) { return false }
+        params.data.issueQty = params.newValue
+        params.data.retainQty = params.data.totalQty - params.newValue
+        params.data.lendQty = 0
+        return true
+      }
+    },
+    {
+      field: "retainQty", headerName: '保留數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        params.data.retainQty = params.newValue
+        params.data.lendQty = 0
+        return true
+      },
+    },
+    {
+      field: "lendQty", headerName: '借出數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+    },
   ],
-  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+  defaultColDef: {
+    editable: true, filter: true, sortable: true, resizable: true,
+    valueFormatter: ( params ) => {
+      if ( params.node.rowPinned === 'top' && !!!params.value && params.colDef.field == 'materialInventoryIdno' ) {
+        return '請輸入' + params.colDef.headerName
+      }
+    }
+  },
 
   // Editing
   stopEditingWhenCellsLoseFocus: true,
@@ -92,7 +189,11 @@ const gridOptions: GridOptions = {
   pagination: true,
 
   // Rendering
+  enableCellChangeFlash: true,
   suppressColumnVirtualisation: true,
+
+  // Row Pinning
+  pinnedTopRowData: [ {} ],
 
   // RowModel
   getRowId: ( params: GetRowIdParams<GridItem> ) => { return params.data.materialInventoryId.toString() },
@@ -103,18 +204,22 @@ const gridOptions: GridOptions = {
   // Selection
   enableCellTextSelection: true,
   rowSelection: 'single',
-  suppressCellFocus: true,
+  suppressCellFocus: false,
 
   // Styling
+  getRowStyle: ( params ) => { if ( params.node.rowPinned ) { return { 'font-weight': 'bold' } } },
   suppressRowTransform: true,
 
   // EVENTS
+  // Editing
+  onCellEditingStopped ( event ) { },
+
   // Miscellaneous
   onGridReady: () => { },
-  onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
+  onViewportChanged: ( event ) => { event.columnApi.autoSizeAllColumns() },
 
   // RowModel: Client-Side
-  onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
+  onRowDataUpdated: ( event ) => { event.columnApi.autoSizeAllColumns() },
 }
 
 
@@ -202,7 +307,7 @@ async function onClickAddMaterialButton ( event: Event ) {
 
     if ( i == toIssueMaterialInventories.length - 1 ) {
       gridItem.lendQty = parseFloat( toLendQuantity.toFixed( 4 ) )
-      gridItem.issueQty = parseFloat( (inventoryBalance - gridItem.lendQty).toFixed( 4 ) )
+      gridItem.issueQty = parseFloat( ( inventoryBalance - gridItem.lendQty ).toFixed( 4 ) )
     }
 
     addItemToGrid( gridItem )
@@ -224,28 +329,24 @@ async function onClickAddInventoryButton ( event: Event ) {
 
   // `material_inventory_idno` cannot be empty
   if ( materialInventoryFormValue.value.material_inventory_idno.trim() === '' ) {
-    message.error( '請填入單包代碼' );
-    return false;
+    message.error( '請填入單包代碼' )
+    return false
   }
 
   // Check if the material inventory exists
   // Handle 404 and other errors
-  let materialInventory: MaterialInventoryRead;
-  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialInventoryFormValue.value.material_inventory_idno.trim() } ); }
+  let materialInventory: MaterialInventoryRead
+  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialInventoryFormValue.value.material_inventory_idno.trim() } ) }
   catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '無此單包' );
-      return false;
-    } else {
-      message.error( '讀取失敗' );
-      return false;
-    }
+    if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此單包' ) }
+    else { message.error( '讀取失敗' ) }
+    return false
   }
 
   // Check if the material inventory available (not locked) for issuing
   if ( materialInventory.issuing_locked === true ) {
-    message.error( '此單包已被其他發料單使用' );
-    return false;
+    message.error( '此單包已被其他發料單使用' )
+    return false
   }
 
   // Check if the material inventory's quantity is larger than 0
@@ -254,15 +355,15 @@ async function onClickAddInventoryButton ( event: Event ) {
     onlyIssuable: true,
   } )
   if ( balance <= 0 ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
+    message.error( '此單包已無可用庫存' )
+    return false
   }
 
   // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id as number } );
+  const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } )
   if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
+    message.error( '此單包已無可用庫存' )
+    return false
   }
 
   // Add material inventories into the grid
