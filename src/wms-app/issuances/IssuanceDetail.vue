@@ -32,12 +32,12 @@ const headerFormValue = ref( {
 
 type GridItem = {
   id: number,
-  material_idno: string,
-  material_inventory_id: number,
-  material_inventory_idno: string,
-  issue_qty: number,
-  lend_qty: number,
-};
+  materialIdno: string,
+  materialInventoryId: number,
+  materialInventoryIdno: string,
+  issueQty: number,
+  lendQty: number,
+}
 
 const rowData = ref<GridItem[]>( [] );
 
@@ -45,10 +45,10 @@ const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "material_idno", headerName: '物料代碼' },
-    { field: "material_inventory_idno", headerName: '單包代碼' },
-    { field: "issue_qty", headerName: '發出數量' },
-    { field: "lend_qty", headerName: '借出數量' },
+    { field: "materialIdno", headerName: '物料代碼' },
+    { field: "materialInventoryIdno", headerName: '單包代碼' },
+    { field: "issueQty", headerName: '發出數量' },
+    { field: "lendQty", headerName: '借出數量' },
   ],
   defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
 
@@ -67,7 +67,7 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
 
   // RowModel
-  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
+  getRowId: ( params: GetRowIdParams<GridItem> ) => { return params.data.materialInventoryId.toString() },
 
   // Scrolling
   debounceVerticalScrollbar: false,
@@ -101,11 +101,11 @@ onBeforeMount( async () => {
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       rowData.value.push( {
         id: issuanceItem.id,
-        material_idno: issuanceItem.material_idno,
-        material_inventory_id: issuanceItem.material_inventory_id,
-        material_inventory_idno: issuanceItem.material_inventory_idno,
-        issue_qty: issuanceItem.issue_qty,
-        lend_qty: issuanceItem.lend_qty,
+        materialIdno: issuanceItem.material_idno,
+        materialInventoryId: issuanceItem.material_inventory_id,
+        materialInventoryIdno: issuanceItem.material_inventory_idno,
+        issueQty: issuanceItem.issue_qty,
+        lendQty: issuanceItem.lend_qty,
       } )
     }
     gridOptions.api.setRowData( rowData.value )
@@ -201,15 +201,15 @@ async function onClickAddInventoryButton ( event: Event ) {
     // Add the responsed issuance item to grid
     rowData.value.unshift( {
       id: item.id,
-      material_idno: item.material_idno,
-      material_inventory_id: item.material_inventory_id,
-      material_inventory_idno: item.material_inventory_idno,
-      issue_qty: item.issue_qty,
-      lend_qty: item.lend_qty,
+      materialIdno: item.material_idno,
+      materialInventoryId: item.material_inventory_id,
+      materialInventoryIdno: item.material_inventory_idno,
+      issueQty: item.issue_qty,
+      lendQty: item.lend_qty,
     } )
     gridOptions.api.setRowData( rowData.value )
 
-    message.success( '已增加成功 👍' )
+    message.success( '增加成功 👍' )
 
     // Clear materialAdditionFormValue
     inventoryAdditionFormValue.value.inventoryIdno = ''
@@ -243,7 +243,7 @@ async function onClickRemoveRowButton ( event: Event ) {
     message.success( '已刪除 🗑️' )
 
     // Remove the row from grid
-    rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno )
+    rowData.value = rowData.value.filter( row => row.materialInventoryIdno !== selectedRows[ 0 ].materialInventoryIdno )
     gridOptions.api.setRowData( rowData.value )
   } catch ( error ) {
     message.error( '刪除失敗' )
