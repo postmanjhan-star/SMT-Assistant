@@ -171,6 +171,7 @@ const gridOptions: GridOptions = {
         params.data.lendQty = parseFloat( params.newValue.toFixed( 4 ) )
         params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
         params.data.retainQty = 0
+        return true
       }
     },
   ],
@@ -209,6 +210,7 @@ const gridOptions: GridOptions = {
 
   // Selection
   rowSelection: 'single',
+  rowMultiSelectWithClick: true,
   enableCellTextSelection: true,
   suppressCellFocus: false,
 
