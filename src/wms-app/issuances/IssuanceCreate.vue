@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridOptions, RowDataUpdatedEvent, ViewportChangedEvent } from "ag-grid-community"
+import { GetRowIdParams, GridOptions } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
@@ -29,7 +29,6 @@ const headerFormValue = ref( {
 
 const materialIdnoInput = ref();
 const materialUnit = ref();
-const materialInventoryIdnoInput = ref();
 
 type GridItem = {
   materialIdno: string,
@@ -61,10 +60,6 @@ const materialAdditionFormValue = ref<MaterialAdditionFormValue>( {
   issuableBalance: 0,
   quantity: 0,
 } )
-
-const materialInventoryFormValue = ref( {
-  material_inventory_idno: '',
-} );
 
 const rowData = ref<GridItem[]>( [] );
 const gridOptions: GridOptions = {
@@ -145,9 +140,10 @@ const gridOptions: GridOptions = {
       editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
       valueParser: ( params ) => { return Number( params.newValue ) },
       valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
         if ( params.newValue > params.data.totalQty ) { return false }
-        params.data.issueQty = params.newValue
-        params.data.retainQty = params.data.totalQty - params.newValue
+        params.data.issueQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.retainQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
         params.data.lendQty = 0
         return true
       }
@@ -157,7 +153,10 @@ const gridOptions: GridOptions = {
       editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
       valueParser: ( params ) => { return Number( params.newValue ) },
       valueSetter: ( params ) => {
-        params.data.retainQty = params.newValue
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.retainQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
         params.data.lendQty = 0
         return true
       },
@@ -166,6 +165,13 @@ const gridOptions: GridOptions = {
       field: "lendQty", headerName: '借出數量', type: 'numericColumn',
       editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
       valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.lendQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.retainQty = 0
+      }
     },
   ],
   defaultColDef: {
@@ -174,7 +180,7 @@ const gridOptions: GridOptions = {
       if ( params.node.rowPinned === 'top' && !!!params.value && params.colDef.field == 'materialInventoryIdno' ) {
         return '請輸入' + params.colDef.headerName
       }
-    }
+    },
   },
 
   // Editing
@@ -202,8 +208,8 @@ const gridOptions: GridOptions = {
   debounceVerticalScrollbar: false,
 
   // Selection
-  enableCellTextSelection: true,
   rowSelection: 'single',
+  enableCellTextSelection: true,
   suppressCellFocus: false,
 
   // Styling
@@ -321,69 +327,6 @@ async function onClickAddMaterialButton ( event: Event ) {
   // Focus at `material_idno` input field
   materialIdnoInput.value.focus()
 }
-
-
-
-async function onClickAddInventoryButton ( event: Event ) {
-  // Take expired material inventory in thie function is allowed.
-
-  // `material_inventory_idno` cannot be empty
-  if ( materialInventoryFormValue.value.material_inventory_idno.trim() === '' ) {
-    message.error( '請填入單包代碼' )
-    return false
-  }
-
-  // Check if the material inventory exists
-  // Handle 404 and other errors
-  let materialInventory: MaterialInventoryRead
-  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialInventoryFormValue.value.material_inventory_idno.trim() } ) }
-  catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此單包' ) }
-    else { message.error( '讀取失敗' ) }
-    return false
-  }
-
-  // Check if the material inventory available (not locked) for issuing
-  if ( materialInventory.issuing_locked === true ) {
-    message.error( '此單包已被其他發料單使用' )
-    return false
-  }
-
-  // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
-    materialInventoryId: materialInventory.id,
-    onlyIssuable: true,
-  } )
-  if ( balance <= 0 ) {
-    message.error( '此單包已無可用庫存' )
-    return false
-  }
-
-  // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } )
-  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    message.error( '此單包已無可用庫存' )
-    return false
-  }
-
-  // Add material inventories into the grid
-  addItemToGrid( {
-    materialIdno: materialInventory.material_idno,
-    materialInventoryId: materialInventory.id,
-    materialInventoryIdno: materialInventory.idno,
-    issueQty: balance,
-    lendQty: 0,
-    retainQty: 0,
-    totalQty: balance,
-  } )
-
-  // Clear materialAdditionFormValue
-  materialInventoryFormValue.value.material_inventory_idno = ''
-
-  // Focus at `material_idno` input field
-  materialInventoryIdnoInput.value.focus()
-}
-
 
 
 function onClickRemoveRowButton ( event: Event ) {
@@ -555,22 +498,6 @@ async function onClickCreateIssuanceButton ( event: Event ) {
                   <n-form-item>
                     <n-button type="primary" secondary strong @click=" onClickAddMaterialButton( $event ) "
                       attr-type="submit" id="add_by_material">+</n-button>
-                  </n-form-item>
-
-                </n-space>
-              </n-form>
-
-              <n-form size="large" :model=" materialInventoryFormValue ">
-                <n-space size="large">
-
-                  <n-form-item label="單包代碼">
-                    <n-input v-model:value.lazy=" materialInventoryFormValue.material_inventory_idno "
-                      :input-props=" { id: 'inventoryIdnoInput' } " ref="materialInventoryIdnoInput"> </n-input>
-                  </n-form-item>
-
-                  <n-form-item>
-                    <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                      attr-type="submit" id="addByInventory">+</n-button>
                   </n-form-item>
 
                 </n-space>
