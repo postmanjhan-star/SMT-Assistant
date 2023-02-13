@@ -74,7 +74,7 @@ const gridOptions: GridOptions = {
 
         // Check if the material inventory available (not locked) for issuing
         if ( materialInventory.issuing_locked === true ) {
-          message.error( '此單包已被其他發料單使用' )
+          message.error( '此單包已被發料單使用' )
           params.data.materialInventoryIdno = ''
           params.api.refreshCells()
           return false
@@ -109,7 +109,38 @@ const gridOptions: GridOptions = {
         params.data.retainQty = 0
         params.data.lendQty = 0
         params.columnApi.autoSizeAllColumns()
-        // addItemToGrid( params.data )
+
+        try {
+          // Request adding item with backend
+          const item = await IssuancesService.addIssuanceItem( {
+            issuanceIdno: route.params.idno.toString(),
+            requestBody: {
+              material_inventory_id: params.data.materialInventoryId,
+              issue_qty: params.data.issueQty,
+              retain_qty: params.data.retainQty,
+              lend_qty: params.data.lendQty,
+            },
+          } )
+
+          // Add the responsed issuance item to grid
+          rowData.value.unshift( {
+            id: item.id,
+            materialIdno: item.material_idno,
+            materialInventoryId: item.material_inventory_id,
+            materialInventoryIdno: item.material_inventory_idno,
+            issueQty: item.issue_qty,
+            lendQty: item.lend_qty,
+            retainQty: item.retain_qty,
+            totalQty: params.data.totalQty,
+          } )
+          gridOptions.api.setRowData( rowData.value )
+
+          message.success( '增加成功 👍' )
+        } catch ( error ) {
+          message.error( '增加失敗' )
+          return false
+        }
+
         params.api.setPinnedTopRowData( [ {} ] )
         params.api.refreshCells()
       },
@@ -266,94 +297,6 @@ async function handleUpdateIssuanceButtonClick ( event: Event ) {
 }
 
 
-const inventoryAdditionFormValue = ref( { inventoryIdno: '' } );
-const inventoryIdnoInput = ref();
-
-
-async function onClickAddInventoryButton ( event: Event ) {
-  // Block updating for a completed issuance
-  if ( issuance.value?.issuing_completed ) { return false; }
-
-  // Input field cannot be empty
-  if ( inventoryAdditionFormValue.value.inventoryIdno.trim() === '' ) {
-    message.error( '請填入單包代碼' );
-    return false;
-  }
-
-  let inventory: MaterialInventoryRead;
-
-  // Check if the material inventory exists
-  // Handle 404 and other errors
-  try { inventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: inventoryAdditionFormValue.value.inventoryIdno.trim() } ); }
-  catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '無此單包' );
-      return false;
-    } else {
-      message.error( '讀取失敗' );
-      return false;
-    }
-  }
-
-  // Check if the material inventory available (not locked) for issuing
-  if ( inventory.issuing_locked === true ) {
-    message.error( '此單包已被其他發料單使用' );
-    return false;
-  }
-
-  // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
-    materialInventoryId: inventory.id,
-    onlyIssuable: true,
-  } )
-  if ( balance <= 0 ) {
-    message.error( '此單包已無可用庫存' )
-    return false
-  }
-
-  // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( { l1Id: inventory.l1_storage_id as number } )
-  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
-  }
-
-
-  try {
-    // Request adding item with backend
-    const item = await IssuancesService.addIssuanceItem( {
-      issuanceIdno: route.params.idno.toString(),
-      requestBody: { material_inventory_id: inventory.id, issue_qty: balance, lend_qty: 0, },
-    } )
-
-    // Add the responsed issuance item to grid
-    rowData.value.unshift( {
-      id: item.id,
-      materialIdno: item.material_idno,
-      materialInventoryId: item.material_inventory_id,
-      materialInventoryIdno: item.material_inventory_idno,
-      issueQty: item.issue_qty,
-      lendQty: item.lend_qty,
-      retainQty: item.retain_qty,
-      totalQty: balance,
-    } )
-    gridOptions.api.setRowData( rowData.value )
-
-    message.success( '增加成功 👍' )
-
-    // Clear materialAdditionFormValue
-    inventoryAdditionFormValue.value.inventoryIdno = ''
-
-    // Focus at `material_idno` input field
-    inventoryIdnoInput.value.focus()
-  } catch ( error ) {
-    message.error( '增加失敗' )
-    return false
-  }
-}
-
-
-
 async function onClickRemoveRowButton ( event: Event ) {
   // Block updating for a completed issuance
   if ( issuance.value?.issuing_completed ) { return false }
@@ -474,8 +417,6 @@ function updateIssuanceItem () {
       </n-space>
     </div>
 
-
-
     <div style="padding: 1rem;">
       <n-space size="large" item-style="height: 40px; vertical-align: center" :align=" 'center' ">
         <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">發料項目</n-h2>
@@ -483,23 +424,6 @@ function updateIssuanceItem () {
 
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
-
-        <n-form size="large" :model=" inventoryAdditionFormValue " :disabled=" issuance?.issuing_completed ">
-          <n-space size="large">
-
-            <n-form-item label="單包代碼">
-              <n-input ref="inventoryIdnoInput" v-model:value.lazy=" inventoryAdditionFormValue.inventoryIdno "
-                :input-props=" { id: 'inventoryIdnoInput' } "></n-input>
-            </n-form-item>
-
-            <n-form-item>
-              <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                :disabled=" issuance?.issuing_completed " attr-type="submit">
-                +</n-button>
-            </n-form-item>
-
-          </n-space>
-        </n-form>
 
         <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
