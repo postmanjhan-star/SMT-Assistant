@@ -377,6 +377,12 @@ const loading = loadingRef
 async function onClickCreateIssuanceButton ( event: Event ) {
   loadingRef.value = true
 
+  if ( rowData.value.length < 1 ) {
+    message.info( '請輸入發料品項' )
+    loadingRef.value = false
+    return false
+  }
+
   if ( issuance ) {
     try { issuance = await updateIssuance() }
     catch ( error ) {
