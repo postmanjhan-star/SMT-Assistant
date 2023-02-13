@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 import { FormInst, FormItemRule, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui'
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
+import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
 import { useAuthStore } from '../../stores/auth'
 
 const message = useMessage();
@@ -15,6 +15,8 @@ const router = useRouter();
 
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
+
+let issuance: IssuanceRead = null
 
 const headerFormValue = ref( {
   st_erp_work_order_idno: '',
@@ -339,13 +341,7 @@ function onClickRemoveRowButton ( event: Event ) {
 }
 
 
-const loadingRef = ref( false );
-const loading = loadingRef;
-
-
-async function onClickCreateIssuanceButton ( event: Event ) {
-  loadingRef.value = true
-
+async function createIssuance () {
   // Build issuance body
   const issuanceCreate: IssuanceCreate = {
     memo: headerFormValue.value.memo,
@@ -357,15 +353,46 @@ async function onClickCreateIssuanceButton ( event: Event ) {
     st_erp_production_department: headerFormValue.value.st_erp_production_department,
     st_erp_production_line: headerFormValue.value.st_erp_production_line,
   }
-
   // Create issuance
-  let issuance: IssuanceRead
   try { issuance = await IssuancesService.createIssuance( { requestBody: issuanceCreate } ) }
-  catch ( error ) {
-    console.error( error.message )
-    message.error( '建立失敗' )
-    loadingRef.value = false
-    return false
+  catch ( error ) { throw error }
+  return issuance
+}
+
+
+async function updateIssuance () {
+  const issuanceUpdate: IssuanceUpdate = {
+    memo: headerFormValue.value.memo
+  }
+  try { issuance = await IssuancesService.updateIssuance( { issuanceIdno: issuance.idno, requestBody: issuanceUpdate } ) }
+  catch ( error ) { throw error }
+  return issuance
+}
+
+
+const loadingRef = ref( false )
+const loading = loadingRef
+
+
+async function onClickCreateIssuanceButton ( event: Event ) {
+  loadingRef.value = true
+
+  if ( issuance ) {
+    try { issuance = await updateIssuance() }
+    catch ( error ) {
+      if ( error instanceof ApiError ) { console.error( error.body ) }
+      message.error( '更新失敗' )
+      loadingRef.value = false
+      return false
+    }
+  } else {
+    try { issuance = await createIssuance() }
+    catch ( error ) {
+      if ( error instanceof ApiError ) { console.error( error.body ) }
+      message.error( '建立失敗' )
+      loadingRef.value = false
+      return false
+    }
   }
 
   // Build issuance items body
