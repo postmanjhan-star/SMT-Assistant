@@ -7,5 +7,6 @@ export type VendorRead = {
     idno: string;
     name: string;
     tax_idno?: string;
+    employee_id: number;
     l1_storage_id?: number;
 };

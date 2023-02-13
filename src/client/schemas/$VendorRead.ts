@@ -4,22 +4,26 @@
 export const $VendorRead = {
     properties: {
         id: {
-            type: 'number',
-            isRequired: true,
-        },
+    type: 'number',
+    isRequired: true,
+},
         idno: {
-            type: 'string',
-            isRequired: true,
-        },
+    type: 'string',
+    isRequired: true,
+},
         name: {
-            type: 'string',
-            isRequired: true,
-        },
+    type: 'string',
+    isRequired: true,
+},
         tax_idno: {
-            type: 'string',
-        },
+    type: 'string',
+},
+        employee_id: {
+    type: 'number',
+    isRequired: true,
+},
         l1_storage_id: {
-            type: 'number',
-        },
+    type: 'number',
+},
     },
 } as const;

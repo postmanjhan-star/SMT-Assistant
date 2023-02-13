@@ -3,20 +3,20 @@
 /* eslint-disable */
 export const $VendorUpdate = {
     properties: {
-        name: {
-    type: 'string',
-    isRequired: true,
-},
         id: {
     type: 'number',
     isRequired: true,
 },
-        tax_idno: {
-    type: 'string',
-},
         idno: {
     type: 'string',
     isRequired: true,
+},
+        name: {
+    type: 'string',
+    isRequired: true,
+},
+        tax_idno: {
+    type: 'string',
 },
     },
 } as const;
