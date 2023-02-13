@@ -359,7 +359,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
   }
 
   // Create issuance
-  let issuance: IssuanceRead;
+  let issuance: IssuanceRead
   try { issuance = await IssuancesService.createIssuance( { requestBody: issuanceCreate } ) }
   catch ( error ) {
     console.error( error.message )
@@ -369,12 +369,13 @@ async function onClickCreateIssuanceButton ( event: Event ) {
   }
 
   // Build issuance items body
-  const issuanceItemsCreate: IssuanceItemCreate[] = [];
+  const issuanceItemsCreate: IssuanceItemCreate[] = []
   for ( let row of rowData.value ) {
     issuanceItemsCreate.push( {
       material_inventory_id: row.materialInventoryId,
       issue_qty: row.issueQty,
       lend_qty: row.lendQty,
+      retain_qty: row.retainQty,
     } )
   }
 
@@ -387,8 +388,8 @@ async function onClickCreateIssuanceButton ( event: Event ) {
     return false
   }
 
-  message.success( `發料單 ${ issuance.idno } 建立成功` );
-  router.push( '/wms/issuances' );
+  message.success( `發料單 ${ issuance.idno } 建立成功` )
+  router.push( '/wms/issuances' )
 }
 </script>
 
