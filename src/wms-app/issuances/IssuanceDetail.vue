@@ -266,15 +266,13 @@ onBeforeMount( async () => {
   } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
 } )
 
-const loadingRef = ref( false )
-const loading = loadingRef
-
+const updateIssuanceButtonLoading = ref( false )
 
 async function onClickUpdateIssuanceButton ( event: Event ) {
   // Block updating for a completed issuance
   if ( issuance.value?.issuing_completed ) { return false }
 
-  loadingRef.value = true
+  updateIssuanceButtonLoading.value = true
 
   // Build issuance body
   const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo }
@@ -283,7 +281,7 @@ async function onClickUpdateIssuanceButton ( event: Event ) {
   try { issuance.value = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ) }
   catch ( error ) {
     message.error( '更新失敗' )
-    loadingRef.value = false
+    updateIssuanceButtonLoading.value = false
     return false
   }
 
@@ -320,8 +318,31 @@ async function onClickRemoveRowButton ( event: Event ) {
 }
 
 
+const updateIssuanceItemsButtonLoading = ref( false )
 function onClickUpdateIssuanceItems ( event: Event ) {
+  updateIssuanceItemsButtonLoading.value = true
 
+  // Check issuance item quantities
+  for (let item of rowData.value) {
+    if ( item.issueQty + item.retainQty + item.lendQty != item.totalQty ) {
+      message.error( `${item.materialInventoryIdno} 數量不合` )
+      return false
+    }
+    if ( item.retainQty > 0 && item.lendQty > 0 ) {
+      message.error( `${item.materialInventoryIdno} 數量不合` )
+      return false
+    }
+  }
+
+  for (let item of rowData.value) {
+    if ( item.id ) {
+      // Update this issuance item
+    } else {
+      // Create a new issuance item
+    }
+  }
+
+  updateIssuanceItemsButtonLoading.value = false
 }
 </script>
 
@@ -401,7 +422,7 @@ function onClickUpdateIssuanceItems ( event: Event ) {
 
             <n-form-item-gi span="3">
               <n-button type="primary" block @click=" onClickUpdateIssuanceButton( $event ) " attr-type="submit"
-                :disabled=" issuance?.issuing_completed " :loading=" loading ">
+                :disabled=" issuance?.issuing_completed " :loading=" updateIssuanceButtonLoading ">
                 更新備註
               </n-button>
             </n-form-item-gi>
@@ -435,15 +456,12 @@ function onClickUpdateIssuanceItems ( event: Event ) {
               </ag-grid-vue>
             </div>
           </n-gi>
-
-          <n-gi span="3">
-            <n-button type="primary" block @click=" onClickUpdateIssuanceItems( $event ) " attr-type="submit"
-              :disabled=" issuance?.issuing_completed " :loading=" loading " size="large">
-              更新發料項目
-            </n-button>
-          </n-gi>
-
         </n-grid>
+
+        <n-button type="primary" block @click=" onClickUpdateIssuanceItems( $event ) " attr-type="submit"
+          :disabled=" issuance?.issuing_completed " :loading=" updateIssuanceItemsButtonLoading " size="large">
+          更新發料項目
+        </n-button>
       </n-space>
     </div>
   </main>
