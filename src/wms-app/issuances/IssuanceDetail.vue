@@ -3,13 +3,11 @@ import { GetRowIdParams, GridOptions } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, NTag, useMessage } from 'naive-ui'
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, useMessage } from 'naive-ui'
 import { onBeforeMount, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
-import { useAuthStore } from '../../stores/auth'
-
-
+import { useAuthStore } from '../../stores/auth.js'
 
 const message = useMessage();
 const router = useRouter();
@@ -157,7 +155,6 @@ const gridOptions: GridOptions = {
         params.data.issueQty = parseFloat( params.newValue.toFixed( 4 ) )
         params.data.retainQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
         params.data.lendQty = 0
-        updateIssuanceItem()
         return true
       }
     },
@@ -171,7 +168,6 @@ const gridOptions: GridOptions = {
         params.data.retainQty = parseFloat( params.newValue.toFixed( 4 ) )
         params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
         params.data.lendQty = 0
-        updateIssuanceItem()
         return true
       },
     },
@@ -185,7 +181,6 @@ const gridOptions: GridOptions = {
         params.data.lendQty = parseFloat( params.newValue.toFixed( 4 ) )
         params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
         params.data.retainQty = 0
-        updateIssuanceItem()
         return true
       }
     },
@@ -275,7 +270,7 @@ const loadingRef = ref( false )
 const loading = loadingRef
 
 
-async function handleUpdateIssuanceButtonClick ( event: Event ) {
+async function onClickUpdateIssuanceButton ( event: Event ) {
   // Block updating for a completed issuance
   if ( issuance.value?.issuing_completed ) { return false }
 
@@ -325,7 +320,7 @@ async function onClickRemoveRowButton ( event: Event ) {
 }
 
 
-function updateIssuanceItem () {
+function onClickUpdateIssuanceItems ( event: Event ) {
 
 }
 </script>
@@ -405,7 +400,7 @@ function updateIssuanceItem () {
             </n-form-item-gi>
 
             <n-form-item-gi span="3">
-              <n-button type="primary" block @click=" handleUpdateIssuanceButtonClick( $event ) " attr-type="submit"
+              <n-button type="primary" block @click=" onClickUpdateIssuanceButton( $event ) " attr-type="submit"
                 :disabled=" issuance?.issuing_completed " :loading=" loading ">
                 更新備註
               </n-button>
@@ -439,7 +434,13 @@ function updateIssuanceItem () {
                 :gridOptions=" gridOptions ">
               </ag-grid-vue>
             </div>
+          </n-gi>
 
+          <n-gi span="3">
+            <n-button type="primary" block @click=" onClickUpdateIssuanceItems( $event ) " attr-type="submit"
+              :disabled=" issuance?.issuing_completed " :loading=" loading " size="large">
+              更新發料項目
+            </n-button>
           </n-gi>
 
         </n-grid>

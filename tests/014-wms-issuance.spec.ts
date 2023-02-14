@@ -4,7 +4,7 @@ import { sample } from 'lodash'
 import { MaterialInventoryRead, MaterialRead } from '../src/client/index'
 import { StartPage } from './start-page'
 import { WmsHomePage } from './wms-home-page'
-import { WmsIssuanceCreatPage } from './wms-issuance-create-page'
+import { WmsIssuanceCreatePage } from './wms-issuance-create-page'
 import { WmsIssuanceMainPage } from './wms-issuance-main-page'
 import { WmsLoginPage } from './wms-login-page'
 
@@ -45,10 +45,10 @@ test.describe( 'WMS:Issuance', () => {
     const wmsIssuanceMainPage = new WmsIssuanceMainPage( page )
     await wmsIssuanceMainPage.createIssuance()
 
-    const wmsIssuanceCreatPage = new WmsIssuanceCreatPage( page )
+    const wmsIssuanceCreatePage = new WmsIssuanceCreatePage( page )
 
     const issuanceMemo = generateIssuanceMemo()
-    await wmsIssuanceCreatPage.fillMemo( issuanceMemo )
+    await wmsIssuanceCreatePage.fillMemo( issuanceMemo )
 
     let material: MaterialRead
     let materialIssuableBalance: number
@@ -58,7 +58,7 @@ test.describe( 'WMS:Issuance', () => {
       if ( materialIssuableBalance > 0 ) { break }
     }
     const q = faker.datatype.number( { min: 1, max: materialIssuableBalance } )
-    await wmsIssuanceCreatPage.addIssuanceItemByMaterialIdno( material.idno, q )
+    await wmsIssuanceCreatePage.addIssuanceItemByMaterialIdno( material.idno, q )
 
     while ( true ) {
       material = await getRandomMaterial( requestContext )
@@ -69,12 +69,12 @@ test.describe( 'WMS:Issuance', () => {
     const inventoryList: MaterialInventoryRead[] = await response.json()
     // console.debug( inventoryList )
     const inventory = sample( inventoryList )
-    await wmsIssuanceCreatPage.addIssuanceItemByInventoryIdno( inventory.idno )
+    await wmsIssuanceCreatePage.addIssuanceItemByInventoryIdno( inventory.idno )
     let rowsDiv = page.locator( '.ag-center-cols-container > div' )
     let row = rowsDiv.filter( { hasText: inventory.idno } )
     expect( row ).toBeTruthy()
 
-    await wmsIssuanceCreatPage.submit()
+    await wmsIssuanceCreatePage.submit()
 
     await page.waitForTimeout( 1000 ) // Force wait!!!
     let rowsDivHandle = await page.waitForSelector( '.ag-center-cols-container > div' ) // Magic wait!!!
