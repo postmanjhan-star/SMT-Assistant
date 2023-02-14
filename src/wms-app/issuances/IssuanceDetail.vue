@@ -319,29 +319,44 @@ async function onClickRemoveRowButton ( event: Event ) {
 
 
 const updateIssuanceItemsButtonLoading = ref( false )
-function onClickUpdateIssuanceItems ( event: Event ) {
+async function onClickUpdateIssuanceItems ( event: Event ) {
   updateIssuanceItemsButtonLoading.value = true
 
   // Check issuance item quantities
-  for (let item of rowData.value) {
+  for ( let item of rowData.value ) {
     if ( item.issueQty + item.retainQty + item.lendQty != item.totalQty ) {
-      message.error( `${item.materialInventoryIdno} 數量不合` )
+      message.error( `${ item.materialInventoryIdno } 數量不合` )
       return false
     }
     if ( item.retainQty > 0 && item.lendQty > 0 ) {
-      message.error( `${item.materialInventoryIdno} 數量不合` )
+      message.error( `${ item.materialInventoryIdno } 數量不合` )
       return false
     }
   }
 
-  for (let item of rowData.value) {
+  for ( let item of rowData.value ) {
     if ( item.id ) {
       // Update this issuance item
+      const issuanceItem = await IssuancesService.updateIssuanceItem( {
+        issuanceIdno: route.params.idno.toString(),
+        issuanceItemId: item.id,
+        requestBody: { issue_qty: item.issueQty, retain_qty: item.retainQty, lend_qty: item.lendQty }
+      } )
     } else {
       // Create a new issuance item
+      const issuanceItem = await IssuancesService.addIssuanceItem( {
+        issuanceIdno: route.params.idno.toString(),
+        requestBody: {
+          material_inventory_id: item.materialInventoryId,
+          issue_qty: item.issueQty,
+          retain_qty: item.retainQty,
+          lend_qty: item.lendQty,
+        }
+      } )
+      item.id = issuanceItem.id
     }
   }
-
+  message.success( '更新成功' )
   updateIssuanceItemsButtonLoading.value = false
 }
 </script>
