@@ -223,6 +223,7 @@ async function onClickConfirmPickingButton ( event: Event ) {
     if ( issuance.value.issuing_completed ) { message.success( `發料完成` ) }
     if ( issuance.value.issuing_completed === false ) { throw Error }
   } catch ( error ) {
+    if ( error instanceof ApiError ) { console.error( error.body ) }
     message.error( `發料失敗` )
     return false
   }
