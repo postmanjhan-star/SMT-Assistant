@@ -1,6 +1,6 @@
 import { expect, Locator, Page } from '@playwright/test'
 
-export class WmsIssuanceCreatPage {
+export class WmsIssuanceCreatePage {
     page: Page
 
     constructor ( page: Page ) { this.page = page }
@@ -19,9 +19,11 @@ export class WmsIssuanceCreatPage {
     }
 
     async addIssuanceItemByInventoryIdno ( inventoryIdno: string ) {
-        const inventoryInput = this.page.locator( '#inventoryIdnoInput' )
-        await inventoryInput.fill( inventoryIdno )
-        await this.page.locator( '#addByInventory' ).click()
+        const agGridPinnedRow = this.page.locator( '.ag-floating-top' )
+        const agGridInventoryCell = agGridPinnedRow.locator( '[col-id="materialInventoryIdno"]' )
+        await agGridInventoryCell.dispatchEvent( 'dblclick' )
+        await agGridInventoryCell.locator( 'input' ).fill( inventoryIdno )
+        await agGridInventoryCell.locator( 'input' ).press( 'Enter' )
     }
 
     async submit () { await this.page.getByRole( 'button', { name: '建立發料單' } ).click() }

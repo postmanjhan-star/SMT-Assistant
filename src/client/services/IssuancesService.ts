@@ -4,6 +4,7 @@
 import type { IssuanceCreate } from '../models/IssuanceCreate';
 import type { IssuanceItemCreate } from '../models/IssuanceItemCreate';
 import type { IssuanceItemRead } from '../models/IssuanceItemRead';
+import type { IssuanceItemUpdate } from '../models/IssuanceItemUpdate';
 import type { IssuanceRead } from '../models/IssuanceRead';
 import type { IssuanceReturnCreate } from '../models/IssuanceReturnCreate';
 import type { IssuanceReturnRead } from '../models/IssuanceReturnRead';
@@ -142,6 +143,35 @@ requestBody: IssuanceItemCreate,
             method: 'POST',
             url: '/issuances/{issuance_idno}/add_item',
             path: {
+                'issuance_idno': issuanceIdno,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update Issuance Item
+     * @returns IssuanceItemRead Successful Response
+     * @throws ApiError
+     */
+    public static updateIssuanceItem({
+issuanceItemId,
+issuanceIdno,
+requestBody,
+}: {
+issuanceItemId: number,
+issuanceIdno: string,
+requestBody: IssuanceItemUpdate,
+}): CancelablePromise<IssuanceItemRead> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/issuances/{issuance_idno}/{issuance_item_id}',
+            path: {
+                'issuance_item_id': issuanceItemId,
                 'issuance_idno': issuanceIdno,
             },
             body: requestBody,

@@ -3,13 +3,11 @@ import { GetRowIdParams, GridOptions } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, NTag, useMessage } from 'naive-ui'
+import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NSpace, NTag, useMessage } from 'naive-ui'
 import { onBeforeMount, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError, IssuanceItemRead, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
-import { useAuthStore } from '../../stores/auth'
-
-
+import { useAuthStore } from '../../stores/auth.js'
 
 const message = useMessage();
 const router = useRouter();
@@ -32,12 +30,14 @@ const headerFormValue = ref( {
 
 type GridItem = {
   id: number,
-  material_idno: string,
-  material_inventory_id: number,
-  material_inventory_idno: string,
-  issue_qty: number,
-  lend_qty: number,
-};
+  materialIdno: string,
+  materialInventoryId: number,
+  materialInventoryIdno: string,
+  issueQty: number,
+  lendQty: number,
+  retainQty: number,
+  totalQty: number,
+}
 
 const rowData = ref<GridItem[]>( [] );
 
@@ -45,12 +45,158 @@ const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "material_idno", headerName: '物料代碼' },
-    { field: "material_inventory_idno", headerName: '單包代碼' },
-    { field: "issue_qty", headerName: '發出數量' },
-    { field: "lend_qty", headerName: '借出數量' },
+    {
+      field: "materialInventoryIdno", headerName: '單包代碼',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return true } },
+      async onCellValueChanged ( params ) {
+        // Make pinned row as an input of creating a new issuance item
+        // Take expired material inventory from here is **allowed**.
+
+        // `material_inventory_idno` cannot be empty
+        if ( !!!params.newValue ) {
+          message.error( '請填入單包代碼' )
+          return false
+        }
+
+        // Check if the material inventory exists
+        // Handle 404 and other errors
+        let materialInventory: MaterialInventoryRead
+        try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: params.newValue.trim() } ) }
+        catch ( error ) {
+          if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此單包' ) }
+          else { message.error( '讀取失敗' ) }
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory available (not locked) for issuing
+        if ( materialInventory.issuing_locked === true ) {
+          message.error( '此單包已被發料單使用' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory's in-warehouse quantity is larger than 0
+        let balance = 0
+        const balances = await MaterialInventoriesService.getMaterialInventoryBalances( { materialInventoryIdno: materialInventory.idno } )
+        balances.forEach( async ( value, index, array ) => {
+          if ( value.l1_storage_type == StorageTypeEnum.INTERNAL_WAREHOUSE ) { balance += value.quantity }
+        } )
+        if ( balance <= 0 ) {
+          message.error( '此單包已無可用庫存' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        params.data.materialIdno = materialInventory.material_idno
+        params.data.materialInventoryId = materialInventory.id
+        params.data.materialInventoryIdno = materialInventory.idno
+        params.data.totalQty = balance
+        params.data.issueQty = balance
+        params.data.retainQty = 0
+        params.data.lendQty = 0
+        params.columnApi.autoSizeAllColumns()
+
+        try {
+          // Request adding item with backend
+          const item = await IssuancesService.addIssuanceItem( {
+            issuanceIdno: route.params.idno.toString(),
+            requestBody: {
+              material_inventory_id: params.data.materialInventoryId,
+              issue_qty: params.data.issueQty,
+              retain_qty: params.data.retainQty,
+              lend_qty: params.data.lendQty,
+            },
+          } )
+
+          // Add the responsed issuance item to grid
+          rowData.value.unshift( {
+            id: item.id,
+            materialIdno: item.material_idno,
+            materialInventoryId: item.material_inventory_id,
+            materialInventoryIdno: item.material_inventory_idno,
+            issueQty: item.issue_qty,
+            lendQty: item.lend_qty,
+            retainQty: item.retain_qty,
+            totalQty: params.data.totalQty,
+          } )
+          gridOptions.api.setRowData( rowData.value )
+
+          message.success( '增加成功 👍' )
+        } catch ( error ) {
+          if ( error instanceof ApiError ) { console.error( error.body ) }
+          message.error( '增加失敗' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        params.api.setPinnedTopRowData( [ {} ] )
+        params.api.refreshCells()
+      },
+    },
+    { field: "materialIdno", headerName: '物料代碼', editable: false },
+    { field: "totalQty", headerName: '合計數量', editable: false, type: 'numericColumn', cellEditor: false },
+    {
+      field: "issueQty", headerName: '發出數量', type: 'numericColumn',
+      editable: ( params ) => {
+        if ( issuance.value.issuing_completed ) { return false }
+        if ( params.node.rowPinned === 'top' ) { return false } else { return true }
+      },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue > params.data.totalQty ) { return false }
+        params.data.issueQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.retainQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.lendQty = 0
+        return true
+      }
+    },
+    {
+      field: "retainQty", headerName: '保留數量', type: 'numericColumn',
+      editable: ( params ) => {
+        if ( issuance.value.issuing_completed ) { return false }
+        if ( params.node.rowPinned === 'top' ) { return false } else { return true }
+      },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.retainQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.lendQty = 0
+        return true
+      },
+    },
+    {
+      field: "lendQty", headerName: '借出數量', type: 'numericColumn',
+      editable: ( params ) => {
+        if ( issuance.value.issuing_completed ) { return false }
+        if ( params.node.rowPinned === 'top' ) { return false } else { return true }
+      },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.lendQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.retainQty = 0
+        return true
+      }
+    },
   ],
-  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+  defaultColDef: {
+    editable: true, filter: true, sortable: true, resizable: true,
+    valueFormatter: ( params ) => {
+      if ( params.node.rowPinned === 'top' && !!!params.value && params.colDef.field == 'materialInventoryIdno' ) {
+        return '請輸入' + params.colDef.headerName
+      }
+    },
+  },
 
   // Editing
   stopEditingWhenCellsLoseFocus: true,
@@ -64,24 +210,33 @@ const gridOptions: GridOptions = {
   pagination: true,
 
   // Rendering
+  enableCellChangeFlash: true,
   suppressColumnVirtualisation: true,
 
+  // Row Pinning
+
   // RowModel
-  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
+  getRowId: ( params: GetRowIdParams<GridItem> ) => { return params.data.materialInventoryId.toString() },
 
   // Scrolling
   debounceVerticalScrollbar: false,
 
   // Selection
-  enableCellTextSelection: true,
   rowSelection: 'single',
-  suppressCellFocus: true,
+  rowMultiSelectWithClick: true,
+  enableCellTextSelection: true,
+  suppressCellFocus: false,
 
   // Styling
+  getRowStyle: ( params ) => { if ( params.node.rowPinned ) { return { 'font-weight': 'bold' } } },
   suppressRowTransform: true,
 
   // EVENTS
   // Miscellaneous
+  onViewportChanged: ( event ) => { event.columnApi.autoSizeAllColumns() },
+
+  // RowModel: Client-Side
+  onRowDataUpdated: ( event ) => { event.columnApi.autoSizeAllColumns() },
 }
 
 const issuance = ref<IssuanceRead>();
@@ -101,26 +256,27 @@ onBeforeMount( async () => {
     for ( let issuanceItem of issuance.value.issuance_items as IssuanceItemRead[] ) {
       rowData.value.push( {
         id: issuanceItem.id,
-        material_idno: issuanceItem.material_idno,
-        material_inventory_id: issuanceItem.material_inventory_id,
-        material_inventory_idno: issuanceItem.material_inventory_idno,
-        issue_qty: issuanceItem.issue_qty,
-        lend_qty: issuanceItem.lend_qty,
+        materialIdno: issuanceItem.material_idno,
+        materialInventoryId: issuanceItem.material_inventory_id,
+        materialInventoryIdno: issuanceItem.material_inventory_idno,
+        issueQty: parseFloat( issuanceItem.issue_qty.toFixed( 4 ) ),
+        lendQty: parseFloat( issuanceItem.lend_qty.toFixed( 4 ) ),
+        retainQty: parseFloat( issuanceItem.retain_qty.toFixed( 4 ) ),
+        totalQty: parseFloat( ( issuanceItem.issue_qty + issuanceItem.lend_qty + issuanceItem.retain_qty ).toFixed( 4 ) ),
       } )
     }
     gridOptions.api.setRowData( rowData.value )
+    if ( !issuance.value.issuing_completed ) { gridOptions.api.setPinnedTopRowData( [ {} ] ) }
   } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
 } )
 
-const loadingRef = ref( false )
-const loading = loadingRef
+const updateIssuanceButtonLoading = ref( false )
 
-
-async function handleUpdateIssuanceButtonClick ( event: Event ) {
+async function onClickUpdateIssuanceButton ( event: Event ) {
   // Block updating for a completed issuance
   if ( issuance.value?.issuing_completed ) { return false }
 
-  loadingRef.value = true
+  updateIssuanceButtonLoading.value = true
 
   // Build issuance body
   const issuanceUpdate: IssuanceUpdate = { memo: headerFormValue.value.memo }
@@ -129,99 +285,13 @@ async function handleUpdateIssuanceButtonClick ( event: Event ) {
   try { issuance.value = await IssuancesService.updateIssuance( { issuanceIdno: route.params.idno.toString(), requestBody: issuanceUpdate } ) }
   catch ( error ) {
     message.error( '更新失敗' )
-    loadingRef.value = false
+    updateIssuanceButtonLoading.value = false
     return false
   }
 
   message.success( `發料單 ${ issuance.value.idno } 更新成功` )
   router.push( '/wms/issuances' )
 }
-
-
-const inventoryAdditionFormValue = ref( { inventoryIdno: '' } );
-const inventoryIdnoInput = ref();
-
-
-async function onClickAddInventoryButton ( event: Event ) {
-  // Block updating for a completed issuance
-  if ( issuance.value?.issuing_completed ) { return false; }
-
-  // Input field cannot be empty
-  if ( inventoryAdditionFormValue.value.inventoryIdno.trim() === '' ) {
-    message.error( '請填入單包代碼' );
-    return false;
-  }
-
-  let inventory: MaterialInventoryRead;
-
-  // Check if the material inventory exists
-  // Handle 404 and other errors
-  try { inventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: inventoryAdditionFormValue.value.inventoryIdno.trim() } ); }
-  catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '無此單包' );
-      return false;
-    } else {
-      message.error( '讀取失敗' );
-      return false;
-    }
-  }
-
-  // Check if the material inventory available (not locked) for issuing
-  if ( inventory.issuing_locked === true ) {
-    message.error( '此單包已被其他發料單使用' );
-    return false;
-  }
-
-  // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
-    materialInventoryId: inventory.id,
-    onlyIssuable: true,
-  } )
-  if ( balance <= 0 ) {
-    message.error( '此單包已無可用庫存' )
-    return false
-  }
-
-  // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( { l1Id: inventory.l1_storage_id as number } )
-  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
-  }
-
-
-  try {
-    // Request adding item with backend
-    const item = await IssuancesService.addIssuanceItem( {
-      issuanceIdno: route.params.idno.toString(),
-      requestBody: { material_inventory_id: inventory.id, issue_qty: balance, lend_qty: 0, },
-    } )
-
-    // Add the responsed issuance item to grid
-    rowData.value.unshift( {
-      id: item.id,
-      material_idno: item.material_idno,
-      material_inventory_id: item.material_inventory_id,
-      material_inventory_idno: item.material_inventory_idno,
-      issue_qty: item.issue_qty,
-      lend_qty: item.lend_qty,
-    } )
-    gridOptions.api.setRowData( rowData.value )
-
-    message.success( '已增加成功 👍' )
-
-    // Clear materialAdditionFormValue
-    inventoryAdditionFormValue.value.inventoryIdno = ''
-
-    // Focus at `material_idno` input field
-    inventoryIdnoInput.value.focus()
-  } catch ( error ) {
-    message.error( '增加失敗' )
-    return false
-  }
-}
-
 
 
 async function onClickRemoveRowButton ( event: Event ) {
@@ -243,12 +313,55 @@ async function onClickRemoveRowButton ( event: Event ) {
     message.success( '已刪除 🗑️' )
 
     // Remove the row from grid
-    rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno )
+    rowData.value = rowData.value.filter( row => row.materialInventoryIdno !== selectedRows[ 0 ].materialInventoryIdno )
     gridOptions.api.setRowData( rowData.value )
   } catch ( error ) {
     message.error( '刪除失敗' )
     return false
   }
+}
+
+
+const updateIssuanceItemsButtonLoading = ref( false )
+async function onClickUpdateIssuanceItems ( event: Event ) {
+  updateIssuanceItemsButtonLoading.value = true
+
+  // Check issuance item quantities
+  for ( let item of rowData.value ) {
+    if ( item.issueQty + item.retainQty + item.lendQty != item.totalQty ) {
+      message.error( `${ item.materialInventoryIdno } 數量不合` )
+      return false
+    }
+    if ( item.retainQty > 0 && item.lendQty > 0 ) {
+      message.error( `${ item.materialInventoryIdno } 數量不合` )
+      return false
+    }
+  }
+
+  for ( let item of rowData.value ) {
+    if ( item.id ) {
+      // Update this issuance item
+      const issuanceItem = await IssuancesService.updateIssuanceItem( {
+        issuanceIdno: route.params.idno.toString(),
+        issuanceItemId: item.id,
+        requestBody: { issue_qty: item.issueQty, retain_qty: item.retainQty, lend_qty: item.lendQty }
+      } )
+    } else {
+      // Create a new issuance item
+      const issuanceItem = await IssuancesService.addIssuanceItem( {
+        issuanceIdno: route.params.idno.toString(),
+        requestBody: {
+          material_inventory_id: item.materialInventoryId,
+          issue_qty: item.issueQty,
+          retain_qty: item.retainQty,
+          lend_qty: item.lendQty,
+        }
+      } )
+      item.id = issuanceItem.id
+    }
+  }
+  message.success( '更新成功' )
+  updateIssuanceItemsButtonLoading.value = false
 }
 </script>
 
@@ -327,8 +440,8 @@ async function onClickRemoveRowButton ( event: Event ) {
             </n-form-item-gi>
 
             <n-form-item-gi span="3">
-              <n-button type="primary" block @click=" handleUpdateIssuanceButtonClick( $event ) " attr-type="submit"
-                :disabled=" issuance?.issuing_completed " :loading=" loading ">
+              <n-button type="primary" block @click=" onClickUpdateIssuanceButton( $event ) " attr-type="submit"
+                :disabled=" issuance?.issuing_completed " :loading=" updateIssuanceButtonLoading ">
                 更新備註
               </n-button>
             </n-form-item-gi>
@@ -339,8 +452,6 @@ async function onClickRemoveRowButton ( event: Event ) {
       </n-space>
     </div>
 
-
-
     <div style="padding: 1rem;">
       <n-space size="large" item-style="height: 40px; vertical-align: center" :align=" 'center' ">
         <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">發料項目</n-h2>
@@ -348,23 +459,6 @@ async function onClickRemoveRowButton ( event: Event ) {
 
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
-
-        <n-form size="large" :model=" inventoryAdditionFormValue " :disabled=" issuance?.issuing_completed ">
-          <n-space size="large">
-
-            <n-form-item label="單包代碼">
-              <n-input ref="inventoryIdnoInput" v-model:value.lazy=" inventoryAdditionFormValue.inventoryIdno "
-                :input-props=" { id: 'inventoryIdnoInput' } "></n-input>
-            </n-form-item>
-
-            <n-form-item>
-              <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                :disabled=" issuance?.issuing_completed " attr-type="submit">
-                +</n-button>
-            </n-form-item>
-
-          </n-space>
-        </n-form>
 
         <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
@@ -380,10 +474,13 @@ async function onClickRemoveRowButton ( event: Event ) {
                 :gridOptions=" gridOptions ">
               </ag-grid-vue>
             </div>
-
           </n-gi>
-
         </n-grid>
+
+        <n-button type="primary" block @click=" onClickUpdateIssuanceItems( $event ) " attr-type="submit"
+          :disabled=" issuance?.issuing_completed " :loading=" updateIssuanceItemsButtonLoading " size="large">
+          更新發料項目
+        </n-button>
       </n-space>
     </div>
   </main>

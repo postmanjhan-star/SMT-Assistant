@@ -1,12 +1,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $IssuanceItemCreate = {
+export const $IssuanceItemUpdate = {
     properties: {
-        material_inventory_id: {
-    type: 'number',
-    isRequired: true,
-},
         issue_qty: {
     type: 'number',
     isRequired: true,

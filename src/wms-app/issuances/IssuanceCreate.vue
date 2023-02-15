@@ -4,10 +4,10 @@ import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
 import { format } from 'date-fns'
-import { FormInst, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui'
+import { FormInst, FormItemRule, FormRules, NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NDivider, NForm, NFormItem, NFormItemGi, NGi, NGrid, NH1, NH2, NInput, NInputNumber, NSpace, useMessage } from 'naive-ui'
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
+import { ApiError, IssuanceCreate, IssuanceItemCreate, IssuanceRead, IssuancesService, IssuanceUpdate, MaterialInventoriesService, MaterialInventoryRead, MaterialsService, OpenAPI, StoragesService, StorageTypeEnum } from '../../client'
 import { useAuthStore } from '../../stores/auth'
 
 const message = useMessage();
@@ -16,7 +16,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
 
-const formRef = ref<FormInst | null>( null )
+let issuance: IssuanceRead = null
+
 const headerFormValue = ref( {
   st_erp_work_order_idno: '',
   st_erp_work_order_date: null,
@@ -30,43 +31,152 @@ const headerFormValue = ref( {
 
 const materialIdnoInput = ref();
 const materialUnit = ref();
-const materialInventoryIdnoInput = ref();
 
 type GridItem = {
-  material_idno: string,
-  material_inventory_id: number,
-  material_inventory_idno: string,
-  issue_qty: number,
-  lend_qty: number,
-};
+  materialIdno: string,
+  materialInventoryId: number,
+  materialInventoryIdno: string,
+  issueQty: number,
+  lendQty: number,
+  retainQty: number,
+  totalQty: number,
+}
+
+const materialAdditionFormRef = ref<FormInst | null>( null )
+const rules: FormRules = {
+  materialIdno: { required: true, message: '請輸入物料代碼', trigger: [ 'blur', 'input', 'change' ] },
+  quantity: {
+    required: true, message: '請輸入數量', trigger: [ 'input', 'change' ], type: 'number',
+    validator: ( rule: FormItemRule, value: number ) => { return ( value > 0 ) },
+  },
+}
 
 type MaterialAdditionFormValue = {
-  material_idno: string,
-  issuable_balance: number,
+  materialIdno: string,
+  issuableBalance: number,
   quantity: number,
-};
+}
 
 const materialAdditionFormValue = ref<MaterialAdditionFormValue>( {
-  material_idno: '',
-  issuable_balance: 0,
+  materialIdno: '',
+  issuableBalance: 0,
   quantity: 0,
-} );
-
-const materialInventoryFormValue = ref( {
-  material_inventory_idno: '',
-} );
+} )
 
 const rowData = ref<GridItem[]>( [] );
 const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "material_idno", headerName: '物料代碼', editable: false },
-    { field: "material_inventory_idno", headerName: '單包代碼', editable: false },
-    { field: "issue_qty", headerName: '發出數量', editable: false },
-    { field: "lend_qty", headerName: '借出數量', editable: false },
+    {
+      field: "materialInventoryIdno", headerName: '單包代碼',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return true } },
+      async onCellValueChanged ( params ) {
+        // Make pinned row as an input of creating a new issuance item
+        // Take expired material inventory from here is **allowed**.
+
+        // `material_inventory_idno` cannot be empty
+        if ( !!!params.newValue ) {
+          message.error( '請填入單包代碼' )
+          return false
+        }
+
+        // Check if the material inventory exists
+        // Handle 404 and other errors
+        let materialInventory: MaterialInventoryRead
+        try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: params.newValue.trim() } ) }
+        catch ( error ) {
+          if ( error instanceof ApiError && error.status === 404 ) { message.error( '無此單包' ) }
+          else { message.error( '讀取失敗' ) }
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory available (not locked) for issuing
+        if ( materialInventory.issuing_locked === true ) {
+          message.error( '此單包已被其他發料單使用' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        // Check if the material inventory's in-warehouse quantity is larger than 0
+        let balance = 0
+        const balances = await MaterialInventoriesService.getMaterialInventoryBalances( { materialInventoryIdno: materialInventory.idno } )
+        balances.forEach( async ( value, index, array ) => {
+          if ( value.l1_storage_type == StorageTypeEnum.INTERNAL_WAREHOUSE ) { balance += value.quantity }
+        } )
+        if ( balance <= 0 ) {
+          message.error( '此單包已無可用庫存' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
+          return false
+        }
+
+        params.data.materialIdno = materialInventory.material_idno
+        params.data.materialInventoryId = materialInventory.id
+        params.data.materialInventoryIdno = materialInventory.idno
+        params.data.totalQty = balance
+        params.data.issueQty = balance
+        params.data.retainQty = 0
+        params.data.lendQty = 0
+        params.columnApi.autoSizeAllColumns()
+        addItemToGrid( params.data )
+        params.api.setPinnedTopRowData( [ {} ] )
+        params.api.refreshCells()
+      },
+    },
+    { field: "materialIdno", headerName: '物料代碼', editable: false },
+    { field: "totalQty", headerName: '合計數量', editable: false, type: 'numericColumn' },
+    {
+      field: "issueQty", headerName: '發出數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue > params.data.totalQty ) { return false }
+        params.data.issueQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.retainQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.lendQty = 0
+        return true
+      }
+    },
+    {
+      field: "retainQty", headerName: '保留數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.retainQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.lendQty = 0
+        return true
+      },
+    },
+    {
+      field: "lendQty", headerName: '借出數量', type: 'numericColumn',
+      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      valueParser: ( params ) => { return Number( params.newValue ) },
+      valueSetter: ( params ) => {
+        if ( isNaN( params.newValue ) ) { return false }
+        if ( params.newValue >= params.data.totalQty ) { return false }
+        params.data.lendQty = parseFloat( params.newValue.toFixed( 4 ) )
+        params.data.issueQty = parseFloat( ( params.data.totalQty - params.newValue ).toFixed( 4 ) )
+        params.data.retainQty = 0
+        return true
+      }
+    },
   ],
-  defaultColDef: { editable: true, filter: true, sortable: true, resizable: true },
+  defaultColDef: {
+    editable: true, filter: true, sortable: true, resizable: true,
+    valueFormatter: ( params ) => {
+      if ( params.node.rowPinned === 'top' && !!!params.value && params.colDef.field == 'materialInventoryIdno' ) {
+        return '請輸入' + params.colDef.headerName
+      }
+    },
+  },
 
   // Editing
   stopEditingWhenCellsLoseFocus: true,
@@ -80,44 +190,53 @@ const gridOptions: GridOptions = {
   pagination: true,
 
   // Rendering
+  enableCellChangeFlash: true,
   suppressColumnVirtualisation: true,
 
+  // Row Pinning
+  pinnedTopRowData: [ {} ],
+
   // RowModel
-  getRowId: ( params: GetRowIdParams ) => { return params.data.material_inventory_id; },
+  getRowId: ( params: GetRowIdParams<GridItem> ) => { return params.data.materialInventoryId.toString() },
 
   // Scrolling
   debounceVerticalScrollbar: false,
 
   // Selection
-  enableCellTextSelection: true,
   rowSelection: 'single',
-  suppressCellFocus: true,
+  rowMultiSelectWithClick: true,
+  enableCellTextSelection: true,
+  suppressCellFocus: false,
 
   // Styling
+  getRowStyle: ( params ) => { if ( params.node.rowPinned ) { return { 'font-weight': 'bold' } } },
   suppressRowTransform: true,
 
-  // // EVENTS
-  // // Miscellaneous
-  // onGridReady: () => {},
-  // onViewportChanged: ( event: ViewportChangedEvent ) => { event.columnApi.autoSizeAllColumns() },
+  // EVENTS
+  // Editing
+  onCellEditingStopped ( event ) { },
 
-  // // RowModel: Client-Side
-  // onRowDataUpdated: ( event: RowDataUpdatedEvent ) => { event.columnApi.autoSizeAllColumns() },
-};
+  // Miscellaneous
+  onGridReady: () => { },
+  onViewportChanged: ( event ) => { event.columnApi.autoSizeAllColumns() },
+
+  // RowModel: Client-Side
+  onRowDataUpdated: ( event ) => { event.columnApi.autoSizeAllColumns() },
+}
 
 
 
 async function onBlurMaterialIdnoInputField () {
-  if ( materialAdditionFormValue.value.material_idno.trim() ) {
+  if ( materialAdditionFormValue.value.materialIdno.trim() ) {
     try {
       // Update in-stock value and unit
-      const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } );
+      const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.materialIdno.trim() } );
       const issuableBalance = await MaterialsService.getMaterialInStockBalance( {
-        materialIdno: materialAdditionFormValue.value.material_idno.trim(),
+        materialIdno: materialAdditionFormValue.value.materialIdno.trim(),
         onlyIssuable: true,
       } );
       materialUnit.value = material.unit;
-      materialAdditionFormValue.value.issuable_balance = issuableBalance;
+      materialAdditionFormValue.value.issuableBalance = issuableBalance;
     } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { materialUnit.value = ''; } }
   }
 }
@@ -126,18 +245,10 @@ async function onBlurMaterialIdnoInputField () {
 
 function addItemToGrid ( item: GridItem ) {
   // Remove old, duplicated one
-  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== item.material_inventory_idno );
-
+  rowData.value = rowData.value.filter( row => row.materialInventoryIdno !== item.materialInventoryIdno )
   // Add
-  rowData.value.unshift( {
-    material_idno: item.material_idno,
-    material_inventory_id: item.material_inventory_id,
-    material_inventory_idno: item.material_inventory_idno,
-    issue_qty: item.issue_qty,
-    lend_qty: item.lend_qty,
-  } );
-  gridOptions.api?.setRowData( rowData.value );
-  gridOptions.columnApi?.autoSizeAllColumns();
+  rowData.value.unshift( item )
+  gridOptions.api?.setRowData( rowData.value )
 }
 
 
@@ -145,169 +256,84 @@ function addItemToGrid ( item: GridItem ) {
 async function onClickAddMaterialButton ( event: Event ) {
   // Take expired material inventory in thie function is NOT allowed.
 
-  // Quantity should greater than zero
-  if ( materialAdditionFormValue.value.quantity <= 0 ) {
-    message.error( '數量應大於零' );
-    return false;
-  }
-
-  // `material_idno` cannot be empty
-  if ( materialAdditionFormValue.value.material_idno.trim() === '' ) {
-    message.error( '請填入物料代碼' );
-    return false;
-  }
+  try { await materialAdditionFormRef.value?.validate( async ( error ) => { if ( error ) { throw error } } ) }
+  catch ( error ) { return false }
 
   // Check if the material exists
   // Handle 404 and other errors
-  try { const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.material_idno.trim() } ); }
+  try { const material = await MaterialsService.getMaterial( { idno: materialAdditionFormValue.value.materialIdno.trim() } ) }
   catch ( error ) {
     if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '無此物料' );
-      return false;
+      message.error( '無此物料' )
+      return false
     } else {
-      message.error( '物料讀取失敗' );
-      return false;
+      message.error( '物料讀取失敗' )
+      return false
     }
   }
 
   // Check if quantity in-stock is enough
-  const materialInStockBalance = await IssuancesService.getMaterialIssuableBalance( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
+  const materialInStockBalance = await IssuancesService.getMaterialIssuableBalance( { materialIdno: materialAdditionFormValue.value.materialIdno.trim() } )
   if ( materialAdditionFormValue.value.quantity > materialInStockBalance ) {
-    message.error( `庫存數量 ${ materialInStockBalance.toLocaleString() }，需求數量不可大於庫存數量` );
-    return false;
+    message.error( `庫存數量 ${ materialInStockBalance.toLocaleString() }，需求數量不可大於庫存數量` )
+    return false
   }
-
-  // Clear the material's all inventories in grid
-  rowData.value = rowData.value.filter( row => row.material_idno !== materialAdditionFormValue.value.material_idno.trim() );
-  gridOptions.api?.setRowData( rowData.value );
 
   // Take demand inventories
-  let askedQuantity = materialAdditionFormValue.value.quantity;
-  let issuedQuantity = 0;
-  let issuedMaterialInventories: MaterialInventoryRead[] = [];
-  const materialInventories = await IssuancesService.getIssuableMaterialInventories( { materialIdno: materialAdditionFormValue.value.material_idno.trim() } );
-  while ( issuedQuantity < askedQuantity ) {
-    const materialInventory = materialInventories.shift() as MaterialInventoryRead;
-    const materialInventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: materialInventory.id } );
-    issuedQuantity += materialInventoryBalance;
-    issuedMaterialInventories.push( materialInventory as MaterialInventoryRead );
+  let toAskQuantity = materialAdditionFormValue.value.quantity
+  let toIssueQuantity = 0
+  let toIssueMaterialInventories: MaterialInventoryRead[] = []
+  const issuableMaterialInventoryArray = await IssuancesService.getIssuableMaterialInventories( { materialIdno: materialAdditionFormValue.value.materialIdno.trim() } )
+  while ( toIssueQuantity < toAskQuantity ) {
+    const materialInventory = issuableMaterialInventoryArray.shift()
+    const materialInventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: materialInventory.id } )
+    toIssueQuantity += materialInventoryBalance
+    toIssueMaterialInventories.push( materialInventory )
   }
-  let lendQuantity = issuedQuantity - askedQuantity;
-  issuedQuantity -= lendQuantity;
+  let toLendQuantity = toIssueQuantity - toAskQuantity
+  toIssueQuantity -= toLendQuantity
 
   // Build grid row data
-  issuedMaterialInventories.forEach( async ( inventory, i ) => {
-    const inventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: inventory.id } );
-    let issue_qty = inventoryBalance;
-    let lend_qty = 0;
+  toIssueMaterialInventories.forEach( async ( inventory, i ) => {
+    const inventoryBalance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( { materialInventoryId: inventory.id } )
 
-    if ( i == issuedMaterialInventories.length - 1 ) {
-      lend_qty = lendQuantity
-      lend_qty = parseFloat( lend_qty.toFixed( 4 ) )
-      issue_qty = inventoryBalance - lend_qty
-      issue_qty = parseFloat( issue_qty.toFixed( 4 ) )
+    const gridItem: GridItem = {
+      materialIdno: inventory.material_idno,
+      materialInventoryId: inventory.id,
+      materialInventoryIdno: inventory.idno,
+      issueQty: inventoryBalance,
+      lendQty: 0,
+      retainQty: 0,
+      totalQty: inventoryBalance,
     }
 
-    // Add material inventories into the grid
-    addItemToGrid( {
-      material_idno: inventory.material_idno,
-      material_inventory_id: inventory.id,
-      material_inventory_idno: inventory.idno,
-      issue_qty: issue_qty,
-      lend_qty: lend_qty,
-    } );
+    if ( i == toIssueMaterialInventories.length - 1 ) {
+      gridItem.lendQty = parseFloat( toLendQuantity.toFixed( 4 ) )
+      gridItem.issueQty = parseFloat( ( inventoryBalance - gridItem.lendQty ).toFixed( 4 ) )
+    }
+
+    addItemToGrid( gridItem )
   } )
 
   // Clear materialAdditionFormValue
-  materialAdditionFormValue.value.material_idno = '';
-  materialAdditionFormValue.value.issuable_balance = 0;
-  materialAdditionFormValue.value.quantity = 0;
+  materialAdditionFormValue.value.materialIdno = ''
+  materialAdditionFormValue.value.issuableBalance = 0
+  materialAdditionFormValue.value.quantity = 0
 
   // Focus at `material_idno` input field
-  materialIdnoInput.value.focus();
+  materialIdnoInput.value.focus()
 }
-
-
-
-async function onClickAddInventoryButton ( event: Event ) {
-  // Take expired material inventory in thie function is allowed.
-
-  // `material_inventory_idno` cannot be empty
-  if ( materialInventoryFormValue.value.material_inventory_idno.trim() === '' ) {
-    message.error( '請填入單包代碼' );
-    return false;
-  }
-
-  // Check if the material inventory exists
-  // Handle 404 and other errors
-  let materialInventory: MaterialInventoryRead;
-  try { materialInventory = await MaterialInventoriesService.getMaterialInventory( { materialInventoryIdno: materialInventoryFormValue.value.material_inventory_idno.trim() } ); }
-  catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) {
-      message.error( '無此單包' );
-      return false;
-    } else {
-      message.error( '讀取失敗' );
-      return false;
-    }
-  }
-
-  // Check if the material inventory available (not locked) for issuing
-  if ( materialInventory.issuing_locked === true ) {
-    message.error( '此單包已被其他發料單使用' );
-    return false;
-  }
-
-  // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
-    materialInventoryId: materialInventory.id,
-    onlyIssuable: true,
-  } )
-  if ( balance <= 0 ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
-  }
-
-  // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id as number } );
-  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    message.error( '此單包已無可用庫存' );
-    return false;
-  }
-
-  // Add material inventories into the grid
-  addItemToGrid( {
-    material_idno: materialInventory.material_idno,
-    material_inventory_id: materialInventory.id,
-    material_inventory_idno: materialInventory.idno,
-    issue_qty: balance,
-    lend_qty: 0,
-  } );
-
-  // Clear materialAdditionFormValue
-  materialInventoryFormValue.value.material_inventory_idno = '';
-
-  // Focus at `material_idno` input field
-  materialInventoryIdnoInput.value.focus();
-}
-
 
 
 function onClickRemoveRowButton ( event: Event ) {
   // Get selected row
   const selectedRows: GridItem[] = gridOptions.api?.getSelectedRows() as GridItem[]
-  rowData.value = rowData.value.filter( row => row.material_inventory_idno !== selectedRows[ 0 ].material_inventory_idno )
+  rowData.value = rowData.value.filter( row => row.materialInventoryIdno !== selectedRows[ 0 ].materialInventoryIdno )
   gridOptions.api?.setRowData( rowData.value )
 }
 
 
-const loadingRef = ref( false );
-const loading = loadingRef;
-
-
-async function onClickCreateIssuanceButton ( event: Event ) {
-  loadingRef.value = true
-
+async function createIssuance () {
   // Build issuance body
   const issuanceCreate: IssuanceCreate = {
     memo: headerFormValue.value.memo,
@@ -319,25 +345,63 @@ async function onClickCreateIssuanceButton ( event: Event ) {
     st_erp_production_department: headerFormValue.value.st_erp_production_department,
     st_erp_production_line: headerFormValue.value.st_erp_production_line,
   }
-
   // Create issuance
-  let issuance: IssuanceRead;
   try { issuance = await IssuancesService.createIssuance( { requestBody: issuanceCreate } ) }
-  catch ( error ) {
-    console.error( error.message )
-    message.error( '建立失敗' )
+  catch ( error ) { throw error }
+  return issuance
+}
+
+
+async function updateIssuance () {
+  const issuanceUpdate: IssuanceUpdate = {
+    memo: headerFormValue.value.memo
+  }
+  try { issuance = await IssuancesService.updateIssuance( { issuanceIdno: issuance.idno, requestBody: issuanceUpdate } ) }
+  catch ( error ) { throw error }
+  return issuance
+}
+
+
+const loadingRef = ref( false )
+const loading = loadingRef
+
+
+async function onClickCreateIssuanceButton ( event: Event ) {
+  loadingRef.value = true
+
+  if ( rowData.value.length < 1 ) {
+    message.info( '請輸入發料品項' )
     loadingRef.value = false
     return false
   }
 
+  if ( issuance ) {
+    try { issuance = await updateIssuance() }
+    catch ( error ) {
+      if ( error instanceof ApiError ) { console.error( error.body ) }
+      message.error( '更新失敗' )
+      loadingRef.value = false
+      return false
+    }
+  } else {
+    try { issuance = await createIssuance() }
+    catch ( error ) {
+      if ( error instanceof ApiError ) { console.error( error.body ) }
+      message.error( '建立失敗' )
+      loadingRef.value = false
+      return false
+    }
+  }
+
   // Build issuance items body
-  const issuanceItemsCreate: IssuanceItemCreate[] = [];
+  const issuanceItemsCreate: IssuanceItemCreate[] = []
   for ( let row of rowData.value ) {
     issuanceItemsCreate.push( {
-      material_inventory_id: row.material_inventory_id,
-      issue_qty: row.issue_qty,
-      lend_qty: row.lend_qty,
-    } );
+      material_inventory_id: row.materialInventoryId,
+      issue_qty: row.issueQty,
+      lend_qty: row.lendQty,
+      retain_qty: row.retainQty,
+    } )
   }
 
   // Create issuance items
@@ -349,8 +413,8 @@ async function onClickCreateIssuanceButton ( event: Event ) {
     return false
   }
 
-  message.success( `發料單 ${ issuance.idno } 建立成功` );
-  router.push( '/wms/issuances' );
+  message.success( `發料單 ${ issuance.idno } 建立成功` )
+  router.push( '/wms/issuances' )
 }
 </script>
 
@@ -380,7 +444,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
       <n-space vertical size="large"
         style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-        <n-form size="large" :model=" headerFormValue " ref="formRef">
+        <n-form size="large" :model=" headerFormValue ">
           <n-grid cols="1 s:3" responsive="screen" x-gap="20">
 
             <n-form-item-gi label="舊 ERP 工令編號">
@@ -434,25 +498,25 @@ async function onClickCreateIssuanceButton ( event: Event ) {
 
               <n-h2 style="font-size: 1.2rem; margin-bottom: unset;">物料</n-h2>
 
-              <n-form size="large" :model=" materialAdditionFormValue ">
+              <n-form size="large" :model=" materialAdditionFormValue " :rules=" rules " ref="materialAdditionFormRef">
                 <n-space size="large">
 
-                  <n-form-item label="物料代碼">
-                    <n-input v-model:value.lazy=" materialAdditionFormValue.material_idno " ref="materialIdnoInput"
+                  <n-form-item label="物料代碼" path="materialIdno">
+                    <n-input v-model:value.lazy=" materialAdditionFormValue.materialIdno " ref="materialIdnoInput"
                       @blur=" onBlurMaterialIdnoInputField() " :input-props=" { id: 'material_idno' } ">
                     </n-input>
                   </n-form-item>
 
                   <n-form-item label="可發料數量">
                     <!-- Naive UI 數字輸入框目前不支援 tabindex 屬性 -->
-                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.issuable_balance "
+                    <n-input-number v-model:value.lazy=" materialAdditionFormValue.issuableBalance "
                       :show-button=" false " :min=" 0 " :precision=" 4 " :default-value=" 0 " readonly tabindex="-1"
                       :input-props=" { tabindex: -1 } ">
                       <template #suffix> {{ materialUnit }} </template>
                     </n-input-number>
                   </n-form-item>
 
-                  <n-form-item label="需求數量">
+                  <n-form-item label="需求數量" path="quantity">
                     <n-input-number v-model:value.lazy=" materialAdditionFormValue.quantity " :show-button=" false "
                       :min=" 0 " :precision=" 4 " :default-value=" 0 " id="quantity">
                       <template #suffix> {{ materialUnit }} </template>
@@ -462,22 +526,6 @@ async function onClickCreateIssuanceButton ( event: Event ) {
                   <n-form-item>
                     <n-button type="primary" secondary strong @click=" onClickAddMaterialButton( $event ) "
                       attr-type="submit" id="add_by_material">+</n-button>
-                  </n-form-item>
-
-                </n-space>
-              </n-form>
-
-              <n-form size="large" :model=" materialInventoryFormValue ">
-                <n-space size="large">
-
-                  <n-form-item label="單包代碼">
-                    <n-input v-model:value.lazy=" materialInventoryFormValue.material_inventory_idno "
-                      :input-props=" { id: 'inventoryIdnoInput' } " ref="materialInventoryIdnoInput"> </n-input>
-                  </n-form-item>
-
-                  <n-form-item>
-                    <n-button type="primary" secondary strong @click=" onClickAddInventoryButton( $event ) "
-                      attr-type="submit" id="addByInventory">+</n-button>
                   </n-form-item>
 
                 </n-space>
