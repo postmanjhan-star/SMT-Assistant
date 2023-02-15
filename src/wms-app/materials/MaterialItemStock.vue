@@ -69,15 +69,44 @@ const gridOptions: GridOptions = {
             return { color: 'unset' } // Not implement yet
         }
     },
+
+    // EVENTS
+    // Miscellaneous
+    onViewportChanged: ( event ) => { event.columnApi.autoSizeAllColumns() },
+
+    // RowModel: Client-Side
+    onRowDataUpdated: ( event ) => { event.columnApi.autoSizeAllColumns() },
 }
 
 
 
 onBeforeMount( async () => {
-    rowData.value = await MaterialsService.getMaterialInventories( { materialIdno: route.params.idno.toString() } );
-    gridOptions.api?.setRowData( rowData.value );
-    gridOptions.columnApi?.autoSizeAllColumns();
-} );
+    const inventories = await MaterialsService.getMaterialInventories( { materialIdno: route.params.idno.toString() } )
+
+    for ( let inventory of inventories ) {
+        const balances = await MaterialInventoriesService.getMaterialInventoryBalances( { materialInventoryIdno: inventory.idno } )
+        balances.forEach( ( value, index, array ) => {
+            if ( value.l1_storage_type == StorageTypeEnum.INTERNAL_WAREHOUSE && value.quantity > 0 ) {
+                rowData.value.push( {
+                    id: inventory.id,
+                    idno: inventory.idno,
+                    material_id: inventory.material_id,
+                    material_idno: inventory.material_idno,
+                    material_name: inventory.material_name,
+                    l1_storage_id: value.l1_storage_id,
+                    l1_storage_idno: value.l1_storage_idno,
+                    l2_storage_idno: value.l2_storage_idno,
+                    latest_qty: value.quantity,
+                    issuing_locked: inventory.issuing_locked,
+                    date_of_expiry: inventory.date_of_expiry,
+                    st_barcode: inventory.st_barcode,
+                    parent_material_inventory_id: inventory.parent_material_inventory_id,
+                } )
+            }
+        } )
+    }
+    gridOptions.api?.setRowData( rowData.value )
+} )
 
 
 async function onClickSplitButton ( event: Event ) {

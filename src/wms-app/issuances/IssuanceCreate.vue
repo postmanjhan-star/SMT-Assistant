@@ -101,21 +101,13 @@ const gridOptions: GridOptions = {
           return false
         }
 
-        // Check if the material inventory's quantity is larger than 0
-        const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
-          materialInventoryId: materialInventory.id,
-          onlyIssuable: true,
+        // Check if the material inventory's in-warehouse quantity is larger than 0
+        let balance = 0
+        const balances = await MaterialInventoriesService.getMaterialInventoryBalances( { materialInventoryIdno: materialInventory.idno } )
+        balances.forEach( async ( value, index, array ) => {
+          if ( value.l1_storage_type == StorageTypeEnum.INTERNAL_WAREHOUSE ) { balance += value.quantity }
         } )
         if ( balance <= 0 ) {
-          message.error( '此單包已無可用庫存' )
-          params.data.materialInventoryIdno = ''
-          params.api.refreshCells()
-          return false
-        }
-
-        // Check if the material inventory is in-stock
-        const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } )
-        if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
           message.error( '此單包已無可用庫存' )
           params.data.materialInventoryIdno = ''
           params.api.refreshCells()

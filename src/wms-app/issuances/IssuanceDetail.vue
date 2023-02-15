@@ -78,21 +78,13 @@ const gridOptions: GridOptions = {
           return false
         }
 
-        // Check if the material inventory's quantity is larger than 0
-        const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
-          materialInventoryId: materialInventory.id,
-          onlyIssuable: true,
+        // Check if the material inventory's in-warehouse quantity is larger than 0
+        let balance = 0
+        const balances = await MaterialInventoriesService.getMaterialInventoryBalances( { materialInventoryIdno: materialInventory.idno } )
+        balances.forEach( async ( value, index, array ) => {
+          if ( value.l1_storage_type == StorageTypeEnum.INTERNAL_WAREHOUSE ) { balance += value.quantity }
         } )
         if ( balance <= 0 ) {
-          message.error( '此單包已無可用庫存' )
-          params.data.materialInventoryIdno = ''
-          params.api.refreshCells()
-          return false
-        }
-
-        // Check if the material inventory is in-stock
-        const storage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id } )
-        if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
           message.error( '此單包已無可用庫存' )
           params.data.materialInventoryIdno = ''
           params.api.refreshCells()
@@ -135,7 +127,10 @@ const gridOptions: GridOptions = {
 
           message.success( '增加成功 👍' )
         } catch ( error ) {
+          if ( error instanceof ApiError ) { console.error( error.body ) }
           message.error( '增加失敗' )
+          params.data.materialInventoryIdno = ''
+          params.api.refreshCells()
           return false
         }
 
@@ -147,7 +142,10 @@ const gridOptions: GridOptions = {
     { field: "totalQty", headerName: '合計數量', editable: false, type: 'numericColumn', cellEditor: false },
     {
       field: "issueQty", headerName: '發出數量', type: 'numericColumn',
-      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      editable: ( params ) => {
+        if ( issuance.value.issuing_completed ) { return false }
+        if ( params.node.rowPinned === 'top' ) { return false } else { return true }
+      },
       valueParser: ( params ) => { return Number( params.newValue ) },
       valueSetter: ( params ) => {
         if ( isNaN( params.newValue ) ) { return false }
@@ -160,7 +158,10 @@ const gridOptions: GridOptions = {
     },
     {
       field: "retainQty", headerName: '保留數量', type: 'numericColumn',
-      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      editable: ( params ) => {
+        if ( issuance.value.issuing_completed ) { return false }
+        if ( params.node.rowPinned === 'top' ) { return false } else { return true }
+      },
       valueParser: ( params ) => { return Number( params.newValue ) },
       valueSetter: ( params ) => {
         if ( isNaN( params.newValue ) ) { return false }
@@ -173,7 +174,10 @@ const gridOptions: GridOptions = {
     },
     {
       field: "lendQty", headerName: '借出數量', type: 'numericColumn',
-      editable: ( params ) => { if ( params.node.rowPinned === 'top' ) { return false } else { return true } },
+      editable: ( params ) => {
+        if ( issuance.value.issuing_completed ) { return false }
+        if ( params.node.rowPinned === 'top' ) { return false } else { return true }
+      },
       valueParser: ( params ) => { return Number( params.newValue ) },
       valueSetter: ( params ) => {
         if ( isNaN( params.newValue ) ) { return false }
@@ -210,7 +214,6 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
 
   // Row Pinning
-  pinnedTopRowData: [ {} ],
 
   // RowModel
   getRowId: ( params: GetRowIdParams<GridItem> ) => { return params.data.materialInventoryId.toString() },
@@ -256,13 +259,14 @@ onBeforeMount( async () => {
         materialIdno: issuanceItem.material_idno,
         materialInventoryId: issuanceItem.material_inventory_id,
         materialInventoryIdno: issuanceItem.material_inventory_idno,
-        issueQty: issuanceItem.issue_qty,
-        lendQty: issuanceItem.lend_qty,
-        retainQty: issuanceItem.retain_qty,
-        totalQty: issuanceItem.issue_qty + issuanceItem.lend_qty + issuanceItem.retain_qty,
+        issueQty: parseFloat( issuanceItem.issue_qty.toFixed( 4 ) ),
+        lendQty: parseFloat( issuanceItem.lend_qty.toFixed( 4 ) ),
+        retainQty: parseFloat( issuanceItem.retain_qty.toFixed( 4 ) ),
+        totalQty: parseFloat( ( issuanceItem.issue_qty + issuanceItem.lend_qty + issuanceItem.retain_qty ).toFixed( 4 ) ),
       } )
     }
     gridOptions.api.setRowData( rowData.value )
+    if ( !issuance.value.issuing_completed ) { gridOptions.api.setPinnedTopRowData( [ {} ] ) }
   } catch ( error ) { if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) } }
 } )
 

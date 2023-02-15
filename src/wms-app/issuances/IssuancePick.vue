@@ -152,10 +152,11 @@ async function onClickAddInventoryButton ( event: Event ) {
     }
   }
 
-  // Check if the material inventory's quantity is larger than 0
-  const balance = await MaterialInventoriesService.getMaterialInventoryInStockBalance( {
-    materialInventoryId: inventory.id,
-    onlyIssuable: true,
+  // Check if the material inventory's in-warehouse quantity is larger than 0
+  let balance = 0
+  const balances = await MaterialInventoriesService.getMaterialInventoryBalances( { materialInventoryIdno: inventory.idno } )
+  balances.forEach( async ( value, index, array ) => {
+    if ( value.l1_storage_type == StorageTypeEnum.INTERNAL_WAREHOUSE ) { balance += value.quantity }
   } )
   if ( balance <= 0 ) {
     clearAndFocusInventoryInput()
@@ -171,20 +172,13 @@ async function onClickAddInventoryButton ( event: Event ) {
     message.error( '此單包不屬於本發料單' )
     return false
   }
+
   // // Disable this check, may enable for a reason.
   // if ( inventory.issuing_locked === true && doesThisInventoryBelongsToThisIssuance === false ) {
-  //   clearAndFocusInventoryInput();
-  //   message.error( '此單包已被其他發料單使用' );
-  //   return false;
+  //   clearAndFocusInventoryInput()
+  //   message.error( '此單包已被其他發料單使用' )
+  //   return false
   // }
-
-  // Check if the material inventory is in-stock
-  const storage = await StoragesService.getStorage( { l1Id: inventory.l1_storage_id as number } );
-  if ( storage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    clearAndFocusInventoryInput();
-    message.error( '此單包已無可用庫存' );
-    return false;
-  }
 
   // After all checks passed...
   if ( doesThisInventoryBelongsToThisIssuance ) {

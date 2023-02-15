@@ -152,13 +152,16 @@ async function onClickAddMaterialInventoryButton ( event: Event ) {
     }
   }
 
-  // Check if the inventory is in warehouse
-  const inventoryStorage = await StoragesService.getStorage( { l1Id: materialInventory.l1_storage_id as number } );
-
-  if ( inventoryStorage.type != StorageTypeEnum.INTERNAL_WAREHOUSE ) {
-    message.error( '此包不在庫內不可調撥' );
-    clearMaterialInventoryAdditionFormAndFocus();
-    return false;
+  // Check if the material inventory's in-warehouse quantity is larger than 0
+  let balance = 0
+  const balances = await MaterialInventoriesService.getMaterialInventoryBalances( { materialInventoryIdno: materialInventory.idno } )
+  balances.forEach( async ( value, index, array ) => {
+    if ( value.l1_storage_type == StorageTypeEnum.INTERNAL_WAREHOUSE ) { balance += value.quantity }
+  } )
+  if ( balance <= 0 ) {
+    message.error( '此包不在庫內不可調撥' )
+    clearMaterialInventoryAdditionFormAndFocus()
+    return false
   }
 
   // Add the material into the grid
@@ -263,8 +266,8 @@ async function onClickMakeTransferButton ( event: Event ) {
 
             <n-form-item label="單包代碼">
               <!-- inputmode need to be dynamic controled by a button -->
-              <n-input v-model:value.lazy=" materialInventoryAdditionFormValue.idno "
-                ref="materialInventoryIdnoInput" autofocus clearable :input-props=" { inputmode: 'none' } "></n-input>
+              <n-input v-model:value.lazy=" materialInventoryAdditionFormValue.idno " ref="materialInventoryIdnoInput"
+                autofocus clearable :input-props=" { inputmode: 'none' } "></n-input>
             </n-form-item>
 
             <n-form-item>
