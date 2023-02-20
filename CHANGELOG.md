@@ -9,6 +9,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ## Unreleased
 ### Added
 - 發料單項目增加「保留量」欄位。（099f61dc）
+- ST ERP 工單內頁增加「產生 WMS 發料單」鈕。（）
 ### Changed
 - 支援小數點。（92e98249、2a4be74c）
 - [Hotfix] 富士打件機 API 查詢參數增加工件正反面參數。（31962177）

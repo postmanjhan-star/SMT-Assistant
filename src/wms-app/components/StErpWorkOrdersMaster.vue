@@ -1,24 +1,19 @@
 <script setup lang="ts">
-import { ColDef, ColumnApi, GridApi, GridOptions, GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community"
+import { GridOptions, RowDoubleClickedEvent } from "ag-grid-community"
 import "ag-grid-community/styles/ag-grid.css" // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-alpine.css" // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3" // the AG Grid Vue Component
 import { format, fromUnixTime, getTime } from 'date-fns'
-import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NH1, NSpace, useMessage } from 'naive-ui'
+import { NA, NBreadcrumb, NBreadcrumbItem, NButton, NDatePicker, NForm, NFormItemGi, NGrid, NH1, NSpace, useMessage } from 'naive-ui'
 import { onBeforeMount, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ApiError, MaterialsService, MaterialTypeEnum, OpenAPI, StErpService, STPart, STWorkOrder } from '../../client'
+import { MaterialTypeEnum, OpenAPI, StErpService, STPart, STWorkOrder } from '../../client'
 import { useAuthStore } from '../../stores/auth'
 
-const message = useMessage();
-const router = useRouter();
-
-
-const authStore = useAuthStore();
-OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ];
-
-const gridApi = ref<GridApi>();
-const gridColumnApi = ref<ColumnApi>();
+const message = useMessage()
+const router = useRouter()
+const authStore = useAuthStore()
+OpenAPI.TOKEN = JSON.parse( authStore.accountToken )[ 'access_token' ]
 
 const dateForm = ref( { dateTimestamp: getTime( new Date() ) } );
 
@@ -35,42 +30,59 @@ type Row = {
 }
 
 const rowData = ref<Row[]>( [] );
-
-const defaultColDef: ColDef = {
-    editable: false,
-    filter: true,
-    sortable: true,
-    resizable: true,
-}
-
-const columnDefs: ColDef[] = [
-    { field: "workOrderIdno", headerName: '工令編號' },
-    { field: "productIdno", headerName: '製品物料代碼' },
-    { field: "productType", headerName: '類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品', IN_PROCESS_MATERIAL: '❷ 半成品' } },
-    { field: "productName", headerName: '名稱' },
-    { field: "issueDate", headerName: '發料日期' },
-    { field: "dueDate", headerName: '計劃完工日期' },
-    { field: "quantity", headerName: '工令數量' },
-    { field: "productionDepartment", headerName: '製造部門' },
-    { field: "productionLine", headerName: '生產線別' },
-]
-
-
 const gridOptions: GridOptions = {
-    columnDefs: columnDefs,
-    defaultColDef: defaultColDef,
+    // PROPERTIES
+    // Column Definitions
+    columnDefs: [
+        { field: "workOrderIdno", headerName: '工令編號' },
+        { field: "productIdno", headerName: '製品物料代碼' },
+        { field: "productType", headerName: '類別', refData: { RAW_MATERIAL: '❹ 原料', PRODUCT: '❶ 成品', IN_PROCESS_MATERIAL: '❷ 半成品' } },
+        { field: "productName", headerName: '名稱' },
+        { field: "issueDate", headerName: '發料日期' },
+        { field: "dueDate", headerName: '計劃完工日期' },
+        { field: "quantity", headerName: '工令數量' },
+        { field: "productionDepartment", headerName: '製造部門' },
+        { field: "productionLine", headerName: '生產線別' },
+    ],
+    defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+
+    // Editing
     stopEditingWhenCellsLoseFocus: true,
     enterMovesDownAfterEdit: true,
     undoRedoCellEditing: true,
-    debug: false,
-    pagination: true,
-    suppressColumnVirtualisation: true,
-    suppressRowTransform: true,
-    debounceVerticalScrollbar: false,
-    enableCellTextSelection: true,
 
+    // Miscellaneous
+    debug: false,
+
+    // Pagination
+    pagination: true,
+
+    // Rendering
+    suppressColumnVirtualisation: true,
+
+    // Row Pinning
+
+    // RowModel
+
+    // Scrolling
+    debounceVerticalScrollbar: false,
+    
+    // Selection
     rowSelection: 'single',
+    enableCellTextSelection: true,
     suppressCellFocus: true,
+
+    // Styling
+    suppressRowTransform: true,
+
+    // EVENTS
+    // Miscellaneous
+    onViewportChanged: ( event ) => { event.columnApi.autoSizeAllColumns() },
+
+    // RowModel: Client-Side
+    onRowDataUpdated: ( event ) => { event.columnApi.autoSizeAllColumns() },
+
+    // Selection
     onRowDoubleClicked: ( event: RowDoubleClickedEvent ) => { router.push( `/wms/st_erp_work_orders/${ event.data.workOrderIdno }` ) },
 }
 
@@ -86,8 +98,7 @@ function setRowData ( { workOrder, productType, stProductPart }: { workOrder: ST
         productionDepartment: workOrder.production_department,
         productionLine: workOrder.production_line,
     } );
-    gridApi.value?.setRowData( rowData.value );
-    gridColumnApi.value?.autoSizeAllColumns();
+    gridOptions.api.setRowData( rowData.value )
 }
 
 async function queryWorkOrders ( date: Date ) {
@@ -119,52 +130,12 @@ async function queryWorkOrders ( date: Date ) {
 }
 
 
-
 onBeforeMount( async () => { await queryWorkOrders( new Date() ); } );
-
-
-
-function onGridReady ( event: GridReadyEvent ) {
-    gridApi.value = event.api;
-    gridColumnApi.value = event.columnApi;
-};
-
 
 
 async function onSubmitDateQuery ( event: Event ) {
     const dateTime = fromUnixTime( dateForm.value.dateTimestamp / 1000 );
     await queryWorkOrders( dateTime );
-}
-
-
-// Not implemented yet
-async function onClickCreateIssuanceButton ( event: Event ) {
-    let stWorkOrder: Row;
-    const materialList: string[] = [];
-
-    // Get selected row
-    const selectedRows: Row[] = gridApi.value?.getSelectedRows() as Row[];
-    if ( selectedRows.length === 0 ) {
-        message.warning( '請選擇舊 ERP 工單' );
-        return false;
-    } else { stWorkOrder = selectedRows[ 0 ]; }
-
-    // Prepare a material list for latter checking
-    materialList.push( stWorkOrder.productIdno );
-
-    // Get selected work order's items
-    const stWorkOrderItems = await StErpService.getStWorkOrderItems( { workOrderIdno: stWorkOrder.workOrderIdno } );
-    for ( let item of stWorkOrderItems ) { materialList.push( item.material_idno ); }
-
-    // Check if materials exist in WMS
-
-    try { for ( let materialIdno of materialList ) { const Material = await MaterialsService.getMaterial( { idno: materialIdno } ); } }
-    catch ( error ) {
-        if ( error instanceof ApiError && error.status === 404 ) {
-            message.error( '請先建立 WMS 物料主檔' );
-            return false;
-        }
-    }
 }
 </script>
     
@@ -188,18 +159,6 @@ async function onClickCreateIssuanceButton ( event: Event ) {
             <n-space vertical size="large"
                 style="background-color: white; padding: 1rem; box-shadow: 0px 4px 20px -4px hsla(0, 0%, 60%, 0.4)">
 
-                <n-space size="large" style="">
-                    <!--
-                    <n-tooltip>
-                        <template #trigger>
-                            <n-button type="primary" @click=" onClickCreateIssuanceButton( $event ) ">建立 WMS 發料單
-                            </n-button>
-                        </template>
-                        建立 WMS 發料單前務必先建立 WMS 之「物料主檔」
-                    </n-tooltip>
-                    -->
-                </n-space>
-
                 <n-form size="large" :model=" dateForm ">
                     <n-grid cols="1 s:3">
                         <n-form-item-gi label="日期">
@@ -214,7 +173,7 @@ async function onClickCreateIssuanceButton ( event: Event ) {
 
                 <div style="height: 600px; overflow-x: scroll; width: 100%;">
                     <ag-grid-vue class="ag-theme-alpine" :rowData=" rowData " style="height: 100%;"
-                        :gridOptions=" gridOptions " :onGridReady=" onGridReady "></ag-grid-vue>
+                        :gridOptions=" gridOptions "></ag-grid-vue>
                 </div>
 
             </n-space>
