@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "vite",
     "build:production": "NODE_OPTIONS=--max_old_space_size=1024 vite build",
-    "build:staging": "vite build --mode staging",
+    "build:staging": "NODE_OPTIONS=--max_old_space_size=1024 vite build --mode staging",
     "preview": "vite preview --port 5173",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "generate": "openapi --input http://localhost/api/openapi.json --output ./src/client --exportSchemas true --useOptions",
