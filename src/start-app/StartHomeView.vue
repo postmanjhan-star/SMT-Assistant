@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import fujiMounterAssistantIconUrl from '@/assets/fuji2.webp';
-import panasonicMounterAssistantIconUrl from '@/assets/panasonic.webp';
-import wmsIconUrl from '@/assets/wms.webp';
-import { NA, NCard, NGi, NGrid, NImage, NSpace, useMessage } from 'naive-ui';
-import { onMounted } from 'vue';
-import { RouterLink } from 'vue-router';
+import fujiMounterAssistantIconUrl from '@/assets/fuji2.webp'
+import panasonicMounterAssistantIconUrl from '@/assets/panasonic.webp'
+import temperatureHumidityIconUrl from '@/assets/temperature-humidity.webp'
+import wmsIconUrl from '@/assets/wms.webp'
+import { NA, NCard, NGi, NGrid, NImage, NSpace, useMessage } from 'naive-ui'
+import { onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 
 const props = defineProps( { message: String } );
 const message = useMessage();
@@ -44,6 +45,14 @@ onMounted( () => { if ( props.message ) message.warning( props.message ); } )
                             松下打件機<br />上料助手
                         </n-a>
                     </router-link>
+
+                    <router-link to="/temperature-humidity" #=" { navigate, href } " custom>
+                        <n-a :href=" href " @click=" navigate ">
+                            <n-image class="app-icon" :src=" temperatureHumidityIconUrl " width="80"
+                                preview-disabled lazy alt="Panasonic 打件機上料助手"></n-image><br>
+                            倉庫溫溼度
+                        </n-a>
+                    </router-link>
                 </n-space>
             </n-card>
 
@@ -51,6 +60,8 @@ onMounted( () => { if ( props.message ) message.warning( props.message ); } )
         <n-gi span="0 s:1"></n-gi>
     </n-grid>
 </template>
+
+
 
 <style scoped>
 .n-grid {
