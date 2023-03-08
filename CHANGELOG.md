@@ -4,12 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [如何維護更新日誌](https://keepachangelog.com/zh-TW/1.0.0/),
 and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
+## Unreleased
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
 ---
 
-## Unreleased
+## 1.1.3 - 2023-03-08
 ### Added
 - 發料單項目增加「保留量」欄位。（099f61dc）
 - ST ERP 工單內頁增加「產生 WMS 發料單」鈕。（50861a16）
+- 增加「倉庫溫濕度」模組。（）
 ### Changed
 - 支援小數點。（92e98249、2a4be74c）
 - [Hotfix] 富士打件機 API 查詢參數增加工件正反面參數。（31962177）

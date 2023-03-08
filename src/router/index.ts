@@ -248,6 +248,27 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '',
+    meta: { requiresAuth: false },
+    component: () => import( '../temperature-humidity-app/TemperatureHumidityApp.vue' ),
+    children: [
+      {
+        path: "/temperature-humidity",
+        name: "TemperatureHumidity",
+        meta: { requiresAuth: false },
+        component: () => import( "../temperature-humidity-app/Home.vue" ),
+        props: true,
+      },
+      {
+        path: "/temperature-humidity/query",
+        name: "TemperatureHumidityQuery",
+        meta: { requiresAuth: false },
+        component: () => import( "../temperature-humidity-app/Query.vue" ),
+        props: true,
+      },
+    ]
+  },
+  {
     path: "/playground",
     name: "Playground",
     meta: { requiresAuth: false },

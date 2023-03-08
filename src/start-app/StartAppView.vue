@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { dateZhTW, GlobalThemeOverrides, NConfigProvider, NMessageProvider, NNotificationProvider, zhTW } from 'naive-ui';
-import { useMeta } from 'vue-meta';
-import { RouterView } from "vue-router";
+import { dateZhTW, GlobalThemeOverrides, NConfigProvider, NMessageProvider, NNotificationProvider, zhTW } from 'naive-ui'
+import { useMeta } from 'vue-meta'
+import { RouterView } from "vue-router"
 
 const lightThemeBorderColor = 'rgba(214, 214, 214, 1.0)'; // hsla(0, 0%, 84%, 1.0)
 const lightThemeRailColor = 'rgba(153, 153, 153. 1.0)'; // hsla(0, 0%, 60%, 1.0)
@@ -25,7 +25,7 @@ const lightThemeOverrides: GlobalThemeOverrides = {
     },
 }
 
-useMeta( { title: 'Start' } );
+useMeta( { title: 'Start' } )
 </script>
 
 <template>

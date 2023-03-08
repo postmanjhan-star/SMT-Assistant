@@ -17,20 +17,21 @@ test.describe( 'WMS:STERP:WorkOrder', () => {
     await wmsHomePage.goToStErpWorkOrders()
 
     const wmsStErpWorkOrderMainPage = new WmsStErpWorkOrderMainPage( page )
-    await wmsStErpWorkOrderMainPage.queryByDate( new Date( 2023, 1, 17 ) ) // 2023-02-17
+    await wmsStErpWorkOrderMainPage.queryByDate( new Date( 2023, 2, 3 ) ) // 2023-03-03
+    await page.waitForTimeout( 1000 ) // Force wait!!!
 
     const rowsDiv = page.locator( '.ag-center-cols-container > div' )
-    const row = rowsDiv.filter( { hasText: 'HP1818' } )
+    const row = rowsDiv.filter( { hasText: 'HP3573' } )
     expect( row ).toBeTruthy()
 
     await row.dispatchEvent( 'dblclick' )
 
     await page.waitForTimeout( 1000 ) // Force wait!!!
-    expect( await page.locator( 'input#productIdno' ).inputValue() ).toBe( '60X85-010A-M0' )
-    expect( await page.locator( 'input#issueDate' ).inputValue() ).toBe( '2023-02-17' )
-    expect( await page.locator( 'input#dueDate' ).inputValue() ).toBe( '2023-02-20' )
-    expect( await page.locator( 'input#quantity' ).inputValue() ).toBe( '6' )
-    expect( await page.locator( 'input#productionDepartment' ).inputValue() ).toBe( 'VF21' )
-    expect( await page.locator( 'input#productionLine' ).inputValue() ).toBe( 'VF21' )
+    expect( await page.locator( 'input#productIdno' ).inputValue() ).toBe( '40878-001A-R0' )
+    expect( await page.locator( 'input#issueDate' ).inputValue() ).toBe( '2023-03-03' )
+    expect( await page.locator( 'input#dueDate' ).inputValue() ).toBe( '2023-03-06' )
+    expect( await page.locator( 'input#quantity' ).inputValue() ).toBe( '40' )
+    expect( await page.locator( 'input#productionDepartment' ).inputValue() ).toBe( 'VF11' )
+    expect( await page.locator( 'input#productionLine' ).inputValue() ).toBe( 'VF11' )
   } )
 } )

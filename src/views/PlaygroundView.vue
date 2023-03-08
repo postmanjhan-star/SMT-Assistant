@@ -25,7 +25,6 @@ onMounted( async () => {
     locale: true, //auto detect the current language.
     columns: [ //define table columns
       { title: "Name", field: "name", width: 150, headerFilter: "input" },
-      { title: "Age", field: "age", hozAlign: "left", formatter: "progress", headerFilter: 'progress' },
       { title: "Favourite Color", field: "col", headerFilter: 'list' },
       { title: "Date Of Birth", field: "dob", sorter: "date", hozAlign: "center", headerFilter: 'date' },
     ],
