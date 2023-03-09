@@ -114,7 +114,7 @@ async function fetchSpecificHourPlotData ( dateTime: Date, hour: number ) {
     return false
   }
   const response_json: [ backendDataTypeForHour ] = await response.json()
-  // console.debug( response_json )
+  console.debug( response_json )
   for ( let data of response_json ) {
     const x = new Date( dateTime.setMinutes( Number( data.NNS ) ) )
     const yTemperature = parseFloat( ( data.V1 / data.count / 10 ).toFixed( 1 ) )
@@ -168,7 +168,6 @@ onMounted( async () => {
     <n-spin size="large" :show=" loading ">
       <n-card style="border-radius: 30px; box-shadow: 10px 10px 6px hsla(0, 0%, 0%, 0.16); border: none;" size="huge">
         <div id="gd"></div>
-        <div id="gd2"></div>
       </n-card>
     </n-spin>
   </n-space>
