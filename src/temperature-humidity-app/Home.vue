@@ -45,28 +45,30 @@ const clockTime = ref<Date>( new Date() )
 setInterval( () => { clockTime.value = new Date() }, 1000 )
 setInterval( fetchSepdificMinutePlotData, 1000 * 60 )
 
-const plotlyData: Plotly.Data[] = [
-  {
-    type: 'scatter',
-    mode: 'lines',
-    name: '溫度',
-    connectgaps: true,
-    x: plotX.value,
-    y: plotTemperatureY.value,
-    yaxis: 'y1',
-    line: { width: 2, shape: 'spline', smoothing: 1 },
-  },
-  {
-    type: 'scatter',
-    mode: 'lines',
-    name: '濕度',
-    connectgaps: true,
-    x: plotX.value,
-    y: plotHumidityY.value,
-    yaxis: 'y2',
-    line: { width: 2, shape: 'spline', smoothing: 1 },
-  },
-]
+const plotlyData = computed<Plotly.Data[]>( () => {
+  return [
+    {
+      type: 'scatter',
+      mode: 'lines',
+      name: '溫度',
+      connectgaps: true,
+      x: plotX.value,
+      y: plotTemperatureY.value,
+      yaxis: 'y1',
+      line: { width: 2, shape: 'spline', smoothing: 1 },
+    },
+    {
+      type: 'scatter',
+      mode: 'lines',
+      name: '濕度',
+      connectgaps: true,
+      x: plotX.value,
+      y: plotHumidityY.value,
+      yaxis: 'y2',
+      line: { width: 2, shape: 'spline', smoothing: 1 },
+    },
+  ]
+} )
 
 const plotlyLayout: Partial<Plotly.Layout> = {
   autosize: true,
@@ -162,15 +164,16 @@ async function fetchSepdificMinutePlotData ( dateTime: Date = new Date ) {
     message.error( '讀取後端資料失敗' )
     return false
   }
-
   const response_json: [ backendDataTypeForMinute ] = await response.json()
+  // console.debug( response_json )
   const x = dateTime1
   const yTemperature = parseFloat( ( response_json[ 0 ].V1 / response_json[ 0 ].count / 10 ).toFixed( 1 ) )
   const yHumidity = parseFloat( ( response_json[ 0 ].I1 / response_json[ 0 ].count / 10 ).toFixed( 1 ) )
+  if ( yTemperature >= 100 || yTemperature <= 5 || Number.isNaN( yTemperature ) || Number.isNaN( yHumidity ) ) { return false }
   plotX.value.push( x )
   plotTemperatureY.value.push( yTemperature )
   plotHumidityY.value.push( yHumidity )
-  await Plotly.redraw( 'gd' )
+  await Plotly.newPlot( "gd", plotlyData.value, plotlyLayout, plotlyConfig )
 }
 
 
@@ -228,7 +231,7 @@ onMounted( async () => {
   await fetchSpecificHourPlotData( thisHour, thisHour.getHours() )
 
   Plotly.register( locale )
-  await Plotly.newPlot( "gd", plotlyData, plotlyLayout, plotlyConfig )
+  await Plotly.newPlot( "gd", plotlyData.value, plotlyLayout, plotlyConfig )
   loading.value = !loading.value
 } )
 </script>
