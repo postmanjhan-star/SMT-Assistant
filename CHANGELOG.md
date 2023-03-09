@@ -15,7 +15,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
 ---
 
-## 1.1.3 - 2023-03-08
+## 1.1.3.1 - 2023-03-09
 ### Added
 - 發料單項目增加「保留量」欄位。（099f61dc）
 - ST ERP 工單內頁增加「產生 WMS 發料單」鈕。（50861a16）
