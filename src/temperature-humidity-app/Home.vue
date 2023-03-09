@@ -117,13 +117,14 @@ const plotlyConfig: Partial<Plotly.Config> = {
 }
 
 async function fetchSpecificHourPlotData ( dateTime: Date, hour: number ) {
+  const hourString = hour.toString().padStart(2, '0')
   let response: Response
   try {
     response = await fetch(
       'http://200.0.0.112:5001/ems/getTHforDate.php',
       {
         method: 'POST',
-        body: JSON.stringify( { device: 'E064', queryDate: format( dateTime, 'yyyy-MM-dd' ), HHS: hour } ),
+        body: JSON.stringify( { device: 'E064', queryDate: format( dateTime, 'yyyy-MM-dd' ), HHS: hourString } ), // HHS only accepts two digits string
       },
     )
   } catch ( error ) {
@@ -131,7 +132,6 @@ async function fetchSpecificHourPlotData ( dateTime: Date, hour: number ) {
     message.error( '讀取後端資料失敗' )
     return false
   }
-
   const response_json: [ backendDataTypeForHour ] = await response.json()
   // console.debug( response_json )
   for ( let data of response_json ) {
