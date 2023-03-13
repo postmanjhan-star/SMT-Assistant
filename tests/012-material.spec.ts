@@ -82,7 +82,7 @@ test( 'Create a new material of product', async ( { page } ) => {
   const rowDiv = rowsDiv.filter( { hasText: productOfMaterial.idno } )
   await rowDiv.dispatchEvent( 'dblclick' ) // `.dblclick()` does not wok on Webkit
 
-  await page.waitForTimeout( 500 ) // Force wait!!!
+  await page.waitForTimeout( 1000 ) // Force wait!!!
 
   expect( await page.locator( '#idno' ).inputValue() ).toBe( productOfMaterial.idno )
   expect( await page.locator( '#name' ).inputValue() ).toBe( productOfMaterial.name )
