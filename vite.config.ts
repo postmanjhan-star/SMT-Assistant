@@ -11,6 +11,7 @@ import Components from 'unplugin-vue-components/vite';
 export default ( {
   plugins: [ vue(), Components( { resolvers: [ NaiveUiResolver() ] } ), ],
   resolve: { alias: { "@": fileURLToPath( new URL( "./src", import.meta.url ) ) }, },
+  server: { port: 5175 },
   test: {
     // 启用类似 jest 的全局测试 API
     globals: true,
@@ -18,4 +19,4 @@ export default ( {
     // 这需要你安装 happy-dom 作为对等依赖（peer dependency）
     environment: 'happy-dom'
   }
-} );
+} )
