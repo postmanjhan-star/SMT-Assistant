@@ -16,25 +16,17 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ---
 
 ## 1.1.3.1 - 2023-03-09
-### Added
-- 增加「倉庫溫濕度」模組。（e1b732b3）
 ### Changed
 - [Hotfix] 富士打件機 API 查詢參數增加工件正反面參數。（31962177）
-### Deprecated
-### Removed
-### Fixed
-### Security
 
 ---
 
 ## 1.1.2 - 2023-01-13
 ### Added
-- 增加起始頁。（7cc889ba）
 - 松下打件機助手 CSV 上傳頁增加更明確的成功與失敗訊息。（dcc3a97e）
 - 松下打件機助手 CSV 上傳頁增加 CSV 輸出選項說明。（dcc3a97e）
 - 改善錯誤訊息。（bbe53694）
 ### Changed
-- 整體重構，登陸頁為起始頁，內有 WMS 等 app 可進入。（7cc889ba）
 - 松下打件機 CSV 檔案上傳作業之成品版次由人工指定，不由 CSV 內取得。（be884008）
 - 松下打件機助手支援直接輸入成品料號。（fa3f12ce）
 - 松下打件機助手支援一料多槽比對。（3695dc37）
