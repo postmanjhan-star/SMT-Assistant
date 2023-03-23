@@ -1,21 +1,18 @@
-import { createPinia } from "pinia";
-import { createApp } from "vue";
+import { createApp } from "vue"
 
-import { createMetaManager } from 'vue-meta';
-import App from "./App.vue";
-import router from "./router";
+import { createMetaManager } from 'vue-meta'
+import App from "./App.vue"
+import router from "./router"
 
 // 创建并挂载根实例
-const app = createApp( App );
-
-app.use( createPinia() );
+const app = createApp(App)
 
 //确保 _use_ 路由实例使
 //整个应用支持路由。
-app.use( router );
+app.use(router)
 
-app.use( createMetaManager() );
+app.use(createMetaManager())
 
-app.mount( "#app" );
+app.mount("#app")
 
 // 现在，应用已经启动了！

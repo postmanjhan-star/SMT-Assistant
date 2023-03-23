@@ -1,6 +1,4 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
-import { useAccountStore } from "../stores/account";
-import { useAuthStore } from "../stores/auth";
 
 // 2. 定义一些路由
 // 每个路由都需要映射到一个组件。
@@ -77,36 +75,9 @@ const routes: RouteRecordRaw[] = [
 // 暂时保持简单
 
 // 4. 内部提供了 history 模式的实现。
-const router = createRouter( { history: createWebHistory(), routes: routes, } );
+const router = createRouter( { history: createWebHistory(), routes: routes, } )
 
 
-router.beforeEach( async ( to, from ) => {
-  const authStore = useAuthStore();
-  const accountStore = useAccountStore();
-
-  // Case A：頁面需登入，用戶已登入 -> 用戶登入憑證仍有效，導向目的頁、用戶登入憑證無效，導向登入頁。
-  // Case B：頁面需登入，用戶未登入 -> 導向登入頁。
-  // Case C：頁面不須登入，無論用戶有無登入 -> 導向目的頁。
-
-  // Case B
-  // 检查用户是否已登录
-  if ( authStore.isAuthenticated === false && to.meta.requiresAuth ) {
-    // 将用户重定向到登录页面
-    return { name: 'WmsLogin' };
-  }
-
-  // Case A
-  // Refresh `refresh_token` & `access_token` with every request
-  if ( authStore.isAuthenticated === true && to.meta.requiresAuth ) {
-    try { await authStore.refreshToken(); }
-    catch ( error ) {
-      await authStore.logout();
-      return { name: 'WmsLogin', params: { message: '登錄過期，請重新登入' } };
-    }
-  }
-
-  const requiredAuthModule = to.meta.requiredAuthModule as string[];
-  if ( requiredAuthModule?.includes( 'see_system_group' ) && !accountStore.authorizedModules.includes( 'see_system_group' ) ) { return { path: '/http-status/403' } }
-} );
+router.beforeEach( async ( to, from ) => { } )
 
 export default router;
