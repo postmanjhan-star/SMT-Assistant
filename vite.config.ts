@@ -9,6 +9,7 @@ import Components from 'unplugin-vue-components/vite';
 // https://vitejs.dev/config/
 /** @type {import('vite').UserConfig} */
 export default ( {
+  base: '/smt',
   plugins: [ vue(), Components( { resolvers: [ NaiveUiResolver() ] } ), ],
   resolve: { alias: { "@": fileURLToPath( new URL( "./src", import.meta.url ) ) }, },
   server: { port: 5175 },
