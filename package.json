@@ -16,8 +16,6 @@
     "@vueuse/core": "^9.3.1",
     "ag-grid-community": "^29.0.0",
     "ag-grid-vue3": "^29.0.0",
-    "client-oauth2": "^4.3.3",
-    "jose": "^4.8.1",
     "pinia": "^2.0.13",
     "tabulator-tables": "^5.4.3",
     "tone": "^14.7.77",
