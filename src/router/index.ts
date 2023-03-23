@@ -7,20 +7,6 @@ import { useAuthStore } from "../stores/auth";
 // 这些都会传递给 `createRouter`
 const routes: RouteRecordRaw[] = [
   {
-    path: '',
-    meta: { requiresAuth: false },
-    component: () => import( '../start-app/StartAppView.vue' ),
-    children: [
-      {
-        path: "",
-        name: "StartHome",
-        meta: { requiresAuth: false },
-        component: () => import( "../start-app/StartHomeView.vue" ),
-        props: true,
-      }
-    ]
-  },
-  {
     path: "/smt",
     meta: { requiresAuth: false },
     component: () => import( "../smt-app/HomeView.vue" ),
@@ -50,27 +36,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import( "../smt-app/PanasonicMounterAssistantDetail.vue" ),
       },
     ],
-  },
-  {
-    path: '',
-    meta: { requiresAuth: false },
-    component: () => import( '../temperature-humidity-app/TemperatureHumidityApp.vue' ),
-    children: [
-      {
-        path: "/temperature-humidity",
-        name: "TemperatureHumidity",
-        meta: { requiresAuth: false },
-        component: () => import( "../temperature-humidity-app/Home.vue" ),
-        props: true,
-      },
-      {
-        path: "/temperature-humidity/query",
-        name: "TemperatureHumidityQuery",
-        meta: { requiresAuth: false },
-        component: () => import( "../temperature-humidity-app/Query.vue" ),
-        props: true,
-      },
-    ]
   },
   {
     path: "/playground",
