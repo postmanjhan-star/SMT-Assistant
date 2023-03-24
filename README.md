@@ -59,7 +59,7 @@ $ git checkout --track origin/production
 
 # Install Node.js packages
 $ npm install
-$ npm run build
+$ npm run build:production
 
 # Porvision other Sentec apps.
 # - Sentec Start
@@ -81,7 +81,7 @@ $ git pull origin production
 
 # Install Node.js packages
 $ npm install
-$ npm run build
+$ npm run build:production
 
 # Restart Caddy service
 $ sudo systemctl restart caddy.service
