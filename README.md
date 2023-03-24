@@ -1,41 +1,44 @@
-# vue-project
+# Sentec SMT Assistant
 
-This template should help get you started developing with Vue 3 in Vite.
+- Fuji mounter material / slot checker
+- Panasonic mounter material / slot checker
 
-## Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=johnsoncodehk.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=johnsoncodehk.vscode-typescript-vue-plugin).
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
+## Provision in staging machine
 
 ```sh
-npm install
+# Refer to Sente-Web README to provision machine first
+# Install Node.js 18+
+# Clone Sentec-Start repository
+$ cd /sentec-app/
+$ git clone ssh://root@200.0.0.226:23/102573/SMT-Assistant.git
+$ cd /sentec-app/smt-assistant/
+$ git checkout --track origin/staging
+
+# Install Node.js packages
+$ npm install
+$ npm run build:staging
+
+# Porvision other Sentec apps.
+# - Sentec Start
+# - GE Warehouse Dashboard
+# - SMT Assistant (the one we are working on)
+# - WMS (codename Soda)
+# - WMS-Web (codename Soda-Web)
+
+# Start Caddy service
 ```
 
-### Compile and Hot-Reload for Development
+## Update staging deployment
 
 ```sh
-npm run dev
-```
+# Pull updates from repository
+$ cd /sentec-app/smt-assistant/
+$ git pull origin staging
 
-### Compile and Minify for Production
+# Install Node.js packages
+$ npm install
+$ npm run build:staging
 
-```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
+# Restart Caddy service
+$ sudo systemctl restart caddy.service
 ```
