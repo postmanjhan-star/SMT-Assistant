@@ -13,6 +13,7 @@ export default ( {
   plugins: [ vue(), Components( { resolvers: [ NaiveUiResolver() ] } ), ],
   resolve: { alias: { "@": fileURLToPath( new URL( "./src", import.meta.url ) ) }, },
   server: { port: 5175 },
+  preview: { port: 5175 },
   test: {
     // 启用类似 jest 的全局测试 API
     globals: true,
