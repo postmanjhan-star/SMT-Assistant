@@ -11,7 +11,7 @@
 # Clone Sentec-Start repository
 $ cd /sentec-app/
 $ git clone ssh://root@200.0.0.226:23/102573/SMT-Assistant.git
-$ cd /sentec-app/smt-assistant/
+$ cd /sentec-app/SMT-Assistant/
 $ git checkout --track origin/staging
 
 # Install Node.js packages
