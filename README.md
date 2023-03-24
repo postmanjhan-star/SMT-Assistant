@@ -32,7 +32,7 @@ $ npm run build:staging
 
 ```sh
 # Pull updates from repository
-$ cd /sentec-app/smt-assistant/
+$ cd /sentec-app/SMT-Assistant/
 $ git checkout staging
 $ git pull origin staging
 
@@ -75,7 +75,7 @@ $ npm run build
 
 ```sh
 # Pull updates from repository
-$ cd /sentec-app/smt-assistant/
+$ cd /sentec-app/SMT-Assistant/
 $ git checkout production
 $ git pull origin production
 
