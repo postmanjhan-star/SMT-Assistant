@@ -8,6 +8,7 @@ export class SmtPanasonicMainPage {
         this.page = page
     }
 
+    async goto () { await this.page.goto( '/smt/panasonic-mounter' ) }
     async goToUploadPage () { await this.page.getByRole( 'link', { name: '上傳 CSV 檔案作業' } ).click() }
 
     async enableTestingMode ( testingProductIdno: string ) {

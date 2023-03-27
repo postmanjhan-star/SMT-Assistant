@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { SmtPanasonicMainPage } from './smt-panasonic-main-page'
 import { SmtPanasonicUploadPage } from './smt-panasonic-upload-page'
-import { StartPage } from './start-page'
 
 // test.use({ viewport: { width: 500, height: 500 } });
 
@@ -10,11 +9,8 @@ test.describe( 'SMT:Panasonic', () => {
     const csvFilePath = './tests/40Y85-010A-B-T 料站.csv'
     const ProductVer = 'X0'
 
-    const startPage = new StartPage( page )
-    await startPage.goto()
-    await startPage.clickPanasonicMounterAssistant()
-
     const smtPanasonicMainPage = new SmtPanasonicMainPage( page )
+    await smtPanasonicMainPage.goto()
     await smtPanasonicMainPage.goToUploadPage()
 
     const smtPanasonicUploadPage = new SmtPanasonicUploadPage( page, csvFilePath, ProductVer )
@@ -32,11 +28,8 @@ test.describe( 'SMT:Panasonic', () => {
     const mounterIdno = 'A1-NPM-W2'
     const testingProductIdno = '40X76-002A-T3'
 
-    const startPage = new StartPage( page )
-    await startPage.goto()
-    await startPage.clickPanasonicMounterAssistant()
-
     const smtPanasonicMainPage = new SmtPanasonicMainPage( page )
+    await smtPanasonicMainPage.goto()
     await smtPanasonicMainPage.enableTestingMode( testingProductIdno )
     await smtPanasonicMainPage.fillForm( workIdno, productIdno, mounterIdno )
     await smtPanasonicMainPage.submitForm()

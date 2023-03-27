@@ -8,6 +8,8 @@ export class SmtFujiMainPage {
         this.page = page
     }
 
+    async goto () { await this.page.goto( '/smt/fuji-mounter' ) }
+
     async enableTestingMode ( testingProductIdno: string ) {
         await this.page.waitForSelector( '#workOrderIdnoInput' )
 

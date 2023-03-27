@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
 import { SmtFujiMainPage } from './smt-fuji-main-page'
-import { StartPage } from './start-page'
 
 // test.use({ viewport: { width: 500, height: 500 } });
 
@@ -10,11 +9,8 @@ test.describe( 'SMT:Fuji', () => {
     const productIdno = '40Y85-009B-T3VST'
     const mounterIdno = 'XP2B1'
 
-    const startPage = new StartPage( page )
-    await startPage.goto()
-    await startPage.clickFujiMounterAssistant()
-
     const smtFujiMainPage = new SmtFujiMainPage( page )
+    await smtFujiMainPage.goto()
     await smtFujiMainPage.enableTestingMode( productIdno )
     await smtFujiMainPage.fillForm( workOrder, productIdno, mounterIdno )
     await smtFujiMainPage.submitForm()
