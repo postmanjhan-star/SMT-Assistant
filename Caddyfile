@@ -12,6 +12,6 @@ http:// {
 	}
 
 	handle {
-		reverse_proxy localhost:5173
+		reverse_proxy localhost:5175
 	}
 }
