@@ -7,20 +7,11 @@
 http:// {
 	encode zstd gzip
 
-	# log {
-	# 	output file /var/log/access.log
-	# }
-
 	handle_path /api/* {
 		reverse_proxy :8000
 	}
 
-	# handle /404 {
-	# 	respond 404
-	# }
-
 	handle {
 		reverse_proxy localhost:5173
-		# try_files {path} /
 	}
 }
