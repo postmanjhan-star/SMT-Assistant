@@ -18,7 +18,7 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
 ## 1.1.4 - 2023-04-07
 ### Added
--  增加松下檔案管理頁，可檢視與刪除打件檔案。（）
+-  增加松下檔案管理頁，可檢視與刪除打件檔案。（9732e6be）
 
 ---
 
