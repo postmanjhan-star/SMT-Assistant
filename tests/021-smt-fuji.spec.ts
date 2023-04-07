@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { SmtFujiMainPage } from './smt-fuji-main-page'
+import { SmtFujiMainPage } from './smt-fuji-main-page.js'
 
 // test.use({ viewport: { width: 500, height: 500 } });
 

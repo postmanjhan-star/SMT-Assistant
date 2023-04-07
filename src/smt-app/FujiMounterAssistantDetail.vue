@@ -11,10 +11,10 @@ import { ApiError, FujiMounterFileRead, SmtMaterialInventory, SmtService } from 
 
 // Slot 太多，只顯示有必要的 slot，其餘不顯示，如果空 slot 被輸入，跳出錯誤訊息。
 
-const route = useRoute();
-const router = useRouter();
-const message = useMessage();
-useMeta( { title: 'Fuji Mounter Assistant' } );
+const route = useRoute()
+const router = useRouter()
+const message = useMessage()
+useMeta( { title: 'Fuji Mounter Assistant' } )
 
 const fstDataArray = ref<FujiMounterFileRead[]>();
 
@@ -38,8 +38,8 @@ type fstEntry = {
 const fstDataTable = ref<fstEntry[]>( [] )
 let matereialIdnoFromInput: string
 
-const tabulator = ref<Tabulator | null>( null ) //variable to hold your table
-const table = ref<HTMLDivElement | null>( null ) //reference to your table element
+const tabulator = ref<Tabulator | null>( null ) // variable to hold your table
+const table = ref<HTMLDivElement | null>( null ) // reference to your table element
 
 onMounted( async () => {
   try {
@@ -69,7 +69,7 @@ onMounted( async () => {
   }
   // console.debug( fstDataTable.value )
 
-  //instantiate Tabulator when element is mounted
+  // instantiate Tabulator when element is mounted
   tabulator.value = new Tabulator( table.value, {
     height: '100%', // set height of table (in CSS or here), this enables the Virtual DOM and improves render speed dramatically (can be any valid css height value)
     data: fstDataTable.value, //link data to table
@@ -228,7 +228,7 @@ async function onSubmitSlotForm ( event: Event ) {
 
 <template>
   <n-space vertical size="large"
-    style="padding: 18px 1rem 0 1rem; position: sticky; top: 18px; background-color: var(--modal-color); z-index: 1;">
+    style="padding: 60px 1rem 0 1rem; position: sticky; top: 60px; background-color: var(--modal-color); z-index: 1;">
     <n-page-header @back=" onClickBackArrow( $event ) " :title="route.params.workOrderIdno.toString()"></n-page-header>
 
     <n-grid cols="1 s:2" responsive="screen" x-gap="20">

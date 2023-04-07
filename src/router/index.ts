@@ -30,6 +30,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import( "../smt-app/UploadPanasonicFile.vue" ),
       },
       {
+        path: '/smt/panasonic-mounter/manager',
+        component: () => import( "../smt-app/PanasonicMounterFileManager.vue" ),
+      },
+      {
         path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',
         component: () => import( "../smt-app/PanasonicMounterAssistantDetail.vue" ),
       },

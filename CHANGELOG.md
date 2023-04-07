@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [如何維護更新日誌](https://keepachangelog.com/zh-TW/1.0.0/),
 and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 
+---
+
 ## Unreleased
 ### Added
 ### Changed
@@ -12,6 +14,11 @@ and this project adheres to [語意化版本](https://semver.org/lang/zh-TW/).
 ### Fixed
 ### Security
 
+---
+
+## 1.1.4 - 2023-04-07
+### Added
+-  增加松下檔案管理頁，可檢視與刪除打件檔案。（）
 
 ---
 

@@ -142,8 +142,8 @@ async function onClickSubmitButton ( event: Event ) {
       </n-form>
 
       <div style="text-align: center; margin-top: 1rem;">
-        <router-link to="/smt/panasonic-mounter/upload_csv" #=" { navigate, href } " custom>
-          <n-a :href=" href " @click=" navigate ">上傳 CSV 檔案作業</n-a>
+        <router-link to="/smt/panasonic-mounter/manager" #=" { navigate, href } " custom>
+          <n-a :href=" href " @click=" navigate ">打件檔管理</n-a>
         </router-link>
       </div>
 
