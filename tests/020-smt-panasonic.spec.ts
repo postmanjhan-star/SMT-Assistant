@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
-import { SmtPanasonicMainPage } from './smt-panasonic-main-page'
-import { SmtPanasonicUploadPage } from './smt-panasonic-upload-page'
+import { SmtPanasonicFileManagerPage } from './smt-panasonic-file-manager-page.js'
+import { SmtPanasonicMainPage } from './smt-panasonic-main-page.js'
+import { SmtPanasonicUploadPage } from './smt-panasonic-upload-page.js'
 
 // test.use({ viewport: { width: 500, height: 500 } });
 
@@ -11,7 +12,10 @@ test.describe( 'SMT:Panasonic', () => {
 
     const smtPanasonicMainPage = new SmtPanasonicMainPage( page )
     await smtPanasonicMainPage.goto()
-    await smtPanasonicMainPage.goToUploadPage()
+    await smtPanasonicMainPage.goToFileManagerPage()
+
+    const smtPanasonicFileManagerPage = new SmtPanasonicFileManagerPage( page )
+    await smtPanasonicFileManagerPage.goToUploadPage()
 
     const smtPanasonicUploadPage = new SmtPanasonicUploadPage( page, csvFilePath, ProductVer )
     await smtPanasonicUploadPage.openFile()
@@ -19,14 +23,15 @@ test.describe( 'SMT:Panasonic', () => {
     await smtPanasonicUploadPage.submit()
 
     await expect( page.locator( '.n-message__content' ) ).toContainText( '上傳成功' )
+    await page.goBack()
   } )
 
 
   test( 'Go to Panasonic Mounter Assistant', async ( { page } ) => {
     const workIdno = 'ZZ9999'
-    const productIdno = '40X76-002A-T3'
+    const productIdno = '40X76-002A-X0'
     const mounterIdno = 'A1-NPM-W2'
-    const testingProductIdno = '40X76-002A-T3'
+    const testingProductIdno = '40X76-002A-X0'
 
     const smtPanasonicMainPage = new SmtPanasonicMainPage( page )
     await smtPanasonicMainPage.goto()

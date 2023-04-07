@@ -24,8 +24,8 @@ const activeKey = ref<string | null>( 'smt-home' );
 
 
 const menuOptions = [
-  { label: () => h( RouterLink, { to: '/wms/accounts' }, { default: () => 'Home' } ), key: 'smt-home' },
-  { label: () => h( RouterLink, { to: '/wms/accounts' }, { default: () => 'Settings' } ), key: 'smt-settings' },
+  { label: () => h( RouterLink, { to: '/smt/panasonic-mounter' }, { default: () => '松下打件機上料助手' } ), key: 'panasonic' },
+  { label: () => h( RouterLink, { to: '/smt/fuji-mounter' }, { default: () => '富士打件機上料助手' } ), key: 'fuji' },
 ];
 
 // Take background colors from https://windicss.org/utilities/general/colors.html
@@ -41,8 +41,7 @@ const menuOptions = [
       <header style="position: sticky; top: 0; z-index: 2;">
         <n-layout-header style="padding: 9px;">
           <n-space item-style="" justify="space-between">
-            <!-- Hide unused menu -->
-            <!-- <n-menu v-model:value="activeKey" mode="horizontal" :options="menuOptions" /> -->
+            <n-menu v-model:value="activeKey" mode="horizontal" :options="menuOptions" />
           </n-space>
         </n-layout-header>
       </header>
@@ -50,7 +49,7 @@ const menuOptions = [
       <!-- Hide unused menu -->
       <!--<main style="min-height: calc(100vh - 60px); background-color: #44403c;">-->
 
-      <n-el tag="main" style="min-height: calc(100vh - 18px); background-color: var(--body-color);">
+      <n-el tag="main" style="min-height: calc(100vh - 60px); background-color: var(--body-color);">
         <router-view></router-view>
       </n-el>
 

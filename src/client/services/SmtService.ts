@@ -4,6 +4,7 @@
 import type { Body_upload_fst } from '../models/Body_upload_fst';
 import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_panasonic_mounter_csv';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
+import type { PanasonicMounterFileItemRead } from '../models/PanasonicMounterFileItemRead';
 import type { PanasonicMounterFileRead } from '../models/PanasonicMounterFileRead';
 import type { SmtMaterialInventory } from '../models/SmtMaterialInventory';
 
@@ -89,6 +90,62 @@ testingProductIdno?: string,
                 'mounter_idno': mounterIdno,
                 'testing_mode': testingMode,
                 'testing_product_idno': testingProductIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Panasonic Mounter File List
+     * @returns PanasonicMounterFileRead Successful Response
+     * @throws ApiError
+     */
+    public static getPanasonicMounterFileList(): CancelablePromise<Array<PanasonicMounterFileRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter/files',
+        });
+    }
+
+    /**
+     * Get Panasonic Mounter File Item List
+     * @returns PanasonicMounterFileItemRead Successful Response
+     * @throws ApiError
+     */
+    public static getPanasonicMounterFileItemList({
+id,
+}: {
+id: number,
+}): CancelablePromise<Array<PanasonicMounterFileItemRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter/files/{id}/items',
+            path: {
+                'id': id,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Delete Panasonic Mounter File
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static deletePanasonicMounterFile({
+id,
+}: {
+id: number,
+}): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/smt/panasonic_mounter/files/{id}',
+            path: {
+                'id': id,
             },
             errors: {
                 422: `Validation Error`,

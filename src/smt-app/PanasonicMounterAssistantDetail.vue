@@ -279,7 +279,7 @@ function hideVirtualKeyboard () {
 
 
 <template>
-  <n-space vertical :wrap-item=" false " style="height: calc(100vh - 18px);">
+  <n-space vertical :wrap-item=" false " style="height: calc(100vh - 60px);">
 
     <n-space vertical size="small"
       style="padding: 0px 1rem 0 1rem; position: sticky; top: 0px; background-color: var(--table-color); z-index: 1;">

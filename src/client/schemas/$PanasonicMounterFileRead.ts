@@ -6,6 +6,11 @@ export const $PanasonicMounterFileRead = {
         id: {
     type: 'number',
 },
+        updated_at: {
+    type: 'string',
+    isRequired: true,
+    format: 'date-time',
+},
         product_idno: {
     type: 'string',
     isRequired: true,
@@ -26,7 +31,6 @@ export const $PanasonicMounterFileRead = {
     contains: {
         type: 'PanasonicMounterFileItemRead',
     },
-    isRequired: true,
 },
     },
 } as const;
