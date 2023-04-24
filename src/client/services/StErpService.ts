@@ -87,7 +87,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2023-02-06',
+stReceiveDate = '2023-04-24',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -193,7 +193,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2023-02-06',
+date = '2023-04-24',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
@@ -273,8 +273,12 @@ workOrderIdno: string,
      */
     public static convertStErpWorkOrderToWmsIssuance({
 workOrderIdno,
+testingMode,
+requestBody,
 }: {
 workOrderIdno: string,
+testingMode?: any,
+requestBody?: STWorkOrder,
 }): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -282,6 +286,11 @@ workOrderIdno: string,
             path: {
                 'work_order_idno': workOrderIdno,
             },
+            query: {
+                'testing_mode': testingMode,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
