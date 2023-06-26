@@ -13,25 +13,25 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "ag-grid-community": "^29.0.0",
-    "ag-grid-vue3": "^29.0.0",
+    "ag-grid-community": "^30.0.2",
+    "ag-grid-vue3": "^30.0.2",
     "tabulator-tables": "^5.4.3",
     "tone": "^14.7.77",
     "v8-to-istanbul": "^9.0.1",
     "vue": "^3.2.41",
     "vue-meta": "^3.0.0-alpha.10",
-    "vue-router": "4.1.6"
+    "vue-router": "4.2.2"
   },
   "devDependencies": {
     "@babel/types": "^7.21.4",
-    "@faker-js/faker": "^7.6.0",
+    "@faker-js/faker": "^8.0.2",
     "@playwright/test": "^1.28.1",
     "@rushstack/eslint-patch": "^1.1.0",
     "@testing-library/vue": "^7.0.0",
     "@types/node": "^20.1.1",
     "@types/tabulator-tables": "^5.4.2",
     "@vitejs/plugin-vue": "^4.0.0",
-    "@vitest/browser": "^0.31.0",
+    "@vitest/browser": "^0.32.2",
     "@vue/eslint-config-prettier": "^7.0.0",
     "@vue/test-utils": "^2.0.0-rc.20",
     "eslint": "^8.36.0",
@@ -41,8 +41,8 @@
     "naive-ui": "^2.29.0",
     "openapi-typescript-codegen": "^0.24.0",
     "playwright": "^1.32.2",
-    "unplugin-vue-components": "^0.24.0",
+    "unplugin-vue-components": "^0.25.1",
     "vite": "^4.0.0",
-    "vitest": "^0.31.0"
+    "vitest": "^0.32.2"
   }
 }

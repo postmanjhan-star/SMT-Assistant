@@ -54,14 +54,13 @@ const gridOptions: GridOptions = {
 
   // Editing
   stopEditingWhenCellsLoseFocus: true,
-  enterMovesDownAfterEdit: true,
+  enterNavigatesVerticallyAfterEdit: true,
   undoRedoCellEditing: true,
 
   // Miscellaneous
   rowBuffer: 100,
   valueCache: true,
   debug: false,
-  suppressParentsInRowNodes: true,
 
   // Pagination
   pagination: false,
