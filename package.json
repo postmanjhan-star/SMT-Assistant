@@ -20,7 +20,7 @@
     "v8-to-istanbul": "^9.0.1",
     "vue": "^3.2.41",
     "vue-meta": "^3.0.0-alpha.10",
-    "vue-router": "4.2.2"
+    "vue-router": "4.2.4"
   },
   "devDependencies": {
     "@babel/types": "^7.21.4",
@@ -31,18 +31,18 @@
     "@types/node": "^20.1.1",
     "@types/tabulator-tables": "^5.4.2",
     "@vitejs/plugin-vue": "^4.0.0",
-    "@vitest/browser": "^0.32.2",
+    "@vitest/browser": "^0.33.0",
     "@vue/eslint-config-prettier": "^7.0.0",
     "@vue/test-utils": "^2.0.0-rc.20",
     "eslint": "^8.36.0",
     "eslint-plugin-vue": "^9.6.0",
-    "happy-dom": "^9.1.7",
+    "happy-dom": "^10.0.3",
     "jsdom": "^22.0.0",
     "naive-ui": "^2.29.0",
-    "openapi-typescript-codegen": "^0.24.0",
+    "openapi-typescript-codegen": "^0.25.0",
     "playwright": "^1.32.2",
     "unplugin-vue-components": "^0.25.1",
     "vite": "^4.0.0",
-    "vitest": "^0.32.2"
+    "vitest": "^0.33.0"
   }
 }
