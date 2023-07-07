@@ -1,3 +1,4 @@
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -121,14 +122,14 @@ materialInventoryIdno: string,
      */
     public static transferMaterialInventory({
 materialInventoryId,
-cause,
 fromL2StorageId,
+cause,
 requestBody,
 checkSourceBalance = false,
 }: {
 materialInventoryId: number,
-cause: InventoryChangeCauseEnum,
 fromL2StorageId: number,
+cause: InventoryChangeCauseEnum,
 requestBody: Array<MaterialInventoryTransferCreate>,
 checkSourceBalance?: boolean,
 }): CancelablePromise<Array<MaterialInventoryRecordRead>> {
@@ -139,8 +140,8 @@ checkSourceBalance?: boolean,
                 'material_inventory_id': materialInventoryId,
             },
             query: {
-                'cause': cause,
                 'from_l2_storage_id': fromL2StorageId,
+                'cause': cause,
                 'check_source_balance': checkSourceBalance,
             },
             body: requestBody,
