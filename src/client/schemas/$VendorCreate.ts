@@ -14,7 +14,13 @@ export const $VendorCreate = {
     isRequired: true,
 },
         tax_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

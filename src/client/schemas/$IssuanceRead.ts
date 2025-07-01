@@ -11,7 +11,7 @@ export const $IssuanceRead = {
         created_at: {
     type: 'string',
     isRequired: true,
-    format: 'date',
+    format: 'date-time',
 },
         updated_at: {
     type: 'string',
@@ -23,48 +23,101 @@ export const $IssuanceRead = {
     isRequired: true,
 },
         date: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'date',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         employee_id: {
     type: 'number',
     isRequired: true,
 },
         memo: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         issuing_completed: {
     type: 'boolean',
     isRequired: true,
 },
         issuance_items: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'IssuanceItemRead',
     },
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         st_erp_work_order_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
 },
         st_erp_work_order_date: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'date',
+}, {
+    type: 'null',
+}],
 },
         st_erp_work_order_due_date: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'date',
+}, {
+    type: 'null',
+}],
 },
         st_erp_product_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
 },
         st_erp_product_due_quanity: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
 },
         st_erp_production_department: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
 },
         st_erp_production_line: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
 },
     },
 } as const;

@@ -68,7 +68,7 @@ materialInventoryIdno: string,
 
     /**
      * Get Material Inventory In Stock Balance
-     * @returns number Successful Response
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static getMaterialInventoryInStockBalance({
@@ -77,7 +77,7 @@ onlyIssuable = false,
 }: {
 materialInventoryId: number,
 onlyIssuable?: boolean,
-}): CancelablePromise<number> {
+}): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/{material_inventory_id}/balance/in-stock',
@@ -138,6 +138,43 @@ checkSourceBalance?: boolean,
             url: '/material_inventories/{material_inventory_id}/transfer',
             path: {
                 'material_inventory_id': materialInventoryId,
+            },
+            query: {
+                'from_l2_storage_id': fromL2StorageId,
+                'cause': cause,
+                'check_source_balance': checkSourceBalance,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Transfer Material Inventory
+     * @returns MaterialInventoryRecordRead Successful Response
+     * @throws ApiError
+     */
+    public static transferMaterialInventory1({
+stBarcode,
+fromL2StorageId,
+cause,
+requestBody,
+checkSourceBalance = false,
+}: {
+stBarcode: string,
+fromL2StorageId: number,
+cause: InventoryChangeCauseEnum,
+requestBody: Array<MaterialInventoryTransferCreate>,
+checkSourceBalance?: boolean,
+}): CancelablePromise<Array<MaterialInventoryRecordRead>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/material_inventories/{st_barcode}/transfer',
+            path: {
+                'st_barcode': stBarcode,
             },
             query: {
                 'from_l2_storage_id': fromL2StorageId,

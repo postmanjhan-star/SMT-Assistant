@@ -7,6 +7,6 @@ import type { InventoryChangeCauseEnum } from './InventoryChangeCauseEnum';
 
 export type MaterialStockRecord = {
     date: string;
-    delta_qty: number;
+    delta_qty: string;
     cause: InventoryChangeCauseEnum;
 };

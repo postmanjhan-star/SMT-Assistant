@@ -12,5 +12,5 @@ export type STPartPack = {
     part_idno: string;
     unit: string;
     vendor_idno: string;
-    manufacturing_date?: string;
+    manufacturing_date: (string | null);
 };

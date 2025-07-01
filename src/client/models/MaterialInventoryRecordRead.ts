@@ -9,10 +9,10 @@ export type MaterialInventoryRecordRead = {
     id: number;
     date: string;
     material_id: number;
-    material_inventory_id?: number;
+    material_inventory_id: (number | null);
     l1_storage_id: number;
     l2_storage_id: number;
-    delta_qty: number;
+    delta_qty: string;
     cause: InventoryChangeCauseEnum;
-    issuance_item_id?: number;
+    issuance_item_id: (number | null);
 };

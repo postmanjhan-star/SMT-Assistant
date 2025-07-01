@@ -4,9 +4,9 @@
 /* eslint-disable */
 
 export type SmtMaterialInventory = {
-    id?: number;
+    id?: (number | null);
     idno: string;
-    material_id?: number;
+    material_id: (number | null);
     material_idno: string;
     material_name: string;
 };

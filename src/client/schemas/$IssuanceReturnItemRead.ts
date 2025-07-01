@@ -13,10 +13,16 @@ export const $IssuanceReturnItemRead = {
     isRequired: true,
 },
         material_inventory_records: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'MaterialInventoryRecordRead',
     },
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         from_l2_storage_id: {
     type: 'number',
@@ -27,7 +33,7 @@ export const $IssuanceReturnItemRead = {
     isRequired: true,
 },
         quantity: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
     },

@@ -13,17 +13,34 @@ export const $MaterialUpdate = {
     isRequired: true,
 },
         name: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         description: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         unit: {
     type: 'UnitEnum',
     isRequired: true,
 },
         qty_per_pack: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'string',
+}],
     isRequired: true,
 },
         expiry_days: {

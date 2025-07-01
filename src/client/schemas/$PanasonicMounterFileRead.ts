@@ -5,7 +5,12 @@
 export const $PanasonicMounterFileRead = {
     properties: {
         id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
 },
         updated_at: {
     type: 'string',
@@ -25,13 +30,24 @@ export const $PanasonicMounterFileRead = {
     isRequired: true,
 },
         board_side: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
 },
         panasonic_mounter_file_items: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'PanasonicMounterFileItemRead',
     },
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

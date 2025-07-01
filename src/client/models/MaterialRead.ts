@@ -10,9 +10,9 @@ export type MaterialRead = {
     id: number;
     idno: string;
     material_type: MaterialTypeEnum;
-    name?: string;
-    description?: string;
+    name: (string | null);
+    description: (string | null);
     unit: UnitEnum;
-    qty_per_pack: number;
+    qty_per_pack: string;
     expiry_days: number;
 };

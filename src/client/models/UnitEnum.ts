@@ -3,9 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 
-/**
- * An enumeration.
- */
 export enum UnitEnum {
     ROLL = 'ROLL',
     PIECE = 'PIECE',

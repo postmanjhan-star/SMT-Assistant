@@ -37,27 +37,51 @@ export const $IssuanceItemRead = {
     isRequired: true,
 },
         l1_storage_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         l1_storage_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         l2_storage_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         l2_storage_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         issue_qty: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
         lend_qty: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
         retain_qty: {
-    type: 'number',
+    type: 'string',
 },
         picked: {
     type: 'boolean',

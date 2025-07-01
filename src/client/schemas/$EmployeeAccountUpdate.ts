@@ -5,16 +5,33 @@
 export const $EmployeeAccountUpdate = {
     properties: {
         full_name: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         password: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
 },
         roles: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'EmployeeRoleEnum',
     },
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

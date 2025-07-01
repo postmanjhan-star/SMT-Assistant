@@ -18,7 +18,13 @@ export const $MaterialInventoryRecordRead = {
     isRequired: true,
 },
         material_inventory_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         l1_storage_id: {
     type: 'number',
@@ -29,7 +35,7 @@ export const $MaterialInventoryRecordRead = {
     isRequired: true,
 },
         delta_qty: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
         cause: {
@@ -37,7 +43,13 @@ export const $MaterialInventoryRecordRead = {
     isRequired: true,
 },
         issuance_item_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

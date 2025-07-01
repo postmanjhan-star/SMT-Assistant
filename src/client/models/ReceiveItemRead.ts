@@ -8,6 +8,8 @@ export type ReceiveItemRead = {
     receive_id: number;
     material_id: number;
     material_idno: string;
-    total_qty: number;
-    qualify_qty: number;
+    total_qty: string;
+    qualify_qty: string;
+    purchase_idno: (string | null);
+    st_receive_idno: (string | null);
 };

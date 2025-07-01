@@ -9,7 +9,12 @@ export const $IssuanceReturnCreate = {
     isRequired: true,
 },
         return_quantity: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'string',
+}],
     isRequired: true,
 },
     },

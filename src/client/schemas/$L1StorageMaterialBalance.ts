@@ -29,7 +29,7 @@ export const $L1StorageMaterialBalance = {
     isRequired: true,
 },
         balance: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
     },

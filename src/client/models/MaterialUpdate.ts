@@ -8,9 +8,9 @@ import type { UnitEnum } from './UnitEnum';
 export type MaterialUpdate = {
     id: number;
     idno: string;
-    name?: string;
-    description?: string;
+    name: (string | null);
+    description: (string | null);
     unit: UnitEnum;
-    qty_per_pack: number;
+    qty_per_pack: (number | string);
     expiry_days: number;
 };

@@ -5,9 +5,11 @@
 export const $EmployeeAccountCreate = {
     properties: {
         role: {
-    type: 'all-of',
+    type: 'any-of',
     contains: [{
     type: 'EmployeeRoleEnum',
+}, {
+    type: 'null',
 }],
 },
         password: {

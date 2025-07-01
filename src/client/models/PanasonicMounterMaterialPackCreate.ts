@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type VendorCreate = {
-    idno: string;
-    name: string;
-    tax_idno: (string | null);
+export type PanasonicMounterMaterialPackCreate = {
+    panasonic_mounter_item_id: number;
+    real_num: string;
 };

@@ -5,14 +5,25 @@
 export const $SmtMaterialInventory = {
     properties: {
         id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
 },
         idno: {
     type: 'string',
     isRequired: true,
 },
         material_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         material_idno: {
     type: 'string',

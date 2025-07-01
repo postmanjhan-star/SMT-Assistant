@@ -155,6 +155,31 @@ requestBody: IssuanceItemCreate,
     }
 
     /**
+     * Remove Issuance Item
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static removeItem({
+issuanceItemId,
+issuanceIdno,
+}: {
+issuanceItemId: number,
+issuanceIdno: string,
+}): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/issuances/{issuance_idno}/{issuance_item_id}',
+            path: {
+                'issuance_item_id': issuanceItemId,
+                'issuance_idno': issuanceIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Update Issuance Item
      * @returns IssuanceItemRead Successful Response
      * @throws ApiError
@@ -177,31 +202,6 @@ requestBody: IssuanceItemUpdate,
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Remove Issuance Item
-     * @returns boolean Successful Response
-     * @throws ApiError
-     */
-    public static removeItem({
-issuanceItemId,
-issuanceIdno,
-}: {
-issuanceItemId: number,
-issuanceIdno: string,
-}): CancelablePromise<boolean> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/issuances/{issuance_idno}/{issuance_item_id}',
-            path: {
-                'issuance_item_id': issuanceItemId,
-                'issuance_idno': issuanceIdno,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -258,14 +258,14 @@ issuanceIdno: string,
 
     /**
      * Get Material Issuable Balance
-     * @returns number Successful Response
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static getMaterialIssuableBalance({
 materialIdno,
 }: {
 materialIdno: string,
-}): CancelablePromise<number> {
+}): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/issuances/issuable_balance/{material_idno}',

@@ -5,7 +5,7 @@
 
 export type ReceiveItemCreate = {
     material_id: number;
-    total_qty: number;
-    qualify_qty: number;
+    total_qty: (number | string);
+    qualify_qty: (number | string);
     st_barcodes?: Array<string>;
 };

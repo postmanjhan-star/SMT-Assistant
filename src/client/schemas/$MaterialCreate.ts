@@ -16,10 +16,22 @@ export const $MaterialCreate = {
     isRequired: true,
 },
         name: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         description: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         unit: {
     type: 'all-of',
@@ -29,7 +41,12 @@ export const $MaterialCreate = {
     isRequired: true,
 },
         qty_per_pack: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'string',
+}],
 },
         expiry_days: {
     type: 'number',

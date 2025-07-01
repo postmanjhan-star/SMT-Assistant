@@ -48,7 +48,7 @@ idno: string,
 
     /**
      * Get Material In Stock Balance
-     * @returns number Successful Response
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static getMaterialInStockBalance({
@@ -57,7 +57,7 @@ onlyIssuable = false,
 }: {
 materialIdno: string,
 onlyIssuable?: boolean,
-}): CancelablePromise<number> {
+}): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{material_idno}/balance/in-stock',
@@ -75,14 +75,14 @@ onlyIssuable?: boolean,
 
     /**
      * Get Material In Production Balance
-     * @returns number Successful Response
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static getMaterialInProductionBalance({
 materialIdno,
 }: {
 materialIdno: string,
-}): CancelablePromise<number> {
+}): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{material_idno}/balance/in-production',
@@ -97,14 +97,14 @@ materialIdno: string,
 
     /**
      * Get Material In Lending Balance
-     * @returns number Successful Response
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static getMaterialInLendingBalance({
 materialIdno,
 }: {
 materialIdno: string,
-}): CancelablePromise<number> {
+}): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/materials/{material_idno}/balance/in-lending',

@@ -12,7 +12,7 @@ import { request as __request } from '../core/request';
 export class SessionService {
 
     /**
-     * Login For Access Token
+     * Login
      * @returns Token Successful Response
      * @throws ApiError
      */
@@ -23,7 +23,7 @@ formData: Body_login_for_access_token,
 }): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/session/',
+            url: '/session/login',
             formData: formData,
             mediaType: 'application/x-www-form-urlencoded',
             errors: {

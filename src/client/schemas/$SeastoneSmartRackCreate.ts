@@ -20,16 +20,26 @@ export const $SeastoneSmartRackCreate = {
     isRequired: true,
 },
         wifi_ip: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'ipvanyaddress',
+}, {
+    type: 'null',
+}],
 },
         wifi_mac: {
     type: 'string',
     isRequired: true,
 },
         eth_ip: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'ipvanyaddress',
+}, {
+    type: 'null',
+}],
 },
         eth_mac: {
     type: 'string',

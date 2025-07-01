@@ -3,10 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Body_upload_fst } from '../models/Body_upload_fst';
+import type { Body_upload_mounter_file } from '../models/Body_upload_mounter_file';
 import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_panasonic_mounter_csv';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
+import type { PanasonicMounterFileCreate } from '../models/PanasonicMounterFileCreate';
 import type { PanasonicMounterFileItemRead } from '../models/PanasonicMounterFileItemRead';
 import type { PanasonicMounterFileRead } from '../models/PanasonicMounterFileRead';
+import type { PanasonicMounterMaterialPackCreate } from '../models/PanasonicMounterMaterialPackCreate';
 import type { SmtMaterialInventory } from '../models/SmtMaterialInventory';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -14,6 +17,114 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 export class SmtService {
+
+    /**
+     * Upload Mounter File
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static uploadMounterFile({
+formData,
+}: {
+formData: Body_upload_mounter_file,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/mounter-file/upload',
+            formData: formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Panasonic Mounter
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getPanasonicMounter({
+boardside,
+}: {
+boardside: string,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/get_panasonic_mounter',
+            query: {
+                'boardside': boardside,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Add Panasonic Material Pack
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static addPanasonicMaterialPack({
+requestBody,
+}: {
+requestBody: PanasonicMounterMaterialPackCreate,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/panasonic_mounter_item/material_pack',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Panasonic Mounter Item
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getPanasonicMounterItem({
+id,
+}: {
+id: number,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter_item/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Material Inventory
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static materialInventoryForSmt({
+materialInventoryIdno,
+}: {
+materialInventoryIdno: string,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/material_inventory_v2/{material_inventory_idno}',
+            path: {
+                'material_inventory_idno': materialInventoryIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
 
     /**
      * Get Material Inventory
@@ -74,10 +185,10 @@ testingProductIdno,
 }: {
 workOrderIdno: string,
 boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
-productIdno?: string,
-mounterIdno?: string,
+productIdno?: (string | null),
+mounterIdno?: (string | null),
 testingMode?: boolean,
-testingProductIdno?: string,
+testingProductIdno?: (string | null),
 }): CancelablePromise<Array<FujiMounterFileRead>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -161,15 +272,7 @@ id: number,
  * 範例：
  *
  * ```
- * 生产数据: 40X85-009B-T2
- * 描述:
- * 产品: 40X85-009B-T2-TOP
  *
- * 供料器设置
- * 机器编号,机器名,工作台,插槽,子插槽,元件,供应,贴装点,"40X85-009B-T2-TOP参考编号",元件说明,替代元件,薄型单式,供料器类型
- * 1,"A1-NPM-W2-8+16",1,10010,L,"45110-020F-50",P0804_S,3,"NTC1,NTC2,NTC3","0805/SDNT2012X103F3950FTF","",,双
- * 1,"A1-NPM-W2-8+16",2,20019,,"8825K-0002-S0",E1608_S,6,"D10,D11,D12,D13,D14,D15","5.0SMDJ130CA/DO-214A","",,单
- * ,,,,,"321-208P01-S0",E3220_L,3,"P1,P2,P3","2.54×2.54/高18mm/2×4,SMT排针",""
  * ```
  *
  * 另一種 top / bottom 混合的格式範例:
@@ -186,14 +289,14 @@ id: number,
  * 1,"A1-NPM-W2-8+16",1,10007,R,"43010-630K-60",E0804_S,104,32,72,"C2,C3,C400,C401,C402,C403,C417,C418","C500,C501,C502,C509,C510,C511,C513,C514,C515,C521,C522,C523,C525,C526,C527,C533,C534,C535","1206/10uF/25V/X7R","",,双
  * 1,"A1-NPM-W2-8+16",2,21001,,"90100-0002-S1",托盘,4,0,4,"","U2","R7F7016944AFP/QFP48","",
  * ```
-     * @returns PanasonicMounterFileRead Successful Response
+     * @returns PanasonicMounterFileCreate Successful Response
      * @throws ApiError
      */
     public static uploadPanasonicMounterCsv({
 formData,
 }: {
 formData: Body_upload_panasonic_mounter_csv,
-}): CancelablePromise<Array<PanasonicMounterFileRead>> {
+}): CancelablePromise<Array<PanasonicMounterFileCreate>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/smt/panasonic_mounter/upload_csv',
@@ -222,10 +325,10 @@ testingProductIdno,
 workOrderIdno: string,
 mounterIdno: string,
 boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
-productIdno?: string,
-machineSide?: '1' | '2',
+productIdno?: (string | null),
+machineSide?: ('1' | '2' | null),
 testingMode?: boolean,
-testingProductIdno?: string,
+testingProductIdno?: (string | null),
 }): CancelablePromise<PanasonicMounterFileRead> {
         return __request(OpenAPI, {
             method: 'GET',

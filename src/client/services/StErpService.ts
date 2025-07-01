@@ -79,7 +79,9 @@ stPackIdno: string,
 
     /**
      * Get St Receive List
-     * CSV 資料順序：
+     * 以日期查 ST ERP 收料單
+ *
+ * CSV 資料順序：
  *
  * 收料單號^^訂單編號^^材料編號^^廠商編號^^收料日期^^收料數量^^驗收日期^^驗收數量^^隨車單號
  *
@@ -88,7 +90,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2023-07-07',
+stReceiveDate = '2025-07-01',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -105,7 +107,69 @@ stReceiveDate?: string,
     }
 
     /**
+     * Get St Receive
+     * 以 ST ERP 收料單號查收料單
+ *
+ * CSV 資料順序：
+ *
+ * 收料單號^^訂單編號^^材料編號^^廠商編號^^收料日期^^收料數量^^驗收日期^^驗收數量^^隨車單號
+ *
+ * `idno^^purchase_idno^^part_idno^^vendor_idno^^receive_date^^tatal_qty^^qualify_date^^qualify_qty^^mbr_idno`
+     * @returns STReceiveHeader Successful Response
+     * @throws ApiError
+     */
+    public static getStReceive({
+stReceiveIdno,
+}: {
+stReceiveIdno: string,
+}): CancelablePromise<STReceiveHeader> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/receives/{st_receive_idno}',
+            path: {
+                'st_receive_idno': stReceiveIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get St Erp Receive Packs
+     * 抓 ST ERP 一張收料單下的所有單包資料
+ *
+ * ST ERP 的單包代碼並非收料當下產生，而是要列印的當下才產生，人員有時候會不印、晚印，因此有時候會有收料單，卻查不到單包代碼，此時應該發出 404 或 503 錯誤。
+ *
+ * CSV 資料順序：
+ *
+ * 條碼編號^^本包數量^^驗收數量^^本包序號^^總包數^^收料單號^^材料編號^^單位^^廠商編號^^收料日期
+ *
+ * `pack_idno^^pack_qty^^total_qualify_qty^^pack_sequence_idno^^total_pack_sequence_idno^^receive_id^^part_idno^^unit^^vendor_idno^^receive_date`
+     * @returns STReceivePack Successful Response
+     * @throws ApiError
+     */
+    public static getStErpReceivePacks({
+stErpReceiveIdno,
+}: {
+stErpReceiveIdno: string,
+}): CancelablePromise<Array<STReceivePack>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/st_erp/receives/{st_erp_receive_idno}/packs',
+            path: {
+                'st_erp_receive_idno': stErpReceiveIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * @deprecated
      * Get St Receive Pack Barcodes
+     * Replaced by `get_st_erp_receive_packs()`
      * @returns string Successful Response
      * @throws ApiError
      */
@@ -128,7 +192,9 @@ stErpReceiveIdno: string,
 
     /**
      * Get St Erp Receive Pack
-     * CSV 資料順序：
+     * 抓 ST ERP 特定單包資料，不論收料單號為何。
+ *
+ * CSV 資料順序：
  *
  * 條碼編號^^本包數量^^驗收數量^^本包序號^^總包數^^收料單號^^材料編號^^單位^^廠商編號^^收料日期
  *
@@ -194,7 +260,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2023-07-07',
+date = '2025-07-01',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {
@@ -279,7 +345,7 @@ requestBody,
 }: {
 workOrderIdno: string,
 testingMode?: any,
-requestBody?: STWorkOrder,
+requestBody?: (STWorkOrder | null),
 }): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'POST',

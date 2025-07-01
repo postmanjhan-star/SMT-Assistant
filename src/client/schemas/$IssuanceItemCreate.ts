@@ -9,14 +9,29 @@ export const $IssuanceItemCreate = {
     isRequired: true,
 },
         issue_qty: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'string',
+}],
     isRequired: true,
 },
         lend_qty: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'string',
+}],
 },
         retain_qty: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'string',
+}],
 },
     },
 } as const;

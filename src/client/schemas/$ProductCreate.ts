@@ -15,10 +15,22 @@ export const $ProductCreate = {
 }],
 },
         name: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         description: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         unit: {
     type: 'all-of',
@@ -28,7 +40,12 @@ export const $ProductCreate = {
     isRequired: true,
 },
         qty_per_pack: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'string',
+}],
 },
         expiry_days: {
     type: 'number',

@@ -20,16 +20,26 @@ export const $SeastoneSmartRackReadWithChildren = {
     isRequired: true,
 },
         wifi_ip: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'ipvanyaddress',
+}, {
+    type: 'null',
+}],
 },
         wifi_mac: {
     type: 'string',
     isRequired: true,
 },
         eth_ip: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'ipvanyaddress',
+}, {
+    type: 'null',
+}],
 },
         eth_mac: {
     type: 'string',
@@ -40,10 +50,16 @@ export const $SeastoneSmartRackReadWithChildren = {
     isRequired: true,
 },
         seastone_smart_rack_cells: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'SeastoneSmartRackCellRead',
     },
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

@@ -7,5 +7,5 @@ export type VendorUpdate = {
     id: number;
     idno: string;
     name: string;
-    tax_idno?: string;
+    tax_idno?: (string | null);
 };

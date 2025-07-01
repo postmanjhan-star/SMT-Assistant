@@ -30,10 +30,16 @@ export const $EpicorReceive = {
     isRequired: true,
 },
         ReceiveDetails: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'EpicorReceiveDetail',
     },
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

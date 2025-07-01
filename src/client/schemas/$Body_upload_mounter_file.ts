@@ -2,19 +2,15 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $MaterialStockRecord = {
+export const $Body_upload_mounter_file = {
     properties: {
-        date: {
-    type: 'string',
+        file: {
+    type: 'binary',
     isRequired: true,
-    format: 'date',
+    format: 'binary',
 },
-        delta_qty: {
+        product_ver: {
     type: 'string',
-    isRequired: true,
-},
-        cause: {
-    type: 'InventoryChangeCauseEnum',
     isRequired: true,
 },
     },

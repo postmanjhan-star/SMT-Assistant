@@ -6,7 +6,7 @@
 import type { EmployeeRoleEnum } from './EmployeeRoleEnum';
 
 export type EmployeeAccountCreate = {
-    role?: EmployeeRoleEnum;
+    role?: (EmployeeRoleEnum | null);
     password: string;
     username: string;
 };

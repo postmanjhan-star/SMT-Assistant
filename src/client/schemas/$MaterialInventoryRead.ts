@@ -13,7 +13,13 @@ export const $MaterialInventoryRead = {
     isRequired: true,
 },
         parent_material_inventory_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         material_id: {
     type: 'number',
@@ -28,23 +34,53 @@ export const $MaterialInventoryRead = {
     isRequired: true,
 },
         l1_storage_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         l1_storage_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         l2_storage_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         l2_storage_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         latest_qty: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
         receive_item_id: {
+    type: 'any-of',
+    contains: [{
     type: 'number',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
         issuing_locked: {
     type: 'boolean',
@@ -56,7 +92,13 @@ export const $MaterialInventoryRead = {
     format: 'date',
 },
         st_barcode: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

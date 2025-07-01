@@ -9,7 +9,12 @@ export const $STReceiveHeader = {
     isRequired: true,
 },
         st_erp_record_idno: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
+}, {
+    type: 'null',
+}],
 },
         st_purchase_idno: {
     type: 'string',
@@ -29,7 +34,7 @@ export const $STReceiveHeader = {
     format: 'date',
 },
         total_qty: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
         qualify_qty: {

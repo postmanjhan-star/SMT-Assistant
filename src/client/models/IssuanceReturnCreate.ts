@@ -5,5 +5,5 @@
 
 export type IssuanceReturnCreate = {
     material_inventory_idno: string;
-    return_quantity: number;
+    return_quantity: (number | string);
 };

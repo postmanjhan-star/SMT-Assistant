@@ -17,7 +17,12 @@ export const $L2StorageRead = {
     isRequired: true,
 },
         seastone_smart_rack_cell: {
+    type: 'any-of',
+    contains: [{
     type: 'SeastoneSmartRackCellRead',
+}, {
+    type: 'null',
+}],
 },
     },
 } as const;

@@ -12,5 +12,5 @@ export type EpicorReceive = {
     PackSlip: string;
     PONum: string;
     VendorNumName: string;
-    ReceiveDetails?: Array<EpicorReceiveDetail>;
+    ReceiveDetails: (Array<EpicorReceiveDetail> | null);
 };

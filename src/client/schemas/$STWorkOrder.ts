@@ -35,10 +35,15 @@ export const $STWorkOrder = {
     isRequired: true,
 },
         work_order_items: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'STWorkOrderItem',
     },
+}, {
+    type: 'null',
+}],
 },
     },
 } as const;

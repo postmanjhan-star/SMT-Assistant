@@ -9,9 +9,9 @@ import type { UnitEnum } from './UnitEnum';
 export type RawMaterialCreate = {
     idno: string;
     material_type?: MaterialTypeEnum;
-    name?: string;
-    description?: string;
+    name: (string | null);
+    description: (string | null);
     unit: UnitEnum;
-    qty_per_pack?: number;
+    qty_per_pack?: (number | string);
     expiry_days?: number;
 };

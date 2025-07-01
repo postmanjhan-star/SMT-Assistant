@@ -7,7 +7,7 @@ export type VendorRead = {
     id: number;
     idno: string;
     name: string;
-    tax_idno?: string;
+    tax_idno: (string | null);
     employee_id: number;
-    l1_storage_id?: number;
+    l1_storage_id: (number | null);
 };

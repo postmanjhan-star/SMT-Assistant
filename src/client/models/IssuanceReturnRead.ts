@@ -15,6 +15,6 @@ export type IssuanceReturnRead = {
     material_idno: string;
     material_inventory_id: number;
     material_inventory_idno: string;
-    return_quantity: number;
-    issuance_return_items?: Array<IssuanceReturnItemRead>;
+    return_quantity: string;
+    issuance_return_items: (Array<IssuanceReturnItemRead> | null);
 };

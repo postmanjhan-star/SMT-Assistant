@@ -10,5 +10,5 @@ export type L1StorageMaterialBalance = {
     l2_storage_idno: string;
     material_id: number;
     material_idno: string;
-    balance: number;
+    balance: string;
 };

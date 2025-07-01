@@ -11,5 +11,5 @@ export type MaterialInventoryBalancesRead = {
     l1_storage_type: StorageTypeEnum;
     l2_storage_id: number;
     l2_storage_idno: string;
-    quantity: number;
+    quantity: string;
 };

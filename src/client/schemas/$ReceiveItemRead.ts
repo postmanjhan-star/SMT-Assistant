@@ -21,11 +21,29 @@ export const $ReceiveItemRead = {
     isRequired: true,
 },
         total_qty: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
         qualify_qty: {
-    type: 'number',
+    type: 'string',
+    isRequired: true,
+},
+        purchase_idno: {
+    type: 'any-of',
+    contains: [{
+    type: 'string',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
+},
+        st_receive_idno: {
+    type: 'any-of',
+    contains: [{
+    type: 'string',
+}, {
+    type: 'null',
+}],
     isRequired: true,
 },
     },

@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type VendorCreate = {
-    idno: string;
-    name: string;
-    tax_idno: (string | null);
+export type Body_upload_mounter_file = {
+    file: Blob;
+    product_ver: string;
 };

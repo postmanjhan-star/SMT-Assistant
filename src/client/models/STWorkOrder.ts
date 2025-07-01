@@ -13,5 +13,5 @@ export type STWorkOrder = {
     quantity: number;
     production_department: string;
     production_line: string;
-    work_order_items?: Array<STWorkOrderItem>;
+    work_order_items?: (Array<STWorkOrderItem> | null);
 };

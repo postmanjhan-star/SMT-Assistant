@@ -42,14 +42,20 @@ export const $IssuanceReturnRead = {
     isRequired: true,
 },
         return_quantity: {
-    type: 'number',
+    type: 'string',
     isRequired: true,
 },
         issuance_return_items: {
+    type: 'any-of',
+    contains: [{
     type: 'array',
     contains: {
         type: 'IssuanceReturnItemRead',
     },
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

@@ -37,8 +37,14 @@ export const $STPartPack = {
     isRequired: true,
 },
         manufacturing_date: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
     format: 'date',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
 },
     },
 } as const;

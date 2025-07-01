@@ -2,27 +2,15 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $VendorUpdate = {
+export const $PanasonicMounterMaterialPackCreate = {
     properties: {
-        id: {
+        panasonic_mounter_item_id: {
     type: 'number',
     isRequired: true,
 },
-        idno: {
+        real_num: {
     type: 'string',
     isRequired: true,
-},
-        name: {
-    type: 'string',
-    isRequired: true,
-},
-        tax_idno: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
 },
     },
 } as const;

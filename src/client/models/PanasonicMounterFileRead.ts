@@ -6,11 +6,11 @@
 import type { PanasonicMounterFileItemRead } from './PanasonicMounterFileItemRead';
 
 export type PanasonicMounterFileRead = {
-    id?: number;
+    id?: (number | null);
     updated_at: string;
     product_idno: string;
     product_ver: string;
     mounter_idno: string;
-    board_side?: string;
-    panasonic_mounter_file_items?: Array<PanasonicMounterFileItemRead>;
+    board_side?: (string | null);
+    panasonic_mounter_file_items: (Array<PanasonicMounterFileItemRead> | null);
 };
