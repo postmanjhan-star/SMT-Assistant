@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "module": "ES2022",
+        "module": "Node16",
         "target": "ES2020",
         "moduleResolution": "Node16",
         "outDir": "dist", // To prevent the error of 'Cannot write file XXX because it would overwrite input file.'

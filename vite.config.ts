@@ -23,3 +23,44 @@ export default ( {
     browser: { enabled: true, name: 'chromium', provider: 'playwright' },
   },
 } )
+
+
+// import { fileURLToPath, URL } from "url";
+// import vue from "@vitejs/plugin-vue";
+// import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
+// import Components from 'unplugin-vue-components/vite';
+
+// /** @type {import('vite').UserConfig} */
+// export default ({
+//   base: '/smt',
+//   plugins: [
+//     vue(),
+//     Components({ resolvers: [NaiveUiResolver()] }),
+//   ],
+//   resolve: {
+//     alias: {
+//       "@": fileURLToPath(new URL("./src", import.meta.url))
+//     },
+//   },
+//   server: {
+//     port: 5175,
+//     proxy: {
+//       '/smt': {
+//         target: 'http://localhost:8000', // ← 這是你後端 API 的實際 host/port
+//         changeOrigin: true,
+//       }
+//     }
+//   },
+//   preview: {
+//     port: 5175
+//   },
+//   test: {
+//     globals: true,
+//     environment: 'happy-dom',
+//     browser: {
+//       enabled: true,
+//       name: 'chromium',
+//       provider: 'playwright'
+//     },
+//   },
+// });
