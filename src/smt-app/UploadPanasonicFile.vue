@@ -32,12 +32,30 @@ function onBeforeUpload ( data: { file: Required<FileInfo>, fileList: Required<F
 }
 
 
+// async function customRequest (
+//   { file, data, headers, withCredentials, action, onFinish, onError, onProgress }: UploadCustomRequestOptions
+// ) {
+//   // console.debug( file )
+//   try {
+//     await SmtService.uploadPanasonicMounterCsv( { formData: { file: file.file, product_ver: formValue.value.product_ver } } )
+//     message.success( `${ file.name } 上傳成功`, { keepAliveOnHover: true } )
+//     uploadRef.value?.clear()
+//     formValue.value.product_ver = null
+//     onFinish()
+//   } catch ( error ) {
+//     if ( error instanceof ApiError && error.status === 422 ) { message.error( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } ) }
+//     else { message.error( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } ) }
+//     uploadRef.value?.clear()
+//     onError()
+//   } finally { disableUploadButton.value = true }
+// }
+
 async function customRequest (
   { file, data, headers, withCredentials, action, onFinish, onError, onProgress }: UploadCustomRequestOptions
 ) {
-  // console.debug( file )
+  console.debug( file )
   try {
-    await SmtService.uploadPanasonicMounterCsv( { formData: { file: file.file, product_ver: formValue.value.product_ver } } )
+    await SmtService.uploadMounterFile( { formData: { file: file.file, product_ver: formValue.value.product_ver } } )
     message.success( `${ file.name } 上傳成功`, { keepAliveOnHover: true } )
     uploadRef.value?.clear()
     formValue.value.product_ver = null
@@ -76,7 +94,7 @@ function onClickUploadButton ( event: Event ) {
             <n-form-item :show-label=" false ">
               <n-upload accept=".csv" :multiple=" false " :default-upload=" false " :max=" 1 "
                 :custom-request=" customRequest " @before-upload=" onBeforeUpload( $event ) "
-                @change=" onFileListChange( $event ) " ref="uploadRef" :show-cancel-butto=" false ">
+                @change=" onFileListChange( $event ) " ref="uploadRef" :show-cancel-button=" false ">
                 <n-upload-dragger>
                   <n-p style="font-size: xxx-large">📄</n-p>
                   <n-text>點擊或者拖動 Panasonic 打件機 CSV 文件</n-text>
