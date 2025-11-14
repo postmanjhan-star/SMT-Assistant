@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { useMeta } from 'vue-meta'
 import { RouterView } from "vue-router"
+import { useDialog } from 'naive-ui'
 
-useMeta( { title: 'Start' } )
+useMeta({ title: 'Start' })
 </script>
+
 
 <template>
   <!-- The ghost component for vue-meta -->
   <metainfo></metainfo>
-  <RouterView />
+  <n-dialog-provider>
+    <RouterView />
+  </n-dialog-provider>
 </template>
 
 <style>

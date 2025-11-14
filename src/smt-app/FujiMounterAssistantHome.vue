@@ -30,7 +30,6 @@ const rules: FormRules = {
   },
 }
 
-
 async function onClickSubmitButton ( event: Event ) {
   try { await formRef.value?.validate( async ( error ) => { if ( error ) { throw error } } ) }
   catch ( error ) {

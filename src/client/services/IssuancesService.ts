@@ -308,7 +308,7 @@ materialIdno: string,
      */
     public static lightUpIssuanceSmartRackCells({
 issuanceIdno,
-ledColor,
+ledColor = 4,
 }: {
 issuanceIdno: string,
 ledColor?: LedColorEnum,

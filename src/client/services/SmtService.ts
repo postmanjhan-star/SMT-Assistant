@@ -6,9 +6,11 @@ import type { Body_upload_fst } from '../models/Body_upload_fst';
 import type { Body_upload_mounter_file } from '../models/Body_upload_mounter_file';
 import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_panasonic_mounter_csv';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
+import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
 import type { PanasonicMounterFileCreate } from '../models/PanasonicMounterFileCreate';
 import type { PanasonicMounterFileItemRead } from '../models/PanasonicMounterFileItemRead';
 import type { PanasonicMounterFileRead } from '../models/PanasonicMounterFileRead';
+import type { PanasonicMounterItemStatCreate } from '../models/PanasonicMounterItemStatCreate';
 import type { PanasonicMounterMaterialPackCreate } from '../models/PanasonicMounterMaterialPackCreate';
 import type { SmtMaterialInventory } from '../models/SmtMaterialInventory';
 
@@ -45,16 +47,88 @@ formData: Body_upload_mounter_file,
      * @throws ApiError
      */
     public static getPanasonicMounter({
-boardside,
+mounterIdno,
+boardSide,
+productIdno,
+machineSide,
 }: {
-boardside: string,
+mounterIdno: string,
+boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
+productIdno?: (string | null),
+machineSide?: (string | null),
 }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/smt/get_panasonic_mounter',
             query: {
-                'boardside': boardside,
+                'mounter_idno': mounterIdno,
+                'board_side': boardSide,
+                'product_idno': productIdno,
+                'machine_side': machineSide,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Add Panasonic Mounter Item Stat
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static addPanasonicMounterItemStat({
+requestBody,
+}: {
+requestBody: PanasonicMounterItemStatCreate,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/panasonic_mounter_item/stat',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Add Panasonic Mounter Item Stats
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static addPanasonicMounterItemStats({
+requestBody,
+}: {
+requestBody: Array<PanasonicMounterItemStatCreate>,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/panasonic_mounter_item/stats',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Add Panasonic Mounter Item Stat Roll
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static addPanasonicMounterItemStatRoll({
+requestBody,
+}: {
+requestBody: PanasonicFeedRecordCreate,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/panasonic_mounter_item/stat/roll',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -105,20 +179,25 @@ id: number,
     }
 
     /**
-     * Get Material Inventory
+     * Update Panasonic Item Stats End Time
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static materialInventoryForSmt({
-materialInventoryIdno,
+    public static updateTheStatsOfProductionEndTimeRecord({
+uuid,
+endTime,
 }: {
-materialInventoryIdno: string,
+uuid: string,
+endTime?: (string | null),
 }): CancelablePromise<any> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/material_inventory_v2/{material_inventory_idno}',
+            method: 'PATCH',
+            url: '/smt/panasonic_mounter_item/stats/{uuid}',
             path: {
-                'material_inventory_idno': materialInventoryIdno,
+                'uuid': uuid,
+            },
+            query: {
+                'end_time': endTime,
             },
             errors: {
                 422: `Validation Error`,

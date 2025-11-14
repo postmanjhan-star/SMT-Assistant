@@ -9,10 +9,7 @@ export const $ProductCreate = {
     isRequired: true,
 },
         material_type: {
-    type: 'all-of',
-    contains: [{
     type: 'MaterialTypeEnum',
-}],
 },
         name: {
     type: 'any-of',
@@ -33,10 +30,7 @@ export const $ProductCreate = {
     isRequired: true,
 },
         unit: {
-    type: 'all-of',
-    contains: [{
     type: 'UnitEnum',
-}],
     isRequired: true,
 },
         qty_per_pack: {

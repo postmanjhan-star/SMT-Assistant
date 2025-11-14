@@ -1,50 +1,80 @@
 <script setup lang="ts">
+
 import { GetRowIdParams, GridOptions, RowNode } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage } from 'naive-ui';
+import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormInst, FormRules, useDialog } from 'naive-ui';
 import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, PanasonicMounterFileRead, SmtMaterialInventory, SmtService } from '../client';
+import { ApiError, CheckMaterialMatchEnum, PanasonicMounterFileRead, PanasonicMounterItemStatCreate, PanasonicFeedRecordCreate, ProduceTypeEnum, FeedMaterialTypeEnum, SmtMaterialInventory, SmtService } from '../client';
+import { CloudCog } from "lucide-vue-next";
+import { error } from "console";
+import { waitFor } from "@testing-library/vue";
+import { constants } from "buffer";
+import { match } from "assert";
+import { validate } from "@babel/types";
+import { stat } from "fs/promises";
 
 const route = useRoute();
 const router = useRouter();
 const message = useMessage();
-useMeta( { title: 'Panasonic Mounter Assistant' } );
+useMeta({ title: 'Panasonic Mounter Assistant' });
 
 const mounterData = ref<PanasonicMounterFileRead>();
-
-const slotFormValue = ref( { slotIdno: '' } );
+type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 const slotIdnoInput = ref<InputInst>();
-
-const materialFormValue = ref( { materialInventoryIdno: '' } );
+const slotFormValue = ref({
+  slotIdno: '',
+  materialInventoryIdno: '',
+  remark: '',   // ✅ 新增 remark
+})
+const materialFormValue = ref({ materialInventoryIdno: '' });
 const materialInventoryIdnoInput = ref<InputInst>();
 
+type ResultType = {
+  success: boolean,
+  materialInventory?: SmtMaterialInventoryEx | null,
+  matchedRows?: any[]
+}
+
+const dialog = useDialog()
+
+const materialInventoryResult = ref<ResultType | null>(null)
+
+type CorrectState = 'true' | 'false' | 'warning'
+
 type RowModel = {
-  correct: boolean | null,
+  correct: CorrectState | null,
   id: number,
   slotIdno: string,
   subSlotIdno: string,
   materialIdno: string,
   materialInventoryIdno: string,
+  appendedMaterialInventoryIdno: string,
+  remark?: string,
 }
-const rowData = ref<RowModel[]>( [] );
+const rowData = ref<RowModel[]>([]);
 
-let materialMatchedRowArray: RowModel[]
+let materialMatchedRowArray: RowModel[] = []
+
+
+
 
 
 const gridOptions: GridOptions = {
   // PROPERTIES
   // Column Definitions
   columnDefs: [
-    { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { true: '✅', false: '❌' } },
+    { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'true': '✅', 'false': '❌', 'warning': '⚠️' } },
     { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
     { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
     { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
     { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
+    { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
+    { field: "remark", headerName: '備註', flex: 3, minWidth: 120 },
   ],
   defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
 
@@ -70,11 +100,11 @@ const gridOptions: GridOptions = {
   suppressColumnVirtualisation: true,
   suppressRowVirtualisation: false,
   domLayout: 'normal',
-  getBusinessKeyForNode: ( node: RowNode<RowModel> ) => { return `${ node.data.slotIdno }-${ node.data.subSlotIdno }` },
+  getBusinessKeyForNode: (node: RowNode<RowModel>) => { return `${node.data.slotIdno}-${node.data.subSlotIdno}` },
 
   // RowModel
   rowModelType: 'clientSide',
-  getRowId: ( params: GetRowIdParams ) => { return `${ params.data.slotIdno }-${ params.data.subSlotIdno }` },
+  getRowId: (params: GetRowIdParams) => { return `${params.data.slotIdno}-${params.data.subSlotIdno}` },
 
   // Scrolling
   debounceVerticalScrollbar: false,
@@ -100,9 +130,9 @@ const gridOptions: GridOptions = {
 
 
 
-onMounted( async () => {
+onMounted(async () => {
   try {
-    mounterData.value = await SmtService.getPanasonicMounterMaterialSlotPairs( {
+    mounterData.value = await SmtService.getPanasonicMounterMaterialSlotPairs({
       workOrderIdno: route.params.workOrderIdno.toString().trim(),
       mounterIdno: route.params.mounterIdno.toString().trim(),
       productIdno: route.query.product_idno.toString().trim(),
@@ -112,208 +142,868 @@ onMounted( async () => {
       // For testing and debugging. Example: http://127.0.0.1/smt/panasonic-mounter/A1-NPM-W2/H0001?work_sheet_side=DUPLEX&machine_side=1&testing_mode=1&testing_product_idno=40X76-002A-T3
       testingMode: route.query.testing_mode === '1' ? true : false,
       testingProductIdno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
-    } )
+    })
   }
-  catch ( error ) {
-    if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) }
-    else if ( error instanceof ApiError && error.status === 503 ) { router.push( '/http-status/404' ) }
+  catch (error) {
+    if (error instanceof ApiError && error.status === 404) { router.push('/http-status/404') }
+    else if (error instanceof ApiError && error.status === 503) { router.push('/http-status/404') }
   }
 
-  for ( let materialSlotPair of mounterData.value.panasonic_mounter_file_items ) {
-    rowData.value.push( {
+  for (let materialSlotPair of mounterData.value.panasonic_mounter_file_items) {
+    rowData.value.push({
       correct: null,
       id: materialSlotPair.id,
       slotIdno: materialSlotPair.slot_idno,
       subSlotIdno: materialSlotPair.sub_slot_idno,
       materialIdno: materialSlotPair.smd_model_idno,
+      appendedMaterialInventoryIdno: '',
       materialInventoryIdno: '',
-    } )
+    })
   }
-} )
+})
 
 
 
-function onClickBackArrow ( event: Event ) { router.push( `/smt/panasonic-mounter/` ); }
+function onClickBackArrow(event: Event) { router.push(`/smt/panasonic-mounter/`); }
 
 
-async function playSuccseTone () {
+async function playSuccessTone() {
   await Tone.start();
   //create a synth and connect it to the main output (your speakers)
   const synth = new Tone.Synth().toDestination();
   //play a middle 'C' for the duration of an 8th note
   const now = Tone.now()
-  synth.triggerAttackRelease( "C4", "8n", now )
-  synth.triggerAttackRelease( "G4", "8n", now + 0.1 )
-  synth.triggerAttackRelease( "F4", "8n", now + 0.2 )
+  synth.triggerAttackRelease("C4", "8n", now)
+  synth.triggerAttackRelease("G4", "8n", now + 0.1)
+  synth.triggerAttackRelease("F4", "8n", now + 0.2)
 }
 
-
-
-async function playErrorTone () {
+async function playErrorTone() {
   await Tone.start();
   //create a synth and connect it to the main output (your speakers)
   const synth = new Tone.Synth().toDestination();
   Tone.start();
   const now = Tone.now()
-  synth.triggerAttackRelease( "D4", "8n", now )
+  synth.triggerAttackRelease("D4", "8n", now)
   // synth.triggerAttackRelease("A4", "8n", now + 0.1)
-  synth.triggerAttackRelease( "D4", "8n", now + 0.2 )
+  synth.triggerAttackRelease("D4", "8n", now + 0.2)
+}
+
+async function showSuccess(msg: string) {
+  await playSuccessTone()
+  message.success(msg)
+  return true
+}
+
+function showWarn(msg: string) {
+  message.warning(msg)
+  return false
+}
+
+async function showError(msg: string) {
+  await playErrorTone()
+  message.error(msg)
+  return false
 }
 
 
-
-function speak ( text: string ) {
-  text = text.split( '' ).join( ', ' ) // Convert `10010` to `1,0,0,1,0` for speaking characters one by one
+function speak(text: string) {
+  text = text.split('').join(', ') // Convert `10010` to `1,0,0,1,0` for speaking characters one by one
   const utterance = new SpeechSynthesisUtterance()
   utterance.text = text
   utterance.lang = 'zh-CN' // zh-CN is much louder and clear
-  speechSynthesis.speak( utterance )
+  speechSynthesis.speak(utterance)
+}
+
+function resetSlotMaterialFormInputs() {
+  slotFormValue.value.slotIdno = ''
+  slotFormValue.value.materialInventoryIdno = ''
+  slotFormValue.value.remark = ''
+  materialFormValue.value.materialInventoryIdno = ''
+  materialInventoryIdnoInput.value.focus()
 }
 
 
+function cleanErrorMaterialInventory(currentPackCode: string, inputSlot: string, inputSubSlot: string) {
+  if (!currentPackCode) return
+  gridOptions.api.forEachNode((node) => {
+    const isSame = node.data.materialInventoryIdno === currentPackCode
+    const isDifferentSlot = `${node.data.slotIdno}-${node.data.subSlotIdno}` !== `${inputSlot}-${inputSubSlot}`
 
-function getMaterialMatchedRowArray ( materialIdno: string ): RowModel[] {
-  const matchedRow: RowModel[] = []
-  for ( let row of rowData.value ) { if ( materialIdno === row.materialIdno ) { matchedRow.push( row ) } }
-  if ( matchedRow.length > 0 ) { return matchedRow }
-  else { throw Error }
+    if (isSame && isDifferentSlot) {
+      node.setDataValue('materialInventoryIdno', '')
+      node.setDataValue('correct', '')
+      node.setDataValue('remark', '')
+    }
+  })
 }
 
 
-
-async function onSubmitMaterialInventoryForm ( event: Event ) {
-  if ( !!materialFormValue.value.materialInventoryIdno.trim() === false ) { // A3573382
-    message.warning( '請輸入物料號' )
-    return false
+async function handleMistmatch(result: any, inputSlot: string, inputSubSlot: string, materialRowNode: any) {
+  const inputSlotIdno = `${inputSlot}-${inputSubSlot}`
+  const newRow = {
+    slotIdno: inputSlot,
+    subSlotIdno: inputSubSlot,
+    correct: 'false' as CorrectState,
+    materialInventoryIdno: result.materialInventory?.idno ?? '',
+    remark: ''
   }
 
-  let materialInventory: SmtMaterialInventory
+  const existingNode = gridOptions.api.getRowNode(inputSlotIdno)
+  existingNode?.setDataValue('correct', newRow.correct)
+  existingNode?.setDataValue('materialInventoryIdno', newRow.materialInventoryIdno)
+
+
+  // materialRowNode.setDataValue('correct', '')
+  materialRowNode.setSelected(false)
+
+  await playErrorTone()
+  message.error(`錯誤的槽位 ${inputSlotIdno}`)
+  resetSlotMaterialFormInputs()
+
+}
+
+function getMaterialMatchedRowArray(materialIdno: string): RowModel[] {
+  return rowData.value.filter(row => row.materialIdno === materialIdno)
+}
+
+async function handleMaterialInventoryError(
+  error: unknown,
+  idno: string,
+  isTestingMode: boolean
+): Promise<SmtMaterialInventoryEx | null> {
+
+  // ✅ 測試模式找不到 → 用虛擬料 + ⚠️
+  if (error instanceof ApiError && error.status === 404 && isTestingMode) {
+    const virtualMaterial = {
+      id: -1,
+      idno: idno,
+      material_idno: 'TEST-MATERIAL',
+      material_name: 'TEST-MATERIAL',
+      remark: '[廠商測試新料]',
+    } as SmtMaterialInventory & { remark?: string }   // ✅ 安全轉型
+
+    message.info(`🧪 量試生產模式：使用物料 [廠商測試新料] ${idno}`)
+    // ✅ 把備註也塞回表單
+    slotFormValue.value.remark = virtualMaterial.remark ?? ''
+
+    message.success('🧪 量試生產模式：條碼接受完成')
+    return virtualMaterial
+  }
+
+  // ❌ 一般錯誤處理
+  if (error instanceof ApiError) {
+    const msg = {
+      404: '查無此條碼',
+      504: 'ERP 連線超時，請確認 ERP 連線',
+      502: 'ERP 連線錯誤，請確認 ERP 連線',
+      500: '系統錯誤'
+    }[error.status] ?? '未知錯誤'
+
+    message.error(msg)
+  } else {
+    console.error(error)
+    message.error('發生未知例外')
+  }
+
+  materialFormValue.value.materialInventoryIdno = ''
+  return null
+}
+
+// check material pack idno exist or not
+async function onSubmitMaterialInventoryForm(event: Event) {
+
+  const idno = materialFormValue.value.materialInventoryIdno.trim()
+  if (!idno) return showWarn('請輸入物料號') // STERP Material Pack Idno: A3573382, B4831789
+
+  const isTestingMode = route.query.testing_mode === '1'
+  let materialInventory: SmtMaterialInventoryEx | null = null
+
 
   // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
   try {
-    materialInventory = await SmtService.getMaterialInventoryForSmt( { materialInventoryIdno: materialFormValue.value.materialInventoryIdno.trim() } )
-  } catch ( error ) {
-    await playErrorTone()
-    if ( error instanceof ApiError && error.status === 404 ) { message.warning( '查無此條碼' ) }
-    else if ( error instanceof ApiError && error.status === 504 ) { message.error( 'ERP 連線超時，請確認 ERP 連線。' ) }
-    else if ( error instanceof ApiError && error.status === 502 ) { message.error( 'ERP 連線錯誤，請確認 ERP 連線。' ) }
-    else if ( error instanceof ApiError && error.status === 500 ) { message.error( '條碼查詢失敗' ) }
-    else { message.error( '錯誤' ) }
-    materialFormValue.value.materialInventoryIdno = ''
-    return false
+    materialInventory = await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: idno })
+
+    //🧩 此時 materialInventory 一定有值（真實或測試用）
+
+    // 檢查表內是否有對應物料
+    const materialMatchedRowArray = getMaterialMatchedRowArray(materialInventory.material_idno)
+    if (materialMatchedRowArray.length === 0) {
+      await playErrorTone()
+      message.warning('表格內無此物料')
+      materialFormValue.value.materialInventoryIdno = ''
+      return false
+    }
+
+    //⚙️ 僅記錄匹配狀態，不刷新畫面
+    // for (let row of materialMatchedRowArray) {
+    //   row.correct = 'true'   // 只更新資料屬性，不觸發 grid API
+    // }
+
+    materialInventoryResult.value = {
+      success: true,
+      materialInventory,
+      matchedRows: materialMatchedRowArray
+    }
+
+    await playSuccessTone()
+    message.success(isTestingMode ? '🧪 量試生產模式：物料匹配成功' : '✅ 正式生產模式：物料匹配成功')
+    slotIdnoInput?.value.focus()
+    return true
+
+  } catch (error) {
+    const handled = await handleMaterialInventoryError(error, idno, isTestingMode)
+    if (!handled) return false
+    materialInventory = handled
+
+    materialInventoryResult.value = {
+      success: true,
+      materialInventory,
+      matchedRows: [],
+    }
+
+    return true
   }
 
-  try { materialMatchedRowArray = getMaterialMatchedRowArray( materialInventory.material_idno ) }
-  catch ( error ) {
-    await playErrorTone()
-    message.warning( '表格內無此物料' )
-    materialFormValue.value.materialInventoryIdno = ''
-    return false
+
+}
+
+async function handleNormalMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string) {
+  if (!result) return showWarn('請先掃描物料條碼')
+
+  const matchedRows = result.matchedRows || []
+  if (matchedRows.length === 0) return showWarn('此物料未匹配任何槽位')
+
+  for (const row of matchedRows) {
+    const rowNode = gridOptions.api.getRowNode(`${row.slotIdno}-${row.subSlotIdno}`)
+
+    if (!rowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
+
+
+    if (row.slotIdno !== inputSlot || row.subSlotIdno !== inputSubSlot) {
+      await handleMistmatch(result, inputSlot, inputSubSlot, rowNode)
+      materialInventoryResult.value = null
+      return false
+    }
+
+    cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
+
+    rowNode.setDataValue('remark', result.materialInventory?.idno ?? '')
+    rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.remark ?? '')
+    rowNode.setDataValue('correct', 'true')
+    resetSlotMaterialFormInputs()
+    materialInventoryResult.value = null
+
+    return await showSuccess(`✅ 正式生產模式：槽位 ${inputSlotIdno} 綁定成功`)
+  }
+}
+
+async function handleTestingMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string) {
+  if (!result) return showWarn('請先掃描物料條碼')
+
+  const matchedRows = result.matchedRows || []
+  const rowNode = gridOptions.api.getRowNode(`${inputSlot}-${inputSubSlot}`)
+
+  if (!rowNode) return await showError(`找不到的輸入槽位 ${inputSlotIdno}`)
+
+  if (matchedRows.length !== 0) {
+    for (const row of matchedRows) {
+      const materialRowNode = gridOptions.api.getRowNode(`${row.slotIdno}-${row.subSlotIdno}`)
+
+      if (!materialRowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
+
+      if (row.slotIdno !== inputSlot || row.subSlotIdno !== inputSubSlot) {
+        await handleMistmatch(result, inputSlot, inputSubSlot, materialRowNode)
+        materialInventoryResult.value = null
+        return false
+      }
+
+      cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
+
+      rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
+      rowNode.setDataValue('remark', result.materialInventory?.remark ?? '')
+      rowNode.setDataValue('correct', 'true')
+
+      resetSlotMaterialFormInputs()
+      materialInventoryResult.value = null
+
+      return await showSuccess(`🧪 量試生產模式：槽位 ${inputSlotIdno} 綁定成功`)
+    }
   }
 
-  for ( let row of materialMatchedRowArray ) {
-    const rowNode = gridOptions.api.getRowNode( `${ row.slotIdno }-${ row.subSlotIdno }` )
-    rowNode.setSelected( true )
-    gridOptions.api.ensureIndexVisible( rowNode.rowIndex, 'middle' )
-  }
-  // speak( rowNode.data.slotIdno ) // Do not give a user voice hint here.
-  // speak( rowNode.data.subSlotIdno ) // Do not give a user voice hint here.
+  const testRemark = '[廠商測試新料]'
+  rowNode.setDataValue('correct', 'warning')
+  rowNode.setDataValue('remark', testRemark)
+  rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
+  materialInventoryResult.value = null
 
-  slotIdnoInput.value.focus()
+  await showSuccess(`🧪 量試生產模式：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
+  resetSlotMaterialFormInputs()
+
+  console.log(rowData.value)
+  return true
+}
+
+// async function onSubmitSlotForm ( event: Event ) {
+//   let inputSlotIdno = slotFormValue.value.slotIdno.trim() // Format: 10010-L for dual-type feeder, 10010 for single-type feeder.
+//   if ( !!inputSlotIdno === false ) {
+//     message.warning( '請輸入插槽位置' )
+//     return false
+//   }
+
+//   const [ inputSlotSlot, inputSlotSubSlot = '' ] = inputSlotIdno.split( '-' )
+
+//   for ( let row of materialMatchedRowArray ) {
+//     const rowNode = gridOptions.api.getRowNode( `${ row.slotIdno }-${ row.subSlotIdno }` )
+
+//     // In case of slot idnos not match.
+//     if ( inputSlotSlot != row.slotIdno || inputSlotSubSlot != row.subSlotIdno ) {
+//       row.correct = false
+//       row.materialInventoryIdno = ''
+
+//       rowNode.setData( row )
+//       rowNode.setSelected( false )
+//       await playErrorTone()
+//       message.error( '錯誤' )
+
+//       slotFormValue.value.slotIdno = ''
+//       materialFormValue.value.materialInventoryIdno = ''
+//       materialInventoryIdnoInput.value.focus()
+//       return false
+//     }
+
+//     // In case of slot idnos match.
+//     row.correct = true
+//     row.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim()
+
+//     rowNode.setData( row )
+//     rowNode.setSelected( false )
+//     await playSuccseTone()
+
+//     slotFormValue.value.slotIdno = ''
+//     materialFormValue.value.materialInventoryIdno = ''
+//     materialInventoryIdnoInput.value.focus()
+//     return true
+//   }
+// }
+
+// async function onSubmitSlotForm(event: Event) {
+//   const inputSlotIdno = slotFormValue.value.slotIdno.trim() // 10010-L 或 10010
+//   if (!inputSlotIdno) {
+//     message.warning('請輸入插槽位置')
+//     return false
+//   }
+
+//   const [inputSlot, inputSubSlot = ''] = inputSlotIdno.split('-')
+
+//   if (!materialMatchedRowArray || materialMatchedRowArray.length === 0) {
+//     message.warning('請先掃描物料條碼')
+//     return false
+//   }
+
+//   for (const row of materialMatchedRowArray) {
+//     const rowNode = gridOptions.api.getRowNode(`${row.slotIdno}-${row.subSlotIdno}`)
+
+//     // 槽位不匹配
+//     if (inputSlot !== row.slotIdno || inputSubSlot !== row.subSlotIdno) {
+//       row.correct = false
+//       row.materialInventoryIdno = ''
+//       rowNode.setData(row)
+//       rowNode.setSelected(false)
+//       await playErrorTone()
+//       message.error('錯誤')
+
+//       slotFormValue.value.slotIdno = ''
+//       materialFormValue.value.materialInventoryIdno = ''
+//       materialInventoryIdnoInput.value.focus()
+//       return false
+//     }
+
+//     // 槽位匹配
+//     row.correct = true
+//     row.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim()
+
+//     // ✅ 測試模式備註顯示
+//     if (row.remark) {
+//       slotFormValue.value.remark = row.remark
+//     }
+
+//     rowNode.setData(row)
+//     rowNode.setSelected(false)
+//     await playSuccseTone()
+
+//     slotFormValue.value.slotIdno = ''
+//     materialFormValue.value.materialInventoryIdno = ''
+//     materialInventoryIdnoInput.value.focus()
+//     return true
+//   }
+// }
+
+
+function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
+  return s as unknown as CheckMaterialMatchEnum
+}
+
+function convertProduceMode(s: boolean | null): ProduceTypeEnum | null {
+  return s as unknown as ProduceTypeEnum
 }
 
 
 
-async function onSubmitSlotForm ( event: Event ) {
-  let inputSlotIdno = slotFormValue.value.slotIdno.trim() // Format: 10010-L for dual-type feeder, 10010 for single-type feeder.
-  if ( !!inputSlotIdno === false ) {
-    message.warning( '請輸入插槽位置' )
-    return false
+async function onSubmitSlotForm(event: Event) {
+  const inputSlotIdno = slotFormValue.value.slotIdno.trim()
+  if (!inputSlotIdno) return showError('請輸入插槽位置')
+
+  const [inputSlot, inputSubSlot = ''] = inputSlotIdno.split('-')
+  let result = materialInventoryResult.value
+  const isTestingMode = route.query.testing_mode === '1'
+
+  if (isTestingMode) {
+    return await handleTestingMode(result, inputSlot, inputSubSlot, inputSlotIdno)
+  } else {
+    return await handleNormalMode(result, inputSlot, inputSubSlot, inputSlotIdno)
   }
 
-  const [ inputSlotSlot, inputSlotSubSlot = '' ] = inputSlotIdno.split( '-' )
+  // ⚙️ 檢查左表是否已成功查到物料
+  // 🚫 沒有當前物料結果就禁止執行
+  if (!result && !isTestingMode) return showWarn('請先掃描物料條碼')
 
-  for ( let row of materialMatchedRowArray ) {
-    const rowNode = gridOptions.api.getRowNode( `${ row.slotIdno }-${ row.subSlotIdno }` )
+  if (isTestingMode && !result) {
+    result = {
+      success: false,
+      matchedRows: [],
+      materialInventory: {
+        id: 0,
+        idno: '',
+        material_id: 0,
+        material_idno: '',
+        material_name: '',
+        remark: ''
+      }
+    }
+  }
 
-    // In case of slot idnos not match.
-    if ( inputSlotSlot != row.slotIdno || inputSlotSubSlot != row.subSlotIdno ) {
-      row.correct = false
-      row.materialInventoryIdno = ''
+  // ✅ 測試模式下，若沒有任何匹配資料，直接創造一筆虛擬 Row
+  const effectiveRows = (result.matchedRows && result.matchedRows.length > 0)
+    ? result.matchedRows
+    : [{
+      slotIdno: inputSlot,
+      subSlotIdno: inputSubSlot,
+      correct: 'warning' as CorrectState,
+      materialInventoryIdno: result.materialInventory?.idno ?? '',
+      remark: result.materialInventory?.remark ?? '[廠商測試新料]'
+    }]
 
-      rowNode.setData( row )
-      rowNode.setSelected( false )
+  for (const row of effectiveRows) {
+    const rowNode = gridOptions.api.getRowNode(`${row.slotIdno}-${row.subSlotIdno}`)
+    if (!rowNode) {
       await playErrorTone()
-      message.error( '錯誤' )
+      message.error(`找不到槽位 ${inputSlotIdno}`)
+      return false
+    }
+    // 槽位不匹配 → 錯誤處理
+    if (inputSlot !== row.slotIdno || inputSubSlot !== row.subSlotIdno) {
+      await handleMistmatch(result, inputSlot, inputSubSlot, rowNode)
+      // const newRow = {
+      //   slotIdno: inputSlot,
+      //   subSlotIdno: inputSubSlot,
+      //   correct: 'false' as CorrectState,
+      //   materialInventoryIdno: result.materialInventory?.idno ?? '',
+      //   remark: ''
+      // }
 
-      slotFormValue.value.slotIdno = ''
-      materialFormValue.value.materialInventoryIdno = ''
-      materialInventoryIdnoInput.value.focus()
+      // const existingNode = gridOptions.api.getRowNode(`${inputSlot}-${inputSubSlot}`)
+      // existingNode.setDataValue('correct', newRow.correct)
+      // existingNode.setDataValue('materialInventoryIdno', newRow.materialInventoryIdno)
+
+      // rowNode.setDataValue('correct', '')
+      // // rowNode.setDataValue('materialInventoryIdno', row.materialInventoryIdno)
+      // rowNode.setSelected(false)
+      // await playErrorTone()
+      // message.error(`錯誤的槽位 ${inputSlotIdno}`)
+
+      // materialInventoryResult.value = null
+      // slotFormValue.value.slotIdno = ''
+      // materialFormValue.value.materialInventoryIdno = ''
+      // materialInventoryIdnoInput.value.focus()
       return false
     }
 
-    // In case of slot idnos match.
-    row.correct = true
-    row.materialInventoryIdno = materialFormValue.value.materialInventoryIdno.trim()
+    const currentPackCode = result?.materialInventory?.idno ?? ''
+    cleanErrorMaterialInventory(currentPackCode, inputSlot, inputSlotIdno)
 
-    rowNode.setData( row )
-    rowNode.setSelected( false )
-    await playSuccseTone()
+    row.materialInventoryIdno = result.materialInventory?.idno ?? ''
+    row.remark = result.materialInventory?.remark ?? row.remark
 
+    // rowNode.setData(row)
+    rowNode.setDataValue('remark', row.remark)
+    rowNode.setDataValue('materialInventoryIdno', row.materialInventoryIdno)
+    rowNode.setDataValue('correct', row.correct)
+    // gridOptions.api.refreshCells({ force: true, columns: ['remark', 'materialInventoryIdno'] })
+    await playSuccessTone()
+
+    // 顯示 remark
+    slotFormValue.value.remark = ''
     slotFormValue.value.slotIdno = ''
     materialFormValue.value.materialInventoryIdno = ''
     materialInventoryIdnoInput.value.focus()
+
+    materialInventoryResult.value = null
+
+    console.log('✅ 修改後的 rowData：')
+    console.log(rowData.value)
+
+
+    // 🚩 不管怎樣先清空舊結果
+    materialInventoryResult.value = null
+
+    isTestingMode ?
+      message.success(`🧪 量試生產模式：槽位 ${inputSlotIdno} 綁定成功`) :
+      message.success(`✅ 正式生產模式：槽位 ${inputSlotIdno} 綁定成功`)
+
     return true
   }
 }
 
 
+const productionStarted = ref(false)
+
+function makeSlotKey(slot: string, subSlot?: string | null) {
+  if (subSlot && subSlot.trim() !== '') {
+    return `${slot}-${subSlot.trim()}`
+  }
+  return slot
+}
+
+const statMap = new Map<string, any>()
+
+function onProduction() {
+
+  const isTestingMode = route.query.testing_mode === '1'
+
+  const invalid = rowData.value.filter(r => {
+    if (r.correct === 'false') return true
+    if (!isTestingMode && r.correct == null) return true
+    return false
+  })
+  if (invalid.length > 0) {
+    return isTestingMode ?
+      showError('尚有槽位不匹配，不能開始生產')
+      : showError('尚有槽位未確認或不匹配，不能開始生產')
+  }
+
+  dialog.warning({
+    title: '開始生產確認',
+    content: '確定要開始生產嗎？',
+    positiveText: '確定',
+    negativeText: '取消',
+    onPositiveClick: () => {
+      // 真正開始生產的邏輯
+
+      return startProductionUpload(isTestingMode)
+    },
+    onNegativeClick: () => {
+      return
+    }
+  })
+}
+
+async function startProductionUpload(isTestingMode: boolean) {
+  // 開始生產
+  try {
+    const payload: Array<PanasonicMounterItemStatCreate> = rowData.value.map(row => ({
+      operator_id: null,
+      operation_time: new Date().toISOString(),
+      production_start: new Date().toISOString(),
+      work_order_no: String(route.params.workOrderIdno ?? null),
+      product_idno: String(route.query.product_idno),
+      machine_idno: String(route.params.mounterIdno.toString().trim()),
+
+      slot_idno: row.slotIdno,
+      sub_slot_idno: row.subSlotIdno ?? null,
+      material_idno: row.materialIdno ?? null,
+      material_pack_code: row.materialInventoryIdno ?? null,
+      produce_mode: convertProduceMode(isTestingMode ?? false),
+
+      check_pack_code_match: convertMatch(row.correct)
+    }))
+
+    console.log('Upload payload', payload)
+
+    const response = await SmtService.addPanasonicMounterItemStats(
+      { requestBody: payload }
+    )
+
+
+
+    response.forEach(stat => {
+      const key = makeSlotKey(stat.slot_idno, stat.sub_slot_idno)
+      statMap.set(key, stat)
+    })
+
+    console.log('stat_map', statMap)
+
+    showSuccess('開始生產，資料上傳成功')
+    productionStarted.value = true
+
+  } catch (err) {
+    console.error('upload failed: ', err)
+    showError('資料上傳失敗')
+  }
+}
+
+async function stopProduction() {
+  // 結束生產
+  const firstStat = statMap.values().next().value
+
+  dialog.warning({
+    title: '結束生產確認',
+    content: '確定要結束生產嗎？',
+    positiveText: '確定',
+    negativeText: '取消',
+    onPositiveClick: () => {
+      productionStarted.value = false
+      uploadEndProductionTime(firstStat.uuid)
+      return showSuccess('生產已結束')
+    },
+    onNegativeClick: () => {
+      return
+    }
+  })
+}
+
+async function uploadEndProductionTime(uuid: string) {
+  await SmtService.updateTheStatsOfProductionEndTimeRecord({
+    uuid: uuid,
+    endTime: new Date().toISOString()
+  })
+}
+
+const rollShortageFormRef = ref<FormInst | null>(null)
+const showRollShortageModal = ref(false)
+const rollTypeOptions = [{ label: '接料', value: 'roll' }, { label: '新捲料', value: 'new' }]
+
+const rollShortageFormValue = ref({
+  materialInventoryIdno: '',
+  slotIdno: '',
+  type: ''
+})
+
+const rollShortageRules: FormRules = {
+  materialInventoryIdno: { required: true, message: '請輸入單包條碼', trigger: ['blur'] },
+  slotIdno: { required: true, message: '請輸入槽位', trigger: ['blur'] },
+  type: {
+    required: true, message: '請選擇接料類型', trigger: ['change']
+  },
+}
+
+function onRollShortage() {
+  //單捲不足
+  showRollShortageModal.value = true
+}
+
+function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null {
+  return s as unknown as FeedMaterialTypeEnum
+}
+
+
+
+
+async function onSubmitShortage() {
+  // 可以先驗證表單
+  const idno = rollShortageFormValue.value.materialInventoryIdno.trim()
+  if (!idno) return showError('請輸入物料號')
+
+  const inputSlotIdno = rollShortageFormValue.value.slotIdno.trim()
+  if (!inputSlotIdno) return showError('請輸入槽位')
+  const stat = statMap.get(inputSlotIdno)
+  const [inputSlot, inputSubSlot = ''] = inputSlotIdno.split('-')
+  if (!stat) return showError('找不到對應的槽位')
+
+  const packType = rollShortageFormValue.value.type
+  if (!packType) return showError('請選擇物料類型')
+
+  let materialInventory: SmtMaterialInventoryEx | null = null
+
+  const isTestingMode = route.query.testing_mode === '1'
+
+  let correctState: CorrectState | null = null
+
+  try {
+    rollShortageFormRef.value?.validate()
+
+
+    materialInventory = await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: idno })
+
+    const materialMatchRowArray = getMaterialMatchedRowArray(materialInventory.material_idno)
+
+    if (materialMatchRowArray.length === 0) {
+      await playErrorTone()
+      return showError('表格內無此物料')
+    }
+
+    correctState = 'true'
+
+  } catch (error) {
+
+    if (error instanceof ApiError && error.status === 404 && isTestingMode) {
+      message.info(`🧪 量試生產模式：使用物料 [廠商測試新料] ${idno}`)
+      correctState = 'warning'
+    } else {
+      if (error instanceof ApiError) {
+        const msg = {
+          404: '查無此條碼',
+          504: 'ERP 連線超時，請確認 ERP 連線',
+          502: 'ERP 連線錯誤，請確認 ERP 連線',
+          500: '系統錯誤'
+        }[error.status] ?? '未知錯誤'
+
+        message.error(msg)
+      } else {
+        console.error(error)
+        message.error('發生未知例外')
+      }
+      return null
+    }
+  }
+
+  const payload: PanasonicFeedRecordCreate = {
+    stat_item_id: stat.id,
+    operator_id: '',
+    operation_time: new Date().toISOString(),
+    slot_idno: inputSlot,
+    sub_slot_idno: inputSubSlot ?? null,
+    material_pack_code: idno,
+    feed_material_pack_type: convertFeedMaterialType(packType),
+    check_pack_code_match: convertMatch(correctState)
+  }
+  console.log("送出資料", payload)
+  const response = await SmtService.addPanasonicMounterItemStatRoll(
+    { requestBody: payload }
+  )
+  showSuccess("新增成功")
+
+  const row = rowData.value.find(r => r.slotIdno === inputSlot && (r.subSlotIdno ?? '') === inputSubSlot)
+
+  if (row) {
+    row.appendedMaterialInventoryIdno = idno
+  }
+
+  rowData.value = [...rowData.value]
+
+  showRollShortageModal.value = false
+  rollShortageFormValue.value = { materialInventoryIdno: '', slotIdno: '', type: '' }
+
+}
+
+
+function onMaterialQuery() {
+  //接料查詢
+
+}
+
 // VirtualKeyboard API does not work properly on Honeywell. 
-function hideVirtualKeyboard () {
+function hideVirtualKeyboard() {
   // navigator.virtualKeyboard.overlaysContent = true
   // navigator.virtualKeyboard.hide()
 }
 </script>
 
-
-
 <template>
-  <n-space vertical :wrap-item=" false " style="height: calc(100vh - 60px);">
+  <!-- 單捲不足 Modal -->
+  <n-modal v-model:show="showRollShortageModal" preset="dialog" title="單捲不足">
+    <n-form :model="rollShortageFormValue" :rules="rollShortageRules" label-placement="top" ref="rollShortageFormRef">
+      <n-form-item show-require-mark label="單包條碼" path="materialInventoryIdno">
+        <n-input type="text" v-model:value.lazy="rollShortageFormValue.materialInventoryIdno"
+          placeholder="請輸入條碼"></n-input>
+      </n-form-item>
+
+      <n-form-item show-require-mark label="槽位" path="slotIdno">
+        <n-input type="text" v-model:value.lazy="rollShortageFormValue.slotIdno" placeholder="請輸入槽位"></n-input>
+      </n-form-item>
+
+      <n-form-item show-require-mark label="接料類型" path="type">
+        <n-radio-group v-model:value.lazy="rollShortageFormValue.type">
+          <n-radio-button v-for="rollType in rollTypeOptions" :key="rollType.value" :label="rollType.label"
+            :value="rollType.value"></n-radio-button>
+        </n-radio-group>
+      </n-form-item>
+    </n-form>
+
+    <template #action>
+      <n-space>
+        <n-button @click="showRollShortageModal = false">取消</n-button>
+        <n-button type="primary" @click="onSubmitShortage">確定</n-button>
+      </n-space>
+    </template>
+  </n-modal>
+  <n-space vertical :wrap-item="false" style="height: calc(100vh - 60px);">
 
     <n-space vertical size="small"
       style="padding: 0px 1rem 0 1rem; position: sticky; top: 0px; background-color: var(--table-color); z-index: 1;">
-      <n-page-header @back=" onClickBackArrow( $event ) " style="margin-bottom: 1rem;">
-        <template #title><span style="white-space: nowrap">{{ route.params.mounterIdno }}</span></template>
+      <n-page-header @back=" onClickBackArrow($event)" style="margin-bottom: 1rem;">
+        <!-- ✅ 機號 + 模式標籤 -->
+        <template #title>
+          <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+            <span>{{ route.params.mounterIdno }}</span>
+            <n-tag :type="route.query.testing_mode === '1' ? 'warning' : 'success'" size="small" bordered>
+              {{ route.query.testing_mode === '1' ? '🧪 量試模式' : '✅ 正式模式' }}
+            </n-tag>
+          </div>
+        </template>
         <template #default>
-          <n-space size="small">
-            <n-p>工單：<n-tag type="info" size="small">{{ route.params.workOrderIdno }}</n-tag>
-            </n-p>
-            <n-p>成品料號：<n-tag type="info" size="small">{{ route.query.product_idno }}</n-tag>
-            </n-p>
-            <n-p>工件面向：<n-tag type="info" size="small">{{ route.query.work_sheet_side }}</n-tag>
-            </n-p>
-            <n-p>機台面向：<n-tag type="info" size="small">{{ route.query.machine_side }}</n-tag>
-            </n-p>
-          </n-space>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <!-- 左側：工單資訊 -->
+            <n-space size="small">
+              <n-p>
+                工單：<n-tag type="info" size="small">{{ route.params.workOrderIdno }}</n-tag>
+              </n-p>
+              <n-p>
+                成品料號：<n-tag type="info" size="small">{{ route.query.product_idno }}</n-tag>
+              </n-p>
+              <n-p>
+                工件面向：<n-tag type="info" size="small">{{ route.query.work_sheet_side }}</n-tag>
+              </n-p>
+              <n-p>
+                機台面向：<n-tag type="info" size="small">{{ route.query.machine_side }}</n-tag>
+              </n-p>
+            </n-space>
+
+            <!-- 右側：功能按鈕 -->
+            <n-space size="small">
+              <n-button v-if="!productionStarted" type="success" size="small" @click="onProduction">
+                🚀 開始生產
+              </n-button>
+              <n-button v-else type="error" size="small" @click="stopProduction">
+                🛑 結束生產
+              </n-button>
+              <n-button type="warning" size="small" @click="onRollShortage" :disabled="!productionStarted">
+                ⚠️ 單捲不足
+              </n-button>
+              <n-button type="info" size="small" @click="onMaterialQuery" :disabled="!productionStarted">
+                🔍 接料查詢
+              </n-button>
+            </n-space>
+          </div>
         </template>
       </n-page-header>
 
       <n-grid cols="2 s:2" responsive="screen" x-gap="20">
         <n-gi>
-          <n-form size="small" :model=" materialFormValue " @submit.prevent=" onSubmitMaterialInventoryForm( $event ) ">
+          <n-form size="small" :model="materialFormValue" @submit.prevent=" onSubmitMaterialInventoryForm($event)">
             <n-form-item label="物料單包條碼">
-              <n-input type="text" size="large" v-model:value.lazy=" materialFormValue.materialInventoryIdno " autofocus
-                ref="materialInventoryIdnoInput" @focus=" hideVirtualKeyboard() "
-                :input-props=" { id: 'materialInventoryIdnoInput' } " />
+              <n-input type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno" autofocus
+                ref="materialInventoryIdnoInput" @focus=" hideVirtualKeyboard()"
+                :input-props="{ id: 'materialInventoryIdnoInput' }" />
             </n-form-item>
           </n-form>
         </n-gi>
 
         <n-gi>
-          <n-form size="small" :model=" slotFormValue " @submit.prevent=" onSubmitSlotForm( $event ) ">
+          <n-form size="small" :model="slotFormValue" @submit.prevent=" onSubmitSlotForm($event)">
             <n-form-item label="打件機料件槽位">
-              <n-input type="text" size="large" v-model:value.lazy=" slotFormValue.slotIdno " ref="slotIdnoInput"
-                :input-props=" { id: 'slotIdnoInput' } " />
+              <n-input type="text" size="large" v-model:value.lazy="slotFormValue.slotIdno" ref="slotIdnoInput"
+                :input-props="{ id: 'slotIdnoInput' }" />
             </n-form-item>
           </n-form>
         </n-gi>
@@ -321,11 +1011,13 @@ function hideVirtualKeyboard () {
     </n-space>
 
     <div style="height: 2000px; padding: 1rem;">
-      <ag-grid-vue class="ag-theme-balham-dark" :rowData=" rowData " style="height: 100%;" :gridOptions=" gridOptions ">
+      <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;" :gridOptions="gridOptions">
       </ag-grid-vue>
     </div>
 
   </n-space>
+
+
 </template>
 
 

@@ -129,7 +129,7 @@ stMbrIdno: string,
     public static getReceiveItemLabels({
 receiveIdno,
 receiveItemId,
-printer,
+printer = 'weasyprint',
 }: {
 receiveIdno: string,
 receiveItemId: number,

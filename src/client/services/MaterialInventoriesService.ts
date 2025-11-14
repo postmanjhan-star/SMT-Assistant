@@ -23,7 +23,7 @@ export class MaterialInventoriesService {
      */
     public static getMaterialInventoriesLabel({
 materialInventoryIdnos,
-printer,
+printer = 'weasyprint',
 }: {
 materialInventoryIdnos: Array<string>,
 printer?: Printer,
