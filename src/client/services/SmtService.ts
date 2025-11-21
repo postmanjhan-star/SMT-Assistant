@@ -5,8 +5,11 @@
 import type { Body_upload_fst } from '../models/Body_upload_fst';
 import type { Body_upload_mounter_file } from '../models/Body_upload_mounter_file';
 import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_panasonic_mounter_csv';
+import type { CheckMaterialMatchEnum } from '../models/CheckMaterialMatchEnum';
+import type { FeedMaterialTypeEnum } from '../models/FeedMaterialTypeEnum';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
 import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
+import type { PanasonicItemStatFeedLogRead } from '../models/PanasonicItemStatFeedLogRead';
 import type { PanasonicMounterFileCreate } from '../models/PanasonicMounterFileCreate';
 import type { PanasonicMounterFileItemRead } from '../models/PanasonicMounterFileItemRead';
 import type { PanasonicMounterFileRead } from '../models/PanasonicMounterFileRead';
@@ -198,6 +201,36 @@ endTime?: (string | null),
             },
             query: {
                 'end_time': endTime,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Panasonic Item Stats Log By Uuid
+     * @returns PanasonicItemStatFeedLogRead Successful Response
+     * @throws ApiError
+     */
+    public static getTheStatsOfLogsByUuid({
+uuid,
+feedPackType,
+checkPackCode,
+}: {
+uuid: string,
+feedPackType?: (FeedMaterialTypeEnum | null),
+checkPackCode?: (CheckMaterialMatchEnum | null),
+}): CancelablePromise<Array<PanasonicItemStatFeedLogRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter_item/stats/logs/{uuid}',
+            path: {
+                'uuid': uuid,
+            },
+            query: {
+                'feed_pack_type': feedPackType,
+                'check_pack_code': checkPackCode,
             },
             errors: {
                 422: `Validation Error`,

@@ -9,7 +9,18 @@ import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, CheckMaterialMatchEnum, PanasonicMounterFileRead, PanasonicMounterItemStatCreate, PanasonicFeedRecordCreate, ProduceTypeEnum, FeedMaterialTypeEnum, SmtMaterialInventory, SmtService } from '../client';
+import {
+  ApiError,
+  CheckMaterialMatchEnum,
+  PanasonicMounterFileRead,
+  PanasonicMounterItemStatCreate,
+  PanasonicFeedRecordCreate,
+  PanasonicItemStatFeedLogRead,
+  ProduceTypeEnum,
+  FeedMaterialTypeEnum,
+  SmtMaterialInventory,
+  SmtService
+} from '../client';
 import { CloudCog } from "lucide-vue-next";
 import { error } from "console";
 import { waitFor } from "@testing-library/vue";
@@ -56,13 +67,8 @@ type RowModel = {
   appendedMaterialInventoryIdno: string,
   remark?: string,
 }
+
 const rowData = ref<RowModel[]>([]);
-
-let materialMatchedRowArray: RowModel[] = []
-
-
-
-
 
 const gridOptions: GridOptions = {
   // PROPERTIES
@@ -676,6 +682,7 @@ function makeSlotKey(slot: string, subSlot?: string | null) {
 }
 
 const statMap = new Map<string, any>()
+const productionStatUuid = ref<string>('')
 
 function onProduction() {
 
@@ -734,7 +741,7 @@ async function startProductionUpload(isTestingMode: boolean) {
       { requestBody: payload }
     )
 
-
+    productionStatUuid.value = response[0].uuid
 
     response.forEach(stat => {
       const key = makeSlotKey(stat.slot_idno, stat.sub_slot_idno)
@@ -820,6 +827,20 @@ async function onSubmitShortage() {
   const [inputSlot, inputSubSlot = ''] = inputSlotIdno.split('-')
   if (!stat) return showError('找不到對應的槽位')
 
+  const row = rowData.value.find(
+    r => r.slotIdno === inputSlot && (r.subSlotIdno ?? '') === inputSubSlot
+  )
+
+  if (!row) {
+    return showError(`找不到槽位 ${inputSlotIdno}`)
+  }
+
+  const rowId = `${row.slotIdno}-${row.subSlotIdno ?? ''}`
+
+  const materialRowNode = gridOptions.api.getRowNode(rowId)
+  if (!materialRowNode) {
+    return showError(`找不到AG Grid 資料列 ${rowId}`)
+  }
   const packType = rollShortageFormValue.value.type
   if (!packType) return showError('請選擇物料類型')
 
@@ -883,13 +904,22 @@ async function onSubmitShortage() {
   )
   showSuccess("新增成功")
 
-  const row = rowData.value.find(r => r.slotIdno === inputSlot && (r.subSlotIdno ?? '') === inputSubSlot)
+  // const row = rowData.value.find(r => r.slotIdno === inputSlot && (r.subSlotIdno ?? '') === inputSubSlot)
 
-  if (row) {
-    row.appendedMaterialInventoryIdno = idno
-  }
+  // console.log(row)
 
-  rowData.value = [...rowData.value]
+  // if (row) {
+  //   row.appendedMaterialInventoryIdno = idno
+  // }
+
+
+  const oldAppendedIdno = row.appendedMaterialInventoryIdno?.trim() || ""
+
+  const newAppendedIdno = oldAppendedIdno ? `${oldAppendedIdno}, ${idno}` : idno
+
+  materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
+
+  row.appendedMaterialInventoryIdno = newAppendedIdno
 
   showRollShortageModal.value = false
   rollShortageFormValue.value = { materialInventoryIdno: '', slotIdno: '', type: '' }
@@ -897,10 +927,111 @@ async function onSubmitShortage() {
 }
 
 
-function onMaterialQuery() {
+
+
+const materialQueryGripOptions: GridOptions = {
+  columnDefs: [
+    { field: "correct", tooltipField: "correct", headerName: "", flex: 1, minWidth: 60, refData: { 'MATCHED_MATERIAL_PACK': '✅', 'UNMATCHED_MATERIAL_PACK': '❌', 'TESTING_MATERIAL_PACK': '⚠️', 'UNCHECKED_MATERIAL_PACK': '' } },
+    { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
+    { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
+    { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
+    { field: "materialInventoryType", tooltipField: "materialInventoryType", headerName: '物料類型', flex: 5, minWidth: 140, refData: { 'NEW_MATERIAL_PACK': '新接物料', 'REUSED_MATERIAL_PACK': '舊物料', 'IMPORTED_MATERIAL_PACK': '未標註' } },
+    { field: "checktime", tooltipField: "checktime", headerName: '接料時間', flex: 5, minWidth: 140 },
+    { field: "operatorName", tooltipField: "operatorName", headerName: '操作人員', flex: 5, minWidth: 140 },
+    { field: "remark", tooltipField: "remark", headerName: '備註', flex: 5, minWidth: 140 },
+  ],
+  defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
+  // Column Moving
+  suppressMovableColumns: false,
+  suppressColumnMoveAnimation: true,
+
+  // Editing
+  stopEditingWhenCellsLoseFocus: true,
+  enterNavigatesVerticallyAfterEdit: true,
+  undoRedoCellEditing: true,
+
+  // Miscellaneous
+  rowBuffer: 100,
+  valueCache: true,
+  debug: false,
+
+  // Pagination
+  pagination: false,
+
+  // Rendering
+  enableCellChangeFlash: true,
+  suppressColumnVirtualisation: true,
+  suppressRowVirtualisation: false,
+  domLayout: 'normal',
+  getBusinessKeyForNode: (node: RowNode<materialQueryRowModel>) => { return `${node.data.slotIdno}-${node.data.subSlotIdno}` },
+
+  // RowModel
+  rowModelType: 'clientSide',
+  getRowId: (params: GetRowIdParams) => { return `${params.data.slotIdno}-${params.data.subSlotIdno}` },
+
+  // Scrolling
+  debounceVerticalScrollbar: false,
+
+  // Selection
+  enableCellTextSelection: true,
+  rowSelection: 'multiple',
+  suppressCellFocus: true,
+
+  // Styling
+  suppressRowTransform: true,
+
+  // Tooltips
+  enableBrowserTooltips: false
+}
+
+
+const showMaterialQueryModal = ref(false)
+
+type materialQueryRowModel = {
+  correct: CheckMaterialMatchEnum,
+  slotIdno: string,
+  subSlotIdno: string,
+  materialInventoryIdno: string,
+  materialInventoryType: FeedMaterialTypeEnum,
+  checktime: string,
+  operatorName: string,
+  remark?: string,
+}
+
+const materialQueryRowData = ref<materialQueryRowModel[]>([])
+
+const logData = ref<PanasonicItemStatFeedLogRead[]>([])
+
+async function onMaterialQuery() {
   //接料查詢
+  materialQueryRowData.value = []
+
+  try {
+    logData.value = await SmtService.getTheStatsOfLogsByUuid({ uuid: productionStatUuid.value })
+  } catch (e) {
+    console.log(e)
+    return showError(`找不到接料資訊${productionStatUuid.value}`)
+  }
+
+  for (let materialQueryLog of logData.value) {
+    materialQueryRowData.value.push({
+      correct: materialQueryLog.check_pack_code_match,
+      slotIdno: materialQueryLog.slot_idno,
+      subSlotIdno: materialQueryLog.sub_slot_idno,
+      materialInventoryIdno: materialQueryLog.material_pack_code,
+      materialInventoryType: materialQueryLog.feed_material_pack_type,
+      operatorName: '',
+      checktime: materialQueryLog.created_at,
+      remark: materialQueryLog.check_pack_code_match == CheckMaterialMatchEnum.TESTING_MATERIAL_PACK ? '廠商測試料' : ''
+    })
+  }
+
+  showMaterialQueryModal.value = true
 
 }
+
+
+
 
 // VirtualKeyboard API does not work properly on Honeywell. 
 function hideVirtualKeyboard() {
@@ -935,6 +1066,17 @@ function hideVirtualKeyboard() {
         <n-button @click="showRollShortageModal = false">取消</n-button>
         <n-button type="primary" @click="onSubmitShortage">確定</n-button>
       </n-space>
+    </template>
+  </n-modal>
+  <n-modal v-model:show="showMaterialQueryModal" preset="dialog" title="查詢物料"
+    :style="{ width: '90vw', maxWidth: '1400px' }">
+    <div style="height: 350px; padding: 1rem;">
+      <ag-grid-vue class="ag-theme-balham-dark" :rowData="materialQueryRowData" style="height: 100%;"
+        :gridOptions="materialQueryGripOptions">
+      </ag-grid-vue>
+    </div>
+    <template #action>
+      <n-button type="primary" @click="showMaterialQueryModal = false">確定</n-button>
     </template>
   </n-modal>
   <n-space vertical :wrap-item="false" style="height: calc(100vh - 60px);">
@@ -994,7 +1136,7 @@ function hideVirtualKeyboard() {
             <n-form-item label="物料單包條碼">
               <n-input type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno" autofocus
                 ref="materialInventoryIdnoInput" @focus=" hideVirtualKeyboard()"
-                :input-props="{ id: 'materialInventoryIdnoInput' }" />
+                :input-props="{ id: 'materialInventoryIdnoInput' }" :disabled="productionStarted" />
             </n-form-item>
           </n-form>
         </n-gi>
@@ -1003,7 +1145,7 @@ function hideVirtualKeyboard() {
           <n-form size="small" :model="slotFormValue" @submit.prevent=" onSubmitSlotForm($event)">
             <n-form-item label="打件機料件槽位">
               <n-input type="text" size="large" v-model:value.lazy="slotFormValue.slotIdno" ref="slotIdnoInput"
-                :input-props="{ id: 'slotIdnoInput' }" />
+                :input-props="{ id: 'slotIdnoInput' }" :disabled="productionStarted" />
             </n-form-item>
           </n-form>
         </n-gi>

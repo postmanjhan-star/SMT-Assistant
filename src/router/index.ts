@@ -7,35 +7,39 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/smt",
     meta: { requiresAuth: false },
-    component: () => import( "../smt-app/HomeView.vue" ),
+    component: () => import("../smt-app/HomeView.vue"),
     children: [
       {
         path: '/smt/fuji-mounter',
-        component: () => import( "../smt-app/FujiMounterAssistantHome.vue" ),
+        component: () => import("../smt-app/FujiMounterAssistantHome.vue"),
       },
       {
         path: '/smt/fuji-mounter/:mounterIdno/:workOrderIdno',
-        component: () => import( "../smt-app/FujiMounterAssistantDetail.vue" ),
+        component: () => import("../smt-app/FujiMounterAssistantDetail.vue"),
       },
       {
         path: '/smt/fuji-mounter/upload_fst',
-        component: () => import( "../smt-app/UploadFujiFile.vue" ),
+        component: () => import("../smt-app/UploadFujiFile.vue"),
       },
       {
         path: '/smt/panasonic-mounter',
-        component: () => import( "../smt-app/PanasonicMounterAssistantHome.vue" ),
+        component: () => import("../smt-app/PanasonicMounterAssistantHome.vue"),
       },
       {
         path: '/smt/panasonic-mounter/upload_csv',
-        component: () => import( "../smt-app/UploadPanasonicFile.vue" ),
+        component: () => import("../smt-app/UploadPanasonicFile.vue"),
       },
       {
         path: '/smt/panasonic-mounter/manager',
-        component: () => import( "../smt-app/PanasonicMounterFileManager.vue" ),
+        component: () => import("../smt-app/PanasonicMounterFileManager.vue"),
       },
       {
         path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',
-        component: () => import( "../smt-app/PanasonicMounterAssistantDetail.vue" ),
+        component: () => import("../smt-app/PanasonicMounterAssistantDetail.vue"),
+      },
+      {
+        path: '/smt/task-manager',
+        component: () => import("../smt-app/TaskManager.vue"),
       },
     ],
   },
@@ -43,32 +47,32 @@ const routes: RouteRecordRaw[] = [
     path: "/playground",
     name: "Playground",
     meta: { requiresAuth: false },
-    component: () => import( "../views/PlaygroundView.vue" ),
+    component: () => import("../views/PlaygroundView.vue"),
   },
   {
     path: "/http-status",
     name: "HttpStatus",
     meta: { requiresAuth: false },
-    component: () => import( "../views/HttpStatusView.vue" ),
+    component: () => import("../views/HttpStatusView.vue"),
     children: [
       {
         path: "403",
         name: "Forbidden",
         meta: { requiresAuth: false },
-        component: () => import( "../views/ForbiddenView.vue" ),
+        component: () => import("../views/ForbiddenView.vue"),
       },
       {
         path: "404",
         name: "NotFound",
         meta: { requiresAuth: false },
-        component: () => import( "../views/NotFoundView.vue" ),
+        component: () => import("../views/NotFoundView.vue"),
       },
       {
         path: "/:pathMatch(.*)",
         name: "NotFound",
         meta: { requiresAuth: false },
         // beforeEnter(to, from) {window.location.href = '/http-status/404'},
-        component: () => import( "../views/NotFoundView.vue" ),
+        component: () => import("../views/NotFoundView.vue"),
       },
     ],
   },
@@ -79,9 +83,9 @@ const routes: RouteRecordRaw[] = [
 // 暂时保持简单
 
 // 4. 内部提供了 history 模式的实现。
-const router = createRouter( { history: createWebHistory(), routes: routes, } )
+const router = createRouter({ history: createWebHistory(), routes: routes, })
 
 
-router.beforeEach( async ( to, from ) => { } )
+router.beforeEach(async (to, from) => { })
 
 export default router;

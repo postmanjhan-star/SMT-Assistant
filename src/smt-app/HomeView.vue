@@ -26,6 +26,7 @@ const activeKey = ref<string | null>( 'smt-home' );
 const menuOptions = [
   { label: () => h( RouterLink, { to: '/smt/panasonic-mounter' }, { default: () => '松下打件機上料助手' } ), key: 'panasonic' },
   { label: () => h( RouterLink, { to: '/smt/fuji-mounter' }, { default: () => '富士打件機上料助手' } ), key: 'fuji' },
+  { label: () => h( RouterLink, { to: '/smt/task-manager' }, { default: () => '打件工作管理' } ), key: 'taskmanager' }
 ];
 
 // Take background colors from https://windicss.org/utilities/general/colors.html
