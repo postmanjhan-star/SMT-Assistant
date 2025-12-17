@@ -49,6 +49,22 @@ export const $PanasonicMounterItemStatCreate = {
     type: 'string',
     isRequired: true,
 },
+        machine_side: {
+    type: 'any-of',
+    contains: [{
+    type: 'MachineSideEnum',
+}, {
+    type: 'null',
+}],
+},
+        board_side: {
+    type: 'any-of',
+    contains: [{
+    type: 'BoardSideEnum',
+}, {
+    type: 'null',
+}],
+},
         slot_idno: {
     type: 'string',
     isRequired: true,

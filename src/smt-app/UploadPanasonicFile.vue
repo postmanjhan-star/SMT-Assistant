@@ -102,7 +102,7 @@ function onClickUploadButton ( event: Event ) {
               </n-upload>
             </n-form-item>
 
-            <n-form-item show-require-mark label="成品物料版次" path="product_ver">
+            <n-form-item show-require-mark label="BOM版本" path="product_ver">
               <n-input type="text" v-model:value.lazy=" formValue.product_ver "
                 :input-props=" { id: 'product_ver' } " />
             </n-form-item>

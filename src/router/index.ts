@@ -35,12 +35,16 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',
-        component: () => import("../smt-app/PanasonicMounterAssistantDetail.vue"),
+        component: () => import("../smt-app/PanasonicMounterAssistantDetail/MainPage.vue"),
       },
       {
         path: '/smt/task-manager',
         component: () => import("../smt-app/TaskManager.vue"),
       },
+      {
+        path: '/smt/panasonic-mounter-production/:productionUuid',
+        component: () => import("../smt-app/PanasonicMounterAssistantProduction/MainPage.vue")
+      }
     ],
   },
   {

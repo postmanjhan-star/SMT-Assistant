@@ -45,8 +45,9 @@ onMounted( async () => {
         columnDefaults: { title: '', headerSort: false, resizable: true },
         columns: [ //define table columns
             { title: '', hozAlign: "center", formatter: () => '🔍', cellClick: onClickShowDetailIcon },
-            { title: "物料號", field: "product_idno", headerSort: true, headerFilter: 'input' },
-            { title: "PCB 板打件面", field: "board_side", hozAlign: "center", headerHozAlign: 'center' },
+            { title: "機種名稱", field: "product_idno", headerSort: true, headerFilter: 'input' },
+            { title: "BOM版本", field: "product_ver", headerSort: true, headerHozAlign: 'center' },
+            { title: "PCB 板打件面", field: "board_side", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
             { title: "上傳日期", field: "updated_at", headerHozAlign: 'center', headerSort: true },
             { title: "機台", field: "mounter_idno", headerHozAlign: 'center' },
         ],
@@ -59,9 +60,7 @@ onMounted( async () => {
     } )
 } )
 
-
 async function onClickEditButton ( event: Event ) { }
-
 
 async function onClickDeleteButton ( event: Event ) {
     const selectedRow = tabulator.value.getSelectedRows()[ 0 ]

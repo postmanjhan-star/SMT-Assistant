@@ -2,10 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $PanasonicItemStatFeedLogRead = {
+export const $PanasonicMounterItemStatRead = {
     properties: {
         id: {
     type: 'number',
+    isRequired: true,
+},
+        uuid: {
+    type: 'string',
     isRequired: true,
 },
         created_at: {
@@ -13,11 +17,32 @@ export const $PanasonicItemStatFeedLogRead = {
     isRequired: true,
     format: 'date-time',
 },
-        feed_record_id: {
-    type: 'number',
+        updated_at: {
+    type: 'any-of',
+    contains: [{
+    type: 'string',
+    format: 'date-time',
+}, {
+    type: 'null',
+}],
     isRequired: true,
 },
-        operator_id: {
+        production_start: {
+    type: 'string',
+    isRequired: true,
+    format: 'date-time',
+},
+        production_end: {
+    type: 'any-of',
+    contains: [{
+    type: 'string',
+    format: 'date-time',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
+},
+        work_order_no: {
     type: 'any-of',
     contains: [{
     type: 'string',
@@ -26,10 +51,9 @@ export const $PanasonicItemStatFeedLogRead = {
 }],
     isRequired: true,
 },
-        operation_time: {
+        product_idno: {
     type: 'string',
     isRequired: true,
-    format: 'date-time',
 },
         machine_idno: {
     type: 'string',
@@ -53,6 +77,17 @@ export const $PanasonicItemStatFeedLogRead = {
 }],
     isRequired: true,
 },
+        slot_idno: {
+    type: 'string',
+},
+        sub_slot_idno: {
+    type: 'any-of',
+    contains: [{
+    type: 'string',
+}, {
+    type: 'null',
+}],
+},
         material_idno: {
     type: 'any-of',
     contains: [{
@@ -62,43 +97,20 @@ export const $PanasonicItemStatFeedLogRead = {
 }],
     isRequired: true,
 },
-        material_pack_code: {
-    type: 'string',
-    isRequired: true,
-},
-        feed_material_pack_type: {
-    type: 'any-of',
-    contains: [{
-    type: 'FeedMaterialTypeEnum',
-}, {
-    type: 'null',
-}],
-    isRequired: true,
-},
-        slot_idno: {
-    type: 'string',
-    isRequired: true,
-},
-        sub_slot_idno: {
-    type: 'string',
-    isRequired: true,
-},
-        stat_uuid: {
-    type: 'string',
-    isRequired: true,
-},
         produce_mode: {
-    type: 'ProduceTypeEnum',
-    isRequired: true,
-},
-        check_pack_code_match: {
     type: 'any-of',
     contains: [{
-    type: 'CheckMaterialMatchEnum',
+    type: 'ProduceTypeEnum',
 }, {
     type: 'null',
 }],
     isRequired: true,
+},
+        feed_records: {
+    type: 'array',
+    contains: {
+        type: 'PanasonicMounterItemFeedRecordRead',
+    },
 },
     },
 } as const;

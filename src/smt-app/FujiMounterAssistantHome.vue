@@ -18,7 +18,7 @@ const formValue = ref<
 
 const workOrderIdnoInput = ref<InputInst>()
 
-const workSheetSideOptions = [ { label: '工件正面', value: 'TOP' }, { label: '工件反面', value: 'BOTTOM' }, { label: '工件正反面', value: 'DUPLEX' } ]
+const workSheetSideOptions = [ { label: 'TOP面', value: 'TOP' }, { label: 'BOT面', value: 'BOTTOM' }, { label: 'B+T面', value: 'DUPLEX' } ]
 
 const rules: FormRules = {
   workOrderIdno: { required: true, message: '請輸入工單號', trigger: [ 'blur' ], },

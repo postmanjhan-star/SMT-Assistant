@@ -14,6 +14,7 @@ import type { PanasonicMounterFileCreate } from '../models/PanasonicMounterFileC
 import type { PanasonicMounterFileItemRead } from '../models/PanasonicMounterFileItemRead';
 import type { PanasonicMounterFileRead } from '../models/PanasonicMounterFileRead';
 import type { PanasonicMounterItemStatCreate } from '../models/PanasonicMounterItemStatCreate';
+import type { PanasonicMounterItemStatRead } from '../models/PanasonicMounterItemStatRead';
 import type { PanasonicMounterMaterialPackCreate } from '../models/PanasonicMounterMaterialPackCreate';
 import type { SmtMaterialInventory } from '../models/SmtMaterialInventory';
 
@@ -174,6 +175,28 @@ id: number,
             url: '/smt/panasonic_mounter_item/{id}',
             path: {
                 'id': id,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Panasonic Item Stats
+     * @returns PanasonicMounterItemStatRead Successful Response
+     * @throws ApiError
+     */
+    public static getTheStatsOfProduction({
+uuid,
+}: {
+uuid: string,
+}): CancelablePromise<Array<PanasonicMounterItemStatRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter_item/stats/{uuid}',
+            path: {
+                'uuid': uuid,
             },
             errors: {
                 422: `Validation Error`,

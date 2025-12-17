@@ -16,7 +16,7 @@ const isTestingMode = ref(route.query.testing_mode === '1')
 
 const testingDefaults = {
   workOrderIdno: 'ZZ9999',
-  productIdno: '40X76-002A-T3',
+  productIdno: '40Y85-009B-9',
   mounterIdno: 'A1-NPM-W2',
   workSheetSide: 'DUPLEX',
   machineSide: '1'
@@ -37,7 +37,7 @@ async function onToggleTestingMode(val: Boolean) {
     query: newQuery,
   })
 
-  message.info(val ? '🧪 量試生產模式已開啟' : '✅ 正式生產模式已開啟')
+  message.info(val ? '🧪 試產生產模式已開啟' : '✅ 正式生產模式已開啟')
 }
 
 const formRef = ref<FormInst | null>(null)
@@ -64,7 +64,7 @@ const rules: FormRules = {
   },
 }
 
-const workSheetSideOptions = [{ label: '工件正面', value: 'TOP' }, { label: '工件反面', value: 'BOTTOM' }, { label: '工件正反面', value: 'DUPLEX' }]
+const workSheetSideOptions = [{ label: 'TOP面', value: 'TOP' }, { label: 'BOT面', value: 'BOTTOM' }, { label: 'B+T面', value: 'DUPLEX' }]
 const machineSideOptions = [{ label: '機台前面', value: '1' }, { label: '機台背面', value: '2' }]
 
 watch(
@@ -160,11 +160,11 @@ async function onClickSubmitButton(event: Event) {
         <n-grid cols="1 s:3" responsive="screen">
           <!-- 🧪 模式切換（合併開關與模式文字） -->
           <n-gi></n-gi>
-          <n-form-item-gi label="模式切換 (量試生產 / 正式生產)">
+          <n-form-item-gi label="模式切換 (試產生產 / 正式生產)">
             <div class="flex items-center space-x-3 p-2">
               <n-switch v-model:value="isTestingMode" @update:value="onToggleTestingMode" />
               <span class="text-sm font-medium" :style="{ color: isTestingMode ? '#facc15' : '#4ade80' }">
-                {{ isTestingMode ? '🧪 量試生產模式' : '✅ 正式生產模式' }}
+                {{ isTestingMode ? '🧪 試產生產模式' : '✅ 正式生產模式' }}
               </span>
             </div>
           </n-form-item-gi>

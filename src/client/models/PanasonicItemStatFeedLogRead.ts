@@ -3,16 +3,22 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { BoardSideEnum } from './BoardSideEnum';
 import type { CheckMaterialMatchEnum } from './CheckMaterialMatchEnum';
 import type { FeedMaterialTypeEnum } from './FeedMaterialTypeEnum';
+import type { MachineSideEnum } from './MachineSideEnum';
 import type { ProduceTypeEnum } from './ProduceTypeEnum';
 
 export type PanasonicItemStatFeedLogRead = {
     id: number;
     created_at: string;
     feed_record_id: number;
-    operator_id: string;
+    operator_id: (string | null);
     operation_time: string;
+    machine_idno: string;
+    machine_side: (MachineSideEnum | null);
+    board_side: (BoardSideEnum | null);
+    material_idno: (string | null);
     material_pack_code: string;
     feed_material_pack_type: (FeedMaterialTypeEnum | null);
     slot_idno: string;
