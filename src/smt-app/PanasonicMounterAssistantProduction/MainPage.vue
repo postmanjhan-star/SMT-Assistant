@@ -980,7 +980,7 @@ function hideVirtualKeyboard() {
                                 :input-props="{ id: 'materialInventoryIdnoInput' }" />
                         </n-form-item>
                     </n-form> -->
-                    <MaterialInventoryBarcodeInput :is-testing-mode="isTestingMode"
+                    <MaterialInventoryBarcodeInput :disabled="!productionStarted" :is-testing-mode="isTestingMode" 
                         :get-material-matched-rows="getMaterialMatchedRowArray" @matched="handleMaterialMatched"
                         :reset-key="materialResetKey" @error="showError" />
                 </n-gi>
@@ -992,7 +992,7 @@ function hideVirtualKeyboard() {
                                 ref="slotIdnoInput" :input-props="{ id: 'slotIdnoInput' }" />
                         </n-form-item>
                     </n-form> -->
-                    <SlotIdnoInput :is-testing-mode="isTestingMode" :has-material="!!materialInventoryResult"
+                    <SlotIdnoInput :disabled="!productionStarted" :is-testing-mode="isTestingMode" :has-material="!!materialInventoryResult" 
                         @submit="handleSlotSubmit" @error="showError" @done="handleSlotDone" />
                 </n-gi>
             </n-grid>

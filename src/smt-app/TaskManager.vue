@@ -37,16 +37,22 @@ const statusRefData = {
     end_production: '⚪ 已結束'
 }
 
+const productionModeRefData = {
+    NORMAL_PRODUCE_MODE: '✅正式',
+    TESTING_PRODUCE_MODE: '🧪試產'
+}
+
 const taskGridOptions: GridOptions = {
     // PROPERTIES
     // Column Definitions
     columnDefs: [
-        { field: "uuid", tooltipField: "uuid", headerName: '編號', flex: 3, minWidth: 250 },
         { field: "createdTime", tooltipField: "createdTime", headerName: '建立時間', flex: 5, minWidth: 140 },
-        { field: "operatorName", tooltipField: "operatorName", headerName: '操作人員', flex: 5, minWidth: 140 },
-        { field: "status", tooltipField: "status", headerName: '狀態', flex: 5, minWidth: 140, refData: statusRefData },
-        { field: "productionMode", headerName: '生產模式', flex: 3, minWidth: 120 },
-        { field: "remark", headerName: '備註', flex: 3, minWidth: 120 },
+        { field: "workOrderIdno", tooltipField: "workOrderIdno", headerName: '工令', flex: 3, minWidth: 100 },
+        { field: "productIdno", tooltipField: "productIdno", headerName: '成品料號', flex: 3, minWidth: 180 },
+        { field: "operatorName", tooltipField: "operatorName", headerName: '操作人員', flex: 5, minWidth: 100 },
+        { field: "mounterType", tooltipField: "mounterType", headerName: '上料機類型', flex: 3, minWidth: 100 },
+        { field: "productionMode", headerName: '生產模式', flex: 3, minWidth: 50, refData: productionModeRefData },
+        { field: "status", tooltipField: "status", headerName: '狀態', flex: 3, minWidth: 80, refData: statusRefData }
     ],
     defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
 
@@ -125,7 +131,11 @@ async function fetchWorkflows() {
             uuid: workflow.production_id,
             createdTime: formatDateTime(workflow.created_at),
             updatedTime: workflow.updated_at,
+            mounterType: workflow.mounter_type ?? '',
+            workOrderIdno: workflow.mounter?.work_order_idno ?? '',
+            productIdno: workflow.mounter?.product_idno ?? '',
             operatorName: workflow.operator_id ?? '',
+            productionMode: workflow.mounter?.produce_mode ?? '',
             status: workflow.last_task?.task_spec ?? 'UNKNOWN'
         }))
 

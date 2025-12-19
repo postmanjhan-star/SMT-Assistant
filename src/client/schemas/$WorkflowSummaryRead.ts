@@ -51,5 +51,21 @@ export const $WorkflowSummaryRead = {
     type: 'null',
 }],
 },
+        mounter_type: {
+    type: 'any-of',
+    contains: [{
+    type: 'MounterTypeEnum',
+}, {
+    type: 'null',
+}],
+},
+        mounter: {
+    type: 'any-of',
+    contains: [{
+    type: 'WorkflowSummaryMounterRead',
+}, {
+    type: 'null',
+}],
+},
     },
 } as const;

@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { MounterTypeEnum } from './MounterTypeEnum';
+import type { WorkflowSummaryMounterRead } from './WorkflowSummaryMounterRead';
+
 export type WorkflowSummaryRead = {
     id: number;
     created_at: string;
@@ -11,4 +14,6 @@ export type WorkflowSummaryRead = {
     operator_id?: (string | null);
     workflow_spec_name: string;
     last_task?: (Record<string, any> | null);
+    mounter_type?: (MounterTypeEnum | null);
+    mounter?: (WorkflowSummaryMounterRead | null);
 };
