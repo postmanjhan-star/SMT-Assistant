@@ -19,7 +19,7 @@ const testingDefaults = {
   productIdno: '40Y85-009B-9',
   mounterIdno: 'A1-NPM-W2',
   workSheetSide: 'DUPLEX',
-  machineSide: '1'
+  machineSide: '1+2'
 }
 
 async function onToggleTestingMode(val: Boolean) {
@@ -45,7 +45,7 @@ const formValue = ref<{
   workOrderIdno: string,
   mounterIdno: string,
   workSheetSide: "TOP" | "BOTTOM" | "DUPLEX",
-  machineSide: "1" | "2",
+  machineSide: "1" | "2" | "1+2",
   productIdno: string,
 }>(
   { workOrderIdno: '', mounterIdno: '', workSheetSide: null, machineSide: null, productIdno: '' }
@@ -65,7 +65,7 @@ const rules: FormRules = {
 }
 
 const workSheetSideOptions = [{ label: 'TOP面', value: 'TOP' }, { label: 'BOT面', value: 'BOTTOM' }, { label: 'B+T面', value: 'DUPLEX' }]
-const machineSideOptions = [{ label: '機台前面', value: '1' }, { label: '機台背面', value: '2' }]
+const machineSideOptions = [{ label: '機台前面', value: '1' }, { label: '機台背面', value: '2' }, { label: '機台正反面', value: '1+2' }]
 
 watch(
   () => route.query.testing_mode,

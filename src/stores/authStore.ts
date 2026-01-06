@@ -1,0 +1,81 @@
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+
+// --- TypeScript Interfaces for your Auth Data ---
+
+interface HttpBasicValue {
+  username: string
+  password?: string
+  // 其他內部屬性可以設為 any 或更精確的型別
+  [key: string]: any
+}
+
+interface HttpBasic {
+  name: string
+  schema: {
+    type: 'http'
+    scheme: 'basic'
+  }
+  value: HttpBasicValue
+}
+
+interface OAuth2Token {
+  access_token: string
+  token_type: 'bearer'
+}
+
+interface OAuth2PasswordBearer {
+  schema: {
+    flow: 'password'
+    tokenUrl: string
+    scopes: Record<string, any>
+    type: 'oauth2'
+  }
+  token: OAuth2Token | null
+  username: string
+  password?: string
+  // 其他屬性
+  [key:string]: any
+}
+
+/**
+ * The complete structure of the 'authorized' state.
+ */
+export interface AuthState {
+  HTTPBasic: HttpBasic | null
+  OAuth2PasswordBearer: OAuth2PasswordBearer | null
+}
+
+// --- Pinia Store Definition ---
+
+export const useAuthStore = defineStore('authorized', () => {
+  // 初始狀態。插件會自動從 localStorage 讀取資料並覆蓋這裡的初始值。
+  // 改為扁平化結構以符合 localStorage 的儲存格式 (直接儲存 HTTPBasic 和 OAuth2PasswordBearer)
+  const HTTPBasic = ref<HttpBasic | null>(null)
+  const OAuth2PasswordBearer = ref<OAuth2PasswordBearer | null>(null)
+
+  // 為了相容性，保留 authState 作為 computed 屬性，讓外部依然可以透過 authStore.authState 存取
+  const authState = computed<AuthState>(() => ({ HTTPBasic: HTTPBasic.value, OAuth2PasswordBearer: OAuth2PasswordBearer.value }))
+
+  // --- Getters (Computed properties) ---
+  const accessToken = computed(() => OAuth2PasswordBearer.value?.token?.access_token)
+  const isLoggedIn = computed(() => !!accessToken.value)
+
+  // --- Actions ---
+
+  /**
+   * 在登入成功後，用完整的授權資料來更新整個 state
+   * @param newState - The full auth object from the login response.
+   */
+  function setAuthState(newState: AuthState) {
+    HTTPBasic.value = newState.HTTPBasic
+    OAuth2PasswordBearer.value = newState.OAuth2PasswordBearer
+  }
+
+  function clearAuth() {
+    HTTPBasic.value = null
+    OAuth2PasswordBearer.value = null
+  }
+
+  return { HTTPBasic, OAuth2PasswordBearer, authState, accessToken, isLoggedIn, setAuthState, clearAuth }
+})

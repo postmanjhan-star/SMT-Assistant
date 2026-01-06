@@ -48,6 +48,7 @@ const taskGridOptions: GridOptions = {
     columnDefs: [
         { field: "createdTime", tooltipField: "createdTime", headerName: '建立時間', flex: 5, minWidth: 140 },
         { field: "workOrderIdno", tooltipField: "workOrderIdno", headerName: '工令', flex: 3, minWidth: 100 },
+        { field: "machineIdno", tooltipField: "machineIdno", headerName: '機台編號', flex: 3, minWidth: 100 },
         { field: "productIdno", tooltipField: "productIdno", headerName: '成品料號', flex: 3, minWidth: 180 },
         { field: "operatorName", tooltipField: "operatorName", headerName: '操作人員', flex: 5, minWidth: 100 },
         { field: "mounterType", tooltipField: "mounterType", headerName: '上料機類型', flex: 3, minWidth: 100 },
@@ -132,6 +133,7 @@ async function fetchWorkflows() {
             createdTime: formatDateTime(workflow.created_at),
             updatedTime: workflow.updated_at,
             mounterType: workflow.mounter_type ?? '',
+            machineIdno: workflow.mounter?.machine_idno ?? '',
             workOrderIdno: workflow.mounter?.work_order_idno ?? '',
             productIdno: workflow.mounter?.product_idno ?? '',
             operatorName: workflow.operator_id ?? '',

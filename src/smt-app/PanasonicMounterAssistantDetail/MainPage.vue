@@ -23,13 +23,8 @@ import {
     SmtMaterialInventory,
     SmtService
 } from '@/client';
+import { useAuthStore } from '@/stores/authStore';
 import { CloudCog } from "lucide-vue-next";
-import { error } from "console";
-import { waitFor } from "@testing-library/vue";
-import { constants } from "buffer";
-import { match } from "assert";
-import { validate } from "@babel/types";
-import { stat } from "fs/promises";
 
 import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
 import SlotIdnoInput from "./components/SlotIdnoInput.vue";
@@ -40,6 +35,19 @@ const route = useRoute();
 const router = useRouter();
 const message = useMessage();
 useMeta({ title: 'Panasonic Mounter Assistant' });
+
+const MODE_NAME_TESTING = '🧪 試產生產模式'
+const MODE_NAME_NORMAL = '✅ 正式生產模式'
+
+const authStore = useAuthStore();
+// 從 Store 取得使用者名稱 (Store 已與 localStorage 同步)
+const currentUsername = computed(() =>
+    authStore.authState.OAuth2PasswordBearer?.username ??
+    authStore.authState.HTTPBasic?.value?.username ??
+    ''
+);
+
+
 
 
 const mounterData = ref<PanasonicMounterFileRead>();
@@ -186,6 +194,8 @@ const gridOptions: GridOptions = {
 
 onMounted(async () => {
     try {
+        console.log(currentUsername.value)
+
         mounterData.value = await SmtService.getPanasonicMounterMaterialSlotPairs({
             workOrderIdno: route.params.workOrderIdno.toString().trim(),
             mounterIdno: route.params.mounterIdno.toString().trim(),
@@ -361,7 +371,7 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
         resetSlotMaterialFormInputs()
         materialInventoryResult.value = null
 
-        return await showSuccess(`✅ 正式生產模式：槽位 ${inputSlotIdno} 綁定成功`)
+        return await showSuccess(`${MODE_NAME_NORMAL}：槽位 ${inputSlotIdno} 綁定成功`)
     }
 }
 
@@ -394,7 +404,7 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
             resetSlotMaterialFormInputs()
             materialInventoryResult.value = null
 
-            return await showSuccess(`🧪 試產生產模式：槽位 ${inputSlotIdno} 綁定成功`)
+            return await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 綁定成功`)
         }
     }
 
@@ -404,7 +414,7 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
     rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
     materialInventoryResult.value = null
 
-    await showSuccess(`🧪 試產生產模式：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
+    await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
     resetSlotMaterialFormInputs()
 
     console.log(rowData.value)
@@ -568,7 +578,7 @@ async function onSubmitShortage() {
     } catch (error) {
 
         if (error instanceof ApiError && error.status === 404 && isTestingMode) {
-            message.info(`🧪 試產生產模式：使用物料 [廠商測試新料] ${idno}`)
+            message.info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
             correctState = 'warning'
         } else {
             if (error instanceof ApiError) {
@@ -590,7 +600,7 @@ async function onSubmitShortage() {
 
     const payload: PanasonicFeedRecordCreate = {
         stat_item_id: stat.id,
-        operator_id: '',
+        operator_id: currentUsername.value || null,
         operation_time: new Date().toISOString(),
         slot_idno: inputSlot,
         sub_slot_idno: inputSubSlot ?? null,
@@ -673,7 +683,7 @@ function hideVirtualKeyboard() {
                     <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
                         <span>{{ route.params.mounterIdno }}</span>
                         <n-tag :type="route.query.testing_mode === '1' ? 'warning' : 'success'" size="small" bordered>
-                            {{ route.query.testing_mode === '1' ? '🧪 試產模式' : '✅ 正式模式' }}
+                            {{ route.query.testing_mode === '1' ? MODE_NAME_TESTING : MODE_NAME_NORMAL }}
                         </n-tag>
                     </div>
                 </template>
@@ -698,7 +708,7 @@ function hideVirtualKeyboard() {
                         <!-- 右側：功能按鈕 -->
                         <n-space size="small">
                             <StartProductionButton v-if="!productionStarted" :is-testing-mode="isTestingMode"
-                                :row-data="rowData" :work-order-idno="workOrderIdno" :product-idno="productIdno"
+                                :row-data="rowData" :operator_id="currentUsername" :work-order-idno="workOrderIdno" :product-idno="productIdno"
                                 :mounter-idno="mounterIdno" :machine-side-query="machineSideQuery"
                                 :work-sheet-side-query="workSheetSideQuery" @started="handleProductionStarted"
                                 @error="showError" />

@@ -5,7 +5,7 @@ import "tabulator-tables/dist/css/tabulator_bootstrap4.min.css"
 import { onMounted, ref } from 'vue'
 import { useMeta } from 'vue-meta'
 import { useRoute, useRouter } from 'vue-router'
-import { PanasonicMounterFileRead, SmtService } from '../client'
+import { PanasonicMounterFileRead, SmtService } from '@/client'
 import PanasonicMounterFileItemBox from './panasonicMounter/PanasonicMounterFileItemBox.vue'
 
 useMeta( { title: 'Panasonic Mounter File Manager' } )
@@ -25,7 +25,7 @@ const table = ref<HTMLDivElement | null>( null ) //reference to your table eleme
 const selectedRowData = ref<PanasonicMounterFileRead>( null )
 
 onMounted( async () => {
-    try { mounterFileList.value = await SmtService.getPanasonicMounterFileList() }
+    try { mounterFileList.value = await SmtService.getPanasonicMounterFileList({}) }
     catch ( error ) {
         console.error( error )
         message.error( '資料讀取失敗' )
@@ -45,7 +45,7 @@ onMounted( async () => {
         columnDefaults: { title: '', headerSort: false, resizable: true },
         columns: [ //define table columns
             { title: '', hozAlign: "center", formatter: () => '🔍', cellClick: onClickShowDetailIcon },
-            { title: "機種名稱", field: "product_idno", headerSort: true, headerFilter: 'input' },
+            { title: "機種名稱", field: "file_name", headerSort: true, headerFilter: 'input' },
             { title: "BOM版本", field: "product_ver", headerSort: true, headerHozAlign: 'center' },
             { title: "PCB 板打件面", field: "board_side", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
             { title: "上傳日期", field: "updated_at", headerHozAlign: 'center', headerSort: true },

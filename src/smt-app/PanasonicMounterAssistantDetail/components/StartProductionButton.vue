@@ -5,7 +5,6 @@ import { useDialog } from 'naive-ui'
 import {
     ApiError,
     CheckMaterialMatchEnum,
-    PanasonicMounterFileRead,
     PanasonicMounterItemStatCreate,
     PanasonicFeedRecordCreate,
     PanasonicItemStatFeedLogRead,
@@ -33,6 +32,7 @@ type RowModel = {
 const props = defineProps({
     rowData: Array<RowModel>,
     isTestingMode: Boolean,
+    operator_id: String,
     workOrderIdno: String,
     productIdno: String,
     mounterIdno: String,
@@ -108,7 +108,7 @@ async function startProductionUpload() {
         console.log(machineSide.value)
 
         const payload = props.rowData.map(row => ({
-            operator_id: null,
+            operator_id: props.operator_id ?? null,
             operation_time: new Date().toISOString(),
             production_start: new Date().toISOString(),
             work_order_no: props.workOrderIdno,

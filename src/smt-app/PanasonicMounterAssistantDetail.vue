@@ -6,7 +6,7 @@ import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormInst, FormRules, useDialog } from 'naive-ui';
 import * as Tone from 'tone';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -23,18 +23,22 @@ import {
   SmtMaterialInventory,
   SmtService
 } from '../client';
+import { useAuthStore } from '../stores/authStore';
 import { CloudCog } from "lucide-vue-next";
-import { error } from "console";
-import { waitFor } from "@testing-library/vue";
-import { constants } from "buffer";
-import { match } from "assert";
-import { validate } from "@babel/types";
-import { stat } from "fs/promises";
+
 
 const route = useRoute();
 const router = useRouter();
 const message = useMessage();
 useMeta({ title: 'Panasonic Mounter Assistant' });
+
+const authStore = useAuthStore();
+// 從 Store 取得使用者名稱 (Store 已與 localStorage 同步)
+const currentUsername = computed(() => 
+  authStore.authState.OAuth2PasswordBearer?.username ?? 
+  authStore.authState.HTTPBasic?.value?.username ?? 
+  ''
+);
 
 const boardSide = ref<BoardSideEnum>(null)
 const machineSide = ref<MachineSideEnum>(null)
@@ -546,7 +550,7 @@ async function startProductionUpload(isTestingMode: boolean) {
   machineSide.value = route.query.machine_side.toString().trim() === '1' ? MachineSideEnum.FRONT : MachineSideEnum.BACK
   try {
     const payload: Array<PanasonicMounterItemStatCreate> = rowData.value.map(row => ({
-      operator_id: null,
+      operator_id: currentUsername.value || null,
       operation_time: new Date().toISOString(),
       production_start: new Date().toISOString(),
       work_order_no: String(route.params.workOrderIdno ?? null),
@@ -729,7 +733,7 @@ async function onSubmitShortage() {
 
   const payload: PanasonicFeedRecordCreate = {
     stat_item_id: stat.id,
-    operator_id: '',
+    operator_id: currentUsername.value || '',
     operation_time: new Date().toISOString(),
     slot_idno: inputSlot,
     sub_slot_idno: inputSubSlot ?? null,

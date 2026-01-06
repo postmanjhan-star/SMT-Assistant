@@ -37,6 +37,9 @@ const router = useRouter();
 const message = useMessage();
 useMeta({ title: 'Panasonic Mounter Assistant' });
 
+const MODE_NAME_TESTING = '🧪 試產生產模式'
+const MODE_NAME_NORMAL = '✅ 正式生產模式'
+
 const workOrderIdno = ref<string>('')
 const productIdno = ref<string>('')
 const boardSide = ref<BoardSideEnum>(null)
@@ -177,7 +180,9 @@ onMounted(async () => {
         const importMaterialPack = materialSlotPair.feed_records?.find(record => record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
         const feedMaterialPacks = materialSlotPair.feed_records?.filter(record => record.feed_material_pack_type !== FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
 
+
         const appendedCodes = feedMaterialPacks.map(pack => pack.material_pack_code).filter(code => !!code).join(', ')
+
 
         rowData.value.push({
             correct: importMaterialPack?.check_pack_code_match,
@@ -371,11 +376,11 @@ async function handleMaterialInventoryError(
             remark: '[廠商測試新料]',
         } as SmtMaterialInventory & { remark?: string }   // ✅ 安全轉型
 
-        message.info(`🧪 試產生產模式：使用物料 [廠商測試新料] ${idno}`)
+        message.info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
         // ✅ 把備註也塞回表單
         slotFormValue.value.remark = virtualMaterial.remark ?? ''
 
-        message.success('🧪 試產生產模式：條碼接受完成')
+        message.success(`${MODE_NAME_TESTING}：條碼接受完成`)
         return virtualMaterial
     }
 
@@ -430,7 +435,7 @@ async function onSubmitMaterialInventoryForm(event: Event) {
 
         correctState.value = 'true'
         await playSuccessTone()
-        message.success(isTestingMode.value ? '🧪 試產生產模式：物料匹配成功' : '✅ 正式生產模式：物料匹配成功')
+        message.success(isTestingMode.value ? `${MODE_NAME_TESTING}：物料匹配成功` : `${MODE_NAME_NORMAL}：物料匹配成功`)
         slotIdnoInput?.value.focus()
 
         return true
@@ -492,7 +497,7 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
 
         correctState.value = 'true'
 
-        await showSuccess(`✅ 正式生產模式：槽位 ${inputSlotIdno} 綁定成功`)
+        await showSuccess(`${MODE_NAME_NORMAL}：槽位 ${inputSlotIdno} 綁定成功`)
         return true
     }
 }
@@ -531,7 +536,7 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
             // resetSlotMaterialFormInputs()
             materialInventoryResult.value = null
 
-            await showSuccess(`🧪 試產生產模式：槽位 ${inputSlotIdno} 綁定成功`)
+            await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 綁定成功`)
 
             return true
         }
@@ -540,7 +545,7 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
     const testRemark = '[廠商測試新料]'
     materialInventoryResult.value = null
 
-    await showSuccess(`🧪 試產生產模式：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
+    await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
     // resetSlotMaterialFormInputs()
 
     correctState.value = 'warning'
@@ -821,7 +826,7 @@ async function onSubmitShortage() {
     } catch (error) {
 
         if (error instanceof ApiError && error.status === 404 && isTestingMode) {
-            message.info(`🧪 試產生產模式：使用物料 [廠商測試新料] ${idno}`)
+            message.info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
             correctState = 'warning'
         } else {
             if (error instanceof ApiError) {
@@ -926,7 +931,7 @@ function hideVirtualKeyboard() {
                     <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
                         <span>{{ route.params.mounterIdno }}</span>
                         <n-tag :type="isTestingMode === true ? 'warning' : 'success'" size="small" bordered>
-                            {{ isTestingMode === true ? '🧪 試產生產模式' : '✅ 正式模式' }}
+                            {{ isTestingMode === true ? MODE_NAME_TESTING : MODE_NAME_NORMAL }}
                         </n-tag>
                     </div>
                 </template>

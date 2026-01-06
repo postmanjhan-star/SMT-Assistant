@@ -262,6 +262,56 @@ checkPackCode?: (CheckMaterialMatchEnum | null),
     }
 
     /**
+     * Get Panasonic Mounter File List
+     * @returns PanasonicMounterFileRead Successful Response
+     * @throws ApiError
+     */
+    public static getPanasonicMounterFileList({
+mounterIdno,
+boardSide = 'DUPLEX',
+productIdno,
+}: {
+mounterIdno?: (string | null),
+boardSide?: 'TOP' | 'BOTTOM' | 'DUPLEX',
+productIdno?: (string | null),
+}): CancelablePromise<Array<PanasonicMounterFileRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter/files',
+            query: {
+                'mounter_idno': mounterIdno,
+                'board_side': boardSide,
+                'product_idno': productIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Panasonic Mounter File Item List
+     * @returns PanasonicMounterFileItemRead Successful Response
+     * @throws ApiError
+     */
+    public static getPanasonicMounterFileItemList({
+id,
+}: {
+id: number,
+}): CancelablePromise<Array<PanasonicMounterFileItemRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter/files/{id}/items',
+            path: {
+                'id': id,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Get Material Inventory
      * @returns SmtMaterialInventory Successful Response
      * @throws ApiError
@@ -337,40 +387,6 @@ testingProductIdno?: (string | null),
                 'mounter_idno': mounterIdno,
                 'testing_mode': testingMode,
                 'testing_product_idno': testingProductIdno,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Panasonic Mounter File List
-     * @returns PanasonicMounterFileRead Successful Response
-     * @throws ApiError
-     */
-    public static getPanasonicMounterFileList(): CancelablePromise<Array<PanasonicMounterFileRead>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/panasonic_mounter/files',
-        });
-    }
-
-    /**
-     * Get Panasonic Mounter File Item List
-     * @returns PanasonicMounterFileItemRead Successful Response
-     * @throws ApiError
-     */
-    public static getPanasonicMounterFileItemList({
-id,
-}: {
-id: number,
-}): CancelablePromise<Array<PanasonicMounterFileItemRead>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/panasonic_mounter/files/{id}/items',
-            path: {
-                'id': id,
             },
             errors: {
                 422: `Validation Error`,
@@ -461,7 +477,7 @@ workOrderIdno: string,
 mounterIdno: string,
 boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
 productIdno?: (string | null),
-machineSide?: ('1' | '2' | null),
+machineSide?: ('1' | '2' | '1+2' | null),
 testingMode?: boolean,
 testingProductIdno?: (string | null),
 }): CancelablePromise<PanasonicMounterFileRead> {
