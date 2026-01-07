@@ -174,7 +174,7 @@ onMounted(async () => {
         else if (error instanceof ApiError && error.status === 503) { router.push('/http-status/404') }
     }
 
-
+    const newRowData: RowModel[] = []
     for (let materialSlotPair of mounterData.value) {
 
         const importMaterialPack = materialSlotPair.feed_records?.find(record => record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
@@ -183,8 +183,7 @@ onMounted(async () => {
 
         const appendedCodes = feedMaterialPacks.map(pack => pack.material_pack_code).filter(code => !!code).join(', ')
 
-
-        rowData.value.push({
+        newRowData.push({
             correct: importMaterialPack?.check_pack_code_match,
             id: materialSlotPair.id,
             slotIdno: materialSlotPair.slot_idno,
@@ -195,7 +194,7 @@ onMounted(async () => {
         })
     }
 
-
+    rowData.value = newRowData
 })
 
 const materialResetKey = ref(0)
@@ -361,102 +360,6 @@ function getMaterialMatchedRowArray(materialIdno: string): RowModel[] {
     return rowData.value.filter(row => row.materialIdno === materialIdno)
 }
 
-async function handleMaterialInventoryError(
-    error: unknown,
-    idno: string,
-): Promise<SmtMaterialInventoryEx | null> {
-
-    // ✅ 測試模式找不到 → 用虛擬料 + ⚠️
-    if (error instanceof ApiError && error.status === 404 && isTestingMode.value) {
-        const virtualMaterial = {
-            id: -1,
-            idno: idno,
-            material_idno: 'TEST-MATERIAL',
-            material_name: 'TEST-MATERIAL',
-            remark: '[廠商測試新料]',
-        } as SmtMaterialInventory & { remark?: string }   // ✅ 安全轉型
-
-        message.info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
-        // ✅ 把備註也塞回表單
-        slotFormValue.value.remark = virtualMaterial.remark ?? ''
-
-        message.success(`${MODE_NAME_TESTING}：條碼接受完成`)
-        return virtualMaterial
-    }
-
-    // ❌ 一般錯誤處理
-    if (error instanceof ApiError) {
-        const msg = {
-            404: '查無此條碼',
-            504: 'ERP 連線超時，請確認 ERP 連線',
-            502: 'ERP 連線錯誤，請確認 ERP 連線',
-            500: '系統錯誤'
-        }[error.status] ?? '未知錯誤'
-
-        message.error(msg)
-    } else {
-        console.error(error)
-        message.error('發生未知例外')
-    }
-
-    materialFormValue.value.materialInventoryIdno = ''
-    return null
-}
-
-// check material pack idno exist or not
-async function onSubmitMaterialInventoryForm(event: Event) {
-
-    const idno = materialFormValue.value.materialInventoryIdno.trim()
-    if (!idno) return showWarn('請輸入物料號') // STERP Material Pack Idno: A3573382, B4831789
-
-    let materialInventory: SmtMaterialInventoryEx | null = null
-
-
-    // Ask material data by WMS material inventory barcode or ST ERP part pack barcode
-    try {
-        materialInventory = await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: idno })
-
-        //🧩 此時 materialInventory 一定有值（真實或測試用）
-
-        // 檢查表內是否有對應物料
-        const materialMatchedRowArray = getMaterialMatchedRowArray(materialInventory.material_idno)
-        if (materialMatchedRowArray.length === 0) {
-            await playErrorTone()
-            message.warning('表格內無此物料')
-            materialFormValue.value.materialInventoryIdno = ''
-            return false
-        }
-
-        materialInventoryResult.value = {
-            success: true,
-            materialInventory,
-            matchedRows: materialMatchedRowArray
-        }
-
-        correctState.value = 'true'
-        await playSuccessTone()
-        message.success(isTestingMode.value ? `${MODE_NAME_TESTING}：物料匹配成功` : `${MODE_NAME_NORMAL}：物料匹配成功`)
-        slotIdnoInput?.value.focus()
-
-        return true
-
-    } catch (error) {
-        const handled = await handleMaterialInventoryError(error, idno)
-        if (!handled) return false
-        materialInventory = handled
-
-        materialInventoryResult.value = {
-            success: true,
-            materialInventory,
-            matchedRows: [],
-        }
-
-        return true
-    }
-
-
-}
-
 function handleMaterialMatched(payload: {
     materialInventory: SmtMaterialInventoryEx
     matchedRows: any[]
@@ -565,63 +468,6 @@ function convertBoardSide(s: String | null): BoardSideEnum | null {
     return s as unknown as BoardSideEnum
 }
 
-async function onSubmitSlotForm(event: Event) {
-    if (uploading.value) return
-
-    const inputSlotIdno = slotFormValue.value.slotIdno.trim()
-    if (!inputSlotIdno) return showError('請輸入插槽位置')
-
-    const [inputSlot, inputSubSlot = ''] = inputSlotIdno.split('-')
-
-    const stat = mounterData.value.find(
-        stat => stat.slot_idno === inputSlot && (stat.sub_slot_idno ?? '') === inputSubSlot
-    )
-
-
-    if (!stat) return showError('找不到對應的槽位的資料')
-    let result = materialInventoryResult.value
-
-    let success = false
-
-    if (isTestingMode.value) {
-        success = await handleTestingMode(result, inputSlot, inputSubSlot, inputSlotIdno)
-    } else {
-        success = await handleNormalMode(result, inputSlot, inputSubSlot, inputSlotIdno)
-    }
-
-    if (!success) return
-
-    await appendedMaterialUpload({
-        stat_id: stat.id,
-        inputSlot: inputSlot,
-        inputSubSlot: inputSubSlot,
-        materialInventory: result?.materialInventory,
-        correctState: correctState.value
-    })
-
-    const row = rowData.value.find(
-        r => r.slotIdno === inputSlot && (r.subSlotIdno ?? '') === inputSubSlot
-    )
-
-    if (!row) {
-        return showError(`找不到槽位 ${inputSlotIdno}`)
-    }
-
-    const rowId = `${row.slotIdno}-${row.subSlotIdno ?? ''}`
-
-    const oldAppendedIdno = row.appendedMaterialInventoryIdno?.trim() || ""
-
-    const newAppendedIdno = oldAppendedIdno ? `${oldAppendedIdno}, ${result?.materialInventory.idno}` : result?.materialInventory.idno
-
-    const materialRowNode = gridOptions.api.getRowNode(rowId)
-    if (!materialRowNode) {
-        return showError(`找不到AG Grid 資料列 ${rowId}`)
-    }
-
-    materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
-
-    row.appendedMaterialInventoryIdno = newAppendedIdno
-}
 async function appendedMaterialUpload(params: {
     stat_id: number,
     inputSlot: string,
@@ -976,27 +822,12 @@ function hideVirtualKeyboard() {
 
             <n-grid cols="2 s:2" responsive="screen" x-gap="20">
                 <n-gi>
-                    <!-- <n-form size="small" :model="materialFormValue"
-                        @submit.prevent=" onSubmitMaterialInventoryForm($event)">
-                        <n-form-item label="物料單包條碼">
-                            <n-input type="text" size="large"
-                                v-model:value.lazy="materialFormValue.materialInventoryIdno" autofocus
-                                ref="materialInventoryIdnoInput" @focus=" hideVirtualKeyboard()"
-                                :input-props="{ id: 'materialInventoryIdnoInput' }" />
-                        </n-form-item>
-                    </n-form> -->
                     <MaterialInventoryBarcodeInput :disabled="!productionStarted" :is-testing-mode="isTestingMode" 
                         :get-material-matched-rows="getMaterialMatchedRowArray" @matched="handleMaterialMatched"
                         :reset-key="materialResetKey" @error="showError" />
                 </n-gi>
 
                 <n-gi>
-                    <!-- <n-form size="small" :model="slotFormValue" @submit.prevent=" onSubmitSlotForm($event)">
-                        <n-form-item label="打件機料件槽位">
-                            <n-input type="text" size="large" v-model:value.lazy="slotFormValue.slotIdno"
-                                ref="slotIdnoInput" :input-props="{ id: 'slotIdnoInput' }" />
-                        </n-form-item>
-                    </n-form> -->
                     <SlotIdnoInput :disabled="!productionStarted" :is-testing-mode="isTestingMode" :has-material="!!materialInventoryResult" 
                         @submit="handleSlotSubmit" @error="showError" @done="handleSlotDone" />
                 </n-gi>

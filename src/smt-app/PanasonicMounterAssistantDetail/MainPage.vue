@@ -213,8 +213,9 @@ onMounted(async () => {
         else if (error instanceof ApiError && error.status === 503) { router.push('/http-status/404') }
     }
 
+    const newRowData: RowModel[] = []
     for (let materialSlotPair of mounterData.value.panasonic_mounter_file_items) {
-        rowData.value.push({
+        newRowData.push({
             correct: null,
             id: materialSlotPair.id,
             slotIdno: materialSlotPair.slot_idno,
@@ -224,6 +225,8 @@ onMounted(async () => {
             materialInventoryIdno: '',
         })
     }
+
+    rowData.value = newRowData
 })
 
 

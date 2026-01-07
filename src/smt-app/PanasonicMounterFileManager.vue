@@ -45,7 +45,8 @@ onMounted( async () => {
         columnDefaults: { title: '', headerSort: false, resizable: true },
         columns: [ //define table columns
             { title: '', hozAlign: "center", formatter: () => '🔍', cellClick: onClickShowDetailIcon },
-            { title: "機種名稱", field: "file_name", headerSort: true, headerFilter: 'input' },
+            { title: "檔名", field: "file_name", headerSort: true, headerFilter: 'input' },
+            { title: "機種名稱", field: "product_idno", headerSort: true, headerFilter: 'input' },
             { title: "BOM版本", field: "product_ver", headerSort: true, headerHozAlign: 'center' },
             { title: "PCB 板打件面", field: "board_side", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
             { title: "上傳日期", field: "updated_at", headerHozAlign: 'center', headerSort: true },
