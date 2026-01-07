@@ -50,13 +50,12 @@ const gridOptions: GridOptions = {
 
 async function fetchLogs() {
     if (!props.uuid) return 
-    
-    rowData.value = []
-    console.log(props.uuid)
+
     try {
         const logs = await SmtService.getTheStatsOfLogsByUuid({ uuid: props.uuid })
+        const newRowData: MaterialQueryRowModel[] = []
         for (const log of logs) {
-            rowData.value.push({
+            newRowData.push({
                 correct: log.check_pack_code_match,
                 slotIdno: log.slot_idno,
                 subSlotIdno: log.sub_slot_idno,
@@ -67,6 +66,7 @@ async function fetchLogs() {
                 remark: log.check_pack_code_match === 'TESTING_MATERIAL_PACK' ? '廠商測試料' : ''
             })
         }
+        rowData.value = newRowData
     } catch (e) {
         console.error(e)
         emit('error', `找不到接料資訊 ${props.uuid}`)
