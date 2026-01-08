@@ -78,7 +78,7 @@ type RowModel = {
     id: number,
     slotIdno: string,
     subSlotIdno: string,
-    firstAppendTime?: string,
+    firstAppendTime?: string | null,
     materialIdno: string,
     materialInventoryIdno: string,
     appendedMaterialInventoryIdno: string,
@@ -190,7 +190,7 @@ onMounted(async () => {
             id: materialSlotPair.id,
             slotIdno: materialSlotPair.slot_idno,
             subSlotIdno: materialSlotPair.sub_slot_idno,
-            firstAppendTime: importMaterialPack?.operation_time,
+            firstAppendTime: importMaterialPack?.operation_time ?? materialSlotPair.feed_records?.[0]?.operation_time,
             materialIdno: materialSlotPair.material_idno,
             appendedMaterialInventoryIdno: appendedCodes,
             materialInventoryIdno: importMaterialPack?.material_pack_code ?? '',
@@ -305,8 +305,6 @@ async function handleSlotSubmit({
 
     materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
     // materialRowNode.setDataValue('firstAppendTime', new Date().toISOString())
-
-    row.appendedMaterialInventoryIdno = newAppendedIdno
 }
 
 function speak(text: string) {

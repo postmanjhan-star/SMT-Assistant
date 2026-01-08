@@ -85,7 +85,7 @@ type RowModel = {
     id: number,
     slotIdno: string,
     subSlotIdno: string,
-    firstAppendTime?: string,
+    firstAppendTime?: string | null,
     materialIdno: string,
     materialInventoryIdno: string,
     appendedMaterialInventoryIdno: string,
