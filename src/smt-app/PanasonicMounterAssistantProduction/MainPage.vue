@@ -93,6 +93,7 @@ const gridOptions: GridOptions = {
         { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'MATCHED_MATERIAL_PACK': '✅', 'UNMATCHED_MATERIAL_PACK': '❌', 'TESTING_MATERIAL_PACK': '⚠️' } },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140 },
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
@@ -327,8 +328,9 @@ function cleanErrorMaterialInventory(currentPackCode: string, inputSlot: string,
     gridOptions.api.forEachNode((node) => {
         const isSame = node.data.materialInventoryIdno === currentPackCode
         const isDifferentSlot = `${node.data.slotIdno}-${node.data.subSlotIdno}` !== `${inputSlot}-${inputSubSlot}`
+        const isCorrect = node.data.correct === 'true'
 
-        if (isSame && isDifferentSlot) {
+        if (isSame && isDifferentSlot && !isCorrect) {
             node.setDataValue('materialInventoryIdno', '')
             node.setDataValue('correct', '')
             node.setDataValue('remark', '')
@@ -380,18 +382,12 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
     const matchedRows = result.matchedRows || []
     if (matchedRows.length === 0) return showWarn('此物料未匹配任何槽位')
 
-    for (const row of matchedRows) {
-        const rowNode = gridOptions.api.getRowNode(`${row.slotIdno}-${row.subSlotIdno}`)
+    const targetRow = matchedRows.find(row => row.slotIdno === inputSlot && (row.subSlotIdno ?? '') === inputSubSlot)
+
+    if (targetRow) {
+        const rowNode = gridOptions.api.getRowNode(`${targetRow.slotIdno}-${targetRow.subSlotIdno}`)
 
         if (!rowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
-
-
-        if (row.slotIdno !== inputSlot || row.subSlotIdno !== inputSubSlot) {
-            await handleMistmatch(result, inputSlot, inputSubSlot, rowNode)
-            materialInventoryResult.value = null
-            correctState.value = 'false'
-            return false
-        }
 
         cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
 
@@ -402,6 +398,13 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
 
         await showSuccess(`${MODE_NAME_NORMAL}：槽位 ${inputSlotIdno} 綁定成功`)
         return true
+    } else {
+        const firstRow = matchedRows[0]
+        const rowNode = gridOptions.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
+        await handleMistmatch(result, inputSlot, inputSubSlot, rowNode)
+        materialInventoryResult.value = null
+        correctState.value = 'false'
+        return false
     }
 }
 
@@ -420,17 +423,12 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
     }
 
     if (matchedRows.length !== 0) {
-        for (const row of matchedRows) {
-            const materialRowNode = gridOptions.api.getRowNode(`${row.slotIdno}-${row.subSlotIdno}`)
+        const targetRow = matchedRows.find(row => row.slotIdno === inputSlot && (row.subSlotIdno ?? '') === inputSubSlot)
+
+        if (targetRow) {
+            const materialRowNode = gridOptions.api.getRowNode(`${targetRow.slotIdno}-${targetRow.subSlotIdno}`)
 
             if (!materialRowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
-
-            if (row.slotIdno !== inputSlot || row.subSlotIdno !== inputSubSlot) {
-                await handleMistmatch(result, inputSlot, inputSubSlot, materialRowNode)
-                correctState.value = 'false'
-                materialInventoryResult.value = null
-                return false
-            }
 
             cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
 
@@ -442,6 +440,13 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
             await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 綁定成功`)
 
             return true
+        } else {
+            const firstRow = matchedRows[0]
+            const materialRowNode = gridOptions.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
+            await handleMistmatch(result, inputSlot, inputSubSlot, materialRowNode)
+            correctState.value = 'false'
+            materialInventoryResult.value = null
+            return false
         }
     }
 
