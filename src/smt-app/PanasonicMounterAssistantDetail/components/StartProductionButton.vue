@@ -27,6 +27,7 @@ type RowModel = {
     materialInventoryIdno: string,
     appendedMaterialInventoryIdno: string,
     remark?: string,
+    firstAppendTime?: string | null,
 }
 
 const props = defineProps({
@@ -109,8 +110,10 @@ async function startProductionUpload() {
 
         const payload = props.rowData.map(row => ({
             operator_id: props.operator_id ?? null,
-            operation_time: new Date().toISOString(),
-            production_start: new Date().toISOString(),
+            operation_time: row.firstAppendTime 
+                ? new Date(new Date(row.firstAppendTime).getTime() + 8 * 60 * 60 * 1000).toISOString() 
+                : new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
+            production_start: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
             work_order_no: props.workOrderIdno,
             product_idno: props.productIdno,
             machine_idno: props.mounterIdno,

@@ -78,6 +78,7 @@ type RowModel = {
     id: number,
     slotIdno: string,
     subSlotIdno: string,
+    firstAppendTime?: string,
     materialIdno: string,
     materialInventoryIdno: string,
     appendedMaterialInventoryIdno: string,
@@ -93,7 +94,7 @@ const gridOptions: GridOptions = {
         { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'MATCHED_MATERIAL_PACK': '✅', 'UNMATCHED_MATERIAL_PACK': '❌', 'TESTING_MATERIAL_PACK': '⚠️' } },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
-        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140 },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140, valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '' },
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
@@ -189,6 +190,7 @@ onMounted(async () => {
             id: materialSlotPair.id,
             slotIdno: materialSlotPair.slot_idno,
             subSlotIdno: materialSlotPair.sub_slot_idno,
+            firstAppendTime: importMaterialPack?.operation_time,
             materialIdno: materialSlotPair.material_idno,
             appendedMaterialInventoryIdno: appendedCodes,
             materialInventoryIdno: importMaterialPack?.material_pack_code ?? '',
@@ -302,6 +304,7 @@ async function handleSlotSubmit({
     }
 
     materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
+    // materialRowNode.setDataValue('firstAppendTime', new Date().toISOString())
 
     row.appendedMaterialInventoryIdno = newAppendedIdno
 }
@@ -334,6 +337,7 @@ function cleanErrorMaterialInventory(currentPackCode: string, inputSlot: string,
             node.setDataValue('materialInventoryIdno', '')
             node.setDataValue('correct', '')
             node.setDataValue('remark', '')
+            node.setDataValue('firstAppendTime', null)
         }
     })
 }
@@ -484,7 +488,7 @@ async function appendedMaterialUpload(params: {
     const payload: PanasonicFeedRecordCreate = {
         stat_item_id: params.stat_id,
         operator_id: '',
-        operation_time: new Date().toISOString(),
+        operation_time: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
         slot_idno: params.inputSlot,
         sub_slot_idno: params.inputSubSlot ?? null,
         material_pack_code: params.materialInventory.idno,
@@ -700,7 +704,7 @@ async function onSubmitShortage() {
     const payload: PanasonicFeedRecordCreate = {
         stat_item_id: stat.id,
         operator_id: '',
-        operation_time: new Date().toISOString(),
+        operation_time: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
         slot_idno: inputSlot,
         sub_slot_idno: inputSubSlot ?? null,
         material_pack_code: idno,

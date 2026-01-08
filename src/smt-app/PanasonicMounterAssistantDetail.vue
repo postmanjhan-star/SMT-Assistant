@@ -551,8 +551,8 @@ async function startProductionUpload(isTestingMode: boolean) {
   try {
     const payload: Array<PanasonicMounterItemStatCreate> = rowData.value.map(row => ({
       operator_id: currentUsername.value || null,
-      operation_time: new Date().toISOString(),
-      production_start: new Date().toISOString(),
+      operation_time: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
+      production_start: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
       work_order_no: String(route.params.workOrderIdno ?? null),
       product_idno: String(route.query.product_idno),
       machine_idno: String(route.params.mounterIdno.toString().trim()),
@@ -625,7 +625,7 @@ async function stopProduction() {
 async function uploadEndProductionTime(uuid: string) {
   await SmtService.updateTheStatsOfProductionEndTimeRecord({
     uuid: uuid,
-    endTime: new Date().toISOString()
+    endTime: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString()
   })
 }
 
@@ -734,7 +734,7 @@ async function onSubmitShortage() {
   const payload: PanasonicFeedRecordCreate = {
     stat_item_id: stat.id,
     operator_id: currentUsername.value || '',
-    operation_time: new Date().toISOString(),
+    operation_time: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
     slot_idno: inputSlot,
     sub_slot_idno: inputSubSlot ?? null,
     material_pack_code: idno,

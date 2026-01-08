@@ -134,7 +134,7 @@ const gridOptions: GridOptions = {
         { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'true': '✅', 'false': '❌', 'warning': '⚠️' } },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
-        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140 },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140, valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '' },
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
@@ -305,6 +305,7 @@ function cleanErrorMaterialInventory(currentPackCode: string, inputSlot: string,
             node.setDataValue('materialInventoryIdno', '')
             node.setDataValue('correct', '')
             node.setDataValue('remark', '')
+            node.setDataValue('firstAppendTime', null)
         }
     })
 }
@@ -370,6 +371,7 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
         rowNode.setDataValue('remark', result.materialInventory?.idno ?? '')
         rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.remark ?? '')
         rowNode.setDataValue('correct', 'true')
+        rowNode.setDataValue('firstAppendTime', new Date().toISOString())
         resetSlotMaterialFormInputs()
         materialInventoryResult.value = null
 
@@ -404,6 +406,7 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
             rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
             rowNode.setDataValue('remark', result.materialInventory?.remark ?? '')
             rowNode.setDataValue('correct', 'true')
+            rowNode.setDataValue('firstAppendTime', new Date().toISOString())
 
             resetSlotMaterialFormInputs()
             materialInventoryResult.value = null
@@ -422,6 +425,7 @@ async function handleTestingMode(result: ResultType, inputSlot: string, inputSub
     rowNode.setDataValue('correct', 'warning')
     rowNode.setDataValue('remark', testRemark)
     rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
+    rowNode.setDataValue('firstAppendTime', new Date().toISOString())
     materialInventoryResult.value = null
 
     await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
@@ -485,7 +489,7 @@ async function stopProduction() {
 async function uploadEndProductionTime(uuid: string) {
     await SmtService.updateTheStatsOfProductionEndTimeRecord({
         uuid: uuid,
-        endTime: new Date().toISOString()
+        endTime: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString()
     })
 }
 
@@ -611,7 +615,7 @@ async function onSubmitShortage() {
     const payload: PanasonicFeedRecordCreate = {
         stat_item_id: stat.id,
         operator_id: currentUsername.value || null,
-        operation_time: new Date().toISOString(),
+        operation_time: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
         slot_idno: inputSlot,
         sub_slot_idno: inputSubSlot ?? null,
         material_pack_code: idno,
