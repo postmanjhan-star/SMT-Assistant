@@ -134,7 +134,7 @@ const gridOptions: GridOptions = {
         { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'true': '✅', 'false': '❌', 'warning': '⚠️' } },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
-        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140, valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '' },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140 },
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
