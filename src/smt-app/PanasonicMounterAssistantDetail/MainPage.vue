@@ -31,6 +31,10 @@ import SlotIdnoInput from "./components/SlotIdnoInput.vue";
 import StartProductionButton from "./components/StartProductionButton.vue";
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 
+import { useDateFormatter } from '@/composables/useDateFormatter'
+
+const { format } = useDateFormatter()
+
 const route = useRoute();
 const router = useRouter();
 const message = useMessage();
@@ -134,7 +138,7 @@ const gridOptions: GridOptions = {
         { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'true': '✅', 'false': '❌', 'warning': '⚠️' } },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
-        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140 },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140 , valueFormatter: (p) => format(p.value)},
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
@@ -489,7 +493,7 @@ async function stopProduction() {
 async function uploadEndProductionTime(uuid: string) {
     await SmtService.updateTheStatsOfProductionEndTimeRecord({
         uuid: uuid,
-        endTime: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString()
+        endTime: new Date().toISOString()
     })
 }
 
@@ -615,7 +619,7 @@ async function onSubmitShortage() {
     const payload: PanasonicFeedRecordCreate = {
         stat_item_id: stat.id,
         operator_id: currentUsername.value || null,
-        operation_time: new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString(),
+        operation_time: new Date().toISOString(),
         slot_idno: inputSlot,
         sub_slot_idno: inputSubSlot ?? null,
         material_pack_code: idno,
