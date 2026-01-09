@@ -372,8 +372,8 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
 
         cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
 
-        rowNode.setDataValue('remark', result.materialInventory?.idno ?? '')
-        rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.remark ?? '')
+        rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
+        rowNode.setDataValue('remark', result.materialInventory?.remark ?? '')
         rowNode.setDataValue('correct', 'true')
         rowNode.setDataValue('firstAppendTime', new Date().toISOString())
         resetSlotMaterialFormInputs()

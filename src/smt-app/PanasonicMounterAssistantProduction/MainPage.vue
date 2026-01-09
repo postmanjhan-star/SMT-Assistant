@@ -85,7 +85,7 @@ type RowModel = {
     subSlotIdno: string,
     firstAppendTime?: string | null,
     materialIdno: string,
-    materialInventoryIdno: string,
+    materialInventoryIdno: string | null,
     appendedMaterialInventoryIdno: string,
     remark?: string,
 }
@@ -198,7 +198,7 @@ onMounted(async () => {
             firstAppendTime: importMaterialPack?.operation_time ?? materialSlotPair.feed_records?.[0]?.operation_time,
             materialIdno: materialSlotPair.material_idno,
             appendedMaterialInventoryIdno: appendedCodes,
-            materialInventoryIdno: importMaterialPack?.material_pack_code ?? '',
+            materialInventoryIdno: importMaterialPack?.material_pack_code,
         })
     }
 
