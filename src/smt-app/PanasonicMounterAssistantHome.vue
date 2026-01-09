@@ -3,7 +3,7 @@ import { FormInst, FormItemRule, FormRules, NA, NButton, NForm, NFormItemGi, NGi
 import { ref, watch, nextTick } from 'vue'
 import { useMeta } from 'vue-meta'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ApiError, SmtService } from '../client'
+import { ApiError, SmtService, StErpService, STWorkOrder } from '@/client'
 import { mount } from '@vue/test-utils'
 // import { FlaskConical, ShieldCheck } from 'lucide-vue-next'
 
@@ -21,6 +21,8 @@ const testingDefaults = {
   workSheetSide: 'DUPLEX',
   machineSide: '1+2'
 }
+
+
 
 async function onToggleTestingMode(val: Boolean) {
   const newQuery = { ...route.query }
@@ -104,6 +106,22 @@ watch(
   }
 )
 
+watch(
+  () => formValue.value.workOrderIdno,
+  async (newVal) => {
+    if (isTestingMode.value || !newVal) return
+    try {
+      const stWorkOrder = await StErpService.getStWorkOrder({ workOrderIdno: newVal.trim() })
+      if (stWorkOrder && stWorkOrder.product_idno) {
+        formValue.value.productIdno = stWorkOrder.product_idno
+        message.success(`已自動帶入成品料號：${stWorkOrder.product_idno}`)
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+)
+
 
 async function onClickSubmitButton(event: Event) {
   try { await formRef.value?.validate(async (error) => { if (error) { throw error } }) }
@@ -111,6 +129,8 @@ async function onClickSubmitButton(event: Event) {
     message.error('請輸入必填爛位')
     return false
   }
+
+
 
   try {
     const mounterDataArray = await SmtService.getPanasonicMounterMaterialSlotPairs({
