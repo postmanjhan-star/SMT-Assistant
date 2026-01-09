@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { FormInst, FormItemRule, FormRules, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NIcon, NH1, NInput, NRadioButton, NRadioGroup, NSpace, useMessage, NSwitch } from 'naive-ui'
+
+import { FormInst, FormItemRule, FormRules, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NIcon, NH1, NInput, NRadioButton, NRadioGroup, NSpace, useMessage, NSwitch, NSelect } from 'naive-ui'
 import { ref, watch, nextTick } from 'vue'
 import { useMeta } from 'vue-meta'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -69,6 +70,8 @@ const rules: FormRules = {
 const workSheetSideOptions = [{ label: 'TOP面', value: 'TOP' }, { label: 'BOT面', value: 'BOTTOM' }, { label: 'B+T面', value: 'DUPLEX' }]
 const machineSideOptions = [{ label: '機台前面', value: '1' }, { label: '機台背面', value: '2' }, { label: '機台正反面', value: '1+2' }]
 
+const mounterOptions = ref<{ label: string, value: string }[]>([])
+
 watch(
   () => route.query.testing_mode,
   async (newVal) => {
@@ -93,16 +96,27 @@ watch(
 watch(
   () => formValue.value.productIdno,
   async (newVal) => {
-    if (route.query.testing_mode !== '1') return
-
-    const newQuery = { ...route.query }
-    if (newVal && newVal.trim()) {
-      newQuery.testing_product_idno = newVal.trim()
-    } else {
-      delete newQuery.testing_product_idno
+    if (route.query.testing_mode === '1') {
+      const newQuery = { ...route.query }
+      if (newVal && newVal.trim()) {
+        newQuery.testing_product_idno = newVal.trim()
+      } else {
+        delete newQuery.testing_product_idno
+      }
+      await router.replace({ query: newQuery })
     }
 
-    await router.replace({ query: newQuery })
+    if (newVal && newVal.trim()) {
+      try {
+        const mounterIdnos = await SmtService.findPanasonicMounterIdnosByProductIdno({ productIdno: newVal.trim() })
+        mounterOptions.value = mounterIdnos.map(id => ({ label: id, value: id }))
+        if (mounterOptions.value.length > 0) {
+          if (!mounterOptions.value.some(opt => opt.value === formValue.value.mounterIdno)) {
+            formValue.value.mounterIdno = mounterOptions.value[0].value
+          }
+        }
+      } catch (e) { console.error(e) }
+    }
   }
 )
 
@@ -206,8 +220,7 @@ async function onClickSubmitButton(event: Event) {
 
           <n-gi></n-gi>
           <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
-            <n-input type="text" size="large" v-model:value.lazy="formValue.mounterIdno"
-              :input-props="{ id: 'mounterIdnoInput' }" />
+            <n-select size="large" v-model:value="formValue.mounterIdno" :options="mounterOptions" placeholder="請選擇機台號" />
           </n-form-item-gi>
           <n-gi></n-gi>
 

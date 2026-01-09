@@ -12,6 +12,10 @@ export const $PanasonicMounterFileRead = {
     type: 'null',
 }],
 },
+        file_name: {
+    type: 'string',
+    isRequired: true,
+},
         updated_at: {
     type: 'string',
     isRequired: true,

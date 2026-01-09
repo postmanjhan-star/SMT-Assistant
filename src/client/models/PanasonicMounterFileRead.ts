@@ -7,6 +7,7 @@ import type { PanasonicMounterFileItemRead } from './PanasonicMounterFileItemRea
 
 export type PanasonicMounterFileRead = {
     id?: (number | null);
+    file_name: string;
     updated_at: string;
     product_idno: string;
     product_ver: string;

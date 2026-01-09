@@ -290,6 +290,40 @@ productIdno?: (string | null),
     }
 
     /**
+     * Delete Panasonic Mounter File
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static backupPanasonicMounterFile(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter/files/backup',
+        });
+    }
+
+    /**
+     * Find Panasonic Mounter Idnos By Product Idno
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static findPanasonicMounterIdnosByProductIdno({
+productIdno,
+}: {
+productIdno: string,
+}): CancelablePromise<Array<string>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter/files/mounter_idnos/{product_idno}',
+            path: {
+                'product_idno': productIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Get Panasonic Mounter File Item List
      * @returns PanasonicMounterFileItemRead Successful Response
      * @throws ApiError
@@ -302,6 +336,70 @@ id: number,
         return __request(OpenAPI, {
             method: 'GET',
             url: '/smt/panasonic_mounter/files/{id}/items',
+            path: {
+                'id': id,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Panasonic Mounter Material Slot Pairs
+     * @returns PanasonicMounterFileRead Successful Response
+     * @throws ApiError
+     */
+    public static getPanasonicMounterMaterialSlotPairs({
+workOrderIdno,
+mounterIdno,
+boardSide,
+productIdno,
+machineSide,
+testingMode = false,
+testingProductIdno,
+}: {
+workOrderIdno: string,
+mounterIdno: string,
+boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
+productIdno?: (string | null),
+machineSide?: ('1' | '2' | '1+2' | null),
+testingMode?: boolean,
+testingProductIdno?: (string | null),
+}): CancelablePromise<PanasonicMounterFileRead> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/panasonic_mounter/{mounter_idno}/{work_order_idno}',
+            path: {
+                'work_order_idno': workOrderIdno,
+                'mounter_idno': mounterIdno,
+            },
+            query: {
+                'board_side': boardSide,
+                'product_idno': productIdno,
+                'machine_side': machineSide,
+                'testing_mode': testingMode,
+                'testing_product_idno': testingProductIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Delete Panasonic Mounter File
+     * @returns boolean Successful Response
+     * @throws ApiError
+     */
+    public static deletePanasonicMounterFile({
+id,
+}: {
+id: number,
+}): CancelablePromise<boolean> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/smt/panasonic_mounter/files/{id}',
             path: {
                 'id': id,
             },
@@ -395,28 +493,6 @@ testingProductIdno?: (string | null),
     }
 
     /**
-     * Delete Panasonic Mounter File
-     * @returns boolean Successful Response
-     * @throws ApiError
-     */
-    public static deletePanasonicMounterFile({
-id,
-}: {
-id: number,
-}): CancelablePromise<boolean> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/smt/panasonic_mounter/files/{id}',
-            path: {
-                'id': id,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
      * Upload Panasonic Mounter Csv
      * 從檔案的 metadata 區讀取表頭資料
  *
@@ -453,48 +529,6 @@ formData: Body_upload_panasonic_mounter_csv,
             url: '/smt/panasonic_mounter/upload_csv',
             formData: formData,
             mediaType: 'multipart/form-data',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Panasonic Mounter Material Slot Pairs
-     * @returns PanasonicMounterFileRead Successful Response
-     * @throws ApiError
-     */
-    public static getPanasonicMounterMaterialSlotPairs({
-workOrderIdno,
-mounterIdno,
-boardSide,
-productIdno,
-machineSide,
-testingMode = false,
-testingProductIdno,
-}: {
-workOrderIdno: string,
-mounterIdno: string,
-boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX',
-productIdno?: (string | null),
-machineSide?: ('1' | '2' | '1+2' | null),
-testingMode?: boolean,
-testingProductIdno?: (string | null),
-}): CancelablePromise<PanasonicMounterFileRead> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/panasonic_mounter/{mounter_idno}/{work_order_idno}',
-            path: {
-                'work_order_idno': workOrderIdno,
-                'mounter_idno': mounterIdno,
-            },
-            query: {
-                'board_side': boardSide,
-                'product_idno': productIdno,
-                'machine_side': machineSide,
-                'testing_mode': testingMode,
-                'testing_product_idno': testingProductIdno,
-            },
             errors: {
                 422: `Validation Error`,
             },
