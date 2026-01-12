@@ -1,12 +1,12 @@
 <script setup lang="ts">
 
-import { GetRowIdParams, GridOptions, RowNode } from "ag-grid-community";
+import { GetRowIdParams, GridOptions, RowNode, CellValueChangedEvent, GridApi, GridReadyEvent } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormInst, FormRules, useDialog } from 'naive-ui';
 import * as Tone from 'tone';
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, nextTick, shallowRef } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -65,6 +65,7 @@ const slotFormValue = ref({
 const materialFormValue = ref({ materialInventoryIdno: '' });
 const materialInventoryIdnoInput = ref<InputInst>();
 
+const startProductionBtnRef = ref<any>(null)
 type ResultType = {
     success: boolean,
     materialInventory?: SmtMaterialInventoryEx | null,
@@ -131,6 +132,11 @@ function handleSlotDone() {
 
 const rowData = ref<RowModel[]>([]);
 
+const gridApi = shallowRef<GridApi | null>(null)
+const onGridReady = (params: GridReadyEvent) => {
+    gridApi.value = params.api
+}
+
 const gridOptions: GridOptions = {
     // PROPERTIES
     // Column Definitions
@@ -187,6 +193,16 @@ const gridOptions: GridOptions = {
 
     // Tooltips
     enableBrowserTooltips: false,
+
+    onCellValueChanged: (event: CellValueChangedEvent) => {
+        const idx = rowData.value.findIndex(r => 
+            r.slotIdno === event.data.slotIdno && 
+            r.subSlotIdno === event.data.subSlotIdno
+        )
+        if (idx >= 0) {
+            rowData.value[idx] = { ...event.data }
+        }
+    },
 
     // // EVENTS
     // // Miscellaneous
@@ -294,7 +310,7 @@ function resetSlotMaterialFormInputs() {
     slotFormValue.value.materialInventoryIdno = ''
     slotFormValue.value.remark = ''
     materialFormValue.value.materialInventoryIdno = ''
-    materialInventoryIdnoInput.value.focus()
+    materialInventoryIdnoInput.value?.focus()
 }
 
 
@@ -357,6 +373,23 @@ function handleMaterialMatched(payload: {
     slotIdnoInput.value?.focus()
 }
 
+function checkAllSlotsCorrect() {
+    let allCorrect = true
+    if (!gridApi.value) return false
+    const invalidSlots: string[] = []
+    gridApi.value.forEachNode((node) => {
+        if (node.data.correct !== 'true') {
+            allCorrect = false
+            invalidSlots.push(`${node.data.slotIdno}-${node.data.subSlotIdno}`)
+        }
+    })
+
+    if (!allCorrect) {
+        console.log('尚未滿足自動上傳條件，未完成槽位:', invalidSlots)
+    }
+    return allCorrect
+}
+
 async function handleNormalMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string) {
     if (!result) return showWarn('請先掃描物料條碼')
 
@@ -378,6 +411,23 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
         rowNode.setDataValue('firstAppendTime', new Date().toISOString())
         resetSlotMaterialFormInputs()
         materialInventoryResult.value = null
+
+        // 使用 setTimeout 確保 Grid 狀態完全更新後再檢查
+        setTimeout(() => {
+            if (!isTestingMode && !productionStarted.value && checkAllSlotsCorrect()) {
+                message.success('所有槽位匹配完成，自動觸發上傳...')
+                
+                const currentRows: any[] = []
+                gridApi.value?.forEachNode(node => currentRows.push(node.data))
+
+                if (startProductionBtnRef.value) {
+                    startProductionBtnRef.value.submit(currentRows)
+                } else {
+                    console.error('StartProductionButton ref is missing')
+                    message.error('無法自動上傳：找不到上傳按鈕組件')
+                }
+            }
+        }, 300)
 
         return await showSuccess(`${MODE_NAME_NORMAL}：槽位 ${inputSlotIdno} 綁定成功`)
     } else {
@@ -725,7 +775,7 @@ function hideVirtualKeyboard() {
 
                         <!-- 右側：功能按鈕 -->
                         <n-space size="small">
-                            <StartProductionButton v-if="!productionStarted" :is-testing-mode="isTestingMode"
+                            <StartProductionButton ref="startProductionBtnRef" v-if="!productionStarted" :is-testing-mode="isTestingMode"
                                 :row-data="rowData" :operator_id="currentUsername" :work-order-idno="workOrderIdno" :product-idno="productIdno"
                                 :mounter-idno="mounterIdno" :machine-side-query="machineSideQuery"
                                 :work-sheet-side-query="workSheetSideQuery" @started="handleProductionStarted"
@@ -761,7 +811,7 @@ function hideVirtualKeyboard() {
 
         <div style="height: 2000px; padding: 1rem;">
             <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;"
-                :gridOptions="gridOptions">
+                :gridOptions="gridOptions" @grid-ready="onGridReady">
             </ag-grid-vue>
         </div>
 

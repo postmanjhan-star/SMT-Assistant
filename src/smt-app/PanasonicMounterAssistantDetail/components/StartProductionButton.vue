@@ -94,7 +94,7 @@ function onProduction() {
     })
 }
 
-async function startProductionUpload() {
+async function startProductionUpload(rows?: RowModel[]) {
     try {
         // 判斷 boardSide / machineSide
         const boardSide = convertBoardSide(props.workSheetSideQuery)
@@ -108,7 +108,9 @@ async function startProductionUpload() {
 
         console.log(machineSide.value)
 
-        const payload = props.rowData.map(row => ({
+        const dataToUse = rows || props.rowData
+
+        const payload = dataToUse.map(row => ({
             operator_id: props.operator_id ?? null,
             operation_time: row.firstAppendTime 
                 ? new Date(row.firstAppendTime).toISOString()
@@ -142,6 +144,9 @@ async function startProductionUpload() {
     }
 }
 
+defineExpose({
+    submit: startProductionUpload
+})
 
 </script>
 
