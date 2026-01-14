@@ -48,6 +48,7 @@ const productionStatUuid = ref()
 const machineSide = ref<MachineSideEnum>()
 const statMap = new Map<string, any>()
 const dialog = useDialog()
+const loading = ref(false)
 
 function makeSlotKey(slot: string, subSlot?: string | null) {
     if (subSlot && subSlot.trim() !== '') {
@@ -95,6 +96,8 @@ function onProduction() {
 }
 
 async function startProductionUpload(rows?: RowModel[]) {
+    if (loading.value) return
+    loading.value = true
     try {
         // 判斷 boardSide / machineSide
         const boardSide = convertBoardSide(props.workSheetSideQuery)
@@ -141,6 +144,8 @@ async function startProductionUpload(rows?: RowModel[]) {
 
     } catch (err) {
         emit('error', '資料上傳失敗')
+    } finally {
+        loading.value = false
     }
 }
 
@@ -151,7 +156,7 @@ defineExpose({
 </script>
 
 <template>
-    <n-button type="success" size="small" @click="onProduction">
+    <n-button type="success" size="small" @click="onProduction" :loading="loading" :disabled="loading">
         🚀 開始生產
     </n-button>
 </template>

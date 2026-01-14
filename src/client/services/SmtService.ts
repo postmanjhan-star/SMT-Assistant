@@ -140,6 +140,27 @@ requestBody: PanasonicFeedRecordCreate,
     }
 
     /**
+     * Add Panasonic Mounter Item Stat Inspect
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static addPanasonicMounterItemStatInspect({
+requestBody,
+}: {
+requestBody: PanasonicFeedRecordCreate,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/panasonic_mounter_item/stat/inspect',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Add Panasonic Material Pack
      * @returns any Successful Response
      * @throws ApiError

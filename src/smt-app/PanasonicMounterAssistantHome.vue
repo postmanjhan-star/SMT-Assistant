@@ -56,7 +56,7 @@ const formValue = ref<{
 const rules: FormRules = {
   workOrderIdno: { required: true, message: '請輸入工單號', trigger: ['blur'] },
   productIdno: { required: true, message: '請輸入成品料號', trigger: ['blur', 'input'] },
-  mounterIdno: { required: true, message: '請輸入機台號', trigger: ['input', 'blur'] },
+  mounterIdno: { required: true, message: '請輸入線別', trigger: ['input', 'blur'] },
   workSheetSide: {
     required: true, message: '請選擇工件正反面', trigger: ['change'],
     validator: (rule: FormItemRule, value: string) => { return (value != undefined ? true : false) },
@@ -219,8 +219,8 @@ async function onClickSubmitButton(event: Event) {
           <n-gi></n-gi>
 
           <n-gi></n-gi>
-          <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
-            <n-select size="large" v-model:value="formValue.mounterIdno" :options="mounterOptions" placeholder="請選擇機台號" />
+          <n-form-item-gi label="線別" show-require-mark path="mounterIdno">
+            <n-select size="large" v-model:value="formValue.mounterIdno" :options="mounterOptions" placeholder="請選擇線別" />
           </n-form-item-gi>
           <n-gi></n-gi>
 

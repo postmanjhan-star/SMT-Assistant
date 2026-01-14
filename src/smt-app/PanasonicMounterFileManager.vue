@@ -50,7 +50,7 @@ onMounted( async () => {
             { title: "BOM版本", field: "product_ver", headerSort: true, headerHozAlign: 'center' },
             { title: "PCB 板打件面", field: "board_side", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
             { title: "上傳日期", field: "updated_at", headerHozAlign: 'center', headerSort: true },
-            { title: "機台", field: "mounter_idno", headerHozAlign: 'center' },
+            { title: "線別", field: "mounter_idno", headerHozAlign: 'center' },
         ],
         selectable: 1,
     } )

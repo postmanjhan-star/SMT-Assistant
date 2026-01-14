@@ -23,7 +23,7 @@ const workSheetSideOptions = [ { label: 'TOP面', value: 'TOP' }, { label: 'BOT�
 const rules: FormRules = {
   workOrderIdno: { required: true, message: '請輸入工單號', trigger: [ 'blur' ], },
   productIdno: { required: true, message: '請輸入成品料號', trigger: [ 'blur', 'input' ] },
-  mounterIdno: { required: true, message: '請輸入機台號', trigger: [ 'input', 'blur' ], },
+  mounterIdno: { required: true, message: '請輸入線別', trigger: [ 'input', 'blur' ], },
   workSheetSide: {
     required: true, message: '請選擇工件正反面', trigger: [ 'change' ],
     validator: ( rule: FormItemRule, value: string ) => { return ( value != undefined ? true : false ) },
@@ -88,7 +88,7 @@ async function onClickSubmitButton ( event: Event ) {
           <n-gi></n-gi>
 
           <n-gi></n-gi>
-          <n-form-item-gi label="機台號" show-require-mark path="mounterIdno">
+          <n-form-item-gi label="線別" show-require-mark path="mounterIdno">
             <n-input v-model:value.lazy=" formValue.mounterIdno " :input-props=" { id: 'mounterIdnoInput' } " />
           </n-form-item-gi>
           <n-gi></n-gi>

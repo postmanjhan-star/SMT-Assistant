@@ -273,6 +273,30 @@ async function handleSlotSubmit({
         stat => stat.slot_idno === slot && (stat.sub_slot_idno ?? '') === subSlot
     )
 
+    if (!stat) return showError(`找不到槽位 ${slotIdno}`)
+
+    // ===============================
+    // 🕵️ 巡檢分流（最關鍵）
+    // ===============================
+    if (isInspectionScan(stat, result.materialInventory.idno)) {
+        await inspectionUpload({
+            stat_id: stat.id,
+            inputSlot: slot,
+            inputSubSlot: subSlot,
+            materialInventory: result.materialInventory
+        })
+
+        materialInventoryResult.value = null
+        materialResetKey.value++
+
+        await showSuccess(`巡檢通過：${slotIdno}`)
+        return
+    }
+
+    // ===============================
+    // 原本的上料 / 接料流程（完全保留）
+    // ===============================
+
     if (isTestingMode) {
         success = await handleTestingMode(result, slot, subSlot, slotIdno)
     } else {
@@ -311,6 +335,29 @@ async function handleSlotSubmit({
     materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
     // materialRowNode.setDataValue('firstAppendTime', new Date().toISOString())
 }
+
+async function inspectionUpload(params: {
+    stat_id: number
+    inputSlot: string
+    inputSubSlot: string
+    materialInventory: SmtMaterialInventoryEx
+}) {
+    const payload = {
+        stat_item_id: params.stat_id,
+        operator_id: '',
+        operation_time: new Date().toISOString(),
+        slot_idno: params.inputSlot,
+        sub_slot_idno: params.inputSubSlot ?? null,
+        material_pack_code: params.materialInventory.idno,
+        feed_material_pack_type: convertFeedMaterialType('inspect'),
+        check_pack_code_match: convertMatch('true')
+    }
+    console.log("巡檢上傳資料", payload)
+    await SmtService.addPanasonicMounterItemStatRoll({
+        requestBody: payload
+    })
+}
+
 
 function speak(text: string) {
     text = text.split('').join(', ') // Convert `10010` to `1,0,0,1,0` for speaking characters one by one
@@ -383,6 +430,21 @@ function handleMaterialMatched(payload: {
     slotIdnoInput.value?.focus()
 }
 
+function isInspectionScan(
+    stat: PanasonicMounterItemStatRead,
+    inputPackIdno: string
+): boolean {
+    if (!productionStarted.value) return false
+
+    const importPack = stat.feed_records?.find(
+        r => r.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
+    )
+
+    if (!importPack) return false
+
+    return importPack.material_pack_code === inputPackIdno
+}
+
 async function handleNormalMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string) {
     if (!result) return showWarn('請先掃描物料條碼')
 
@@ -415,8 +477,8 @@ async function handleNormalMode(result: ResultType, inputSlot: string, inputSubS
     }
 }
 
-async function handleTestingMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string): Promise<boolean>{
-    if (!result){
+async function handleTestingMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string): Promise<boolean> {
+    if (!result) {
         showWarn('請先掃描物料條碼')
         return false
     }
@@ -834,14 +896,15 @@ function hideVirtualKeyboard() {
 
             <n-grid cols="2 s:2" responsive="screen" x-gap="20">
                 <n-gi>
-                    <MaterialInventoryBarcodeInput :disabled="!productionStarted" :is-testing-mode="isTestingMode" 
+                    <MaterialInventoryBarcodeInput :disabled="!productionStarted" :is-testing-mode="isTestingMode"
                         :get-material-matched-rows="getMaterialMatchedRowArray" @matched="handleMaterialMatched"
                         :reset-key="materialResetKey" @error="showError" />
                 </n-gi>
 
                 <n-gi>
-                    <SlotIdnoInput :disabled="!productionStarted" :is-testing-mode="isTestingMode" :has-material="!!materialInventoryResult" 
-                        @submit="handleSlotSubmit" @error="showError" @done="handleSlotDone" />
+                    <SlotIdnoInput :disabled="!productionStarted" :is-testing-mode="isTestingMode"
+                        :has-material="!!materialInventoryResult" @submit="handleSlotSubmit" @error="showError"
+                        @done="handleSlotDone" />
                 </n-gi>
             </n-grid>
         </n-space>
