@@ -92,7 +92,7 @@ type RowModel = {
     subSlotIdno: string,
     firstAppendTime?: string | null,
     materialIdno: string,
-    materialInventoryIdno: string,
+    materialInventoryIdno: string | null,
     appendedMaterialInventoryIdno: string,
     remark?: string,
 }
@@ -143,8 +143,8 @@ const gridOptions: GridOptions = {
     columnDefs: [
         { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'true': '✅', 'false': '❌', 'warning': '⚠️' } },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
-        { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
-        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140 , valueFormatter: (p) => format(p.value)},
+        { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 1, minWidth: 100 },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 180 , valueFormatter: (p) => format(p.value)},
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },

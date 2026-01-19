@@ -2,29 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $FujiMounterFileRead = {
+export const $FujiMounterFileReadLegacy = {
     properties: {
         id: {
     type: 'number',
-    isRequired: true,
-},
-        file_name: {
-    type: 'string',
-    isRequired: true,
-},
-        created_at: {
-    type: 'string',
-    isRequired: true,
-    format: 'date-time',
-},
-        updated_at: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-    format: 'date-time',
-}, {
-    type: 'null',
-}],
     isRequired: true,
 },
         product_idno: {
@@ -46,7 +27,7 @@ export const $FujiMounterFileRead = {
         fuji_mounter_file_items: {
     type: 'array',
     contains: {
-        type: 'FujiMounterFileItemRead',
+        type: 'FujiMounterFileItemReadLegacy',
     },
     isRequired: true,
 },

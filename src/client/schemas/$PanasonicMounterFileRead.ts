@@ -16,6 +16,11 @@ export const $PanasonicMounterFileRead = {
     type: 'string',
     isRequired: true,
 },
+        created_at: {
+    type: 'string',
+    isRequired: true,
+    format: 'date-time',
+},
         updated_at: {
     type: 'string',
     isRequired: true,
@@ -51,7 +56,6 @@ export const $PanasonicMounterFileRead = {
 }, {
     type: 'null',
 }],
-    isRequired: true,
 },
     },
 } as const;

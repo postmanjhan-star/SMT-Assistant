@@ -88,6 +88,9 @@ type RowModel = {
     materialInventoryIdno: string | null,
     appendedMaterialInventoryIdno: string,
     remark?: string,
+    inspectTime?: string | null,
+    inspectMaterialPackCode?: string | null,
+    inspectCount?: number | null
 }
 
 const rowData = ref<RowModel[]>([]);
@@ -97,9 +100,18 @@ const gridOptions: GridOptions = {
     // Column Definitions
     columnDefs: [
         { field: "correct", tooltipField: 'correct', headerName: '', flex: 1, minWidth: 60, refData: { 'MATCHED_MATERIAL_PACK': '✅', 'UNMATCHED_MATERIAL_PACK': '❌', 'TESTING_MATERIAL_PACK': '⚠️' } },
+        {
+            headerName: '巡檢料號',
+            field: 'inspectMaterialPackCode', flex: 2, minWidth: 100
+        },
+        {
+            headerName: '巡檢時間',
+            field: 'inspectTime',
+            flex: 2, minWidth: 150, valueFormatter: (params) => params.value
+        },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
-        { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 2, minWidth: 100 },
-        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 140, valueFormatter: (params) => params.value ? new Date(new Date(params.value).getTime() + 8 * 60 * 60 * 1000).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '' },
+        { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 1, minWidth: 100 },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 180, valueFormatter: (params) => params.value ? new Date(new Date(params.value).getTime() + 8 * 60 * 60 * 1000).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '' },
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
@@ -184,14 +196,28 @@ onMounted(async () => {
     const newRowData: RowModel[] = []
     for (let materialSlotPair of mounterData.value) {
 
-        const importMaterialPack = materialSlotPair.feed_records?.find(record => record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
-        const feedMaterialPacks = materialSlotPair.feed_records?.filter(record => record.feed_material_pack_type !== FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
-        console.log(importMaterialPack)
+        const inspectionRecords = materialSlotPair.feed_records?.filter(
+            r => r.feed_material_pack_type === FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
+        )
 
+        const inspectionCount = inspectionRecords?.length ?? 0
+
+        const latestInspection = inspectionRecords
+            ?.sort((a, b) =>
+                new Date(b.operation_time).getTime() - new Date(a.operation_time).getTime()
+            )[0]
+        const importMaterialPack = materialSlotPair.feed_records?.find(record => record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
+        const feedMaterialPacks = materialSlotPair.feed_records?.filter(
+            record =>
+                record.feed_material_pack_type === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK ||
+                record.feed_material_pack_type === FeedMaterialTypeEnum.NEW_MATERIAL_PACK
+        )
         const appendedCodes = feedMaterialPacks.map(pack => pack.material_pack_code).filter(code => !!code).join(', ')
 
         newRowData.push({
             correct: importMaterialPack?.check_pack_code_match,
+            inspectMaterialPackCode: latestInspection?.material_pack_code ?? '',
+            inspectTime: latestInspection?.operation_time ?? null,
             id: materialSlotPair.id,
             slotIdno: materialSlotPair.slot_idno,
             subSlotIdno: materialSlotPair.sub_slot_idno,
@@ -199,6 +225,8 @@ onMounted(async () => {
             materialIdno: materialSlotPair.material_idno,
             appendedMaterialInventoryIdno: appendedCodes,
             materialInventoryIdno: importMaterialPack?.material_pack_code,
+            inspectCount: inspectionCount,
+            remark: inspectionCount > 0 ? `巡檢 ${inspectionCount} 次` : ''
         })
     }
 
@@ -290,7 +318,39 @@ async function handleSlotSubmit({
         materialResetKey.value++
 
         await showSuccess(`巡檢通過：${slotIdno}`)
+
+        const row = rowData.value.find(
+            r => r.slotIdno === slot && (r.subSlotIdno ?? '') === subSlot
+        )
+
+        if (!row) {
+            return showError(`找不到槽位 ${slotIdno}`)
+        }
+
+        row.inspectMaterialPackCode = result.materialInventory.idno
+        row.inspectTime = new Date().toISOString()
+
+        row.inspectCount = (row.inspectCount ?? 0) + 1
+        row.remark = `巡檢 ${row.inspectCount} 次`
+
+        gridOptions.api.applyTransaction({
+            update: [row]
+        })
         return
+    }
+
+    if (productionStarted.value) {
+        const loadedStat = mounterData.value.find(s =>
+            s.feed_records?.some(r =>
+                r.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK &&
+                r.material_pack_code === result.materialInventory.idno
+            )
+        )
+
+        if (loadedStat) {
+            const loadedSlotIdno = `${loadedStat.slot_idno}-${loadedStat.sub_slot_idno ?? ''}`
+            return showError(`巡檢失敗：此料號位於 ${loadedSlotIdno}，非 ${slotIdno}`)
+        }
     }
 
     // ===============================
@@ -541,6 +601,8 @@ function convertProduceMode(s: boolean | null): ProduceTypeEnum | null {
 function convertBoardSide(s: String | null): BoardSideEnum | null {
     return s as unknown as BoardSideEnum
 }
+
+
 
 async function appendedMaterialUpload(params: {
     stat_id: number,

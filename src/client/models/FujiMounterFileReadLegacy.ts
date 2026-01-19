@@ -3,16 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { FujiMounterFileItemRead } from './FujiMounterFileItemRead';
+import type { FujiMounterFileItemReadLegacy } from './FujiMounterFileItemReadLegacy';
 
-export type FujiMounterFileRead = {
+export type FujiMounterFileReadLegacy = {
     id: number;
-    file_name: string;
-    created_at: string;
-    updated_at: (string | null);
     product_idno: string;
     product_ver: string;
     mounter_idno: string;
     board_side: string;
-    fuji_mounter_file_items: Array<FujiMounterFileItemRead>;
+    fuji_mounter_file_items: Array<FujiMounterFileItemReadLegacy>;
 };

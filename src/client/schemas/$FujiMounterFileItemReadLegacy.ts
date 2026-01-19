@@ -2,52 +2,54 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $FujiMounterFileRead = {
+export const $FujiMounterFileItemReadLegacy = {
     properties: {
         id: {
     type: 'number',
     isRequired: true,
 },
-        file_name: {
+        fuji_mounter_file_id: {
+    type: 'number',
+    isRequired: true,
+},
+        stage: {
     type: 'string',
     isRequired: true,
 },
-        created_at: {
-    type: 'string',
-    isRequired: true,
-    format: 'date-time',
-},
-        updated_at: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-    format: 'date-time',
-}, {
-    type: 'null',
-}],
+        slot: {
+    type: 'number',
     isRequired: true,
 },
-        product_idno: {
+        original: {
     type: 'string',
     isRequired: true,
 },
-        product_ver: {
+        alt_slot: {
+    type: 'number',
+    isRequired: true,
+},
+        part_number: {
     type: 'string',
     isRequired: true,
 },
-        mounter_idno: {
+        feeder_name: {
     type: 'string',
     isRequired: true,
 },
-        board_side: {
+        feed_count: {
+    type: 'number',
+    isRequired: true,
+},
+        skip: {
+    type: 'boolean',
+    isRequired: true,
+},
+        status: {
     type: 'string',
     isRequired: true,
 },
-        fuji_mounter_file_items: {
-    type: 'array',
-    contains: {
-        type: 'FujiMounterFileItemRead',
-    },
+        tray_direction: {
+    type: 'number',
     isRequired: true,
 },
     },

@@ -24,8 +24,9 @@ function onFileListChange ( options: { fileList: UploadFileInfo[] } ) { disableU
 
 
 function onBeforeUpload ( data: { file: Required<FileInfo>, fileList: Required<FileInfo>[] } ) {
-  if ( data.file.file?.type !== 'text/csv' ) {
-    message.error( '只能上傳 CSV 格式的文件' )
+  const fileName = data.file.name.toLowerCase()
+  if ( !fileName.endsWith( '.csv' ) && !fileName.endsWith( '.fst' ) ) {
+    message.error( '只能上傳 CSV 或 FST 格式的文件' )
     return false
   }
   return true
@@ -92,12 +93,12 @@ function onClickUploadButton ( event: Event ) {
           <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
 
             <n-form-item :show-label=" false ">
-              <n-upload accept=".csv" :multiple=" false " :default-upload=" false " :max=" 1 "
+              <n-upload accept=".csv,.fst" :multiple=" false " :default-upload=" false " :max=" 1 "
                 :custom-request=" customRequest " @before-upload=" onBeforeUpload( $event ) "
                 @change=" onFileListChange( $event ) " ref="uploadRef" :show-cancel-button=" false ">
                 <n-upload-dragger>
                   <n-p style="font-size: xxx-large">📄</n-p>
-                  <n-text>點擊或者拖動 Panasonic 打件機 CSV 文件</n-text>
+                  <n-text>點擊或者拖動 Panasonic/Fuji 打件機 CSV/FST 文件</n-text>
                 </n-upload-dragger>
               </n-upload>
             </n-form-item>

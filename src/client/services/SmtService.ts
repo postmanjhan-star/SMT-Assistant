@@ -8,6 +8,7 @@ import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_pa
 import type { CheckMaterialMatchEnum } from '../models/CheckMaterialMatchEnum';
 import type { FeedMaterialTypeEnum } from '../models/FeedMaterialTypeEnum';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
+import type { FujiMounterFileReadLegacy } from '../models/FujiMounterFileReadLegacy';
 import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
 import type { PanasonicItemStatFeedLogRead } from '../models/PanasonicItemStatFeedLogRead';
 import type { PanasonicMounterFileCreate } from '../models/PanasonicMounterFileCreate';
@@ -131,27 +132,6 @@ requestBody: PanasonicFeedRecordCreate,
         return __request(OpenAPI, {
             method: 'POST',
             url: '/smt/panasonic_mounter_item/stat/roll',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Add Panasonic Mounter Item Stat Inspect
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static addPanasonicMounterItemStatInspect({
-requestBody,
-}: {
-requestBody: PanasonicFeedRecordCreate,
-}): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/smt/panasonic_mounter_item/stat/inspect',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -311,7 +291,35 @@ productIdno?: (string | null),
     }
 
     /**
-     * Delete Panasonic Mounter File
+     * Get Fuji Mounter File List
+     * @returns FujiMounterFileRead Successful Response
+     * @throws ApiError
+     */
+    public static getFujiMounterFileList({
+mounterIdno,
+boardSide,
+productIdno,
+}: {
+mounterIdno?: (string | null),
+boardSide?: (string | null),
+productIdno?: (string | null),
+}): CancelablePromise<Array<FujiMounterFileRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/fuji_mounter/files',
+            query: {
+                'mounter_idno': mounterIdno,
+                'board_side': boardSide,
+                'product_idno': productIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Backup Panasonic Mounter File
      * @returns any Successful Response
      * @throws ApiError
      */
@@ -431,43 +439,21 @@ id: number,
     }
 
     /**
-     * Get Material Inventory
-     * @returns SmtMaterialInventory Successful Response
+     * Delete Fuji Mounter File
+     * @returns boolean Successful Response
      * @throws ApiError
      */
-    public static getMaterialInventoryForSmt({
-materialInventoryIdno,
+    public static deleteFujiMounterFile({
+id,
 }: {
-materialInventoryIdno: string,
-}): CancelablePromise<SmtMaterialInventory> {
+id: number,
+}): CancelablePromise<boolean> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/material_inventory/{material_inventory_idno}',
+            method: 'DELETE',
+            url: '/smt/fuji_mounter/files/{id}',
             path: {
-                'material_inventory_idno': materialInventoryIdno,
+                'id': id,
             },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Upload Fst
-     * 40X980123-T1-XP1B1-T.fst
-     * @returns FujiMounterFileRead Successful Response
-     * @throws ApiError
-     */
-    public static uploadFst({
-formData,
-}: {
-formData: Body_upload_fst,
-}): CancelablePromise<FujiMounterFileRead> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/smt/fuji_mounter/upload_fst',
-            formData: formData,
-            mediaType: 'multipart/form-data',
             errors: {
                 422: `Validation Error`,
             },
@@ -507,6 +493,50 @@ testingProductIdno?: (string | null),
                 'testing_mode': testingMode,
                 'testing_product_idno': testingProductIdno,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Material Inventory
+     * @returns SmtMaterialInventory Successful Response
+     * @throws ApiError
+     */
+    public static getMaterialInventoryForSmt({
+materialInventoryIdno,
+}: {
+materialInventoryIdno: string,
+}): CancelablePromise<SmtMaterialInventory> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/material_inventory/{material_inventory_idno}',
+            path: {
+                'material_inventory_idno': materialInventoryIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Upload Fst
+     * 40X980123-T1-XP1B1-T.fst
+     * @returns FujiMounterFileReadLegacy Successful Response
+     * @throws ApiError
+     */
+    public static uploadFst({
+formData,
+}: {
+formData: Body_upload_fst,
+}): CancelablePromise<FujiMounterFileReadLegacy> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/fuji_mounter/upload_fst',
+            formData: formData,
+            mediaType: 'multipart/form-data',
             errors: {
                 422: `Validation Error`,
             },

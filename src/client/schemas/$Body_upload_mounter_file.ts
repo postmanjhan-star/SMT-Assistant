@@ -10,8 +10,12 @@ export const $Body_upload_mounter_file = {
     format: 'binary',
 },
         product_ver: {
+    type: 'any-of',
+    contains: [{
     type: 'string',
-    isRequired: true,
+}, {
+    type: 'null',
+}],
 },
     },
 } as const;
