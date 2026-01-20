@@ -220,7 +220,8 @@ async function onClickSubmitButton(event: Event) {
 
           <n-gi></n-gi>
           <n-form-item-gi label="線別" show-require-mark path="mounterIdno">
-            <n-select size="large" v-model:value="formValue.mounterIdno" :options="mounterOptions" placeholder="請選擇線別" />
+            <n-select size="large" v-model:value="formValue.mounterIdno" :options="mounterOptions"
+              placeholder="請選擇線別" />
           </n-form-item-gi>
           <n-gi></n-gi>
 
@@ -248,7 +249,6 @@ async function onClickSubmitButton(event: Event) {
               確定</n-button>
           </n-form-item-gi>
           <n-gi></n-gi>
-
         </n-grid>
       </n-form>
     </n-space>
