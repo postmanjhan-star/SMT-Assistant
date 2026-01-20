@@ -331,6 +331,18 @@ productIdno?: (string | null),
     }
 
     /**
+     * Backup Fuji Mounter File
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static backupFujiMounterFile(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/fuji_mounter/files/backup',
+        });
+    }
+
+    /**
      * Find Panasonic Mounter Idnos By Product Idno
      * @returns string Successful Response
      * @throws ApiError
@@ -343,6 +355,28 @@ productIdno: string,
         return __request(OpenAPI, {
             method: 'GET',
             url: '/smt/panasonic_mounter/files/mounter_idnos/{product_idno}',
+            path: {
+                'product_idno': productIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Find Fuji Mounter Idnos By Product Idno
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static findFujiMounterIdnosByProductIdno({
+productIdno,
+}: {
+productIdno: string,
+}): CancelablePromise<Array<string>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/fuji_mounter/files/mounter_idnos/{product_idno}',
             path: {
                 'product_idno': productIdno,
             },

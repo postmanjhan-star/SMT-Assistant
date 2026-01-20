@@ -1,13 +1,41 @@
 <script setup lang="ts">
-import { FormInst, FormItemRule, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, useMessage } from 'naive-ui'
-import { ref } from 'vue'
+import { FormInst, FormItemRule, FormRules, InputInst, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, useMessage, NSwitch, NSelect } from 'naive-ui'
+import { ref, watch, nextTick } from 'vue'
 import { useMeta } from 'vue-meta'
-import { RouterLink, useRouter } from 'vue-router'
-import { ApiError, SmtService } from '../client'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
+import { ApiError, SmtService, StErpService } from '../client'
 
+const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 useMeta( { title: 'Fuji Mounter Assistant' } )
+
+const isTestingMode = ref(route.query.testing_mode === '1')
+
+const testingDefaults = {
+  workOrderIdno: 'ZZ9999',
+  productIdno: '40X85-009B-T1',
+  mounterIdno: 'XP2B1',
+  workSheetSide: 'BOTTOM'
+}
+
+async function onToggleTestingMode(val: Boolean) {
+  const newQuery = { ...route.query }
+
+  if (val) {
+    newQuery.testing_mode = '1'
+    newQuery.testing_product_idno = formValue.value.productIdno?.trim() || testingDefaults.productIdno
+  } else {
+    delete newQuery.testing_mode
+    delete newQuery.testing_product_idno
+  }
+
+  await router.replace({
+    query: newQuery,
+  })
+
+  message.info(val ? '🧪 試產生產模式已開啟' : '✅ 正式生產模式已開啟')
+}
 
 const formRef = ref<FormInst | null>( null )
 const formValue = ref<
@@ -19,6 +47,72 @@ const formValue = ref<
 const workOrderIdnoInput = ref<InputInst>()
 
 const workSheetSideOptions = [ { label: 'TOP面', value: 'TOP' }, { label: 'BOT面', value: 'BOTTOM' }, { label: 'B+T面', value: 'DUPLEX' } ]
+
+const mounterOptions = ref<{ label: string, value: string }[]>([])
+
+watch(
+  () => route.query.testing_mode,
+  async (newVal) => {
+    if (newVal === '1') {
+      Object.assign(formValue.value, testingDefaults)
+
+      await nextTick()
+      const input = document.querySelector('#productIdnoInput') as HTMLInputElement
+      if (input) {
+        setTimeout(() => {
+          input.focus()
+          input.select()
+        }, 100)
+      }
+    } else {
+      Object.keys(formValue.value).forEach(key => formValue.value[key] = '')
+    }
+  },
+  { 'immediate': true }
+)
+
+watch(
+  () => formValue.value.productIdno,
+  async (newVal) => {
+    if (route.query.testing_mode === '1') {
+      const newQuery = { ...route.query }
+      if (newVal && newVal.trim()) {
+        newQuery.testing_product_idno = newVal.trim()
+      } else {
+        delete newQuery.testing_product_idno
+      }
+      await router.replace({ query: newQuery })
+    }
+
+    if (newVal && newVal.trim()) {
+      try {
+        const mounterIdnos = await SmtService.findFujiMounterIdnosByProductIdno({ productIdno: newVal.trim() })
+        mounterOptions.value = mounterIdnos.map((id: string) => ({ label: id, value: id }))
+        if (mounterOptions.value.length > 0) {
+          if (!mounterOptions.value.some(opt => opt.value === formValue.value.mounterIdno)) {
+            formValue.value.mounterIdno = mounterOptions.value[0].value
+          }
+        }
+      } catch (e) { console.error(e) }
+    }
+  }
+)
+
+watch(
+  () => formValue.value.workOrderIdno,
+  async (newVal) => {
+    if (isTestingMode.value || !newVal) return
+    try {
+      const stWorkOrder = await StErpService.getStWorkOrder({ workOrderIdno: newVal.trim() })
+      if (stWorkOrder && stWorkOrder.product_idno) {
+        formValue.value.productIdno = stWorkOrder.product_idno
+        message.success(`已自動帶入成品料號：${stWorkOrder.product_idno}`)
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+)
 
 const rules: FormRules = {
   workOrderIdno: { required: true, message: '請輸入工單號', trigger: [ 'blur' ], },
@@ -43,12 +137,16 @@ async function onClickSubmitButton ( event: Event ) {
       boardSide: formValue.value.workSheetSide,
       productIdno: formValue.value.productIdno.trim(),
       mounterIdno: formValue.value.mounterIdno.trim(),
+      testingMode: route.query.testing_mode === '1' ? true : false,
+      testingProductIdno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
     } )
     router.push( {
       path: `/smt/fuji-mounter/${ formValue.value.mounterIdno.trim() }/${ formValue.value.workOrderIdno.trim() }`,
       query: {
         product_idno: formValue.value.productIdno.trim(),
         work_sheet_side: formValue.value.workSheetSide.trim(),
+        testing_mode: route.query.testing_mode === '1' ? '1' : null,
+        testing_product_idno: route.query.testing_product_idno ? route.query.testing_product_idno.toString() : null,
       },
     } )
   }
@@ -75,6 +173,17 @@ async function onClickSubmitButton ( event: Event ) {
         <n-grid cols="1 s:3" responsive="screen">
 
           <n-gi></n-gi>
+          <n-form-item-gi label="模式切換 (試產生產 / 正式生產)">
+            <div class="flex items-center space-x-3 p-2">
+              <n-switch v-model:value="isTestingMode" @update:value="onToggleTestingMode" />
+              <span class="text-sm font-medium" :style="{ color: isTestingMode ? '#facc15' : '#4ade80' }">
+                {{ isTestingMode ? '🧪 試產生產模式' : '✅ 正式生產模式' }}
+              </span>
+            </div>
+          </n-form-item-gi>
+          <n-gi></n-gi>
+
+          <n-gi></n-gi>
           <n-form-item-gi label="工單號" show-require-mark path="workOrderIdno">
             <n-input autofocus v-model:value.lazy=" formValue.workOrderIdno " ref="workOrderIdnoInput"
               :input-props=" { id: 'workOrderIdnoInput' } " />
@@ -89,7 +198,8 @@ async function onClickSubmitButton ( event: Event ) {
 
           <n-gi></n-gi>
           <n-form-item-gi label="線別" show-require-mark path="mounterIdno">
-            <n-input v-model:value.lazy=" formValue.mounterIdno " :input-props=" { id: 'mounterIdnoInput' } " />
+            <n-select size="large" v-model:value="formValue.mounterIdno" :options="mounterOptions"
+              placeholder="請選擇線別" />
           </n-form-item-gi>
           <n-gi></n-gi>
 
