@@ -113,8 +113,11 @@ async function onClickDeleteButton ( event: Event ) {
 
 
 async function onClickCsvUploadButton ( event: Event ) {
-    router.push( { path: '/smt/file-upload' } )
-
+    if ( currentTab.value === 'panasonic' ) {
+        router.push( { path: '/smt/panasonic-mounter/upload_csv' } )
+    } else {
+        router.push( { path: '/smt/fuji-mounter/upload_csv' } )
+    }
 }
 
 
@@ -146,7 +149,7 @@ function onClickShowDetailIcon ( e: UIEvent, cell: CellComponent ) {
                 確認刪除？
             </n-popconfirm>
 
-            <n-button size="large" type="primary" tertiary @click=" onClickCsvUploadButton( $event ) ">上傳 CSV/FST 檔案</n-button>
+            <n-button size="large" type="primary" tertiary @click=" onClickCsvUploadButton( $event ) ">上傳 CSV 檔案</n-button>
         </n-space>
         <div style="height: calc(100vh - 13rem);">
             <div ref="table" class="table-dark table-striped"></div>

@@ -7,6 +7,7 @@ import type { Body_upload_mounter_file } from '../models/Body_upload_mounter_fil
 import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_panasonic_mounter_csv';
 import type { CheckMaterialMatchEnum } from '../models/CheckMaterialMatchEnum';
 import type { FeedMaterialTypeEnum } from '../models/FeedMaterialTypeEnum';
+import type { FujiMounterFileItemRead } from '../models/FujiMounterFileItemRead';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
 import type { FujiMounterFileReadLegacy } from '../models/FujiMounterFileReadLegacy';
 import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
@@ -379,6 +380,28 @@ productIdno: string,
             url: '/smt/fuji_mounter/files/mounter_idnos/{product_idno}',
             path: {
                 'product_idno': productIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Fuji Mounter File Item List
+     * @returns FujiMounterFileItemRead Successful Response
+     * @throws ApiError
+     */
+    public static getFujiMounterFileItemList({
+id,
+}: {
+id: number,
+}): CancelablePromise<Array<FujiMounterFileItemRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/fuji_mounter/files/{id}/items',
+            path: {
+                'id': id,
             },
             errors: {
                 422: `Validation Error`,
