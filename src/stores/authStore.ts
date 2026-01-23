@@ -21,7 +21,8 @@ interface HttpBasic {
 
 interface OAuth2Token {
   access_token: string
-  token_type: 'bearer'
+  token_type: 'bearer' | string
+  refresh_token?: string
 }
 
 interface OAuth2PasswordBearer {
@@ -77,5 +78,22 @@ export const useAuthStore = defineStore('authorized', () => {
     OAuth2PasswordBearer.value = null
   }
 
-  return { HTTPBasic, OAuth2PasswordBearer, authState, accessToken, isLoggedIn, setAuthState, clearAuth }
+  function setToken(token: OAuth2Token) {
+    if (!OAuth2PasswordBearer.value) {
+      OAuth2PasswordBearer.value = {
+        schema: {
+          flow: 'password',
+          tokenUrl: '',
+          scopes: {},
+          type: 'oauth2'
+        },
+        token: token as any,
+        username: ''
+      }
+    } else {
+      OAuth2PasswordBearer.value.token = token as any
+    }
+  }
+
+  return { HTTPBasic, OAuth2PasswordBearer, authState, accessToken, isLoggedIn, setAuthState, clearAuth, setToken }
 })

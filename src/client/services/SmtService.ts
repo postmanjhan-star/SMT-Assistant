@@ -10,6 +10,8 @@ import type { FeedMaterialTypeEnum } from '../models/FeedMaterialTypeEnum';
 import type { FujiMounterFileItemRead } from '../models/FujiMounterFileItemRead';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
 import type { FujiMounterFileReadLegacy } from '../models/FujiMounterFileReadLegacy';
+import type { FujiMounterItemStatCreate } from '../models/FujiMounterItemStatCreate';
+import type { FujiMounterItemStatRead } from '../models/FujiMounterItemStatRead';
 import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
 import type { PanasonicItemStatFeedLogRead } from '../models/PanasonicItemStatFeedLogRead';
 import type { PanasonicMounterFileCreate } from '../models/PanasonicMounterFileCreate';
@@ -121,6 +123,27 @@ requestBody: Array<PanasonicMounterItemStatCreate>,
     }
 
     /**
+     * Add Fuji Mounter Item Stats
+     * @returns FujiMounterItemStatRead Successful Response
+     * @throws ApiError
+     */
+    public static addFujiMounterItemStats({
+requestBody,
+}: {
+requestBody: Array<FujiMounterItemStatCreate>,
+}): CancelablePromise<Array<FujiMounterItemStatRead>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/fuji_mounter_item/stats',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Add Panasonic Mounter Item Stat Roll
      * @returns any Successful Response
      * @throws ApiError
@@ -189,7 +212,7 @@ id: number,
      * @returns PanasonicMounterItemStatRead Successful Response
      * @throws ApiError
      */
-    public static getTheStatsOfProduction({
+    public static getThePanasonicItemStatsOfProduction({
 uuid,
 }: {
 uuid: string,
@@ -221,6 +244,55 @@ endTime?: (string | null),
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/smt/panasonic_mounter_item/stats/{uuid}',
+            path: {
+                'uuid': uuid,
+            },
+            query: {
+                'end_time': endTime,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Fuji Item Stats
+     * @returns FujiMounterItemStatRead Successful Response
+     * @throws ApiError
+     */
+    public static getTheFujiItemStatsOfProduction({
+uuid,
+}: {
+uuid: string,
+}): CancelablePromise<Array<FujiMounterItemStatRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/fuji_mounter_item/stats/{uuid}',
+            path: {
+                'uuid': uuid,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Update Fuji Item Stats End Time
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static updateFujiItemStatsEndTime({
+uuid,
+endTime,
+}: {
+uuid: string,
+endTime?: (string | null),
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/smt/fuji_mounter_item/stats/{uuid}',
             path: {
                 'uuid': uuid,
             },

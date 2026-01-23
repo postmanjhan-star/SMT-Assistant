@@ -224,9 +224,9 @@ async function onClickSubmitButton ( event: Event ) {
     </n-space>
   </div>
 
-  <div style="text-align: center; margin-top: 1rem;">
+  <!-- <div style="text-align: center; margin-top: 1rem;">
     <router-link to="/smt/fuji-mounter/upload_fst" #="{ navigate, href }" custom>
       <n-a :href="href" @click="navigate">上傳 FST 檔案作業</n-a>
     </router-link>
-  </div>
+  </div> -->
 </template>

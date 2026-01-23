@@ -45,6 +45,7 @@ onMounted( async () => {
             { title: "PCB 板打件面", field: "board_side", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
             { title: "建立日期", field: "created_at", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
             { title: "更新日期", field: "updated_at", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
+            { title: "上傳者", field: "uploader", hozAlign: "center", headerHozAlign: 'center', headerSort: true },
             { title: "線別", field: "mounter_idno", hozAlign: "center", headerHozAlign: 'center' },
         ],
         selectable: 1,

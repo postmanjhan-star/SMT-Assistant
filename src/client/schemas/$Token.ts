@@ -12,5 +12,13 @@ export const $Token = {
     type: 'string',
     isRequired: true,
 },
+        refresh_token: {
+    type: 'any-of',
+    contains: [{
+    type: 'string',
+}, {
+    type: 'null',
+}],
+},
     },
 } as const;

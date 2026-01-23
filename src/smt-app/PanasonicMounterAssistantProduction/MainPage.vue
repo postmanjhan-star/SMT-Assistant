@@ -107,7 +107,7 @@ const gridOptions: GridOptions = {
         {
             headerName: '巡檢時間',
             field: 'inspectTime',
-            flex: 2, minWidth: 150, valueFormatter: (params) => params.value
+            flex: 2, minWidth: 150, valueFormatter: (params) => params.value ? new Date(new Date(params.value).getTime() + 8 * 60 * 60 * 1000).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : ''
         },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 1, minWidth: 100 },
@@ -176,7 +176,7 @@ onMounted(async () => {
 
     try {
         productionUuid.value = route.params.productionUuid.toString().trim()
-        mounterData.value = await SmtService.getTheStatsOfProduction({ uuid: productionUuid.value })
+        mounterData.value = await SmtService.getThePanasonicItemStatsOfProduction({ uuid: productionUuid.value })
         workOrderIdno.value = mounterData.value[0].work_order_no
         productIdno.value = mounterData.value[0].product_idno
         machineSide.value = mounterData.value[0].machine_side
