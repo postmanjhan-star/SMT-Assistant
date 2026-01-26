@@ -3,7 +3,7 @@ import { GetRowIdParams, GridOptions } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
 import { AgGridVue } from "ag-grid-vue3";
-import { NButton, NP, NPageHeader, NSpace, NTag, useDialog, useMessage } from 'naive-ui';
+import { InputInst, NButton, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useDialog, useMessage } from 'naive-ui';
 import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useMeta } from 'vue-meta';
@@ -18,6 +18,8 @@ import {
     SmtService,
     SmtMaterialInventory
 } from '@/client';
+
+import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -38,6 +40,12 @@ const productionStarted = ref(false);
 
 const mounterData = ref<FujiMounterItemStatRead[]>([]);
 
+const materialFormValue = ref({ materialInventoryIdno: '' });
+const slotFormValue = ref({ slotIdno: '' });
+const materialInputRef = ref<InputInst | null>(null);
+const slotInputRef = ref<InputInst | null>(null);
+let materialInventoryFromScan: SmtMaterialInventory | null = null;
+
 type RowModel = {
     correct: CheckMaterialMatchEnum | null;
     id: number;
@@ -48,6 +56,7 @@ type RowModel = {
     materialIdno: string;
     materialInventoryIdno: string | null;
     remark?: string;
+    appendedMaterialInventoryIdno?: string;
     operationTime?: string | null;
 };
 
@@ -60,9 +69,11 @@ const gridOptions: GridOptions = {
         { field: "boardSide", headerName: 'PCB面', flex: 2, minWidth: 90 },
         { field: "stage", headerName: 'Stage', flex: 2, minWidth: 80 },
         { field: "slot", headerName: '槽位', flex: 2, minWidth: 80 },
+        { field: "operatorIdno", headerName: '上料人員', flex: 2, minWidth: 80 },
         { field: "operationTime", headerName: '上料時間', flex: 3, minWidth: 180, valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('zh-TW') : '' },
         { field: "materialIdno", headerName: '物料號', flex: 4, minWidth: 160 },
         { field: "materialInventoryIdno", headerName: '單包條碼', flex: 5, minWidth: 180 },
+        { field: "appendedMaterialInventoryIdno", headerName: '接料代碼', flex: 5, minWidth: 180 },
         { field: "remark", headerName: '備註', flex: 3, minWidth: 120 },
     ],
     defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
@@ -96,42 +107,229 @@ onMounted(async () => {
         }
     }
 
-type CorrectState = 'true' | 'false' | 'warning'
+    let logs: any[] = [];
+    try {
+        logs = await SmtService.getTheFujiStatsOfLogsByUuid({ uuid: productionUuid.value });
+    } catch (e) {
+        console.error("Failed to fetch logs", e);
+    }
 
-function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null {
-    return s as unknown as FeedMaterialTypeEnum
-}
+    const newRowData: RowModel[] = mounterData.value.map(stat => {
+        let feedRecords = (stat as any).feed_records as any[] || [];
+        if (logs.length > 0) {
+            const matchingLogs = logs.filter(l =>
+                String(l.slot_idno) === String(stat.slot_idno) &&
+                (l.sub_slot_idno ?? '') === (stat.sub_slot_idno ?? '')
+            );
 
-function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
-    return s as unknown as CheckMaterialMatchEnum
-}
+            if (feedRecords.length === 0) {
+                feedRecords = matchingLogs;
+            } else {
+                const recordMap = new Map();
+                feedRecords.forEach((r: any) => recordMap.set(r.id, r));
+                matchingLogs.forEach((l: any) => recordMap.set(l.id, l));
+                feedRecords = Array.from(recordMap.values());
+            }
+        }
 
-function convertProduceMode(s: boolean | null): ProduceTypeEnum | null {
-    return s as unknown as ProduceTypeEnum
-}
+        const appendedPacks = feedRecords
+            .filter((r: any) => r.feed_material_pack_type !== FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK && !!r.material_pack_code);
+        const appendedCodes = [...new Set(appendedPacks.map((r: any) => r.material_pack_code).filter(c => !!c))].join(', ');
 
-function convertBoardSide(s: String | null): BoardSideEnum | null {
-    return s as unknown as BoardSideEnum
-}
-
-    const newRowData: RowModel[] = mounterData.value.map(stat => ({
-        id: stat.id,
-        correct: (stat as any).check_pack_code_match,
-        mounterIdno: stat.machine_idno,
-        boardSide: stat.board_side,
-        stage: stat.sub_slot_idno, // Fuji 使用 sub_slot_idno 作為 Stage
-        slot: Number(stat.slot_idno), // Fuji 使用 slot_idno 作為槽位號
-        materialIdno: stat.material_idno,
-        materialInventoryIdno: (stat as any).material_pack_code,
-        operationTime: (stat as any).operation_time,
-        remark: stat.produce_mode === ProduceTypeEnum.TESTING_PRODUCE_MODE && (stat as any).check_pack_code_match === CheckMaterialMatchEnum.TESTING_MATERIAL_PACK ? '[廠商測試新料]' : '',
-    }));
+        return {
+            id: stat.id,
+            correct: (stat as any).check_pack_code_match,
+            mounterIdno: stat.machine_idno,
+            boardSide: stat.board_side,
+            stage: stat.sub_slot_idno, // Fuji 使用 sub_slot_idno 作為 Stage
+            slot: Number(stat.slot_idno), // Fuji 使用 slot_idno 作為槽位號
+            materialIdno: stat.material_idno,
+            materialInventoryIdno: (stat as any).material_pack_code,
+            operationTime: (stat as any).operation_time,
+            appendedMaterialInventoryIdno: appendedCodes,
+            remark: stat.produce_mode === ProduceTypeEnum.TESTING_PRODUCE_MODE && (stat as any).check_pack_code_match === CheckMaterialMatchEnum.TESTING_MATERIAL_PACK ? '[廠商測試新料]' : '',
+        }
+    });
 
     rowData.value = newRowData;
 });
 
 function onClickBackArrow(event: Event) {
     router.push(`/smt/fuji-mounter/`);
+}
+
+function parseSlotIdno(
+    slotIdno: string
+): [string | null, string | null, number | null] {
+    // Slot barcode format: mounterId-stage-slotNumber, e.g., XP2B1-A-25
+    const slotIdnoArray = slotIdno.split('-');
+    if (slotIdnoArray.length < 3) return [null, null, null];
+    const machineIdno = slotIdnoArray[0];
+    let stage = slotIdnoArray[1];
+
+    // Handle numeric stage mapping if necessary (1->A, 2->B, etc.)
+    if (stage === '1') stage = 'A';
+    else if (stage === '2') stage = 'B';
+    else if (stage === '3') stage = 'C';
+    else if (stage === '4') stage = 'D';
+
+    const slotNumber = Number(slotIdnoArray[2]);
+    return [machineIdno, stage, slotNumber];
+}
+
+function getMaterialMatchedRows(materialIdno: string): RowModel[] {
+    return rowData.value.filter(row => row.materialIdno === materialIdno);
+}
+
+function resetForms() {
+    materialFormValue.value.materialInventoryIdno = '';
+    slotFormValue.value.slotIdno = '';
+    materialInventoryFromScan = null;
+    materialInputRef.value?.focus();
+}
+
+async function onSubmitMaterialInventoryForm() {
+    const idno = materialFormValue.value.materialInventoryIdno.trim();
+    if (!idno) return message.warning('請輸入物料號');
+
+    try {
+        materialInventoryFromScan = await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: idno });
+    } catch (error) {
+        if (isTestingMode.value && error instanceof ApiError && error.status === 404) {
+            message.info(`${MODE_NAME_TESTING}：使用測試物料 ${idno}`);
+            materialInventoryFromScan = {
+                idno: idno,
+                material_idno: `TEST-${idno}`,
+                material_id: 0,
+                material_name: 'Testing Material'
+            } as unknown as SmtMaterialInventory;
+        } else {
+            const msg = { 404: '查無此條碼', 504: 'ERP 連線超時', 502: 'ERP 連線錯誤' }[(error as ApiError).status] ?? '條碼查詢失敗';
+            showError(msg);
+            resetForms();
+            return;
+        }
+    }
+
+    const matchedRows = getMaterialMatchedRows(materialInventoryFromScan.material_idno);
+    if (matchedRows.length === 0) {
+        if (!isTestingMode.value) {
+            showError('無匹配槽位');
+            resetForms();
+            return;
+        } else {
+            message.info('無匹配槽位，請掃描任意槽位以強制綁定');
+        }
+    } else {
+        message.success(`掃描成功：${materialInventoryFromScan.material_idno}`);
+    }
+
+    slotInputRef.value?.focus();
+}
+
+type CorrectState = 'true' | 'false' | 'warning'
+function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
+    return s as unknown as CheckMaterialMatchEnum
+}
+
+function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null {
+    return s as unknown as FeedMaterialTypeEnum
+}
+
+async function appendedMaterialUpload(params: {
+    stat_id: number,
+    inputSlot: string,
+    inputSubSlot: string | null,   // ✅ 修正
+    materialInventory: SmtMaterialInventory,
+    correctState: CheckMaterialMatchEnum
+}) {
+    const payload = {
+        stat_item_id: params.stat_id,
+        operator_id: '',
+        operation_time: new Date().toISOString(),
+        slot_idno: params.inputSlot,
+        sub_slot_idno: params.inputSubSlot ?? null,
+        material_pack_code: params.materialInventory.idno,
+        feed_material_pack_type: convertFeedMaterialType('new') as FeedMaterialTypeEnum,
+        check_pack_code_match: params.correctState
+    };
+    await SmtService.addFujiMounterItemStatRoll({ requestBody: payload as any });
+}
+async function onSubmitSlotForm() {
+    const inputSlotIdno = slotFormValue.value.slotIdno.trim();
+    if (!inputSlotIdno) return message.warning('請輸入槽位');
+    if (!materialInventoryFromScan) return showError('請先掃描物料條碼');
+
+    const [mounter, stage, slot] = parseSlotIdno(inputSlotIdno);
+    if (!mounter) return showError('槽位條碼格式錯誤');
+
+    const matchedRows = getMaterialMatchedRows(materialInventoryFromScan.material_idno);
+    const targetRow = matchedRows.find(r => r.mounterIdno === mounter && r.stage === stage && r.slot === slot);
+
+    if (targetRow) {
+        try {
+            await appendedMaterialUpload({
+                stat_id: targetRow.id,
+                inputSlot: String(slot),
+                inputSubSlot: stage,
+                materialInventory: materialInventoryFromScan,
+                correctState: convertMatch('true') as CheckMaterialMatchEnum
+            });
+            // Update Row Data
+            const rowNode = gridOptions.api?.getRowNode(`${mounter}-${stage}-${slot}`);
+            if (rowNode) {
+                rowNode.setDataValue('correct', CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK);
+                rowNode.setDataValue('operationTime', new Date().toISOString());
+
+                const currentAppended = rowNode.data.appendedMaterialInventoryIdno || '';
+                const currentCodes = currentAppended ? currentAppended.split(',').map(s => s.trim()) : [];
+                if (materialInventoryFromScan.idno && !currentCodes.includes(materialInventoryFromScan.idno)) {
+                    currentCodes.push(materialInventoryFromScan.idno);
+                }
+                const newAppended = currentCodes.join(', ');
+                rowNode.setDataValue('appendedMaterialInventoryIdno', newAppended);
+            }
+            showSuccess(`槽位 ${stage}-${slot} 驗證成功`);
+        } catch (error) {
+            showError('上傳接料資料失敗');
+            console.error(error);
+        }
+    } else {
+        if (isTestingMode.value) {
+            const rowNode = gridOptions.api?.getRowNode(`${mounter}-${stage}-${slot}`);
+            if (rowNode) {
+                try {
+                    await appendedMaterialUpload({
+                        stat_id: rowNode.data.id,
+                        inputSlot: String(slot),
+                        inputSubSlot: stage,
+                        materialInventory: materialInventoryFromScan,
+                        correctState: convertMatch('warning') as CheckMaterialMatchEnum
+                    });
+                    rowNode.setDataValue('correct', CheckMaterialMatchEnum.TESTING_MATERIAL_PACK);
+                    rowNode.setDataValue('remark', '[廠商測試新料]');
+                    rowNode.setDataValue('operationTime', new Date().toISOString());
+
+                    const currentAppended = rowNode.data.appendedMaterialInventoryIdno || '';
+                    const currentCodes = currentAppended ? currentAppended.split(',').map(s => s.trim()) : [];
+                    if (materialInventoryFromScan.idno && !currentCodes.includes(materialInventoryFromScan.idno)) {
+                        currentCodes.push(materialInventoryFromScan.idno);
+                    }
+                    const newAppended = currentCodes.join(', ');
+                    rowNode.setDataValue('appendedMaterialInventoryIdno', newAppended);
+                    showSuccess(`${MODE_NAME_TESTING}：槽位 ${stage}-${slot} 已標記為測試料`);
+                } catch (error) {
+                    showError('上傳接料資料失敗');
+                    console.error(error);
+                }
+            } else {
+                showError(`找不到輸入的槽位 ${inputSlotIdno}`);
+            }
+        } else {
+            showError(`錯誤的槽位，此物料應放置於 ${matchedRows.map(r => `${r.stage}-${r.slot}`).join(', ')}`);
+        }
+    }
+    resetForms();
 }
 
 async function playSuccessTone() {
@@ -176,11 +374,20 @@ async function onStopProduction() {
         },
     });
 }
+
+const showMaterialQueryModal = ref(false);
+
+function onMaterialQuery() {
+    showMaterialQueryModal.value = true;
+}
 </script>
 
 <template>
+    <MaterialQueryModal v-model:show="showMaterialQueryModal" :uuid="productionUuid" @error="showError" />
+
     <n-space vertical :wrap-item="false" style="height: calc(100vh - 60px);">
-        <n-space vertical size="small" style="padding: 0px 1rem 0 1rem; position: sticky; top: 60px; background-color: var(--body-color); z-index: 1;">
+        <n-space vertical size="small"
+            style="padding: 0px 1rem 0 1rem; position: sticky; top: 60px; background-color: var(--body-color); z-index: 1;">
             <n-page-header @back="onClickBackArrow($event)" style="margin-bottom: 1rem;">
                 <template #title>
                     <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
@@ -201,17 +408,40 @@ async function onStopProduction() {
                             <n-button v-if="productionStarted" type="error" size="small" @click="onStopProduction">
                                 🛑 結束生產
                             </n-button>
-                             <n-tag v-else type="success" size="small">
+                            <n-tag v-else type="success" size="small">
                                 生產已結束
                             </n-tag>
+                            <n-button type="info" size="small" @click="onMaterialQuery">
+                                🔍 接料查詢
+                            </n-button>
                         </n-space>
                     </div>
                 </template>
             </n-page-header>
         </n-space>
 
+        <n-grid cols="1 s:2" responsive="screen" x-gap="20" style="padding: 0 1rem;">
+            <n-gi>
+                <n-form size="large" :model="materialFormValue" @submit.prevent="onSubmitMaterialInventoryForm">
+                    <n-form-item label="物料單包條碼">
+                        <n-input type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno"
+                            autofocus ref="materialInputRef" :disabled="!productionStarted" placeholder="請掃描物料" />
+                    </n-form-item>
+                </n-form>
+            </n-gi>
+            <n-gi>
+                <n-form size="large" :model="slotFormValue" @submit.prevent="onSubmitSlotForm">
+                    <n-form-item label="位置">
+                        <n-input type="text" size="large" v-model:value.lazy="slotFormValue.slotIdno" ref="slotInputRef"
+                            :disabled="!productionStarted" placeholder="請掃描槽位" />
+                    </n-form-item>
+                </n-form>
+            </n-gi>
+        </n-grid>
+
         <div style="height: calc(100vh - 180px); padding: 1rem;">
-            <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;" :gridOptions="gridOptions">
+            <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;"
+                :gridOptions="gridOptions">
             </ag-grid-vue>
         </div>
     </n-space>

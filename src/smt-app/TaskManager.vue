@@ -103,7 +103,12 @@ const taskGridOptions: GridOptions = {
 
     onRowClicked: (event) => {
         const uuid = event.data.uuid
-        router.push(`/smt/panasonic-mounter-production/${uuid}`)
+        const mounterType = event.data.mounterType || ''
+        if (mounterType.toLowerCase().includes('fuji')) {
+            router.push(`/smt/fuji-mounter-production/${uuid}`)
+        } else {
+            router.push(`/smt/panasonic-mounter-production/${uuid}`)
+        }
     }
 }
 

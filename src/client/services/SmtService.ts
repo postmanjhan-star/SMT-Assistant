@@ -7,6 +7,8 @@ import type { Body_upload_mounter_file } from '../models/Body_upload_mounter_fil
 import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_panasonic_mounter_csv';
 import type { CheckMaterialMatchEnum } from '../models/CheckMaterialMatchEnum';
 import type { FeedMaterialTypeEnum } from '../models/FeedMaterialTypeEnum';
+import type { FujiFeedRecordCreate } from '../models/FujiFeedRecordCreate';
+import type { FujiItemStatFeedLogRead } from '../models/FujiItemStatFeedLogRead';
 import type { FujiMounterFileItemRead } from '../models/FujiMounterFileItemRead';
 import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
 import type { FujiMounterFileReadLegacy } from '../models/FujiMounterFileReadLegacy';
@@ -156,6 +158,27 @@ requestBody: PanasonicFeedRecordCreate,
         return __request(OpenAPI, {
             method: 'POST',
             url: '/smt/panasonic_mounter_item/stat/roll',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Add Fuji Mounter Item Stat Roll
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static addFujiMounterItemStatRoll({
+requestBody,
+}: {
+requestBody: FujiFeedRecordCreate,
+}): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/fuji_mounter_item/stat/roll',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -322,6 +345,36 @@ checkPackCode?: (CheckMaterialMatchEnum | null),
         return __request(OpenAPI, {
             method: 'GET',
             url: '/smt/panasonic_mounter_item/stats/logs/{uuid}',
+            path: {
+                'uuid': uuid,
+            },
+            query: {
+                'feed_pack_type': feedPackType,
+                'check_pack_code': checkPackCode,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Fuji Item Stats Log By Uuid
+     * @returns FujiItemStatFeedLogRead Successful Response
+     * @throws ApiError
+     */
+    public static getTheFujiStatsOfLogsByUuid({
+uuid,
+feedPackType,
+checkPackCode,
+}: {
+uuid: string,
+feedPackType?: (FeedMaterialTypeEnum | null),
+checkPackCode?: (CheckMaterialMatchEnum | null),
+}): CancelablePromise<Array<FujiItemStatFeedLogRead>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/fuji_mounter_item/stats/logs/{uuid}',
             path: {
                 'uuid': uuid,
             },

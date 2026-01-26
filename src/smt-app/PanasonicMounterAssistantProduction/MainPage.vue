@@ -193,26 +193,45 @@ onMounted(async () => {
         else if (error instanceof ApiError && error.status === 503) { router.push('/http-status/404') }
     }
 
+    let logs: any[] = [];
+    try {
+        logs = await SmtService.getTheStatsOfLogsByUuid({ uuid: productionUuid.value });
+    } catch (e) {
+        console.error("Failed to fetch logs", e);
+    }
+
     const newRowData: RowModel[] = []
     for (let materialSlotPair of mounterData.value) {
 
-        const inspectionRecords = materialSlotPair.feed_records?.filter(
-            r => r.feed_material_pack_type === FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
+        let feedRecords = (materialSlotPair.feed_records as any[]) || [];
+        if (logs.length > 0) {
+            const matchingLogs = logs.filter(l =>
+                String(l.slot_idno) === String(materialSlotPair.slot_idno) &&
+                (l.sub_slot_idno ?? '') === (materialSlotPair.sub_slot_idno ?? '')
+            );
+            const recordMap = new Map();
+            feedRecords.forEach((r: any) => recordMap.set(r.id, r));
+            matchingLogs.forEach((l: any) => recordMap.set(l.id, l));
+            feedRecords = Array.from(recordMap.values());
+        }
+
+        const inspectionRecords = feedRecords.filter(
+            (r: any) => r.feed_material_pack_type === FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
         )
 
         const inspectionCount = inspectionRecords?.length ?? 0
 
         const latestInspection = inspectionRecords
-            ?.sort((a, b) =>
+            ?.sort((a: any, b: any) =>
                 new Date(b.operation_time).getTime() - new Date(a.operation_time).getTime()
             )[0]
-        const importMaterialPack = materialSlotPair.feed_records?.find(record => record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
-        const feedMaterialPacks = materialSlotPair.feed_records?.filter(
-            record =>
+        const importMaterialPack = feedRecords.find((record: any) => record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
+        const feedMaterialPacks = feedRecords.filter(
+            (record: any) =>
                 record.feed_material_pack_type === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK ||
                 record.feed_material_pack_type === FeedMaterialTypeEnum.NEW_MATERIAL_PACK
         )
-        const appendedCodes = feedMaterialPacks.map(pack => pack.material_pack_code).filter(code => !!code).join(', ')
+        const appendedCodes = [...new Set(feedMaterialPacks.map((pack: any) => pack.material_pack_code).filter((code: any) => !!code))].join(', ')
 
         newRowData.push({
             correct: importMaterialPack?.check_pack_code_match,
@@ -221,7 +240,7 @@ onMounted(async () => {
             id: materialSlotPair.id,
             slotIdno: materialSlotPair.slot_idno,
             subSlotIdno: materialSlotPair.sub_slot_idno,
-            firstAppendTime: importMaterialPack?.operation_time ?? materialSlotPair.feed_records?.[0]?.operation_time,
+            firstAppendTime: importMaterialPack?.operation_time ?? feedRecords?.[0]?.operation_time,
             materialIdno: materialSlotPair.material_idno,
             appendedMaterialInventoryIdno: appendedCodes,
             materialInventoryIdno: importMaterialPack?.material_pack_code,
@@ -385,7 +404,12 @@ async function handleSlotSubmit({
 
     const oldAppendedIdno = row.appendedMaterialInventoryIdno?.trim() || ""
 
-    const newAppendedIdno = oldAppendedIdno ? `${oldAppendedIdno}, ${result?.materialInventory.idno}` : result?.materialInventory.idno
+    const currentCodes = oldAppendedIdno ? oldAppendedIdno.split(',').map(s => s.trim()) : []
+    const newCode = result?.materialInventory?.idno
+    if (newCode && !currentCodes.includes(newCode)) {
+        currentCodes.push(newCode)
+    }
+    const newAppendedIdno = currentCodes.join(', ')
 
     const materialRowNode = gridOptions.api.getRowNode(rowId)
     if (!materialRowNode) {
@@ -619,7 +643,7 @@ async function appendedMaterialUpload(params: {
         slot_idno: params.inputSlot,
         sub_slot_idno: params.inputSubSlot ?? null,
         material_pack_code: params.materialInventory.idno,
-        feed_material_pack_type: convertFeedMaterialType(FeedMaterialTypeEnum.REUSED_MATERIAL_PACK),
+        feed_material_pack_type: convertFeedMaterialType('new'),
         check_pack_code_match: convertMatch(params.correctState)
     }
 
@@ -846,7 +870,11 @@ async function onSubmitShortage() {
 
     const oldAppendedIdno = row.appendedMaterialInventoryIdno?.trim() || ""
 
-    const newAppendedIdno = oldAppendedIdno ? `${oldAppendedIdno}, ${idno}` : idno
+    const currentCodes = oldAppendedIdno ? oldAppendedIdno.split(',').map(s => s.trim()) : []
+    if (idno && !currentCodes.includes(idno)) {
+        currentCodes.push(idno)
+    }
+    const newAppendedIdno = currentCodes.join(', ')
 
     materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
 
