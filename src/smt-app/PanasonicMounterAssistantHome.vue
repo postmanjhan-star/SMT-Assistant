@@ -5,7 +5,6 @@ import { ref, watch, nextTick } from 'vue'
 import { useMeta } from 'vue-meta'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError, SmtService, StErpService, STWorkOrder } from '@/client'
-import { mount } from '@vue/test-utils'
 // import { FlaskConical, ShieldCheck } from 'lucide-vue-next'
 
 const route = useRoute()

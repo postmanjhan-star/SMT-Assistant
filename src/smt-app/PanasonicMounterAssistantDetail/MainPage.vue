@@ -6,7 +6,7 @@ import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
 import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormInst, FormRules, useDialog } from 'naive-ui';
 import * as Tone from 'tone';
-import { onMounted, ref, computed, nextTick, shallowRef } from 'vue';
+import { onMounted, ref, computed, nextTick, shallowRef, Slot } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -32,6 +32,10 @@ import StartProductionButton from "./components/StartProductionButton.vue";
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 
 import { useDateFormatter } from '@/composables/useDateFormatter'
+import { SlotSubmitStrategy } from "@/application/slot-submit/SlotSubmitStrategy"; 
+import { TestingModeStrategy } from "@/application/slot-submit/TestingModeStrategy";
+import { NormalModeStrategy } from "@/application/slot-submit/NormalModeStrategy";
+import { MaterialGrid, SlotSubmitDeps } from "@/application/slot-submit/SlotSubmitDeps";
 
 const { format } = useDateFormatter()
 
@@ -574,24 +578,53 @@ function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null 
     return s as unknown as FeedMaterialTypeEnum
 }
 
-
-async function handleSlotSubmit({
-    slot,
-    subSlot,
-    slotIdno
-}: {
-    slot: string
-    subSlot: string
-    slotIdno: string
-}) {
-    const result = materialInventoryResult.value
-
-    if (isTestingMode) {
-        return await handleTestingMode(result, slot, subSlot, slotIdno)
-    } else {
-        return await handleNormalMode(result, slot, subSlot, slotIdno)
+const slotSubmitStrategy = computed<SlotSubmitStrategy>(() => {
+    if (!gridApi.value) {
+        // Fallback or handle appropriately if grid is not ready
+        return isTestingMode ? new TestingModeStrategy({} as any) : new NormalModeStrategy({} as any)
     }
+    const deps: SlotSubmitDeps = {
+        grid: new MaterialGrid(gridApi.value),
+        ui: {
+            success: async (msg) =>  {showSuccess(msg) },
+            warn: async (msg) => { showWarn(msg) },
+            error: async (msg) => { showError(msg) },
+        },
+        isTestingMode: isTestingMode,
+        autoUpload: (rows) => {
+            if (startProductionBtnRef.value) startProductionBtnRef.value.submit(rows)
+        },
+        resetInputs: () => { resetSlotMaterialFormInputs(); materialInventoryResult.value = null; }
+    }
+    return isTestingMode ? new TestingModeStrategy(deps) : new NormalModeStrategy(deps)
+})
+
+async function handleSlotSubmit(payload) {
+    return await slotSubmitStrategy.value.submit({
+        ...payload,
+        result: materialInventoryResult.value
+    })
 }
+
+
+
+// async function handleSlotSubmit({
+//     slot,
+//     subSlot,
+//     slotIdno
+// }: {
+//     slot: string
+//     subSlot: string
+//     slotIdno: string
+// }) {
+//     const result = materialInventoryResult.value
+
+//     if (isTestingMode) {
+//         return await handleTestingMode(result, slot, subSlot, slotIdno)
+//     } else {
+//         return await handleNormalMode(result, slot, subSlot, slotIdno)
+//     }
+// }
 
 
 async function onSubmitShortage() {

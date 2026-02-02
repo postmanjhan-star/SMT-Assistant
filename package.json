@@ -27,7 +27,7 @@
   "devDependencies": {
     "@babel/types": "^7.21.4",
     "@faker-js/faker": "^8.0.2",
-    "@playwright/test": "^1.28.1",
+    "@playwright/test": "^1.58.1",
     "@rushstack/eslint-patch": "^1.1.0",
     "@testing-library/vue": "^7.0.0",
     "@types/node": "^20.1.1",
