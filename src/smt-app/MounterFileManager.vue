@@ -5,7 +5,7 @@ import "tabulator-tables/dist/css/tabulator_bootstrap4.min.css"
 import { onMounted, ref, watch } from 'vue'
 import { useMeta } from 'vue-meta'
 import { useRoute, useRouter } from 'vue-router'
-import { PanasonicMounterFileRead, FujiMounterFileRead, SmtService } from '@/client'
+import { PanasonicMounterFileRead, FujiMounterFileRead, SmtService, ApiError } from '@/client'
 import PanasonicMounterFileItemBox from './panasonicMounter/PanasonicMounterFileItemBox.vue'
 import FujiMounterFileItemBox from './fujiMounter/FujiMounterFileItemBox.vue'
 
@@ -107,8 +107,12 @@ async function onClickDeleteButton ( event: Event ) {
             deleteButtonDisable.value = true
         } else { throw Error }
     } catch ( error ) {
-        console.error( error )
-        message.error( '刪除失敗' )
+        if ( error instanceof ApiError && error.status === 409 ) {
+            message.error( '該檔案已生產，無法刪除' )
+        } else {
+            console.error( error )
+            message.error( '刪除失敗' )
+        }
     }
 }
 

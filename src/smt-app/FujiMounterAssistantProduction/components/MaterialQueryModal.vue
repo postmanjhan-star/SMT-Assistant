@@ -4,6 +4,9 @@ import { NModal, NButton, useMessage } from 'naive-ui'
 import { AgGridVue } from 'ag-grid-vue3'
 import type { GridOptions, RowNode, GetRowIdParams } from 'ag-grid-community'
 import { SmtService } from '@/client'
+import { useDateFormatter } from '@/composables/useDateFormatter'
+
+const { format } = useDateFormatter()
 
 const props = defineProps<{
     uuid: string
@@ -44,7 +47,7 @@ const gridOptions: GridOptions = {
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: 'Stage', flex: 2, minWidth: 100 }, // Fuji 專用：顯示為 Stage
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },
         { field: "materialInventoryType", tooltipField: "materialInventoryType", headerName: '物料類型', flex: 5, minWidth: 140, refData: { 'NEW_MATERIAL_PACK': '新接物料', 'REUSED_MATERIAL_PACK': '舊物料', 'IMPORTED_MATERIAL_PACK': '未標註' } },
-        { field: "checktime", tooltipField: "checktime", headerName: '接料時間', flex: 5, minWidth: 140 },
+        { field: "checktime", tooltipField: 'checktime', headerName: '接料時間', flex: 3, minWidth: 180, valueFormatter: (params) => format(params.value) },
         { field: "operatorName", tooltipField: "operatorName", headerName: '操作人員', flex: 5, minWidth: 140 },
         { field: "remark", tooltipField: "remark", headerName: '備註', flex: 5, minWidth: 140 },
     ],
@@ -68,7 +71,7 @@ async function fetchLogs() {
                 materialInventoryIdno: log.material_pack_code,
                 materialInventoryType: log.feed_material_pack_type,
                 operatorName: log.operator_id ?? '',
-                checktime: log.created_at,
+                checktime: log.operation_time,
                 remark: log.check_pack_code_match === 'TESTING_MATERIAL_PACK' ? '廠商測試料' : ''
             })
         }

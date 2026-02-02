@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export enum EmployeeRoleEnum {
+export enum EmployeeRoleEnum_Output {
     NORMAL = 'NORMAL',
-    ADMIN = 'ADMIN',
     SYSTEM_ADMIN = 'SYSTEM_ADMIN',
 }

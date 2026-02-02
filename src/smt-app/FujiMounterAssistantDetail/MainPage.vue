@@ -52,6 +52,7 @@ type RowModel = {
     stage: string,
     slot: number,
     materialIdno: string,
+    operatorIdno: string | null,
     materialInventoryIdno: string | null,
     remark?: string,
 }
@@ -61,11 +62,12 @@ const rowData = ref<RowModel[]>( [] );
 const gridOptions: GridOptions = {
     columnDefs: [
         { field: "correct", headerName: '', flex: 1, minWidth: 60, refData: { 'MATCHED_MATERIAL_PACK': '✅', 'UNMATCHED_MATERIAL_PACK': '❌', 'TESTING_MATERIAL_PACK': '⚠️' } },
-        { field: "mounterIdno", headerName: '機台', flex: 3, minWidth: 120 },
-        { field: "boardSide", headerName: 'PCB面', flex: 2, minWidth: 90 },
-        { field: "stage", headerName: 'Stage', flex: 2, minWidth: 80 },
-        { field: "slot", headerName: '槽位', flex: 2, minWidth: 80 },
+        { field: "mounterIdno", headerName: '機台', flex: 1, minWidth: 90 },
+        { field: "stage", headerName: 'Stage', flex: 1, minWidth: 90 },
+        { field: "slot", headerName: '槽位', flex: 1, minWidth: 90 },
+        { field: "boardSide", headerName: 'PCB面', flex: 1, minWidth: 90 },
         { field: "materialIdno", headerName: '物料號', flex: 4, minWidth: 160 },
+        { field: "operatorIdno", headerName: '上料人員', flex: 4, minWidth: 160 },
         { field: "materialInventoryIdno", headerName: '單包條碼', flex: 5, minWidth: 180 },
         { field: "remark", headerName: '備註', flex: 3, minWidth: 120 },
     ],
@@ -99,12 +101,19 @@ onMounted( async () => {
     const newRowData: RowModel[] = []
     for ( let masterData of fstDataArray ) {
         for ( let detailData of masterData.fuji_mounter_file_items ) {
+            let stage = detailData.stage;
+            if (stage === '1') stage = 'A';
+            else if (stage === '2') stage = 'B';
+            else if (stage === '3') stage = 'C';
+            else if (stage === '4') stage = 'D';
+
             newRowData.push( {
                 id: detailData.id,
                 mounterIdno: masterData.mounter_idno,
                 boardSide: masterData.board_side,
-                stage: detailData.stage,
+                stage: stage,
                 slot: detailData.slot,
+                operatorIdno: null,
                 materialIdno: detailData.part_number,
                 materialInventoryIdno: null,
                 correct: null,
@@ -160,7 +169,20 @@ async function showError ( msg: string ) {
 }
 
 function getMaterialMatchedRows ( materialIdno: string ): RowModel[] {
-    return rowData.value.filter( row => row.materialIdno === materialIdno && !row.materialInventoryIdno )
+    return rowData.value.filter( row => row.materialIdno === materialIdno && ( !row.materialInventoryIdno || row.correct !== CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK ) )
+}
+
+async function checkAndStartProduction() {
+    if (isTestingMode.value || rowData.value.length === 0) {
+        return;
+    }
+
+    const allCorrect = rowData.value.every(r => r.correct === CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK);
+
+    if (allCorrect) {
+        await showSuccess('所有物料已正確上料，將自動開始生產...');
+        await startProductionUpload();
+    }
 }
 
 function resetForms () {
@@ -236,10 +258,17 @@ async function onSubmitSlotForm ( event: Event ) {
                 showError( `找不到輸入的槽位 ${ inputSlotIdno }` );
             }
         } else {
+            const rowNode = gridOptions.api.getRowNode( `${ mounter }-${ stage }-${ slot }` );
+            if ( rowNode ) {
+                rowNode.data.materialInventoryIdno = materialInventoryFromScan.idno;
+                rowNode.data.correct = CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK;
+                gridOptions.api.applyTransaction( { update: [ rowNode.data ] } );
+            }
             showError( `錯誤的槽位，此物料應放置於 ${ matchedRows.map( r => `${ r.stage }-${ r.slot }` ).join( ', ' ) }` );
         }
     }
     resetForms();
+    await checkAndStartProduction();
 }
 
 async function onProduction () {
@@ -262,10 +291,14 @@ function handleProductionStarted( productionStatUuid: string ) {
     productionStarted.value = true
     productionUuid.value = productionStatUuid
 
-    // 2️⃣ 更新 URL（保留 query）
+    // 2️⃣ 更新 URL（保留 query，但移除 testing_mode）
+    const newQuery: any = { ...route.query, uuid: productionStatUuid }
+    delete newQuery.testing_mode
+    delete newQuery.testing_product_idno
+
     router.replace( {
         path: route.path,
-        query: { ...route.query, uuid: productionStatUuid }
+        query: newQuery
     } )
 
     // 3️⃣ 導向 UUID 頁
@@ -284,11 +317,13 @@ async function startProductionUpload () {
             material_idno: row.materialIdno,
             material_pack_code: row.materialInventoryIdno ?? null,
             produce_mode: isTestingMode.value ? ProduceTypeEnum.TESTING_PRODUCE_MODE : ProduceTypeEnum.NORMAL_PRODUCE_MODE,
-            check_pack_code_match: row.correct ?? CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK,
+            check_pack_code_match: row.correct,
             operator_id: null,
             operation_time: new Date().toISOString(),
             production_start: new Date().toISOString(),
         } ) );
+
+        console.log(payload)
 
         // 假設後端會新增此 API
         const response = await SmtService.addFujiMounterItemStats( { requestBody: payload } );

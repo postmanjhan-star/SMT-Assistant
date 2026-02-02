@@ -26,7 +26,7 @@ export const $EmployeeAccountUpdate = {
     contains: [{
     type: 'array',
     contains: {
-        type: 'EmployeeRoleEnum',
+        type: 'app__models__EnumsModel__EmployeeRoleEnum',
     },
 }, {
     type: 'null',

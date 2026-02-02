@@ -107,11 +107,11 @@ const gridOptions: GridOptions = {
         {
             headerName: '巡檢時間',
             field: 'inspectTime',
-            flex: 2, minWidth: 150, valueFormatter: (params) => params.value ? new Date(new Date(params.value).getTime() + 8 * 60 * 60 * 1000).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : ''
+            flex: 2, minWidth: 150, valueFormatter: (params) => format(params.value)
         },
         { field: "slotIdno", tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
         { field: "subSlotIdno", tooltipField: 'subSlotIdno', headerName: '子槽位', flex: 1, minWidth: 100 },
-        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 180, valueFormatter: (params) => params.value ? new Date(new Date(params.value).getTime() + 8 * 60 * 60 * 1000).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '' },
+        { field: "firstAppendTime", tooltipField: 'firstAppendTime', headerName: '上料時間', flex: 3, minWidth: 180, valueFormatter: (params) => format(params.value) },
         { field: "materialIdno", tooltipField: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 140 },
         { field: "materialInventoryIdno", tooltipField: 'materialInventoryIdno', headerName: '單包代碼', flex: 5, minWidth: 140 },
         { field: "appendedMaterialInventoryIdno", tooltipField: 'appendedMaterialInventoryIdno', headerName: '接料代碼', flex: 5, minWidth: 140 },

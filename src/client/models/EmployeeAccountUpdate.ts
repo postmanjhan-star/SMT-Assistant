@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { EmployeeRoleEnum } from './EmployeeRoleEnum';
+import type { app__models__EnumsModel__EmployeeRoleEnum } from './app__models__EnumsModel__EmployeeRoleEnum';
 
 export type EmployeeAccountUpdate = {
     full_name: (string | null);
     password?: (string | null);
-    roles: (Array<EmployeeRoleEnum> | null);
+    roles: (Array<app__models__EnumsModel__EmployeeRoleEnum> | null);
 };

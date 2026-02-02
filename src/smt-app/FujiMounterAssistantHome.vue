@@ -14,9 +14,9 @@ const isTestingMode = ref(route.query.testing_mode === '1')
 
 const testingDefaults = {
   workOrderIdno: 'ZZ9999',
-  productIdno: '40X85-009B-T1',
+  productIdno: '40Y85-009B-T1',
   mounterIdno: 'XP2B1',
-  workSheetSide: 'BOTTOM'
+  workSheetSide: 'TOP'
 }
 
 async function onToggleTestingMode(val: Boolean) {
@@ -167,7 +167,7 @@ async function onClickSubmitButton ( event: Event ) {
 
 <template>
   <div style="padding: 1rem;">
-    <n-h1 style="text-align: center;">Fuji 打件機上料助手</n-h1>
+    <n-h1 style="text-align: center;">Fuji<br>打件機上料助手</n-h1>
     <n-space vertical size="large" style="padding: 1rem;">
       <n-form size="large" :model=" formValue " :rules=" rules " ref="formRef">
         <n-grid cols="1 s:3" responsive="screen">

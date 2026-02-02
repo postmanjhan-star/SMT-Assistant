@@ -13,8 +13,11 @@ import {
     WorkflowSummaryRead,
     WorkflowService
 } from '@/client';
+import { useDateFormatter } from "@/composables/useDateFormatter";
 
 const router = useRouter();
+
+const { format } = useDateFormatter();
 
 useMeta({ title: 'TaskManager' });
 type TaskRowModel = {
@@ -112,17 +115,6 @@ const taskGridOptions: GridOptions = {
     }
 }
 
-function formatDateTime(value?: string | null): string {
-    if (!value) return ''
-
-    const date = new Date(value)
-
-    const pad = (n: number) => String(n).padStart(2, '0')
-
-    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ` +
-        `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
-
 async function fetchWorkflows() {
     loading.value = true
     try {
@@ -136,7 +128,7 @@ async function fetchWorkflows() {
 
         taskRowData.value = data.map(workflow => ({
             uuid: workflow.production_id,
-            createdTime: formatDateTime(workflow.created_at),
+            createdTime: format(workflow.created_at),
             updatedTime: workflow.updated_at,
             mounterType: workflow.mounter_type ?? '',
             machineIdno: workflow.mounter?.machine_idno ?? '',

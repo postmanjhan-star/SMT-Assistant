@@ -19,7 +19,7 @@ export const $EmployeeAccountRead = {
         roles: {
     type: 'array',
     contains: {
-        type: 'EmployeeRoleEnum',
+        type: 'EmployeeRoleEnum_Output',
     },
     isRequired: true,
 },

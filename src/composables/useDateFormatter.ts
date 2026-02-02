@@ -1,99 +1,45 @@
-// composables/useDateFormatter.ts
-export type DateInput = string | number | Date | null | undefined
+import { readonly, ref } from 'vue'
 
-export interface FormatOptions {
-    locale?: string
-    timeZone?: string
-    fallback?: string
-}
-
-/**
- * 統一處理後端時間字串，避免 Invalid Date 與時區混亂
- */
-export function useDateFormatter(defaultOptions: FormatOptions = {}) {
-    const {
-        locale = 'zh-TW',
-        timeZone = 'Asia/Taipei',
-        fallback = ''
-    } = defaultOptions
+export function useDateFormatter() {
 
     /**
-     * 將各種時間輸入轉為 Date
+     * Formats a date string into a localized string (YYYY/MM/DD HH:mm:ss).
+     * Handles null or undefined values gracefully.
+     * @param dateString The date string to format (e.g., from an API response).
+     * @returns The formatted date string or an empty string.
      */
-    function toDate(value: DateInput): Date | null {
-        if (!value) return null
-
-        if (value instanceof Date) return isNaN(value.getTime()) ? null : value
-        if (typeof value === 'number') return isNaN(new Date(value).getTime()) ? null : new Date(value)
-
-        if (typeof value === 'string') {
-            let v = value.trim()
-
-            // 將空格換成 T，方便 Date 解析
-            if (v.includes(' ') && !v.includes('T')) {
-                v = v.replace(' ', 'T')
-            }
-
-            // 如果沒有時區資訊，假設 +08:00（台北時間）
-            if (!v.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(v)) {
-                v = `${v}+08:00`
-            }
-
-            const d = new Date(v)
-            return isNaN(d.getTime()) ? null : d
+    function format(dateString: string | Date | null | undefined): string {
+        if (!dateString) {
+            return '';
         }
 
-        return null
+        let date: Date;
+
+        if (dateString instanceof Date) {
+            // If it's already a Date object (likely from frontend new Date()), use it directly.
+            // toLocaleString will correctly convert it to Taipei time.
+            date = dateString;
+        } else {
+            // For any string input (from backend or toISOString), we enforce a consistent rule:
+            // Treat the "face value" of the time as UTC, regardless of any timezone info in the string.
+            // This effectively "adds 8 hours" when displayed in Taipei time, which matches the requirement.
+
+            // 1. Strip any existing timezone ('Z', '+08:00') and milliseconds.
+            const dateWithoutTz = dateString.split('.')[0].replace(/Z|[+-]\d{2}(:?\d{2})?$/, '');
+            // 2. Normalize to ISO format (YYYY-MM-DDTHH:mm:ss) and append 'Z' to specify it as UTC.
+            const isoString = dateWithoutTz.replace(/\//g, '-').replace(' ', 'T') + 'Z';
+            date = new Date(isoString);
+
+            // Fallback for any format that fails the above manipulation (e.g., completely unexpected format).
+            if (isNaN(date.getTime())) {
+                date = new Date(dateString); // Try default parsing as a last resort.
+            }
+        }
+
+        if (isNaN(date.getTime())) return String(dateString); // Final check to avoid showing "Invalid Date"
+
+        return date.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
     }
 
-    /**
-     * 顯示用（AG Grid / Table）
-     */
-    function format(value: DateInput, options: FormatOptions = {}): string {
-        const d = toDate(value)
-        if (!d) return options.fallback ?? fallback
-
-        return d.toLocaleString(options.locale ?? locale, {
-            timeZone: options.timeZone ?? timeZone
-        })
-    }
-
-    /**
-     * 僅日期（YYYY/MM/DD）
-     */
-    function formatDate(value: DateInput, options: FormatOptions = {}): string {
-        const d = toDate(value)
-        if (!d) return options.fallback ?? fallback
-
-        return d.toLocaleDateString(options.locale ?? locale, {
-            timeZone: options.timeZone ?? timeZone
-        })
-    }
-
-    /**
-     * 僅時間（HH:mm:ss）
-     */
-    function formatTime(value: DateInput, options: FormatOptions = {}): string {
-        const d = toDate(value)
-        if (!d) return options.fallback ?? fallback
-
-        return d.toLocaleTimeString(options.locale ?? locale, {
-            timeZone: options.timeZone ?? timeZone
-        })
-    }
-
-    /**
-     * 產生 API 用的 ISO（UTC）
-     */
-    function toISOStringUTC(date: Date = new Date()): string {
-        return date.toISOString()
-    }
-
-    return {
-        toDate,
-        format,
-        formatDate,
-        formatTime,
-        toISOStringUTC
-    }
+    return { format }
 }

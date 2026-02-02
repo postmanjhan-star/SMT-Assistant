@@ -445,30 +445,6 @@ productIdno?: (string | null),
     }
 
     /**
-     * Backup Panasonic Mounter File
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static backupPanasonicMounterFile(): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/panasonic_mounter/files/backup',
-        });
-    }
-
-    /**
-     * Backup Fuji Mounter File
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static backupFujiMounterFile(): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/smt/fuji_mounter/files/backup',
-        });
-    }
-
-    /**
      * Find Panasonic Mounter Idnos By Product Idno
      * @returns string Successful Response
      * @throws ApiError

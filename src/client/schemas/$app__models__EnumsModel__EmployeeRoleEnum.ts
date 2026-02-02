@@ -2,6 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $EmployeeRoleEnum = {
+export const $app__models__EnumsModel__EmployeeRoleEnum = {
     type: 'Enum',
 } as const;

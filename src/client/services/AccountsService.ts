@@ -47,6 +47,27 @@ requestBody: EmployeeAccountCreate,
     }
 
     /**
+     * Batch Create Employee Accounts
+     * @returns AccountRead Successful Response
+     * @throws ApiError
+     */
+    public static batchCreateEmployeeAccounts({
+requestBody,
+}: {
+requestBody: Array<EmployeeAccountCreate>,
+}): CancelablePromise<Array<AccountRead>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/accounts/batch',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Get Account Employee Information
      * @returns EmployeeAccountRead Successful Response
      * @throws ApiError

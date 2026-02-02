@@ -3,11 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { EmployeeRoleEnum } from './EmployeeRoleEnum';
+import type { EmployeeRoleEnum_Output } from './EmployeeRoleEnum_Output';
 
 export type EmployeeAccountRead = {
     username: string;
     full_name: string;
     idno: string;
-    roles: Array<EmployeeRoleEnum>;
+    roles: Array<EmployeeRoleEnum_Output>;
 };

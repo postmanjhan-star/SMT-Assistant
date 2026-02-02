@@ -20,6 +20,9 @@ import {
 } from '@/client';
 
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
+import { useDateFormatter } from '@/composables/useDateFormatter';
+
+const { format } = useDateFormatter();
 
 const route = useRoute();
 const router = useRouter();
@@ -58,6 +61,9 @@ type RowModel = {
     remark?: string;
     appendedMaterialInventoryIdno?: string;
     operationTime?: string | null;
+    inspectTime?: string | null;
+    inspectMaterialPackCode?: string | null;
+    inspectCount?: number | null;
 };
 
 const rowData = ref<RowModel[]>([]);
@@ -65,12 +71,14 @@ const rowData = ref<RowModel[]>([]);
 const gridOptions: GridOptions = {
     columnDefs: [
         { field: "correct", headerName: '', flex: 1, minWidth: 60, refData: { 'MATCHED_MATERIAL_PACK': '✅', 'UNMATCHED_MATERIAL_PACK': '❌', 'TESTING_MATERIAL_PACK': '⚠️' } },
-        { field: "mounterIdno", headerName: '機台', flex: 3, minWidth: 120 },
-        { field: "boardSide", headerName: 'PCB面', flex: 2, minWidth: 90 },
-        { field: "stage", headerName: 'Stage', flex: 2, minWidth: 80 },
-        { field: "slot", headerName: '槽位', flex: 2, minWidth: 80 },
+        { headerName: '巡檢料號', field: 'inspectMaterialPackCode', flex: 4, minWidth: 160 },
+        { headerName: '巡檢時間', field: 'inspectTime', flex: 3, minWidth: 180, valueFormatter: (params) => format(params.value) },
+        { field: "mounterIdno", headerName: '機台', flex: 1, minWidth: 90 },
+        { field: "stage", headerName: 'Stage', flex: 1, minWidth: 90 },
+        { field: "slot", headerName: '槽位', flex: 1, minWidth: 90 },
+        { field: "boardSide", headerName: 'PCB面', flex: 1, minWidth: 90 },
         { field: "operatorIdno", headerName: '上料人員', flex: 2, minWidth: 80 },
-        { field: "operationTime", headerName: '上料時間', flex: 3, minWidth: 180, valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('zh-TW') : '' },
+        { field: "operationTime", headerName: '上料時間', flex: 3, minWidth: 180, valueFormatter: (params) => format(params.value) },
         { field: "materialIdno", headerName: '物料號', flex: 4, minWidth: 160 },
         { field: "materialInventoryIdno", headerName: '單包條碼', flex: 5, minWidth: 180 },
         { field: "appendedMaterialInventoryIdno", headerName: '接料代碼', flex: 5, minWidth: 180 },
@@ -83,12 +91,13 @@ const gridOptions: GridOptions = {
     getRowId: (params: GetRowIdParams<RowModel>) => `${params.data.mounterIdno}-${params.data.stage}-${params.data.slot}`,
 };
 
+
+
 onMounted(async () => {
     try {
         productionUuid.value = route.params.productionUuid.toString().trim();
         // 假設後端提供此 API 來獲取 Fuji 生產數據
         mounterData.value = await SmtService.getTheFujiItemStatsOfProduction({ uuid: productionUuid.value });
-
         if (mounterData.value.length > 0) {
             const firstRecord = mounterData.value[0];
             workOrderIdno.value = firstRecord.work_order_no;
@@ -110,12 +119,14 @@ onMounted(async () => {
     let logs: any[] = [];
     try {
         logs = await SmtService.getTheFujiStatsOfLogsByUuid({ uuid: productionUuid.value });
+        console.log(logs);
     } catch (e) {
         console.error("Failed to fetch logs", e);
     }
 
     const newRowData: RowModel[] = mounterData.value.map(stat => {
         let feedRecords = (stat as any).feed_records as any[] || [];
+
         if (logs.length > 0) {
             const matchingLogs = logs.filter(l =>
                 String(l.slot_idno) === String(stat.slot_idno) &&
@@ -125,31 +136,112 @@ onMounted(async () => {
             if (feedRecords.length === 0) {
                 feedRecords = matchingLogs;
             } else {
-                const recordMap = new Map();
+                const recordMap = new Map<number, any>();
                 feedRecords.forEach((r: any) => recordMap.set(r.id, r));
                 matchingLogs.forEach((l: any) => recordMap.set(l.id, l));
                 feedRecords = Array.from(recordMap.values());
             }
         }
 
-        const appendedPacks = feedRecords
-            .filter((r: any) => r.feed_material_pack_type !== FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK && !!r.material_pack_code);
-        const appendedCodes = [...new Set(appendedPacks.map((r: any) => r.material_pack_code).filter(c => !!c))].join(', ');
+        /** =========================
+         *  巡檢紀錄
+         *  ========================= */
+        const inspectionRecords = feedRecords.filter(
+            (r: any) =>
+                r.feed_material_pack_type === FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
+        );
 
+        const inspectCount = inspectionRecords.length;
+
+        const latestInspection = inspectionRecords
+            .sort((a: any, b: any) =>
+                new Date(b.operation_time).getTime() -
+                new Date(a.operation_time).getTime()
+            )[0] ?? null;
+
+        /** =========================
+         *  上料 / 接料紀錄
+         *  ========================= */
+        const materialRecords = feedRecords
+            .filter(
+                (r: any) =>
+                    r.feed_material_pack_type !== FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
+            )
+            .sort((a: any, b: any) =>
+                new Date(a.operation_time).getTime() -
+                new Date(b.operation_time).getTime()
+            );
+
+        const importMaterialPack = feedRecords.find((r: any) => r.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK);
+
+        const latestMaterialRecord =
+            materialRecords.length > 0
+                ? materialRecords[materialRecords.length - 1]
+                : null;
+
+        const appendedCodes = [
+            ...new Set(
+                materialRecords
+                    .filter((r: any) => r.feed_material_pack_type !== FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
+                    .map((r: any) => r.material_pack_code)
+                    .filter((c: any) => !!c)
+            )
+        ].join(', ');
+
+        /** =========================
+         *  Stage 正規化
+         *  ========================= */
+        let stage = stat.sub_slot_idno;
+        if (stage === '1') stage = 'A';
+        else if (stage === '2') stage = 'B';
+        else if (stage === '3') stage = 'C';
+        else if (stage === '4') stage = 'D';
+
+        const checkPackCodeMatch = importMaterialPack?.check_pack_code_match ?? (stat as any).check_pack_code_match;
+
+        /** =========================
+         *  備註
+         *  ========================= */
+        let remark =
+            stat.produce_mode === ProduceTypeEnum.TESTING_PRODUCE_MODE &&
+                checkPackCodeMatch === CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
+                ? '[廠商測試新料]'
+                : '';
+
+        if (inspectCount > 0) {
+            remark = `${remark} 巡檢 ${inspectCount} 次`.trim();
+        }
+        console.log(importMaterialPack)
         return {
             id: stat.id,
-            correct: (stat as any).check_pack_code_match,
+            correct: checkPackCodeMatch,
+
+            inspectMaterialPackCode:
+                latestInspection?.material_pack_code ?? '',
+            inspectTime:
+                latestInspection?.operation_time ?? null,
+            inspectCount,
+
             mounterIdno: stat.machine_idno,
             boardSide: stat.board_side,
-            stage: stat.sub_slot_idno, // Fuji 使用 sub_slot_idno 作為 Stage
-            slot: Number(stat.slot_idno), // Fuji 使用 slot_idno 作為槽位號
+            stage,
+            slot: Number(stat.slot_idno),
+
             materialIdno: stat.material_idno,
-            materialInventoryIdno: (stat as any).material_pack_code,
-            operationTime: (stat as any).operation_time,
+
+            /** ✅ 單包條碼（一定顯示） */
+            materialInventoryIdno:
+                latestMaterialRecord?.material_pack_code ?? '',
+
+            /** ✅ 接料 / 上料時間（一定顯示） */
+            operationTime:
+                latestMaterialRecord?.operation_time ?? null,
+
             appendedMaterialInventoryIdno: appendedCodes,
-            remark: stat.produce_mode === ProduceTypeEnum.TESTING_PRODUCE_MODE && (stat as any).check_pack_code_match === CheckMaterialMatchEnum.TESTING_MATERIAL_PACK ? '[廠商測試新料]' : '',
-        }
+            remark,
+        };
     });
+
 
     rowData.value = newRowData;
 });
@@ -227,11 +319,6 @@ async function onSubmitMaterialInventoryForm() {
     slotInputRef.value?.focus();
 }
 
-type CorrectState = 'true' | 'false' | 'warning'
-function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
-    return s as unknown as CheckMaterialMatchEnum
-}
-
 function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null {
     return s as unknown as FeedMaterialTypeEnum
 }
@@ -273,7 +360,7 @@ async function onSubmitSlotForm() {
                 inputSlot: String(slot),
                 inputSubSlot: stage,
                 materialInventory: materialInventoryFromScan,
-                correctState: convertMatch('true') as CheckMaterialMatchEnum
+                correctState: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
             });
             // Update Row Data
             const rowNode = gridOptions.api?.getRowNode(`${mounter}-${stage}-${slot}`);
@@ -304,7 +391,7 @@ async function onSubmitSlotForm() {
                         inputSlot: String(slot),
                         inputSubSlot: stage,
                         materialInventory: materialInventoryFromScan,
-                        correctState: convertMatch('warning') as CheckMaterialMatchEnum
+                        correctState: CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
                     });
                     rowNode.setDataValue('correct', CheckMaterialMatchEnum.TESTING_MATERIAL_PACK);
                     rowNode.setDataValue('remark', '[廠商測試新料]');
@@ -326,6 +413,30 @@ async function onSubmitSlotForm() {
                 showError(`找不到輸入的槽位 ${inputSlotIdno}`);
             }
         } else {
+            const rowNode = gridOptions.api?.getRowNode(`${mounter}-${stage}-${slot}`);
+            if (rowNode) {
+                try {
+                    await appendedMaterialUpload({
+                        stat_id: rowNode.data.id,
+                        inputSlot: String(slot),
+                        inputSubSlot: stage,
+                        materialInventory: materialInventoryFromScan,
+                        correctState: CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK
+                    });
+                    rowNode.setDataValue('correct', CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK);
+                    rowNode.setDataValue('operationTime', new Date().toISOString());
+
+                    const currentAppended = rowNode.data.appendedMaterialInventoryIdno || '';
+                    const currentCodes = currentAppended ? currentAppended.split(',').map(s => s.trim()) : [];
+                    if (materialInventoryFromScan.idno && !currentCodes.includes(materialInventoryFromScan.idno)) {
+                        currentCodes.push(materialInventoryFromScan.idno);
+                    }
+                    const newAppended = currentCodes.join(', ');
+                    rowNode.setDataValue('appendedMaterialInventoryIdno', newAppended);
+                } catch (error) {
+                    console.error(error);
+                }
+            }
             showError(`錯誤的槽位，此物料應放置於 ${matchedRows.map(r => `${r.stage}-${r.slot}`).join(', ')}`);
         }
     }
@@ -424,7 +535,7 @@ function onMaterialQuery() {
             <n-gi>
                 <n-form size="large" :model="materialFormValue" @submit.prevent="onSubmitMaterialInventoryForm">
                     <n-form-item label="物料單包條碼">
-                        <n-input type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno"
+                        <n-input  data-testid="material-input" type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno"
                             autofocus ref="materialInputRef" :disabled="!productionStarted" placeholder="請掃描物料" />
                     </n-form-item>
                 </n-form>

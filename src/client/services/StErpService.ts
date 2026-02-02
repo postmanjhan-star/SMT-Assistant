@@ -90,7 +90,7 @@ stPackIdno: string,
      * @throws ApiError
      */
     public static getStReceiveList({
-stReceiveDate = '2026-01-26',
+stReceiveDate = '2026-01-30',
 }: {
 stReceiveDate?: string,
 }): CancelablePromise<Array<STReceiveHeader>> {
@@ -260,7 +260,7 @@ vendorIdno: string,
      * @throws ApiError
      */
     public static getStWorkOrderList({
-date = '2026-01-26',
+date = '2026-01-30',
 }: {
 date?: string,
 }): CancelablePromise<Array<STWorkOrder>> {

@@ -62,7 +62,11 @@ async function customRequest (
     formValue.value.product_ver = null
     onFinish()
   } catch ( error ) {
-    if ( error instanceof ApiError && error.status === 422 ) { message.error( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } ) }
+    if ( error instanceof ApiError && error.status === 409 ) {
+      message.error( '該檔案已生產，無法重複上傳(修改打件物料)', { keepAliveOnHover: true } )
+    } else if ( error instanceof ApiError && error.status === 422 ) {
+      message.error( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } )
+    }
     else { message.error( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } ) }
     uploadRef.value?.clear()
     onError()

@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { EmployeeRoleEnum } from './EmployeeRoleEnum';
+import type { prisma__enums__EmployeeRoleEnum } from './prisma__enums__EmployeeRoleEnum';
 
 export type EmployeeAccountCreate = {
-    role?: (EmployeeRoleEnum | null);
+    role?: (prisma__enums__EmployeeRoleEnum | null);
     password: string;
     username: string;
 };
