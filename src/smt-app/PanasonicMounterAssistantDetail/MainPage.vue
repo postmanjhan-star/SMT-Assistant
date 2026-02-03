@@ -36,6 +36,8 @@ import { SlotSubmitStrategy } from "@/application/slot-submit/SlotSubmitStrategy
 import { TestingModeStrategy } from "@/application/slot-submit/TestingModeStrategy";
 import { NormalModeStrategy } from "@/application/slot-submit/NormalModeStrategy";
 import { MaterialGrid, SlotSubmitDeps } from "@/application/slot-submit/SlotSubmitDeps";
+import { h } from "vue";
+
 
 const { format } = useDateFormatter()
 
@@ -285,18 +287,31 @@ async function playErrorTone() {
 
 async function showSuccess(msg: string) {
     await playSuccessTone()
-    message.success(msg)
+
+    message.success(() =>
+        h('span', { 'data-testid': 'success-message' }, msg)
+    )
+
     return true
 }
 
 function showWarn(msg: string) {
-    message.warning(msg)
+
+    message.warning(() =>
+        h('span', { 'data-testid': 'warning-message' }, msg)
+    )
+
     return false
 }
 
 async function showError(msg: string) {
-    await playErrorTone()
-    message.error(msg)
+
+    message.error(() =>
+        h('span', { 'data-testid': 'error-message' }, msg)
+    )
+
+    playErrorTone().catch(() => {})
+
     return false
 }
 
@@ -318,24 +333,11 @@ function resetSlotMaterialFormInputs() {
 }
 
 
-function cleanErrorMaterialInventory(currentPackCode: string, inputSlot: string, inputSubSlot: string) {
-    if (!currentPackCode) return
-    gridOptions.api.forEachNode((node) => {
-        const isSame = node.data.materialInventoryIdno === currentPackCode
-        const isDifferentSlot = `${node.data.slotIdno}-${node.data.subSlotIdno}` !== `${inputSlot}-${inputSubSlot}`
-    const isCorrect = node.data.correct === 'true'
-
-    if (isSame && isDifferentSlot && !isCorrect) {
-            node.setDataValue('materialInventoryIdno', '')
-            node.setDataValue('correct', '')
-            node.setDataValue('remark', '')
-            node.setDataValue('firstAppendTime', null)
-        }
-    })
-}
-
 function getMaterialMatchedRowArray(materialIdno: string): RowModel[] {
-    return rowData.value.filter(row => row.materialIdno === materialIdno)
+    return rowData.value.filter(row => 
+        row.materialIdno === materialIdno &&
+        (!row.materialInventoryIdno || row.correct !== 'true')
+    )
 }
 
 
@@ -354,27 +356,10 @@ function handleMaterialMatched(payload: {
     slotIdnoInput.value?.focus()
 }
 
-function checkAllSlotsCorrect() {
-    let allCorrect = true
-    if (!gridApi.value) return false
-    const invalidSlots: string[] = []
-    gridApi.value.forEachNode((node) => {
-        if (node.data.correct !== 'true') {
-            allCorrect = false
-            invalidSlots.push(`${node.data.slotIdno}-${node.data.subSlotIdno}`)
-        }
-    })
-
-    if (!allCorrect) {
-        console.log('尚未滿足自動上傳條件，未完成槽位:', invalidSlots)
-    }
-    return allCorrect
-}
 
 function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
     return s as unknown as CheckMaterialMatchEnum
 }
-
 
 
 const productionStarted = ref(false)

@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { NForm, NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'
 import { ApiError, SmtMaterialInventory, SmtService } from '@/client'
+import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
+import { ApiMaterialRepository } from '@/infrastruture/api/material/ApiMaterialRepository';
+import { SimpleBarcodeValidator } from '@/application/barcode-scan/SimpleBarcodeValidator'
+import { BarcodeScanDeps } from '@/application/barcode-scan/BarcodeScanDeps'
 
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 
@@ -17,8 +21,7 @@ const props = defineProps<{
 watch(
     () => props.resetKey,
     () => {
-        formValue.value.materialInventoryIdno = ''
-        materialInventoryIdnoInput.value?.focus()
+        reset()
     }
 )
 
@@ -59,96 +62,64 @@ async function playErrorTone() {
 
 /* ================= main logic ================= */
 
-function createVirtualMaterial(
-    idno: string,
-    options?: {
-        materialIdno?: string
-        materialName?: string
-        remark?: string
+const scanUseCase = computed(() => {
+    const deps: BarcodeScanDeps = {
+        validator: new SimpleBarcodeValidator(),
+        materialRepository: new ApiMaterialRepository(),
+        isTestingMode: props.isTestingMode,
+        getMaterialMatchedRows: props.getMaterialMatchedRows,
     }
-): SmtMaterialInventoryEx {
-
-    const virtualMaterial = {
-        id: -1,
-        idno: idno,
-        material_idno: options?.materialIdno ?? 'TEST-MATERIAL',
-        material_name: options?.materialName ?? 'TEST-MATERIAL',
-        remark: options?.remark ?? '[廠商測試新料]',
-    } as SmtMaterialInventory & { remark?: string }   // ✅ 安全轉型
-
-    return virtualMaterial
-}
+    return new BarcodeScanUseCase(deps)
+})
 
 async function onSubmit() {
     const idno = formValue.value.materialInventoryIdno.trim()
-    if (!idno) {
-        message.warning('請輸入物料號')
-        return
-    }
 
-    try {
-        // ✅ 只處理「真的有查到」的情況
-        const materialInventory =
-            await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: idno })
+    const result = await scanUseCase.value.execute(idno);
 
-        const matchedRows = props.getMaterialMatchedRows(
-            materialInventory.material_idno
-        )
+    switch (result.status) {
+        case 'success':
+            await playSuccessTone();
+            message.success(
+                props.isTestingMode
+                    ? '🧪 試產模式：物料匹配成功'
+                    : '✅ 正式生產模式：物料匹配成功'
+            );
+            emit('matched', result.data);
+            break;
 
-        if (matchedRows.length === 0) {
-            await playErrorTone()
-            emit('error', '表格內無此物料')
-            reset()
-            return
-        }
+        case 'virtual_success':
+            await playSuccessTone();
+            message.info('🧪 試產模式：使用虛擬物料');
+            emit('matched', result.data);
+            break;
 
-        await playSuccessTone()
-        message.success(
-            props.isTestingMode
-                ? '🧪 試產模式：物料匹配成功'
-                : '✅ 正式生產模式：物料匹配成功'
-        )
+        case 'no_match_in_grid':
+            await playErrorTone();
+            emit('error', '表格內無此物料');
+            reset();
+            break;
 
-        emit('matched', {
-            materialInventory,
-            matchedRows
-        })
-
-    } catch (error) {
-        // 🧪沒有查到，在 catch 裡處理虛擬料
-        if (
-            props.isTestingMode &&
-            error instanceof ApiError &&
-            error.status === 404
-        ) {
-            const virtualMaterial = createVirtualMaterial(idno)
-
-            await playSuccessTone()
-            message.info('🧪 試產模式：使用虛擬物料')
-
-            emit('matched', {
-                materialInventory: virtualMaterial,
-                matchedRows: []
-            })
-
-            return
-        }
-
-        await playErrorTone()
-        if (error instanceof ApiError) {
+        case 'api_error':
+            await playErrorTone();
             const msg = {
                 404: '查無此條碼',
                 504: 'ERP 連線超時',
                 502: 'ERP 連線錯誤',
                 500: '系統錯誤'
-            }[error.status] ?? '未知錯誤'
+            }[result.error.status] ?? '未知錯誤';
+            emit('error', msg);
+            reset();
+            break;
 
-            emit('error', msg)
-        } else {
-            emit('error', '未知例外')
-        }
-
-        reset()
+        case 'unknown_error':
+            await playErrorTone();
+            const error = result.error as Error;
+            const errorMessage = error.message === 'invalid barcode format' ? '請輸入物料號' : '未知例外';
+            emit('error', errorMessage);
+            console.error(result.error);
+            reset();
+            break;
     }
 }
 
@@ -156,6 +127,7 @@ function reset() {
     formValue.value.materialInventoryIdno = ''
     materialInventoryIdnoInput.value?.focus()
 }
+
 
 </script>
 

@@ -16,12 +16,17 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
         const matchedRows = result.matchedRows || []
         if (matchedRows.length === 0) { await ui.warn('此物料未匹配任何槽位'); return false; }
 
-        const targetRow = matchedRows.find(row => row.slotIdno === slot && (row.subSlotIdno ?? '') === subSlot)
+        // Find if the scanned slot matches ANY of the valid slots for this material.
+        // This allows scanning 10008-L or 10008-R if both are valid for the scanned material.
+        const targetRow = matchedRows.find(row => row.slotIdno === slot && (row.subSlotIdno ?? '') === (subSlot ?? ''));
+        const isCorrectSlot = !!targetRow;
 
-        if (targetRow) {
-            const rowNode = grid.api.getRowNode(`${targetRow.slotIdno}-${targetRow.subSlotIdno}`)
+        if (isCorrectSlot) {
+            const correctTargetRow = matchedRows[0];
+            const correctSlotIdno = `${targetRow.slotIdno}-${targetRow.subSlotIdno ?? ''}`;
+            const rowNode = grid.api.getRowNode(correctSlotIdno);
 
-            if (!rowNode) { await ui.error(`找不到物料槽位 ${slotIdno}`); return false; }
+            if (!rowNode) { await ui.error(`找不到物料槽位 ${correctSlotIdno}`); return false; }
 
             grid.cleanErrorMaterialInventory(result.materialInventory?.idno, slot, subSlot)
 
@@ -37,6 +42,7 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
                 const { allCorrect, invalidSlots } = grid.checkAllCorrect();
 
                 if (!isTestingMode && allCorrect) {
+                    // message.success('所有槽位匹配完成，自動觸發上傳...')
                     ui.success('所有槽位匹配完成，自動觸發上傳...');
                     const currentRows: any[] = []
                     grid.api.forEachNode(node => currentRows.push(node.data))
@@ -46,18 +52,19 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
                 }
             }, 300)
 
-            await ui.success(`${MODE_NAME_NORMAL}：槽位 ${slotIdno} 綁定成功`)
+            await ui.success(`${MODE_NAME_NORMAL}：槽位 ${correctSlotIdno} 綁定成功`)
             return true
         } else {
-            const firstRow = matchedRows[0]
-            const rowNode = grid.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
+            const correctTargetRow = matchedRows[0];
+            const suggestedSlot = `${correctTargetRow.slotIdno}-${correctTargetRow.subSlotIdno ?? ''}`;
+            const rowNode = grid.api.getRowNode(suggestedSlot)
             
             // handleMistmatch logic
             grid.markMismatch(slot, subSlot, result.materialInventory?.idno ?? '')
             
             rowNode?.setSelected(false)
             
-            await ui.error(`錯誤的槽位 ${slot}-${subSlot}`)
+            await ui.error(`錯誤的槽位 ${slotIdno}，此物料應放置於 ${suggestedSlot}`)
             resetInputs()
             return false
         }
