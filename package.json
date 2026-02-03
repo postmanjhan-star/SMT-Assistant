@@ -1,6 +1,7 @@
 {
   "name": "smt-assistant",
   "version": "1.1.4",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build:production": "NODE_OPTIONS=--max_old_space_size=2048 vite build",

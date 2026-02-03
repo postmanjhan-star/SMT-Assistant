@@ -34,18 +34,15 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
 
             // 使用 setTimeout 確保 Grid 狀態完全更新後再檢查
             setTimeout(() => {
-                let allCorrect = true
-                grid.api.forEachNode((node) => {
-                    if (node.data.correct !== 'true') {
-                        allCorrect = false
-                    }
-                })
+                const { allCorrect, invalidSlots } = grid.checkAllCorrect();
 
                 if (!isTestingMode && allCorrect) {
-                    // message.success('所有槽位匹配完成，自動觸發上傳...')
+                    ui.success('所有槽位匹配完成，自動觸發上傳...');
                     const currentRows: any[] = []
                     grid.api.forEachNode(node => currentRows.push(node.data))
                     autoUpload(currentRows)
+                } else if (!allCorrect) {
+                    console.log('尚未滿足自動上傳條件，未完成槽位:', invalidSlots);
                 }
             }, 300)
 
@@ -56,14 +53,11 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
             const rowNode = grid.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
             
             // handleMistmatch logic
-            const inputSlotIdno = `${slot}-${subSlot}`
-            const existingNode = grid.api.getRowNode(inputSlotIdno)
-            existingNode?.setDataValue('correct', 'false')
-            existingNode?.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
+            grid.markMismatch(slot, subSlot, result.materialInventory?.idno ?? '')
             
             rowNode?.setSelected(false)
             
-            await ui.error(`錯誤的槽位 ${inputSlotIdno}`)
+            await ui.error(`錯誤的槽位 ${slot}-${subSlot}`)
             resetInputs()
             return false
         }

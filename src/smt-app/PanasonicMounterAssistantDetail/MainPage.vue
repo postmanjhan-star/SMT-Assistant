@@ -334,29 +334,6 @@ function cleanErrorMaterialInventory(currentPackCode: string, inputSlot: string,
     })
 }
 
-
-async function handleMistmatch(result: any, inputSlot: string, inputSubSlot: string, materialRowNode: any) {
-    const inputSlotIdno = `${inputSlot}-${inputSubSlot}`
-    const newRow = {
-        slotIdno: inputSlot,
-        subSlotIdno: inputSubSlot,
-        correct: 'false' as CorrectState,
-        materialInventoryIdno: result.materialInventory?.idno ?? '',
-        remark: ''
-    }
-
-    const existingNode = gridOptions.api.getRowNode(inputSlotIdno)
-    existingNode?.setDataValue('correct', newRow.correct)
-    existingNode?.setDataValue('materialInventoryIdno', newRow.materialInventoryIdno)
-
-    materialRowNode.setSelected(false)
-
-    await playErrorTone()
-    message.error(`錯誤的槽位 ${inputSlotIdno}`)
-    resetSlotMaterialFormInputs()
-
-}
-
 function getMaterialMatchedRowArray(materialIdno: string): RowModel[] {
     return rowData.value.filter(row => row.materialIdno === materialIdno)
 }
@@ -393,106 +370,6 @@ function checkAllSlotsCorrect() {
     }
     return allCorrect
 }
-
-async function handleNormalMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string) {
-    if (!result) return showWarn('請先掃描物料條碼')
-
-    const matchedRows = result.matchedRows || []
-    if (matchedRows.length === 0) return showWarn('此物料未匹配任何槽位')
-
-    const targetRow = matchedRows.find(row => row.slotIdno === inputSlot && (row.subSlotIdno ?? '') === inputSubSlot)
-
-    if (targetRow) {
-        const rowNode = gridOptions.api.getRowNode(`${targetRow.slotIdno}-${targetRow.subSlotIdno}`)
-
-        if (!rowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
-
-        cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
-
-        rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
-        rowNode.setDataValue('remark', result.materialInventory?.remark ?? '')
-        rowNode.setDataValue('correct', 'true')
-        rowNode.setDataValue('firstAppendTime', new Date().toISOString())
-        resetSlotMaterialFormInputs()
-        materialInventoryResult.value = null
-
-        // 使用 setTimeout 確保 Grid 狀態完全更新後再檢查
-        setTimeout(() => {
-            if (!isTestingMode && !productionStarted.value && checkAllSlotsCorrect()) {
-                message.success('所有槽位匹配完成，自動觸發上傳...')
-                
-                const currentRows: any[] = []
-                gridApi.value?.forEachNode(node => currentRows.push(node.data))
-
-                if (startProductionBtnRef.value) {
-                    startProductionBtnRef.value.submit(currentRows)
-                } else {
-                    console.error('StartProductionButton ref is missing')
-                    message.error('無法自動上傳：找不到上傳按鈕組件')
-                }
-            }
-        }, 300)
-
-        return await showSuccess(`${MODE_NAME_NORMAL}：槽位 ${inputSlotIdno} 綁定成功`)
-    } else {
-        const firstRow = matchedRows[0]
-        const rowNode = gridOptions.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
-        await handleMistmatch(result, inputSlot, inputSubSlot, rowNode)
-        materialInventoryResult.value = null
-        return false
-    }
-}
-
-async function handleTestingMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string) {
-    if (!result) return showWarn('請先掃描物料條碼')
-
-    const matchedRows = result.matchedRows || []
-    const rowNode = gridOptions.api.getRowNode(`${inputSlot}-${inputSubSlot}`)
-
-    if (!rowNode) return await showError(`找不到的輸入槽位 ${inputSlotIdno}`)
-
-    if (matchedRows.length !== 0) {
-        const targetRow = matchedRows.find(row => row.slotIdno === inputSlot && (row.subSlotIdno ?? '') === inputSubSlot)
-
-        if (targetRow) {
-            const materialRowNode = gridOptions.api.getRowNode(`${targetRow.slotIdno}-${targetRow.subSlotIdno}`)
-
-            if (!materialRowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
-
-            cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
-
-            rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
-            rowNode.setDataValue('remark', result.materialInventory?.remark ?? '')
-            rowNode.setDataValue('correct', 'true')
-            rowNode.setDataValue('firstAppendTime', new Date().toISOString())
-
-            resetSlotMaterialFormInputs()
-            materialInventoryResult.value = null
-
-            return await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 綁定成功`)
-        } else {
-            const firstRow = matchedRows[0]
-            const materialRowNode = gridOptions.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
-            await handleMistmatch(result, inputSlot, inputSubSlot, materialRowNode)
-            materialInventoryResult.value = null
-            return false
-        }
-    }
-
-    const testRemark = '[廠商測試新料]'
-    rowNode.setDataValue('correct', 'warning')
-    rowNode.setDataValue('remark', testRemark)
-    rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
-    rowNode.setDataValue('firstAppendTime', new Date().toISOString())
-    materialInventoryResult.value = null
-
-    await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
-    resetSlotMaterialFormInputs()
-
-    console.log(rowData.value)
-    return true
-}
-
 
 function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
     return s as unknown as CheckMaterialMatchEnum
@@ -605,27 +482,6 @@ async function handleSlotSubmit(payload) {
         result: materialInventoryResult.value
     })
 }
-
-
-
-// async function handleSlotSubmit({
-//     slot,
-//     subSlot,
-//     slotIdno
-// }: {
-//     slot: string
-//     subSlot: string
-//     slotIdno: string
-// }) {
-//     const result = materialInventoryResult.value
-
-//     if (isTestingMode) {
-//         return await handleTestingMode(result, slot, subSlot, slotIdno)
-//     } else {
-//         return await handleNormalMode(result, slot, subSlot, slotIdno)
-//     }
-// }
-
 
 async function onSubmitShortage() {
     // 可以先驗證表單

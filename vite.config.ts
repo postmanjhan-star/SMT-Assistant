@@ -1,14 +1,14 @@
 /// <reference types="vitest" />
 
 import { fileURLToPath, URL } from "url";
+import { defineConfig } from "vite";
 
 import vue from "@vitejs/plugin-vue";
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
 import Components from 'unplugin-vue-components/vite';
 
 // https://vitejs.dev/config/
-/** @type {import('vite').UserConfig} */
-export default ( {
+export default defineConfig({
   base: '/smt',
   plugins: [ vue(), Components( { resolvers: [ NaiveUiResolver() ] } ), ],
   resolve: { alias: { "@": fileURLToPath( new URL( "./src", import.meta.url ) ) }, },
@@ -20,47 +20,11 @@ export default ( {
     // 使用 happy-dom 模拟 DOM
     // 这需要你安装 happy-dom 作为对等依赖（peer dependency）
     environment: 'happy-dom',
-    browser: { enabled: true, name: 'chromium', provider: 'playwright' },
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/e2e/**',
+      '**/tests/e2e/**',
+    ],
   },
-} )
-
-
-// import { fileURLToPath, URL } from "url";
-// import vue from "@vitejs/plugin-vue";
-// import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
-// import Components from 'unplugin-vue-components/vite';
-
-// /** @type {import('vite').UserConfig} */
-// export default ({
-//   base: '/smt',
-//   plugins: [
-//     vue(),
-//     Components({ resolvers: [NaiveUiResolver()] }),
-//   ],
-//   resolve: {
-//     alias: {
-//       "@": fileURLToPath(new URL("./src", import.meta.url))
-//     },
-//   },
-//   server: {
-//     port: 5175,
-//     proxy: {
-//       '/smt': {
-//         target: 'http://localhost:8000', // ← 這是你後端 API 的實際 host/port
-//         changeOrigin: true,
-//       }
-//     }
-//   },
-//   preview: {
-//     port: 5175
-//   },
-//   test: {
-//     globals: true,
-//     environment: 'happy-dom',
-//     browser: {
-//       enabled: true,
-//       name: 'chromium',
-//       provider: 'playwright'
-//     },
-//   },
-// });
+})
