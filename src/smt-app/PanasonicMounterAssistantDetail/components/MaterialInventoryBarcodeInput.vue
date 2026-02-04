@@ -102,12 +102,17 @@ async function onSubmit() {
 
         case 'api_error':
             await playErrorTone();
-            const msg = {
-                404: '查無此條碼',
-                504: 'ERP 連線超時',
-                502: 'ERP 連線錯誤',
-                500: '系統錯誤'
-            }[result.error.status] ?? '未知錯誤';
+            let msg = '未知 API 錯誤';
+            if (result.error instanceof ApiError) {
+                msg = {
+                    404: '查無此條碼',
+                    504: 'ERP 連線超時',
+                    502: 'ERP 連線錯誤',
+                    500: '系統錯誤'
+                }[result.error.status] ?? '未知錯誤';
+            } else {
+                console.error("An unexpected API error occurred", result.error);
+            }
             emit('error', msg);
             reset();
             break;

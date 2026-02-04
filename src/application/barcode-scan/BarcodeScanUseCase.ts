@@ -1,84 +1,55 @@
 import { BarcodeValidator } from "@/domain/material/BarcodeValidator"
-import { SlotCandidate } from "@/domain/slot/SlotBindingRules"
-import { ApiError, SmtMaterialInventory, SmtService } from '@/client';
+import {
+    ScanResult,
+    decideScanError,
+    decideScanSuccess,
+    createVirtualMaterial,
+    invalidBarcodeResult,
+    ScanErrorKind,
+} from "@/domain/material/BarcodeScanRules"
+import { ApiError, SmtMaterialInventory } from '@/client';
 import { BarcodeScanDeps } from "./BarcodeScanDeps"
 
-// 為 SmtMaterialInventory 擴充 remark 屬性
+// SmtMaterialInventory 擴增 remark 屬性
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string };
 
-// 定義各種掃描結果的型別，以便在元件中進行模式匹配
-type SuccessResult = {
-    status: 'success';
-    data: {
-        materialInventory: SmtMaterialInventoryEx;
-        matchedRows: SlotCandidate[];
-    };
-};
-
-type VirtualSuccessResult = {
-    status: 'virtual_success';
-    data: {
-        materialInventory: SmtMaterialInventoryEx;
-        matchedRows: SlotCandidate[];
-    };
-};
-
-type NoMatchInGridResult = { status: 'no_match_in_grid' };
-type ApiErrorResult = { status: 'api_error'; error: ApiError };
-type UnknownErrorResult = { status: 'unknown_error'; error: unknown };
-
-export type ScanResult = SuccessResult | VirtualSuccessResult | NoMatchInGridResult | ApiErrorResult | UnknownErrorResult;
-
 /**
- * 處理條碼掃描的核心業務邏輯
+ * 掃描單包條碼的核心業務邏輯
  */
 export class BarcodeScanUseCase {
     constructor(private deps: BarcodeScanDeps) {}
 
-    private createVirtualMaterial(idno: string): SmtMaterialInventoryEx {
-        return {
-            id: -1,
-            idno,
-            material_idno: 'TEST-MATERIAL',
-            material_name: 'TEST-MATERIAL',
-            remark: '[廠商測試新料]',
-        } as SmtMaterialInventoryEx;
-    }
-
-    async execute(barcode: string): Promise<ScanResult> {
+    async execute(barcode: string): Promise<ScanResult<SmtMaterialInventoryEx>> {
         const { validator, materialRepository, getMaterialMatchedRows, isTestingMode } = this.deps
 
         if (!validator.validate(barcode)) {
-            return { status: 'unknown_error', error: new Error('invalid barcode format') }
+            return invalidBarcodeResult()
         }
 
         try {
             const materialInventory = await materialRepository.fetchByBarcode(barcode)
             const matchedRows = getMaterialMatchedRows(materialInventory.material_idno);
 
-            if (matchedRows.length === 0) {
-                return { status: 'no_match_in_grid' };
-            }
-
-            return {
-                status: 'success',
-                data: { materialInventory, matchedRows }
-            };
+            return decideScanSuccess(materialInventory, matchedRows)
 
         } catch (error) {
-            if (isTestingMode && error instanceof ApiError && error.status === 404) {
-                const virtualMaterial = this.createVirtualMaterial(barcode);
-                return {
-                    status: 'virtual_success',
-                    data: { materialInventory: virtualMaterial, matchedRows: [] },
-                };
-            }
+            const errorKind: ScanErrorKind =
+                error instanceof ApiError
+                    ? error.status === 404
+                        ? 'not_found'
+                        : 'api_error'
+                    : 'unknown'
 
-            if (error instanceof ApiError) {
-                return { status: 'api_error', error };
-            }
+            const buildVirtualMaterial = (idno: string): SmtMaterialInventoryEx =>
+                createVirtualMaterial(idno) as SmtMaterialInventoryEx
 
-            return { status: 'unknown_error', error };
+            return decideScanError({
+                errorKind,
+                error,
+                isTestingMode,
+                barcode,
+                createVirtualMaterial: buildVirtualMaterial,
+            })
         }
     }
 }

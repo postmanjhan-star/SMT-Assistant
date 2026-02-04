@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/file-upload',
-        component: () => import("../smt-app/UploadFile.vue"),
+        component: () => import("../pages/UploadFile.vue"),
       },
       {
         path: '/smt/file-manager',
