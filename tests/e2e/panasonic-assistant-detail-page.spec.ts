@@ -14,7 +14,7 @@ import path from 'path';
 function readCsvRecords() {
     // 假設 CSV 檔案位於 tests/e2e/data/ 目錄下
     const csvPath = path.join(process.cwd(), 'tests/e2e/data/panasonic_mounter_feed_records.csv');
-    
+
     if (!fs.existsSync(csvPath)) {
         console.warn(`CSV file not found at ${csvPath}, returning empty list.`);
         return [];
@@ -44,7 +44,7 @@ async function scanAll(page: Page, records: { material: string, slot: string }[]
             // 1. 定位並填寫物料輸入框 (假設是頁面上第一個 .n-input input)
             const materialInput = page.locator('.n-input input').first();
             await expect(materialInput).toBeVisible();
-            
+
             await materialInput.click(); // 確保聚焦
             await materialInput.fill(record.material);
             await page.waitForTimeout(500); // 等待 Vue 處理輸入值
@@ -99,6 +99,49 @@ test('test scan panasonic mounter feed records in normal mode', async ({ page })
     // 第二輪掃描 (在生產頁面)
     await scanAll(page, records);
 
-    // console.log("Playwright 已完成操作，停留 60 秒供觀察");
-    // await page.waitForTimeout(60000);
+    console.log("Playwright 已完成完整掃描流程測試");
+});
+
+test('test wrong slot scan in normal mode', async ({ page }) => {
+    // 1. 開啟頁面
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
+
+    // 等待 AG Grid 載入
+    await expect(page.locator(".ag-root-wrapper")).toBeVisible();
+
+    // 2. 定義測試資料
+    const materialPackCode = 'B4909892'; // 物料條碼
+    // const correctSlot = '10008-L';      // 正確槽位 (備註)
+    const wrongSlot = '10009-R';        // 故意輸入的錯誤槽位
+
+    // 3. 掃描物料
+    const materialInput = page.locator('.n-input input').first();
+    await materialInput.fill(materialPackCode);
+    await materialInput.press('Enter');
+
+    // 4. 等待焦點切換並掃描錯誤的槽位
+    await page.waitForFunction(
+        (matInputEl) => {
+            const active = document.activeElement;
+            return active && active.tagName === 'INPUT' && active !== matInputEl;
+        },
+        await materialInput.elementHandle()
+    );
+    const slotInput = page.locator('*:focus');
+    await slotInput.fill(wrongSlot);
+    await slotInput.press('Enter');
+
+    // 5. 驗證錯誤訊息
+    // 當掃描錯誤槽位時，預期會出現一個 "error" 類型的訊息
+    // await expect(
+    //     page.getByTestId('error-message')
+    // ).toContainText(`錯誤的槽位 ${wrongSlot}`)
+
+
+    // 6. 驗證 AG Grid 中錯誤槽位的狀態
+    const row = page.locator(`[row-id="${wrongSlot}"]`);
+    await expect(row.locator('[col-id="correct"]')).toContainText('❌');
+    await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText(materialPackCode);
+
+    console.log("完成，錯誤槽位掃描測試成功");
 });

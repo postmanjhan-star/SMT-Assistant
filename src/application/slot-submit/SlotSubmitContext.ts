@@ -1,11 +1,12 @@
 import { SmtMaterialInventory } from '@/client'
+import { SlotCandidate } from '@/domain/slot/SlotBindingRules'
 
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 
 type ResultType = {
     success: boolean,
     materialInventory?: SmtMaterialInventoryEx | null,
-    matchedRows?: any[]
+    matchedRows?: SlotCandidate[]
 }
 
 export type SlotSubmitContext = {

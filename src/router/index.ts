@@ -7,11 +7,11 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/smt",
     meta: { requiresAuth: false },
-    component: () => import("../smt-app/HomeView.vue"),
+    component: () => import("../pages/HomeView.vue"),
     children: [
       {
         path: '/smt/fuji-mounter',
-        component: () => import("../smt-app/FujiMounterAssistantHome.vue"),
+        component: () => import("../pages/mounter/FujiHome.vue"),
       },
       {
         path: '/smt/fuji-mounter/:mounterIdno/:workOrderIdno',
@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/panasonic-mounter',
-        component: () => import("../smt-app/PanasonicMounterAssistantHome.vue"),
+        component: () => import("../pages/mounter/PanasonicHome.vue"),
       },
       {
         path: '/smt/file-upload',
@@ -39,7 +39,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/task-manager',
-        component: () => import("../smt-app/TaskManager.vue"),
+        component: () => import("../pages/TaskManager.vue"),
       },
       {
         path: '/smt/panasonic-mounter-production/:productionUuid',

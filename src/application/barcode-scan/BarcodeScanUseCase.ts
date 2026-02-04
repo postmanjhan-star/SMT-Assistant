@@ -1,4 +1,5 @@
 import { BarcodeValidator } from "@/domain/material/BarcodeValidator"
+import { SlotCandidate } from "@/domain/slot/SlotBindingRules"
 import { ApiError, SmtMaterialInventory, SmtService } from '@/client';
 import { BarcodeScanDeps } from "./BarcodeScanDeps"
 
@@ -10,7 +11,7 @@ type SuccessResult = {
     status: 'success';
     data: {
         materialInventory: SmtMaterialInventoryEx;
-        matchedRows: any[];
+        matchedRows: SlotCandidate[];
     };
 };
 
@@ -18,7 +19,7 @@ type VirtualSuccessResult = {
     status: 'virtual_success';
     data: {
         materialInventory: SmtMaterialInventoryEx;
-        matchedRows: any[];
+        matchedRows: SlotCandidate[];
     };
 };
 
