@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { DataTableColumns, NCard, NDataTable, NSpace, NTag, useMessage, } from 'naive-ui'
 import { PropType, onMounted, ref } from 'vue'
-import { PanasonicMounterFileItemRead, PanasonicMounterFileRead, SmtService } from '../../client'
+import { PanasonicMounterFileItemRead, PanasonicMounterFileRead, SmtService } from '@/client'
 
 
 const props = defineProps( { mounterFileRead: Object as PropType<PanasonicMounterFileRead> } )

@@ -31,7 +31,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/file-manager',
-        component: () => import("../smt-app/MounterFileManager.vue"),
+        component: () => import("../pages/file-manager/MounterFileManager.vue"),
       },
       {
         path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',

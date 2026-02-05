@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { DataTableColumns, NCard, NDataTable, NSpace, NTag, useMessage, } from 'naive-ui'
 import { PropType, ref, watch } from 'vue'
-import { FujiMounterFileItemRead, FujiMounterFileRead, SmtService } from '../../client'
+import { FujiMounterFileItemRead, FujiMounterFileRead, SmtService } from '@/client'
 
 const props = defineProps( { mounterFileRead: Object as PropType<FujiMounterFileRead> } )
 const message = useMessage()

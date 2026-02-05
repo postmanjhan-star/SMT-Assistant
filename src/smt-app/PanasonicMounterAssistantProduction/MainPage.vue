@@ -31,6 +31,7 @@ import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 import StopProductionButton from "./components/StopProductionButton.vue";
 import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
 import SlotIdnoInput from "./components/SlotIdnoInput.vue";
+import { PostProductionFeedUseCase } from "@/application/post-production-feed/PostProductionFeedUseCase";
 
 import { useDateFormatter } from '@/composables/useDateFormatter'
 
@@ -262,6 +263,10 @@ function handleSlotDone() {
     materialResetKey.value++
 }
 
+function clearMaterialResult() {
+    materialInventoryResult.value = null
+}
+
 function onClickBackArrow(event: Event) { router.push(`/smt/panasonic-mounter/`); }
 
 
@@ -313,111 +318,12 @@ async function handleSlotSubmit({
     subSlot: string
     slotIdno: string
 }) {
-    const result = materialInventoryResult.value
-    let success = false
-
-    const stat = mounterData.value.find(
-        stat => stat.slot_idno === slot && (stat.sub_slot_idno ?? '') === subSlot
-    )
-
-    if (!stat) return showError(`找不到槽位 ${slotIdno}`)
-
-    // ===============================
-    // 🕵️ 巡檢分流（最關鍵）
-    // ===============================
-    if (isInspectionScan(stat, result.materialInventory.idno)) {
-        await inspectionUpload({
-            stat_id: stat.id,
-            inputSlot: slot,
-            inputSubSlot: subSlot,
-            materialInventory: result.materialInventory
-        })
-
-        materialInventoryResult.value = null
-        materialResetKey.value++
-
-        await showSuccess(`巡檢通過：${slotIdno}`)
-
-        const row = rowData.value.find(
-            r => r.slotIdno === slot && (r.subSlotIdno ?? '') === subSlot
-        )
-
-        if (!row) {
-            return showError(`找不到槽位 ${slotIdno}`)
-        }
-
-        row.inspectMaterialPackCode = result.materialInventory.idno
-        row.inspectTime = new Date().toISOString()
-
-        row.inspectCount = (row.inspectCount ?? 0) + 1
-        row.remark = `巡檢 ${row.inspectCount} 次`
-
-        gridOptions.api.applyTransaction({
-            update: [row]
-        })
-        return
-    }
-
-    if (productionStarted.value) {
-        const loadedStat = mounterData.value.find(s =>
-            s.feed_records?.some(r =>
-                r.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK &&
-                r.material_pack_code === result.materialInventory.idno
-            )
-        )
-
-        if (loadedStat) {
-            const loadedSlotIdno = `${loadedStat.slot_idno}-${loadedStat.sub_slot_idno ?? ''}`
-            return showError(`巡檢失敗：此料號位於 ${loadedSlotIdno}，非 ${slotIdno}`)
-        }
-    }
-
-    // ===============================
-    // 原本的上料 / 接料流程（完全保留）
-    // ===============================
-
-    if (isTestingMode) {
-        success = await handleTestingMode(result, slot, subSlot, slotIdno)
-    } else {
-        success = await handleNormalMode(result, slot, subSlot, slotIdno)
-    }
-
-    if (!success) return
-
-    await appendedMaterialUpload({
-        stat_id: stat.id,
-        inputSlot: slot,
-        inputSubSlot: subSlot,
-        materialInventory: result?.materialInventory,
-        correctState: correctState.value
+    return postProductionFeed.execute({
+        slot,
+        subSlot,
+        slotIdno,
+        result: materialInventoryResult.value,
     })
-
-    const row = rowData.value.find(
-        r => r.slotIdno === slot && (r.subSlotIdno ?? '') === subSlot
-    )
-
-    if (!row) {
-        return showError(`找不到槽位 ${slotIdno}`)
-    }
-
-    const rowId = `${row.slotIdno}-${row.subSlotIdno ?? ''}`
-
-    const oldAppendedIdno = row.appendedMaterialInventoryIdno?.trim() || ""
-
-    const currentCodes = oldAppendedIdno ? oldAppendedIdno.split(',').map(s => s.trim()) : []
-    const newCode = result?.materialInventory?.idno
-    if (newCode && !currentCodes.includes(newCode)) {
-        currentCodes.push(newCode)
-    }
-    const newAppendedIdno = currentCodes.join(', ')
-
-    const materialRowNode = gridOptions.api.getRowNode(rowId)
-    if (!materialRowNode) {
-        return showError(`找不到AG Grid 資料列 ${rowId}`)
-    }
-
-    materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
-    // materialRowNode.setDataValue('firstAppendTime', new Date().toISOString())
 }
 
 async function inspectionUpload(params: {
@@ -460,42 +366,6 @@ function resetSlotMaterialFormInputs() {
 }
 
 
-function cleanErrorMaterialInventory(currentPackCode: string, inputSlot: string, inputSubSlot: string) {
-    if (!currentPackCode) return
-    gridOptions.api.forEachNode((node) => {
-        const isSame = node.data.materialInventoryIdno === currentPackCode
-        const isDifferentSlot = `${node.data.slotIdno}-${node.data.subSlotIdno}` !== `${inputSlot}-${inputSubSlot}`
-        const isCorrect = node.data.correct === 'true'
-
-        if (isSame && isDifferentSlot && !isCorrect) {
-            node.setDataValue('materialInventoryIdno', '')
-            node.setDataValue('correct', '')
-            node.setDataValue('remark', '')
-            node.setDataValue('firstAppendTime', null)
-        }
-    })
-}
-
-
-async function handleMistmatch(result: any, inputSlot: string, inputSubSlot: string, materialRowNode: any) {
-    const inputSlotIdno = `${inputSlot}-${inputSubSlot}`
-    const newRow = {
-        slotIdno: inputSlot,
-        subSlotIdno: inputSubSlot,
-        correct: 'false' as CorrectState,
-        materialInventoryIdno: result.materialInventory?.idno ?? '',
-        remark: ''
-    }
-
-    // materialRowNode.setDataValue('correct', '')
-    materialRowNode.setSelected(false)
-
-    await playErrorTone()
-    message.error(`錯誤的槽位 ${inputSlotIdno}`)
-    resetSlotMaterialFormInputs()
-
-}
-
 function getMaterialMatchedRowArray(materialIdno: string): RowModel[] {
     return rowData.value.filter(row => row.materialIdno === materialIdno)
 }
@@ -512,106 +382,6 @@ function handleMaterialMatched(payload: {
 
     // 掃碼成功後，引導使用者下一步
     slotIdnoInput.value?.focus()
-}
-
-function isInspectionScan(
-    stat: PanasonicMounterItemStatRead,
-    inputPackIdno: string
-): boolean {
-    if (!productionStarted.value) return false
-
-    const importPack = stat.feed_records?.find(
-        r => r.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
-    )
-
-    if (!importPack) return false
-
-    return importPack.material_pack_code === inputPackIdno
-}
-
-async function handleNormalMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string) {
-    if (!result) return showWarn('請先掃描物料條碼')
-
-    const matchedRows = result.matchedRows || []
-    if (matchedRows.length === 0) return showWarn('此物料未匹配任何槽位')
-
-    const targetRow = matchedRows.find(row => row.slotIdno === inputSlot && (row.subSlotIdno ?? '') === inputSubSlot)
-
-    if (targetRow) {
-        const rowNode = gridOptions.api.getRowNode(`${targetRow.slotIdno}-${targetRow.subSlotIdno}`)
-
-        if (!rowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
-
-        cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
-
-        // resetSlotMaterialFormInputs()
-        materialInventoryResult.value = null
-
-        correctState.value = 'true'
-
-        await showSuccess(`${MODE_NAME_NORMAL}：槽位 ${inputSlotIdno} 綁定成功`)
-        return true
-    } else {
-        const firstRow = matchedRows[0]
-        const rowNode = gridOptions.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
-        await handleMistmatch(result, inputSlot, inputSubSlot, rowNode)
-        materialInventoryResult.value = null
-        correctState.value = 'false'
-        return false
-    }
-}
-
-async function handleTestingMode(result: ResultType, inputSlot: string, inputSubSlot: string, inputSlotIdno: string): Promise<boolean> {
-    if (!result) {
-        showWarn('請先掃描物料條碼')
-        return false
-    }
-
-    const matchedRows = result.matchedRows || []
-    const rowNode = gridOptions.api.getRowNode(`${inputSlot}-${inputSubSlot}`)
-
-    if (!rowNode) {
-        await showError(`找不到的輸入槽位 ${inputSlotIdno}`)
-        return false
-    }
-
-    if (matchedRows.length !== 0) {
-        const targetRow = matchedRows.find(row => row.slotIdno === inputSlot && (row.subSlotIdno ?? '') === inputSubSlot)
-
-        if (targetRow) {
-            const materialRowNode = gridOptions.api.getRowNode(`${targetRow.slotIdno}-${targetRow.subSlotIdno}`)
-
-            if (!materialRowNode) return await showError(`找不到物料槽位 ${inputSlotIdno}`)
-
-            cleanErrorMaterialInventory(result.materialInventory?.idno, inputSlot, inputSubSlot)
-
-            correctState.value = 'true'
-
-            // resetSlotMaterialFormInputs()
-            materialInventoryResult.value = null
-
-            await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 綁定成功`)
-
-            return true
-        } else {
-            const firstRow = matchedRows[0]
-            const materialRowNode = gridOptions.api.getRowNode(`${firstRow.slotIdno}-${firstRow.subSlotIdno}`)
-            await handleMistmatch(result, inputSlot, inputSubSlot, materialRowNode)
-            correctState.value = 'false'
-            materialInventoryResult.value = null
-            return false
-        }
-    }
-
-    const testRemark = '[廠商測試新料]'
-    materialInventoryResult.value = null
-
-    await showSuccess(`${MODE_NAME_TESTING}：槽位 ${inputSlotIdno} 已標記為 ${testRemark}`)
-    // resetSlotMaterialFormInputs()
-
-    correctState.value = 'warning'
-
-    return true
 }
 
 function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
@@ -654,7 +424,27 @@ async function appendedMaterialUpload(params: {
 
 const productionStarted = ref(false)
 
-
+const postProductionFeed = new PostProductionFeedUseCase({
+    getGridApi: () => gridOptions.api,
+    getRowData: () => rowData.value,
+    getMounterData: () => mounterData.value,
+    isTestingMode: () => isTestingMode.value,
+    isProductionStarted: () => productionStarted.value,
+    getCorrectState: () => correctState.value,
+    setCorrectState: (state) => {
+        correctState.value = state
+    },
+    clearMaterialResult,
+    resetMaterialScan: handleSlotDone,
+    showSuccess,
+    showWarn,
+    showError,
+    notifyError: (msg: string) => message.error(msg),
+    playErrorTone,
+    resetSlotMaterialFormInputs,
+    inspectionUpload,
+    appendedMaterialUpload,
+})
 
 function onProduction() {
 
