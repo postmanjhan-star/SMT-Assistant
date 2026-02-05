@@ -43,7 +43,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/panasonic-mounter-production/:productionUuid',
-        component: () => import("../smt-app/PanasonicMounterAssistantProduction/MainPage.vue")
+        component: () => import("../pages/mounter/panasonic/PanasonicMounterAssistantProduction.vue")
       },
       {
         path: '/smt/fuji-mounter-production/:productionUuid',

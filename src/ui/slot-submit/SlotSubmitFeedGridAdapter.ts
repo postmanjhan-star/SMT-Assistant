@@ -1,7 +1,55 @@
 ﻿import { GridApi } from "ag-grid-community"
 
 export class SlotSubmitFeedGridAdapter {
-    constructor(public api: GridApi) {}
+    constructor(private api: GridApi) {}
+
+    hasRow(rowId: string): boolean {
+        return !!this.api.getRowNode(rowId)
+    }
+
+    applyBindingSuccess(
+        rowId: string,
+        materialInventoryIdno?: string,
+        remark?: string
+    ): boolean {
+        const rowNode = this.api.getRowNode(rowId)
+        if (!rowNode) return false
+
+        rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
+        rowNode.setDataValue('remark', remark ?? '')
+        rowNode.setDataValue('correct', 'true')
+        rowNode.setDataValue('firstAppendTime', new Date().toISOString())
+        return true
+    }
+
+    applyWarningBinding(
+        rowId: string,
+        materialInventoryIdno: string,
+        remark: string
+    ): boolean {
+        const rowNode = this.api.getRowNode(rowId)
+        if (!rowNode) return false
+
+        rowNode.setDataValue('correct', 'warning')
+        rowNode.setDataValue('remark', remark)
+        rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
+        rowNode.setDataValue('firstAppendTime', new Date().toISOString())
+        return true
+    }
+
+    deselectRow(rowId: string): boolean {
+        const rowNode = this.api.getRowNode(rowId)
+        if (!rowNode) return false
+        rowNode.setSelected(false)
+        return true
+    }
+
+    getAllRowsData<T = any>(): T[] {
+        const rows: T[] = []
+        this.api.forEachNode(node => rows.push(node.data))
+        return rows
+    }
+
 
     cleanErrorMaterialInventory(
         currentPackCode: string,

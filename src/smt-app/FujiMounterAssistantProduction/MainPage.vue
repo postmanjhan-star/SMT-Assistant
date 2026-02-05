@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridOptions } from "ag-grid-community";
+import { GetRowIdParams, GridApi, GridOptions } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
 import { AgGridVue } from "ag-grid-vue3";
@@ -67,6 +67,11 @@ type RowModel = {
 };
 
 const rowData = ref<RowModel[]>([]);
+const gridApi = ref<GridApi | null>(null);
+
+function onGridReady(params: { api: GridApi }) {
+    gridApi.value = params.api;
+}
 
 const gridOptions: GridOptions = {
     columnDefs: [
@@ -363,7 +368,7 @@ async function onSubmitSlotForm() {
                 correctState: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
             });
             // Update Row Data
-            const rowNode = gridOptions.api?.getRowNode(`${mounter}-${stage}-${slot}`);
+            const rowNode = gridApi.value?.getRowNode(`${mounter}-${stage}-${slot}`);
             if (rowNode) {
                 rowNode.setDataValue('correct', CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK);
                 rowNode.setDataValue('operationTime', new Date().toISOString());
@@ -383,7 +388,7 @@ async function onSubmitSlotForm() {
         }
     } else {
         if (isTestingMode.value) {
-            const rowNode = gridOptions.api?.getRowNode(`${mounter}-${stage}-${slot}`);
+            const rowNode = gridApi.value?.getRowNode(`${mounter}-${stage}-${slot}`);
             if (rowNode) {
                 try {
                     await appendedMaterialUpload({
@@ -413,7 +418,7 @@ async function onSubmitSlotForm() {
                 showError(`找不到輸入的槽位 ${inputSlotIdno}`);
             }
         } else {
-            const rowNode = gridOptions.api?.getRowNode(`${mounter}-${stage}-${slot}`);
+            const rowNode = gridApi.value?.getRowNode(`${mounter}-${stage}-${slot}`);
             if (rowNode) {
                 try {
                     await appendedMaterialUpload({
@@ -552,7 +557,7 @@ function onMaterialQuery() {
 
         <div style="height: calc(100vh - 180px); padding: 1rem;">
             <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;"
-                :gridOptions="gridOptions">
+                :gridOptions="gridOptions" @grid-ready="onGridReady">
             </ag-grid-vue>
         </div>
     </n-space>

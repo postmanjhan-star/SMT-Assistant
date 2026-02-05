@@ -36,50 +36,52 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
             return
         }
 
-        if (result?.materialInventory) {
-            const inspection = isInspectionScan({
-                productionStarted: this.deps.isProductionStarted(),
-                stat: this.toStatLike(stat),
-                importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
-                inputPackIdno: result.materialInventory.idno,
-            })
-
-            if (inspection) {
-                await this.deps.inspectionUpload({
-                    stat_id: stat.id,
-                    inputSlot: slot,
-                    inputSubSlot: subSlot,
-                    materialInventory: result.materialInventory,
+        if (!this.deps.isTestingMode()) {
+            if (result?.materialInventory) {
+                const inspection = isInspectionScan({
+                    productionStarted: this.deps.isProductionStarted(),
+                    stat: this.toStatLike(stat),
+                    importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    inputPackIdno: result.materialInventory.idno,
                 })
 
-                this.deps.resetMaterialScan()
+                if (inspection) {
+                    await this.deps.inspectionUpload({
+                        stat_id: stat.id,
+                        inputSlot: slot,
+                        inputSubSlot: subSlot,
+                        materialInventory: result.materialInventory,
+                    })
 
-                await this.deps.ui.success(`巡檢通過：${slotIdno}`)
+                    this.deps.resetMaterialScan()
 
-                const row = this.deps.grid.getRow(slot, subSlot)
+                    await this.deps.ui.success(`巡檢通過：${slotIdno}`)
 
-                if (!row) {
-                    await this.deps.ui.error(`找不到槽位 ${slotIdno}`)
+                    const row = this.deps.grid.getRow(slot, subSlot)
+
+                    if (!row) {
+                        await this.deps.ui.error(`找不到槽位 ${slotIdno}`)
+                        return
+                    }
+
+                    this.deps.grid.applyInspectionUpdate(row, result.materialInventory.idno)
                     return
                 }
-
-                this.deps.grid.applyInspectionUpdate(row, result.materialInventory.idno)
-                return
             }
-        }
 
-        if (this.deps.isProductionStarted() && result?.materialInventory) {
-            const loadedSlot = findLoadedSlotByPack({
-                stats: this.deps.getMounterData().map(stat => this.toStatLike(stat)),
-                importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
-                inputPackIdno: result.materialInventory.idno,
-            })
+            if (this.deps.isProductionStarted() && result?.materialInventory) {
+                const loadedSlot = findLoadedSlotByPack({
+                    stats: this.deps.getMounterData().map(stat => this.toStatLike(stat)),
+                    importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    inputPackIdno: result.materialInventory.idno,
+                })
 
-            if (loadedSlot) {
-                await this.deps.ui.error(
-                    `巡檢失敗：此料號位於 ${formatSlotId(loadedSlot)}，非 ${slotIdno}`
-                )
-                return
+                if (loadedSlot) {
+                    await this.deps.ui.error(
+                        `巡檢失敗：此料號位於 ${formatSlotId(loadedSlot)}，非 ${slotIdno}`
+                    )
+                    return
+                }
             }
         }
 

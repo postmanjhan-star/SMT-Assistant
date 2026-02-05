@@ -1,7 +1,4 @@
-import {
-    decideSlotBinding,
-    TESTING_FORCE_BIND_REMARK,
-} from "@/domain/slot/SlotBindingRules"
+﻿import { decideTestingSlotBinding } from "@/domain/slot/SlotBindingRules"
 import { PostProductionFeedContext } from "./PostProductionFeedContext"
 import { PostProductionFeedStrategyBase } from "./PostProductionFeedStrategy"
 import { RowModelBase } from "./PostProductionFeedTypes"
@@ -24,59 +21,48 @@ export class TestingModeStrategy<TRow extends RowModelBase> extends PostProducti
             return false
         }
 
-        if (matchedRows.length !== 0) {
-            const bindingDecision = decideSlotBinding(
-                { slotIdno: slot, subSlotIdno: subSlot },
-                matchedRows
+
+        const bindingDecision = decideTestingSlotBinding(
+            { slotIdno: slot, subSlotIdno: subSlot },
+            matchedRows
+        )
+
+        if (bindingDecision.kind === "match") {
+            const materialRowNode = this.deps.grid.getRowNode(
+                bindingDecision.matchedSlotIdno
             )
 
-            if (bindingDecision.kind === "match") {
-                const materialRowNode = this.deps.grid.getRowNode(
-                    bindingDecision.matchedSlotIdno
-                )
-
-                if (!materialRowNode) {
-                    await this.deps.ui.error(`找不到物料槽位 ${slotIdno}`)
-                    return false
-                }
-
-                this.deps.grid.cleanErrorMaterialInventory(
-                    result.materialInventory?.idno ?? "",
-                    slot,
-                    subSlot
-                )
-
-                this.deps.setCorrectState("true")
-                this.deps.clearMaterialResult()
-
-                await this.deps.ui.success(
-                    `${MODE_NAME_TESTING}：槽位 ${slotIdno} 綁定成功`
-                )
-
-                return true
+            if (!materialRowNode) {
+                await this.deps.ui.error(`錯誤的槽位 ${slotIdno}`)
+                return false
             }
 
-            await this.handleMistmatch(
+            this.deps.grid.cleanErrorMaterialInventory(
+                result.materialInventory?.idno ?? "",
                 slot,
-                subSlot,
-                bindingDecision.kind === "mismatch"
-                    ? bindingDecision.suggestedSlotIdno
-                    : `${slot}-${subSlot}`
+                subSlot
             )
-            this.deps.setCorrectState("false")
+
+            this.deps.setCorrectState("true")
             this.deps.clearMaterialResult()
-            return false
+
+            await this.deps.ui.success(
+                `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功`
+            )
+
+            return true
         }
 
-        const testRemark = TESTING_FORCE_BIND_REMARK
+        const testRemark = bindingDecision.remark
         this.deps.clearMaterialResult()
 
         await this.deps.ui.success(
-            `${MODE_NAME_TESTING}：槽位 ${slotIdno} 已標記為 ${testRemark}`
+            `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功 ${testRemark}`
         )
 
         this.deps.setCorrectState("warning")
 
         return true
+
     }
 }

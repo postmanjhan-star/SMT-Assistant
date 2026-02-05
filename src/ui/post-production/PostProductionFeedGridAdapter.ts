@@ -1,11 +1,25 @@
-﻿import { GridApi } from "ag-grid-community"
-import { RowModelBase } from "@/application/post-production-feed/PostProductionFeedTypes"
+﻿import { RowModelBase } from "@/application/post-production-feed/PostProductionFeedTypes"
+
+type GridApiLike = {
+    getRowNode: (rowId: string) => any
+    forEachNode: (callback: (node: any) => void) => void
+    applyTransaction: (params: { update: any[] }) => void
+}
+
+type GridApiGetter = () => GridApiLike | null | undefined
 
 export class PostProductionFeedGridAdapter<TRow extends RowModelBase> {
+    private getApi: GridApiGetter
+
     constructor(
-        private api: GridApi,
+        apiOrGetter: GridApiLike | GridApiGetter,
         private getRowData: () => TRow[]
-    ) {}
+    ) {
+        this.getApi =
+            typeof apiOrGetter === "function"
+                ? (apiOrGetter as GridApiGetter)
+                : () => apiOrGetter
+    }
 
     getRow(slot: string, subSlot: string): TRow | undefined {
         return this.getRowData().find(
@@ -18,11 +32,15 @@ export class PostProductionFeedGridAdapter<TRow extends RowModelBase> {
     }
 
     getRowNode(rowId: string) {
-        return this.api.getRowNode(rowId)
+        const api = this.getApi()
+        if (!api) return undefined
+        return api.getRowNode(rowId)
     }
 
     deselectRow(rowId: string): boolean {
-        const rowNode = this.api.getRowNode(rowId)
+        const api = this.getApi()
+        if (!api) return false
+        const rowNode = api.getRowNode(rowId)
         if (!rowNode) return false
         rowNode.setSelected(false)
         return true
@@ -34,7 +52,9 @@ export class PostProductionFeedGridAdapter<TRow extends RowModelBase> {
         inputSubSlot: string
     ) {
         if (!currentPackCode) return
-        this.api.forEachNode((node) => {
+        const api = this.getApi()
+        if (!api) return
+        api.forEachNode((node) => {
             const isSame = node.data.materialInventoryIdno === currentPackCode
             const isDifferentSlot =
                 `${node.data.slotIdno}-${node.data.subSlotIdno}` !==
@@ -51,18 +71,22 @@ export class PostProductionFeedGridAdapter<TRow extends RowModelBase> {
     }
 
     applyInspectionUpdate(row: TRow, materialPackIdno: string) {
+        const api = this.getApi()
+        if (!api) return
         row.inspectMaterialPackCode = materialPackIdno
         row.inspectTime = new Date().toISOString()
         row.inspectCount = (row.inspectCount ?? 0) + 1
         row.remark = `巡檢 ${row.inspectCount} 次`
 
-        this.api.applyTransaction({
+        api.applyTransaction({
             update: [row],
         })
     }
 
     setAppendedMaterialInventoryIdno(rowId: string, appendedIdno: string): boolean {
-        const rowNode = this.api.getRowNode(rowId)
+        const api = this.getApi()
+        if (!api) return false
+        const rowNode = api.getRowNode(rowId)
         if (!rowNode) return false
 
         rowNode.setDataValue("appendedMaterialInventoryIdno", appendedIdno)

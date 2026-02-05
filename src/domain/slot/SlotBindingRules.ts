@@ -24,13 +24,17 @@ export type AutoUploadRuleInput = {
 
 export const TESTING_FORCE_BIND_REMARK = '[廠商測試新料]'
 
-const normalizeSubSlot = (subSlotIdno?: string | null): string => subSlotIdno ?? ''
+const normalizeSlotIdno = (slotIdno?: string | number | null): string =>
+    slotIdno == null ? '' : String(slotIdno)
+
+const normalizeSubSlot = (subSlotIdno?: string | number | null): string =>
+    subSlotIdno == null ? '' : String(subSlotIdno)
 
 export const formatSlotIdno = (slot: SlotCandidate): string =>
-    `${slot.slotIdno}-${normalizeSubSlot(slot.subSlotIdno)}`
+    `${normalizeSlotIdno(slot.slotIdno)}-${normalizeSubSlot(slot.subSlotIdno)}`
 
 export const isSameSlot = (a: SlotCandidate, b: SlotCandidate): boolean =>
-    a.slotIdno === b.slotIdno &&
+    normalizeSlotIdno(a.slotIdno) === normalizeSlotIdno(b.slotIdno) &&
     normalizeSubSlot(a.subSlotIdno) === normalizeSubSlot(b.subSlotIdno)
 
 export const decideSlotBinding = (

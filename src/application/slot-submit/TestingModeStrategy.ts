@@ -1,7 +1,7 @@
 import { SlotSubmitContext } from "./SlotSubmitContext";
 import { SlotSubmitStrategy } from "./SlotSubmitStrategy";
 import { SlotSubmitDeps } from "./SlotSubmitDeps";
-import { decideTestingSlotBinding, formatSlotIdno } from "@/domain/slot/SlotBindingRules";
+import { decideSlotBinding, formatSlotIdno, TESTING_FORCE_BIND_REMARK } from "@/domain/slot/SlotBindingRules";
 
 const MODE_NAME_TESTING = '🧪 試產生產模式'
 
@@ -12,44 +12,62 @@ export class TestingModeStrategy implements SlotSubmitStrategy {
         const { grid, ui, resetInputs } = this.deps
         const { result, slot, subSlot, slotIdno } = ctx
 
-        if (!result) { await ui.warn('請先掃描物料條碼'); return false; }
+        if (!result) { await ui.warn('錯誤的槽位'); return false; }
 
         const matchedRows = result.matchedRows || []
         const inputSlotIdno = formatSlotIdno({ slotIdno: slot, subSlotIdno: subSlot })
-        const rowNode = grid.api.getRowNode(inputSlotIdno)
 
-        if (!rowNode) { await ui.error(`找不到的輸入槽位 ${slotIdno}`); return false; }
+        if (!grid.hasRow(inputSlotIdno)) { await ui.error(`不存在槽位 ${slotIdno}`); return false; }
 
-        const bindingDecision = decideTestingSlotBinding(
-            { slotIdno: slot, subSlotIdno: subSlot },
-            matchedRows
-        )
+        if (matchedRows.length > 0) {
+            const bindingDecision = decideSlotBinding(
+                { slotIdno: slot, subSlotIdno: subSlot },
+                matchedRows
+            )
 
-        if (bindingDecision.kind === 'match') {
-            const materialRowNode = grid.api.getRowNode(bindingDecision.matchedSlotIdno)
+            if (bindingDecision.kind === 'match') {
+                if (!grid.hasRow(bindingDecision.matchedSlotIdno)) {
+                    await ui.error(`槽位錯誤 ${slotIdno}`)
+                    return false
+                }
 
-            if (!materialRowNode) { await ui.error(`找不到物料槽位 ${slotIdno}`); return false; }
+                grid.cleanErrorMaterialInventory(result.materialInventory?.idno, slot, subSlot)
 
-            grid.cleanErrorMaterialInventory(result.materialInventory?.idno, slot, subSlot)
+                grid.applyBindingSuccess(
+                    bindingDecision.matchedSlotIdno,
+                    result.materialInventory?.idno ?? '',
+                    result.materialInventory?.remark ?? ''
+                )
 
-            rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
-            rowNode.setDataValue('remark', result.materialInventory?.remark ?? '')
-            rowNode.setDataValue('correct', 'true')
-            rowNode.setDataValue('firstAppendTime', new Date().toISOString())
+                resetInputs()
+                await ui.success(`${MODE_NAME_TESTING}??? ${slotIdno} ????`)
+                return true
+            }
 
+            const suggestedSlot =
+                bindingDecision.kind === 'mismatch'
+                    ? bindingDecision.suggestedSlotIdno
+                    : `${slot}-${subSlot}`
+
+            grid.markMismatch(slot, subSlot, result.materialInventory?.idno ?? '')
+            grid.deselectRow(suggestedSlot)
+
+            await ui.error(`錯誤的槽位 ${slotIdno} ，此物料應放置於 ${suggestedSlot}`)
             resetInputs()
-            await ui.success(`${MODE_NAME_TESTING}：槽位 ${slotIdno} 綁定成功`)
-            return true
+            return false
         }
 
-        // 試產模式下的強制綁定邏輯
-        const testRemark = bindingDecision.remark
-        rowNode.setDataValue('correct', 'warning')
-        rowNode.setDataValue('remark', testRemark)
-        rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
-        rowNode.setDataValue('firstAppendTime', new Date().toISOString())
+        // 
+        const testRemark = TESTING_FORCE_BIND_REMARK
+        const updated = grid.applyWarningBinding(
+            inputSlotIdno,
+            result.materialInventory?.idno ?? '',
+            testRemark
+        )
 
-        await ui.success(`${MODE_NAME_TESTING}：槽位 ${slotIdno} 已標記為 ${testRemark}`)
+        if (!updated) { await ui.error(`槽位不存在 ${slotIdno}`); return false; }
+
+        await ui.success(`${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功 ${testRemark}`)
         resetInputs()
         return true
     }

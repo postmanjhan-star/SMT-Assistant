@@ -27,16 +27,16 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
 
         if (bindingDecision.kind === 'match') {
             const correctSlotIdno = bindingDecision.matchedSlotIdno
-            const rowNode = grid.api.getRowNode(correctSlotIdno);
 
-            if (!rowNode) { await ui.error(`找不到物料槽位 ${correctSlotIdno}`); return false; }
+            if (!grid.hasRow(correctSlotIdno)) { await ui.error(`槽位不存在 ${correctSlotIdno}`); return false; }
 
             grid.cleanErrorMaterialInventory(result.materialInventory?.idno, slot, subSlot)
 
-            rowNode.setDataValue('materialInventoryIdno', result.materialInventory?.idno ?? '')
-            rowNode.setDataValue('remark', result.materialInventory?.remark ?? '')
-            rowNode.setDataValue('correct', 'true')
-            rowNode.setDataValue('firstAppendTime', new Date().toISOString())
+            grid.applyBindingSuccess(
+                correctSlotIdno,
+                result.materialInventory?.idno ?? '',
+                result.materialInventory?.remark ?? ''
+            )
             
             resetInputs()
 
@@ -47,9 +47,7 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
                 if (shouldAutoUpload({ allCorrect, isTestingMode })) {
                     // message.success('所有槽位匹配完成，自動觸發上傳...')
                     ui.success('所有槽位匹配完成，自動觸發上傳...');
-                    const currentRows: any[] = []
-                    grid.api.forEachNode(node => currentRows.push(node.data))
-                    autoUpload(currentRows)
+                    autoUpload(grid.getAllRowsData())
                 } else if (!allCorrect) {
                     console.log('尚未滿足自動上傳條件，未完成槽位:', invalidSlots);
                 }
@@ -59,12 +57,11 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
             return true
         } else {
             const suggestedSlot = bindingDecision.suggestedSlotIdno
-            const rowNode = grid.api.getRowNode(suggestedSlot)
             
             // handleMistmatch logic
             grid.markMismatch(slot, subSlot, result.materialInventory?.idno ?? '')
             
-            rowNode?.setSelected(false)
+            grid.deselectRow(suggestedSlot)
             
             await ui.error(`錯誤的槽位 ${bindingDecision.inputSlotIdno}，此物料應放置於 ${suggestedSlot}`)
             resetInputs()

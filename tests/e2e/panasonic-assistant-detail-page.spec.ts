@@ -73,6 +73,30 @@ async function scanAll(page: Page, records: { material: string, slot: string }[]
     }
 }
 
+
+async function scanOne(page: Page, material: string, slot: string) {
+    const materialInput = page.locator('.n-input input').first();
+    await expect(materialInput).toBeVisible();
+
+    await materialInput.click();
+    await materialInput.fill(material);
+    await page.waitForTimeout(300);
+    await materialInput.press('Enter');
+
+    await page.waitForFunction(
+        (matInputEl) => {
+            const active = document.activeElement;
+            return active && active.tagName === 'INPUT' && active !== matInputEl;
+        },
+        await materialInput.elementHandle(),
+        { timeout: 10000 }
+    );
+
+    const slotInput = page.locator('*:focus');
+    await slotInput.fill(slot);
+    await slotInput.press('Enter');
+}
+
 test('test scan panasonic mounter feed records in normal mode', async ({ page }) => {
     // 設定較長的測試超時時間，因為涉及大量掃描與頁面跳轉
     test.setTimeout(300000);
@@ -105,6 +129,47 @@ test('test scan panasonic mounter feed records in normal mode', async ({ page })
 test('test scan panasonic mounter feed records in testing mode', async ({ page }) => {
     test.setTimeout(300000);
 
+    const testingMaterialPack = 'test_material_pack';
+    const appendRequests: any[] = [];
+
+    await page.route('**/smt/material_inventory/*', (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith(`/smt/material_inventory/${testingMaterialPack}`)) {
+            return route.fulfill({
+                status: 404,
+                contentType: 'application/json',
+                body: JSON.stringify({ detail: 'Not Found' }),
+            });
+        }
+        return route.continue();
+    });
+
+    await page.route('**/smt/panasonic_mounter_item/stat/roll', async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST') return route.continue();
+
+        let body: any = null;
+        try {
+            body = request.postDataJSON();
+        } catch {
+            body = null;
+        }
+
+        if (body) {
+            appendRequests.push(body);
+        }
+
+        if (body?.material_pack_code === testingMaterialPack) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({}),
+            });
+        }
+
+        return route.continue();
+    });
+
     const records = readCsvRecords();
     console.log(`總共 ${records.length} 筆資料`);
 
@@ -125,8 +190,127 @@ test('test scan panasonic mounter feed records in testing mode', async ({ page }
 
     // 導向 production 頁
     await page.waitForURL(/\/smt\/panasonic-mounter-production\/.+/, { timeout: 300000 });
+
+    // 測試模式開始生產後，接一個測試物料到某一個槽位
+    await expect(page.locator(".ag-root-wrapper")).toBeVisible();
+
+    const testingSlot = '10008-L';
+
+    const materialInput = page.locator('.n-input input').first();
+    await materialInput.fill(testingMaterialPack);
+    await materialInput.press('Enter');
+
+    await page.waitForFunction(
+        (matInputEl) => {
+            const active = document.activeElement;
+            return active && active.tagName === 'INPUT' && active !== matInputEl;
+        },
+        await materialInput.elementHandle(),
+        { timeout: 10000 }
+    );
+
+    const slotInput = page.locator('*:focus');
+    await slotInput.fill(testingSlot);
+    await slotInput.press('Enter');
+
+    const row = page.locator(`[row-id="${testingSlot}"]`);
+    await expect(
+        row.locator('[col-id="appendedMaterialInventoryIdno"]')
+    ).toContainText(testingMaterialPack, { timeout: 15000 });
+
+    await expect
+        .poll(() => appendRequests.length)
+        .toBeGreaterThan(0);
+    expect(
+        appendRequests.some(
+            (payload) => payload?.material_pack_code === testingMaterialPack
+        )
+    ).toBe(true);
 });
 
+
+
+test('test testing mode quick virtual materials then append after production', async ({ page }) => {
+    test.setTimeout(300000);
+
+    const preProductionMaterials = ['virtual-pack-1', 'virtual-pack-2'];
+    const postProductionMaterial = 'virtual-pack-3';
+    const allVirtualMaterials = [...preProductionMaterials, postProductionMaterial];
+    const appendRequests: any[] = [];
+
+    await page.route('**/smt/material_inventory/*', (route) => {
+        const url = new URL(route.request().url());
+        const isVirtual = allVirtualMaterials.some(code =>
+            url.pathname.endsWith(`/smt/material_inventory/${code}`)
+        );
+        if (isVirtual) {
+            return route.fulfill({
+                status: 404,
+                contentType: 'application/json',
+                body: JSON.stringify({ detail: 'Not Found' }),
+            });
+        }
+        return route.continue();
+    });
+
+    await page.route('**/smt/panasonic_mounter_item/stat/roll', async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST') return route.continue();
+
+        let body: any = null;
+        try {
+            body = request.postDataJSON();
+        } catch {
+            body = null;
+        }
+
+        if (body) {
+            appendRequests.push(body);
+        }
+
+        if (allVirtualMaterials.includes(body?.material_pack_code)) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({}),
+            });
+        }
+
+        return route.continue();
+    });
+
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3");
+
+    await scanOne(page, preProductionMaterials[0], '10008-L');
+    await scanOne(page, preProductionMaterials[1], '10009-R');
+
+    const startBtn = page.getByRole('button', { name: /開始生產/ });
+    await expect(startBtn).toBeVisible();
+    await startBtn.click();
+
+    const confirmBtn = page.getByRole('button', { name: '確定' });
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
+    await page.waitForURL(/\/smt\/panasonic-mounter-production\/.+/, { timeout: 300000 });
+
+    await expect(page.locator(".ag-root-wrapper")).toBeVisible();
+    await scanOne(page, postProductionMaterial, '10008-L');
+
+    const row = page.locator(`[row-id="10008-L"]`);
+    await expect(
+        row.locator('[col-id="appendedMaterialInventoryIdno"]')
+    ).toContainText(postProductionMaterial, { timeout: 15000 });
+
+    await expect
+        .poll(() => appendRequests.length)
+        .toBeGreaterThan(0);
+    expect(
+        appendRequests.some(
+            (payload) => payload?.material_pack_code === postProductionMaterial
+        )
+    ).toBe(true);
+});
 test('test wrong slot scan in normal mode', async ({ page }) => {
     // 1. 開啟頁面
     await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
@@ -198,4 +382,68 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
     ).toContainText(materialPackCode);
 
     console.log("done: wrong slot cleared and correct slot updated");
+});
+
+test('test wrong slot scan in testing mode', async ({ page }) => {
+    // 1. open testing mode page
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3");
+
+    // wait AG Grid
+    await expect(page.locator(".ag-root-wrapper")).toBeVisible();
+
+    // 2. test data
+    const materialPackCode = 'B4909892';
+    const correctSlot = '10008-L';
+    const wrongSlot = '10009-R';
+
+    // 3. scan material
+    const materialInput = page.locator('.n-input input').first();
+    await materialInput.fill(materialPackCode);
+    await materialInput.press('Enter');
+
+    // 4. wait focus change and scan wrong slot
+    await page.waitForFunction(
+        (matInputEl) => {
+            const active = document.activeElement;
+            return active && active.tagName === 'INPUT' && active !== matInputEl;
+        },
+        await materialInput.elementHandle()
+    );
+    const slotInput = page.locator('*:focus');
+    await slotInput.fill(wrongSlot);
+    await slotInput.press('Enter');
+
+    // 5. wrong slot should be error in testing mode
+    const row = page.locator(`[row-id="${wrongSlot}"]`);
+    await expect(row.locator('[col-id="correct"]')).toContainText('❌');
+    await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText(materialPackCode);
+
+    // 6. scan again with correct slot
+    await materialInput.fill(materialPackCode);
+    await materialInput.press('Enter');
+
+    await page.waitForFunction(
+        (matInputEl) => {
+            const active = document.activeElement;
+            return active && active.tagName === 'INPUT' && active !== matInputEl;
+        },
+        await materialInput.elementHandle()
+    );
+    const slotInputAfter = page.locator('*:focus');
+    await slotInputAfter.fill(correctSlot);
+    await slotInputAfter.press('Enter');
+
+    // 7. wrong slot should be cleared, correct slot should be updated
+    const wrongRow = page.locator(`[row-id="${wrongSlot}"]`);
+    await expect(
+        wrongRow.locator('[col-id="materialInventoryIdno"]')
+    ).not.toContainText(materialPackCode);
+
+    const correctRow = page.locator(`[row-id="${correctSlot}"]`);
+    await expect(
+        correctRow.locator('[col-id="materialInventoryIdno"]')
+    ).toContainText(materialPackCode);
+    await expect(correctRow.locator('[col-id="correct"]')).toContainText('\u2705');
+
+    console.log("done: testing mode wrong slot cleared and correct slot updated");
 });

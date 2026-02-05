@@ -65,11 +65,9 @@ describe('NormalModeStrategy', () => {
     });
 
     it('should handle successful match (綁定成功)', async () => {
-        const mockRowNode = {
-            setDataValue: vi.fn(),
-            data: { correct: 'true' }
-        };
-        mockGridApi.getRowNode.mockReturnValue(mockRowNode);
+        vi.spyOn(deps.grid, 'hasRow').mockReturnValue(true);
+        vi.spyOn(deps.grid, 'applyBindingSuccess').mockReturnValue(true);
+        vi.spyOn(deps.grid, 'getAllRowsData').mockReturnValue([{ slotIdno: 'A', subSlotIdno: '1' }] as any);
         
         // 模擬 checkAllCorrect 回傳 true 以測試自動上傳邏輯
         vi.spyOn(deps.grid, 'checkAllCorrect').mockReturnValue({ allCorrect: true, invalidSlots: [] });
@@ -88,18 +86,16 @@ describe('NormalModeStrategy', () => {
         const result = await strategy.submit(ctx);
 
         expect(result).toBe(true);
-        expect(mockGridApi.getRowNode).toHaveBeenCalledWith('A-1');
-        expect(mockRowNode.setDataValue).toHaveBeenCalledWith('correct', 'true');
+        expect(deps.grid.hasRow).toHaveBeenCalledWith('A-1');
+        expect(deps.grid.applyBindingSuccess).toHaveBeenCalledWith('A-1', 'MAT123', 'Test');
         expect(mockUi.success).toHaveBeenCalled();
         
         // 觸發 setTimeout
         vi.runAllTimers();
-        expect(mockAutoUpload).toHaveBeenCalled();
+        expect(mockAutoUpload).toHaveBeenCalledWith([{ slotIdno: 'A', subSlotIdno: '1' }]);
     });
 
     it('should handle mismatch (錯誤的槽位)', async () => {
-        const mockRowNode = { setSelected: vi.fn() };
-        mockGridApi.getRowNode.mockReturnValue(mockRowNode);
 
         const ctx: SlotSubmitContext = {
             result: {
@@ -116,6 +112,7 @@ describe('NormalModeStrategy', () => {
 
         expect(result).toBe(false);
         expect(deps.grid.markMismatch).toHaveBeenCalledWith('A', '1', 'MAT123');
+        expect(deps.grid.deselectRow).toHaveBeenCalledWith('B-2');
         expect(mockUi.error).toHaveBeenCalledWith(expect.stringContaining('錯誤的槽位'));
     });
 });

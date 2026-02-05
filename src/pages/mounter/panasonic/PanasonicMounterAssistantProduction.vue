@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { GetRowIdParams, GridOptions, RowNode } from "ag-grid-community";
+import { GetRowIdParams, GridApi, GridOptions, RowNode } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
@@ -96,6 +96,11 @@ type RowModel = {
 }
 
 const rowData = ref<RowModel[]>([]);
+const gridApi = ref<GridApi | null>(null);
+
+function onGridReady(params: { api: GridApi }) {
+    gridApi.value = params.api
+}
 
 const gridOptions: GridOptions = {
     // PROPERTIES
@@ -426,7 +431,7 @@ async function appendedMaterialUpload(params: {
 const productionStarted = ref(false)
 
 const postProductionFeed = new PostProductionFeedUseCase({
-    grid: new PostProductionFeedGridAdapter(gridOptions.api, () => rowData.value),
+    grid: new PostProductionFeedGridAdapter(() => gridApi.value, () => rowData.value),
     ui: {
         success: showSuccess,
         warn: showWarn,
@@ -793,7 +798,7 @@ function hideVirtualKeyboard() {
 
         <div style="height: 2000px; padding: 1rem;">
             <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;"
-                :gridOptions="gridOptions">
+                :gridOptions="gridOptions" @grid-ready="onGridReady">
             </ag-grid-vue>
         </div>
 

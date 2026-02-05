@@ -2,6 +2,7 @@ import { TestingModeStrategy } from '@/application/slot-submit/TestingModeStrate
 import { SlotSubmitDeps } from '@/application/slot-submit/SlotSubmitDeps';
 import { SlotSubmitContext } from '@/application/slot-submit/SlotSubmitContext';
 import { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter';
+import { TESTING_FORCE_BIND_REMARK } from '@/domain/slot/SlotBindingRules';
 
 describe('TestingModeStrategy', () => {
     let strategy: TestingModeStrategy;
@@ -33,11 +34,9 @@ describe('TestingModeStrategy', () => {
         strategy = new TestingModeStrategy(deps);
     });
 
-    it('should force bind if no match found in Testing Mode (廠商測試新料)', async () => {
-        const mockRowNode = {
-            setDataValue: vi.fn(),
-        };
-        mockGridApi.getRowNode.mockReturnValue(mockRowNode);
+    it('should force bind if no match found in Testing Mode (??????)', async () => {
+        vi.spyOn(deps.grid, 'hasRow').mockReturnValue(true);
+        vi.spyOn(deps.grid, 'applyWarningBinding').mockReturnValue(true);
 
         const ctx: SlotSubmitContext = {
             result: {
@@ -54,8 +53,7 @@ describe('TestingModeStrategy', () => {
 
         expect(result).toBe(true);
         // 驗證是否標記為 warning 且備註為廠商測試新料
-        expect(mockRowNode.setDataValue).toHaveBeenCalledWith('correct', 'warning');
-        expect(mockRowNode.setDataValue).toHaveBeenCalledWith('remark', '[廠商測試新料]');
-        expect(mockUi.success).toHaveBeenCalledWith(expect.stringContaining('已標記為 [廠商測試新料]'));
+        expect(deps.grid.applyWarningBinding).toHaveBeenCalledWith('A-1', 'MAT123', TESTING_FORCE_BIND_REMARK);
+        expect(mockUi.success).toHaveBeenCalledWith(expect.stringContaining(TESTING_FORCE_BIND_REMARK));
     });
 });
