@@ -35,7 +35,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',
-        component: () => import("../smt-app/PanasonicMounterAssistantDetail/MainPage.vue"),
+        component: () => import("../pages/mounter/panasonic/PanasonicMounterAssistantDetail.vue"),
       },
       {
         path: '/smt/task-manager',

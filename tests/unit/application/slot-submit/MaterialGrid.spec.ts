@@ -1,7 +1,7 @@
-import { MaterialGrid } from '@/application/slot-submit/SlotSubmitDeps';
+import { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter';
 
-describe('MaterialGrid', () => {
-    let grid: MaterialGrid;
+describe('SlotSubmitFeedGridAdapter', () => {
+    let grid: SlotSubmitFeedGridAdapter;
     let mockGridApi: any;
 
     beforeEach(() => {
@@ -9,7 +9,7 @@ describe('MaterialGrid', () => {
             forEachNode: vi.fn(),
             getRowNode: vi.fn(),
         };
-        grid = new MaterialGrid(mockGridApi);
+        grid = new SlotSubmitFeedGridAdapter(mockGridApi);
     });
 
     describe('cleanErrorMaterialInventory', () => {

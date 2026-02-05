@@ -35,7 +35,8 @@ import { useDateFormatter } from '@/composables/useDateFormatter'
 import { SlotSubmitStrategy } from "@/application/slot-submit/SlotSubmitStrategy"; 
 import { TestingModeStrategy } from "@/application/slot-submit/TestingModeStrategy";
 import { NormalModeStrategy } from "@/application/slot-submit/NormalModeStrategy";
-import { MaterialGrid, SlotSubmitDeps } from "@/application/slot-submit/SlotSubmitDeps";
+import { SlotSubmitDeps } from "@/application/slot-submit/SlotSubmitDeps";
+import { SlotSubmitFeedGridAdapter } from "@/ui/slot-submit/SlotSubmitFeedGridAdapter";
 import { h } from "vue";
 
 
@@ -446,7 +447,7 @@ const slotSubmitStrategy = computed<SlotSubmitStrategy>(() => {
         return isTestingMode ? new TestingModeStrategy({} as any) : new NormalModeStrategy({} as any)
     }
     const deps: SlotSubmitDeps = {
-        grid: new MaterialGrid(gridApi.value),
+        grid: new SlotSubmitFeedGridAdapter(gridApi.value),
         ui: {
             success: async (msg) =>  {showSuccess(msg) },
             warn: async (msg) => { showWarn(msg) },

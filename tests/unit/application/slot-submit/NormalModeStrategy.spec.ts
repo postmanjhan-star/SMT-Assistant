@@ -1,5 +1,6 @@
 import { NormalModeStrategy } from '@/application/slot-submit/NormalModeStrategy';
-import { SlotSubmitDeps, MaterialGrid } from '@/application/slot-submit/SlotSubmitDeps';
+import { SlotSubmitDeps } from '@/application/slot-submit/SlotSubmitDeps';
+import { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter';
 import { SlotSubmitContext } from '@/application/slot-submit/SlotSubmitContext';
 
 describe('NormalModeStrategy', () => {
@@ -31,7 +32,7 @@ describe('NormalModeStrategy', () => {
         mockAutoUpload = vi.fn();
 
         // 建立 MaterialGrid 並模擬其內部方法，隔離測試
-        const materialGrid = new MaterialGrid(mockGridApi);
+        const materialGrid = new SlotSubmitFeedGridAdapter(mockGridApi);
         vi.spyOn(materialGrid, 'cleanErrorMaterialInventory').mockImplementation(() => {});
         vi.spyOn(materialGrid, 'markMismatch').mockImplementation(() => {});
         vi.spyOn(materialGrid, 'checkAllCorrect').mockReturnValue({ allCorrect: false, invalidSlots: [] });

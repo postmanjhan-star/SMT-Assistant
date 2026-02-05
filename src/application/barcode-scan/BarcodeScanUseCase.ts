@@ -1,13 +1,11 @@
-import { BarcodeValidator } from "@/domain/material/BarcodeValidator"
 import {
     ScanResult,
     decideScanError,
     decideScanSuccess,
     createVirtualMaterial,
     invalidBarcodeResult,
-    ScanErrorKind,
 } from "@/domain/material/BarcodeScanRules"
-import { ApiError, SmtMaterialInventory } from '@/client';
+import { SmtMaterialInventory } from "@/client"
 import { BarcodeScanDeps } from "./BarcodeScanDeps"
 
 // SmtMaterialInventory 擴增 remark 屬性
@@ -27,24 +25,31 @@ export class BarcodeScanUseCase {
         }
 
         try {
-            const materialInventory = await materialRepository.fetchByBarcode(barcode)
-            const matchedRows = getMaterialMatchedRows(materialInventory.material_idno);
+            const fetchResult = await materialRepository.fetchByBarcode(barcode)
 
-            return decideScanSuccess(materialInventory, matchedRows)
-
-        } catch (error) {
-            const errorKind: ScanErrorKind =
-                error instanceof ApiError
-                    ? error.status === 404
-                        ? 'not_found'
-                        : 'api_error'
-                    : 'unknown'
+            if (fetchResult.kind === "ok") {
+                const matchedRows = getMaterialMatchedRows(
+                    fetchResult.materialInventory.material_idno
+                )
+                return decideScanSuccess(fetchResult.materialInventory, matchedRows)
+            }
 
             const buildVirtualMaterial = (idno: string): SmtMaterialInventoryEx =>
                 createVirtualMaterial(idno) as SmtMaterialInventoryEx
 
             return decideScanError({
-                errorKind,
+                errorKind: fetchResult.errorKind,
+                error: fetchResult.error,
+                isTestingMode,
+                barcode,
+                createVirtualMaterial: buildVirtualMaterial,
+            })
+        } catch (error) {
+            const buildVirtualMaterial = (idno: string): SmtMaterialInventoryEx =>
+                createVirtualMaterial(idno) as SmtMaterialInventoryEx
+
+            return decideScanError({
+                errorKind: "unknown",
                 error,
                 isTestingMode,
                 barcode,

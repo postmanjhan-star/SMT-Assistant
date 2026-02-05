@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { NForm, NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'
-import { ApiError, SmtMaterialInventory, SmtService } from '@/client'
+import { ApiError, SmtMaterialInventory } from '@/client'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
 import { ApiMaterialRepository } from '@/infrastruture/api/material/ApiMaterialRepository';
 import { SimpleBarcodeValidator } from '@/application/barcode-scan/SimpleBarcodeValidator'

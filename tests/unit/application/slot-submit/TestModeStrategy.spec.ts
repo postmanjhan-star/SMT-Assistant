@@ -1,6 +1,7 @@
 import { TestingModeStrategy } from '@/application/slot-submit/TestingModeStrategy';
-import { SlotSubmitDeps, MaterialGrid } from '@/application/slot-submit/SlotSubmitDeps';
+import { SlotSubmitDeps } from '@/application/slot-submit/SlotSubmitDeps';
 import { SlotSubmitContext } from '@/application/slot-submit/SlotSubmitContext';
+import { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter';
 
 describe('TestingModeStrategy', () => {
     let strategy: TestingModeStrategy;
@@ -18,7 +19,7 @@ describe('TestingModeStrategy', () => {
             error: vi.fn(),
         };
 
-        const materialGrid = new MaterialGrid(mockGridApi);
+        const materialGrid = new SlotSubmitFeedGridAdapter(mockGridApi);
         vi.spyOn(materialGrid, 'cleanErrorMaterialInventory').mockImplementation(() => {});
 
         deps = {

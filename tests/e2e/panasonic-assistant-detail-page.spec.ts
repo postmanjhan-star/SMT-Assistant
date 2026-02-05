@@ -102,6 +102,31 @@ test('test scan panasonic mounter feed records in normal mode', async ({ page })
     console.log("Playwright 已完成完整掃描流程測試");
 });
 
+test('test scan panasonic mounter feed records in testing mode', async ({ page }) => {
+    test.setTimeout(300000);
+
+    const records = readCsvRecords();
+    console.log(`總共 ${records.length} 筆資料`);
+
+    // 測試模式頁面
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3");
+
+    // 測試模式沒有巡檢，因此只掃一次
+    await scanAll(page, records);
+
+    // 手動按開始生產
+    const startBtn = page.getByRole('button', { name: /開始生產/ });
+    await expect(startBtn).toBeVisible();
+    await startBtn.click();
+
+    const confirmBtn = page.getByRole('button', { name: '確定' });
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
+    // 導向 production 頁
+    await page.waitForURL(/\/smt\/panasonic-mounter-production\/.+/, { timeout: 300000 });
+});
+
 test('test wrong slot scan in normal mode', async ({ page }) => {
     // 1. 開啟頁面
     await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
@@ -111,7 +136,7 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
 
     // 2. 定義測試資料
     const materialPackCode = 'B4909892'; // 物料條碼
-    // const correctSlot = '10008-L';      // 正確槽位 (備註)
+    const correctSlot = '10008-L';      // 正確槽位 (備註)
     const wrongSlot = '10009-R';        // 故意輸入的錯誤槽位
 
     // 3. 掃描物料
@@ -143,5 +168,34 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
     await expect(row.locator('[col-id="correct"]')).toContainText('❌');
     await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText(materialPackCode);
 
-    console.log("完成，錯誤槽位掃描測試成功");
+    // 7. scan again with correct slot
+    await materialInput.fill(materialPackCode);
+    await materialInput.press('Enter');
+
+    await page.waitForFunction(
+        (matInputEl) => {
+            const active = document.activeElement;
+            return active && active.tagName === 'INPUT' && active !== matInputEl;
+        },
+        await materialInput.elementHandle()
+    );
+    const slotInputAfter = page.locator('*:focus');
+    await slotInputAfter.fill(correctSlot);
+    await slotInputAfter.press('Enter');
+
+    // 8. wrong slot should be cleared, correct slot should be updated
+    const wrongRow = page.locator(`[row-id="${wrongSlot}"]`);
+    await expect(
+        wrongRow.locator('[col-id="materialInventoryIdno"]')
+    ).not.toContainText(materialPackCode);
+    await expect(
+        wrongRow.locator('[col-id="correct"]')
+    ).not.toContainText('❌');
+
+    const correctRow = page.locator(`[row-id="${correctSlot}"]`);
+    await expect(
+        correctRow.locator('[col-id="materialInventoryIdno"]')
+    ).toContainText(materialPackCode);
+
+    console.log("done: wrong slot cleared and correct slot updated");
 });

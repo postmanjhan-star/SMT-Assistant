@@ -32,6 +32,7 @@ import StopProductionButton from "./components/StopProductionButton.vue";
 import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
 import SlotIdnoInput from "./components/SlotIdnoInput.vue";
 import { PostProductionFeedUseCase } from "@/application/post-production-feed/PostProductionFeedUseCase";
+import { PostProductionFeedGridAdapter } from "@/ui/post-production/PostProductionFeedGridAdapter";
 
 import { useDateFormatter } from '@/composables/useDateFormatter'
 
@@ -425,8 +426,15 @@ async function appendedMaterialUpload(params: {
 const productionStarted = ref(false)
 
 const postProductionFeed = new PostProductionFeedUseCase({
-    getGridApi: () => gridOptions.api,
-    getRowData: () => rowData.value,
+    grid: new PostProductionFeedGridAdapter(gridOptions.api, () => rowData.value),
+    ui: {
+        success: showSuccess,
+        warn: showWarn,
+        error: showError,
+        notifyError: (msg: string) => message.error(msg),
+        playErrorTone,
+        resetSlotMaterialFormInputs,
+    },
     getMounterData: () => mounterData.value,
     isTestingMode: () => isTestingMode.value,
     isProductionStarted: () => productionStarted.value,
@@ -436,12 +444,6 @@ const postProductionFeed = new PostProductionFeedUseCase({
     },
     clearMaterialResult,
     resetMaterialScan: handleSlotDone,
-    showSuccess,
-    showWarn,
-    showError,
-    notifyError: (msg: string) => message.error(msg),
-    playErrorTone,
-    resetSlotMaterialFormInputs,
     inspectionUpload,
     appendedMaterialUpload,
 })
