@@ -18,10 +18,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import("../smt-app/FujiMounterAssistantDetail/MainPage.vue"),
       },
       {
-        path: '/smt/fuji-mounter/upload_fst',
-        component: () => import("../smt-app/UploadFujiFile.vue"),
-      },
-      {
         path: '/smt/panasonic-mounter',
         component: () => import("../pages/mounter/PanasonicHome.vue"),
       },
