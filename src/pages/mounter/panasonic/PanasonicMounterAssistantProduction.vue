@@ -12,19 +12,14 @@ import { useRoute, useRouter } from 'vue-router';
 import {
     ApiError,
     CheckMaterialMatchEnum,
-    $ProduceTypeEnum,
-    PanasonicMounterFileRead,
     PanasonicMounterItemStatCreate,
-    PanasonicMounterItemStatRead,
     PanasonicFeedRecordCreate,
-    PanasonicItemStatFeedLogRead,
     ProduceTypeEnum,
     FeedMaterialTypeEnum,
     SmtMaterialInventory,
     SmtService,
     BoardSideEnum,
-    MachineSideEnum,
-    MaterialTypeEnum
+    MachineSideEnum
 } from '@/client';
 
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
@@ -33,6 +28,8 @@ import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcode
 import SlotIdnoInput from "./components/SlotIdnoInput.vue";
 import { usePostProductionFeed } from "@/composables/usePostProductionFeed";
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore";
+import { usePanasonicProductionLoader } from "@/composables/usePanasonicProductionLoader";
+import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData";
 
 import { useDateFormatter } from '@/composables/useDateFormatter'
 
@@ -57,7 +54,8 @@ const productionUuid = ref<string>('')
 const uploading = ref(false)
 const postProductionFeedStore = usePostProductionFeedStore()
 
-const mounterData = ref<PanasonicMounterItemStatRead[]>([]);
+const { mounterData, rowData, productionStarted, load } =
+    usePanasonicProductionLoader(productionUuid)
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 const slotIdnoInput = ref<InputInst>();
 const slotFormValue = ref({
@@ -73,22 +71,7 @@ const dialog = useDialog()
 
 type CorrectState = 'true' | 'false' | 'warning'
 
-type RowModel = {
-    correct: CheckMaterialMatchEnum | null,
-    id: number,
-    slotIdno: string,
-    subSlotIdno: string,
-    firstAppendTime?: string | null,
-    materialIdno: string,
-    materialInventoryIdno: string | null,
-    appendedMaterialInventoryIdno: string,
-    remark?: string,
-    inspectTime?: string | null,
-    inspectMaterialPackCode?: string | null,
-    inspectCount?: number | null
-}
-
-const rowData = ref<RowModel[]>([]);
+type RowModel = ProductionRowModel
 const gridApi = ref<GridApi | null>(null);
 
 function onGridReady(params: { api: GridApi }) {
@@ -173,83 +156,27 @@ const gridOptions: GridOptions = {
 
 
 onMounted(async () => {
-
     try {
         productionUuid.value = route.params.productionUuid.toString().trim()
-        mounterData.value = await SmtService.getThePanasonicItemStatsOfProduction({ uuid: productionUuid.value })
-        workOrderIdno.value = mounterData.value[0].work_order_no
-        productIdno.value = mounterData.value[0].product_idno
-        machineSide.value = mounterData.value[0].machine_side
-        boardSide.value = mounterData.value[0].board_side
-        testingMode.value = mounterData.value[0].produce_mode
-        isTestingMode.value = testingMode.value === ProduceTypeEnum.TESTING_PRODUCE_MODE ? true : false
+        const { mounterData: loadedStats } = await load()
 
-        if (mounterData.value[0].production_end == null) {
-            productionStarted.value = true
+        const firstStat = loadedStats[0]
+        if (!firstStat) return
+
+        workOrderIdno.value = firstStat.work_order_no
+        productIdno.value = firstStat.product_idno
+        machineSide.value = firstStat.machine_side
+        boardSide.value = firstStat.board_side
+        testingMode.value = firstStat.produce_mode
+        isTestingMode.value =
+            testingMode.value === ProduceTypeEnum.TESTING_PRODUCE_MODE
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+            router.push("/http-status/404")
+        } else if (error instanceof ApiError && error.status === 503) {
+            router.push("/http-status/404")
         }
     }
-    catch (error) {
-        if (error instanceof ApiError && error.status === 404) { router.push('/http-status/404') }
-        else if (error instanceof ApiError && error.status === 503) { router.push('/http-status/404') }
-    }
-
-    let logs: any[] = [];
-    try {
-        logs = await SmtService.getTheStatsOfLogsByUuid({ uuid: productionUuid.value });
-    } catch (e) {
-        console.error("Failed to fetch logs", e);
-    }
-
-    const newRowData: RowModel[] = []
-    for (let materialSlotPair of mounterData.value) {
-
-        let feedRecords = (materialSlotPair.feed_records as any[]) || [];
-        if (logs.length > 0) {
-            const matchingLogs = logs.filter(l =>
-                String(l.slot_idno) === String(materialSlotPair.slot_idno) &&
-                (l.sub_slot_idno ?? '') === (materialSlotPair.sub_slot_idno ?? '')
-            );
-            const recordMap = new Map();
-            feedRecords.forEach((r: any) => recordMap.set(r.id, r));
-            matchingLogs.forEach((l: any) => recordMap.set(l.id, l));
-            feedRecords = Array.from(recordMap.values());
-        }
-
-        const inspectionRecords = feedRecords.filter(
-            (r: any) => r.feed_material_pack_type === FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
-        )
-
-        const inspectionCount = inspectionRecords?.length ?? 0
-
-        const latestInspection = inspectionRecords
-            ?.sort((a: any, b: any) =>
-                new Date(b.operation_time).getTime() - new Date(a.operation_time).getTime()
-            )[0]
-        const importMaterialPack = feedRecords.find((record: any) => record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
-        const feedMaterialPacks = feedRecords.filter(
-            (record: any) =>
-                record.feed_material_pack_type === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK ||
-                record.feed_material_pack_type === FeedMaterialTypeEnum.NEW_MATERIAL_PACK
-        )
-        const appendedCodes = [...new Set(feedMaterialPacks.map((pack: any) => pack.material_pack_code).filter((code: any) => !!code))].join(', ')
-
-        newRowData.push({
-            correct: importMaterialPack?.check_pack_code_match,
-            inspectMaterialPackCode: latestInspection?.material_pack_code ?? '',
-            inspectTime: latestInspection?.operation_time ?? null,
-            id: materialSlotPair.id,
-            slotIdno: materialSlotPair.slot_idno,
-            subSlotIdno: materialSlotPair.sub_slot_idno,
-            firstAppendTime: importMaterialPack?.operation_time ?? feedRecords?.[0]?.operation_time,
-            materialIdno: materialSlotPair.material_idno,
-            appendedMaterialInventoryIdno: appendedCodes,
-            materialInventoryIdno: importMaterialPack?.material_pack_code,
-            inspectCount: inspectionCount,
-            remark: inspectionCount > 0 ? `巡檢 ${inspectionCount} 次` : ''
-        })
-    }
-
-    rowData.value = newRowData
 })
 
 const materialResetKey = ref(0)
@@ -416,8 +343,6 @@ async function appendedMaterialUpload(params: {
         { requestBody: payload }
     )
 }
-
-const productionStarted = ref(false)
 
 const { submit: submitPostProductionFeed } = usePostProductionFeed<RowModel>({
     gridApi,
