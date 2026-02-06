@@ -306,34 +306,28 @@ async function playErrorTone() {
     synth.triggerAttackRelease("D4", "8n", now + 0.2)
 }
 
-async function showSuccess(msg: string) {
+async function showSuccess(msg: string): Promise<void> {
     await playSuccessTone()
 
     message.success(() =>
         h('span', { 'data-testid': 'success-message' }, msg)
     )
-
-    return true
 }
 
-function showWarn(msg: string) {
+function showWarn(msg: string): void {
 
     message.warning(() =>
         h('span', { 'data-testid': 'warning-message' }, msg)
     )
-
-    return false
 }
 
-async function showError(msg: string) {
+async function showError(msg: string): Promise<void> {
 
     message.error(() =>
         h('span', { 'data-testid': 'error-message' }, msg)
     )
 
     playErrorTone().catch(() => {})
-
-    return false
 }
 
 useSlotSubmitFeedback({
