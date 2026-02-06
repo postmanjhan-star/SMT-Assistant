@@ -11,6 +11,7 @@ export type PostProductionMaterialInventory = {
 export type PostProductionFeedUi = {
     success: (msg: string) => Promise<void> | Promise<boolean>
     warn: (msg: string) => boolean | void
+    info?: (msg: string) => void
     error: (msg: string) => Promise<void> | Promise<boolean>
     notifyError: (msg: string) => void
     playErrorTone: () => Promise<void>
@@ -48,6 +49,12 @@ export const usePostProductionFeedStore = defineStore(
     () => {
         const correctState = ref<PostProductionCorrectState>("false")
         const materialResult = ref<PostProductionMaterialResult | null>(null)
+        const showRollShortageModal = ref(false)
+        const rollShortageFormValue = ref({
+            materialInventoryIdno: "",
+            slotIdno: "",
+            type: "",
+        })
 
         let grid: PostProductionGridPort | null = null
         let ui: PostProductionFeedUi | null = null
@@ -87,6 +94,10 @@ export const usePostProductionFeedStore = defineStore(
             return typeof result === "boolean" ? result : false
         }
 
+        function info(msg: string) {
+            ui?.info?.(msg)
+        }
+
         async function error(msg: string): Promise<void> {
             await ui?.error?.(msg)
         }
@@ -101,6 +112,22 @@ export const usePostProductionFeedStore = defineStore(
 
         function resetSlotMaterialFormInputs() {
             ui?.resetSlotMaterialFormInputs?.()
+        }
+
+        function openRollShortageModal() {
+            showRollShortageModal.value = true
+        }
+
+        function closeRollShortageModal() {
+            showRollShortageModal.value = false
+        }
+
+        function resetRollShortageForm() {
+            rollShortageFormValue.value = {
+                materialInventoryIdno: "",
+                slotIdno: "",
+                type: "",
+            }
         }
 
         function getRowNode(rowId: string) {
@@ -151,12 +178,18 @@ export const usePostProductionFeedStore = defineStore(
             clearMaterialResult,
             setCorrectState,
             getCorrectState,
+            showRollShortageModal,
+            rollShortageFormValue,
             success,
             warn,
+            info,
             error,
             notifyError,
             playErrorTone,
             resetSlotMaterialFormInputs,
+            openRollShortageModal,
+            closeRollShortageModal,
+            resetRollShortageForm,
             getRowNode,
             getRow,
             getRowId,

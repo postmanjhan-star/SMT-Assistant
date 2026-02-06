@@ -4,7 +4,7 @@ import { GetRowIdParams, GridApi, GridOptions, RowNode } from "ag-grid-community
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormInst, FormRules, useDialog } from 'naive-ui';
+import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormRules, useDialog } from 'naive-ui';
 import * as Tone from 'tone';
 import { onMounted, ref } from 'vue';
 import { useMeta } from 'vue-meta';
@@ -13,9 +13,7 @@ import {
     ApiError,
     CheckMaterialMatchEnum,
     PanasonicMounterItemStatCreate,
-    PanasonicFeedRecordCreate,
     ProduceTypeEnum,
-    FeedMaterialTypeEnum,
     SmtMaterialInventory,
     SmtService,
     BoardSideEnum,
@@ -27,6 +25,8 @@ import StopProductionButton from "./components/StopProductionButton.vue";
 import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
 import SlotIdnoInput from "./components/SlotIdnoInput.vue";
 import { usePostProductionFeed } from "@/composables/usePostProductionFeed";
+import { usePostProductionFeedUploads } from "@/composables/usePostProductionFeedUploads";
+import { usePostProductionRollShortage } from "@/composables/usePostProductionRollShortage";
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore";
 import { usePanasonicProductionLoader } from "@/composables/usePanasonicProductionLoader";
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData";
@@ -53,6 +53,8 @@ const isTestingMode = ref<boolean>(false)
 const productionUuid = ref<string>('')
 const uploading = ref(false)
 const postProductionFeedStore = usePostProductionFeedStore()
+const { inspectionUpload, appendedMaterialUpload } =
+    usePostProductionFeedUploads()
 
 const { mounterData, rowData, productionStarted, load } =
     usePanasonicProductionLoader(productionUuid)
@@ -68,8 +70,6 @@ const materialInventoryIdnoInput = ref<InputInst>();
 
 const dialog = useDialog()
 
-
-type CorrectState = 'true' | 'false' | 'warning'
 
 type RowModel = ProductionRowModel
 const gridApi = ref<GridApi | null>(null);
@@ -248,28 +248,6 @@ async function handleSlotSubmit({
     })
 }
 
-async function inspectionUpload(params: {
-    stat_id: number
-    inputSlot: string
-    inputSubSlot: string
-    materialInventory: SmtMaterialInventoryEx
-}) {
-    const payload = {
-        stat_item_id: params.stat_id,
-        operator_id: '',
-        operation_time: new Date().toISOString(),
-        slot_idno: params.inputSlot,
-        sub_slot_idno: params.inputSubSlot ?? null,
-        material_pack_code: params.materialInventory.idno,
-        feed_material_pack_type: convertFeedMaterialType('inspect'),
-        check_pack_code_match: convertMatch('true')
-    }
-    console.log("巡檢上傳資料", payload)
-    await SmtService.addPanasonicMounterItemStatRoll({
-        requestBody: payload
-    })
-}
-
 
 function speak(text: string) {
     text = text.split('').join(', ') // Convert `10010` to `1,0,0,1,0` for speaking characters one by one
@@ -288,10 +266,6 @@ function resetSlotMaterialFormInputs() {
 }
 
 
-function getMaterialMatchedRowArray(materialIdno: string): RowModel[] {
-    return rowData.value.filter(row => row.materialIdno === materialIdno)
-}
-
 function handleMaterialMatched(payload: {
     materialInventory: SmtMaterialInventoryEx
     matchedRows: any[]
@@ -306,10 +280,6 @@ function handleMaterialMatched(payload: {
     slotIdnoInput.value?.focus()
 }
 
-function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
-    return s as unknown as CheckMaterialMatchEnum
-}
-
 function convertProduceMode(s: boolean | null): ProduceTypeEnum | null {
     return s as unknown as ProduceTypeEnum
 }
@@ -318,38 +288,13 @@ function convertBoardSide(s: String | null): BoardSideEnum | null {
     return s as unknown as BoardSideEnum
 }
 
-
-
-async function appendedMaterialUpload(params: {
-    stat_id: number,
-    inputSlot: string,
-    inputSubSlot: string,
-    materialInventory?: SmtMaterialInventoryEx | null,
-    correctState?: CorrectState
-}) {
-
-    const payload: PanasonicFeedRecordCreate = {
-        stat_item_id: params.stat_id,
-        operator_id: '',
-        operation_time: new Date().toISOString(),
-        slot_idno: params.inputSlot,
-        sub_slot_idno: params.inputSubSlot ?? null,
-        material_pack_code: params.materialInventory.idno,
-        feed_material_pack_type: convertFeedMaterialType('new'),
-        check_pack_code_match: convertMatch(params.correctState)
-    }
-
-    const response = await SmtService.addPanasonicMounterItemStatRoll(
-        { requestBody: payload }
-    )
-}
-
 const { submit: submitPostProductionFeed } = usePostProductionFeed<RowModel>({
     gridApi,
     rowData,
     ui: {
         success: showSuccess,
         warn: showWarn,
+        info: (msg: string) => message.info(msg),
         error: showError,
         notifyError: (msg: string) => message.error(msg),
         playErrorTone,
@@ -455,15 +400,7 @@ function handleProductionStopped() {
     router.push('/smt/panasonic-mounter/')
 }
 
-const rollShortageFormRef = ref<FormInst | null>(null)
-const showRollShortageModal = ref(false)
 const rollTypeOptions = [{ label: '接料', value: 'roll' }, { label: '新捲料', value: 'new' }]
-
-const rollShortageFormValue = ref({
-    materialInventoryIdno: '',
-    slotIdno: '',
-    type: ''
-})
 
 const rollShortageRules: FormRules = {
     materialInventoryIdno: { required: true, message: '請輸入單包條碼', trigger: ['blur'] },
@@ -473,124 +410,18 @@ const rollShortageRules: FormRules = {
     },
 }
 
-function onRollShortage() {
-    //單捲不足
-    showRollShortageModal.value = true
-}
-
-function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null {
-    return s as unknown as FeedMaterialTypeEnum
-}
-
-
-
-
-async function onSubmitShortage() {
-    // 可以先驗證表單
-    const idno = rollShortageFormValue.value.materialInventoryIdno.trim()
-    if (!idno) return showError('請輸入物料號')
-
-    const inputSlotIdno = rollShortageFormValue.value.slotIdno.trim()
-    if (!inputSlotIdno) return showError('請輸入槽位')
-    const [inputSlot, inputSubSlot = ''] = inputSlotIdno.split('-')
-
-    const stat = mounterData.value.find(
-        stat => stat.slot_idno === inputSlot && (stat.sub_slot_idno ?? '') === inputSubSlot
-    )
-
-    if (!stat) return showError('找不到對應的槽位的資料')
-
-    const row = rowData.value.find(
-        r => r.slotIdno === inputSlot && (r.subSlotIdno ?? '') === inputSubSlot
-    )
-
-    if (!row) {
-        return showError(`找不到表格槽位 ${inputSlotIdno}`)
-    }
-
-    const rowId = `${row.slotIdno}-${row.subSlotIdno ?? ''}`
-
-    const materialRowNode = gridOptions.api.getRowNode(rowId)
-    if (!materialRowNode) {
-        return showError(`找不到AG Grid 資料列 ${rowId}`)
-    }
-    const packType = rollShortageFormValue.value.type
-    if (!packType) return showError('請選擇物料類型')
-
-    let materialInventory: SmtMaterialInventoryEx | null = null
-
-    let correctState: CorrectState | null = null
-
-    try {
-        rollShortageFormRef.value?.validate()
-
-
-        materialInventory = await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: idno })
-
-        const materialMatchRowArray = getMaterialMatchedRowArray(materialInventory.material_idno)
-
-        if (materialMatchRowArray.length === 0) {
-            await playErrorTone()
-            return showError('表格內無此物料')
-        }
-
-        correctState = 'true'
-
-    } catch (error) {
-
-        if (error instanceof ApiError && error.status === 404 && isTestingMode) {
-            message.info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
-            correctState = 'warning'
-        } else {
-            if (error instanceof ApiError) {
-                const msg = {
-                    404: '查無此條碼',
-                    504: 'ERP 連線超時，請確認 ERP 連線',
-                    502: 'ERP 連線錯誤，請確認 ERP 連線',
-                    500: '系統錯誤'
-                }[error.status] ?? '未知錯誤'
-
-                message.error(msg)
-            } else {
-                console.error(error)
-                message.error('發生未知例外')
-            }
-            return null
-        }
-    }
-
-    const payload: PanasonicFeedRecordCreate = {
-        stat_item_id: stat.id,
-        operator_id: '',
-        operation_time: new Date().toISOString(),
-        slot_idno: inputSlot,
-        sub_slot_idno: inputSubSlot ?? null,
-        material_pack_code: idno,
-        feed_material_pack_type: convertFeedMaterialType(packType),
-        check_pack_code_match: convertMatch(correctState)
-    }
-    console.log("送出資料", payload)
-    const response = await SmtService.addPanasonicMounterItemStatRoll(
-        { requestBody: payload }
-    )
-    showSuccess("新增成功")
-
-    const oldAppendedIdno = row.appendedMaterialInventoryIdno?.trim() || ""
-
-    const currentCodes = oldAppendedIdno ? oldAppendedIdno.split(',').map(s => s.trim()) : []
-    if (idno && !currentCodes.includes(idno)) {
-        currentCodes.push(idno)
-    }
-    const newAppendedIdno = currentCodes.join(', ')
-
-    materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
-
-    row.appendedMaterialInventoryIdno = newAppendedIdno
-
-    showRollShortageModal.value = false
-    rollShortageFormValue.value = { materialInventoryIdno: '', slotIdno: '', type: '' }
-
-}
+const {
+    rollShortageFormRef,
+    rollShortageFormValue,
+    showRollShortageModal,
+    onRollShortage,
+    onSubmitShortage,
+    getMaterialMatchedRows: getMaterialMatchedRowArray,
+} = usePostProductionRollShortage<RowModel>({
+    getMounterData: () => mounterData.value,
+    getRowData: () => rowData.value,
+    isTestingMode: () => isTestingMode.value,
+})
 
 const showMaterialQueryModal = ref(false)
 
