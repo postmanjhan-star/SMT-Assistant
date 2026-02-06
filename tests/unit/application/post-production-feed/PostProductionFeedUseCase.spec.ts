@@ -3,6 +3,9 @@ import { PostProductionFeedContext } from "@/application/post-production-feed/Po
 import { PostProductionFeedUseCase } from "@/application/post-production-feed/PostProductionFeedUseCase"
 import { RowModelBase } from "@/application/post-production-feed/PostProductionFeedTypes"
 import { PostProductionFeedGridAdapter } from "@/ui/post-production/PostProductionFeedGridAdapter"
+import { createPinia, setActivePinia } from "pinia"
+import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore"
+import type { PostProductionFeedStrategy } from "@/application/post-production-feed/PostProductionFeedStrategy"
 
 describe("PostProductionFeedUseCase", () => {
     it("does not call inspectionUpload in testing mode", async () => {
@@ -34,10 +37,12 @@ describe("PostProductionFeedUseCase", () => {
             ],
         } as PanasonicMounterItemStatRead
 
-        let correctState: "true" | "false" | "warning" = "false"
+        setActivePinia(createPinia())
+        const store = usePostProductionFeedStore()
+        store.bindGrid(grid)
 
         const deps = {
-            grid,
+            store,
             ui: {
                 success: vi.fn().mockResolvedValue(undefined),
                 warn: vi.fn(),
@@ -49,17 +54,19 @@ describe("PostProductionFeedUseCase", () => {
             getMounterData: () => [stat],
             isTestingMode: () => true,
             isProductionStarted: () => true,
-            getCorrectState: () => correctState,
-            setCorrectState: (state: "true" | "false" | "warning") => {
-                correctState = state
-            },
-            clearMaterialResult: vi.fn(),
             resetMaterialScan: vi.fn(),
             inspectionUpload: vi.fn().mockResolvedValue(undefined),
             appendedMaterialUpload: vi.fn().mockResolvedValue(undefined),
         }
 
-        const useCase = new PostProductionFeedUseCase<RowModelBase>(deps)
+        const strategy: PostProductionFeedStrategy = {
+            submit: vi.fn().mockResolvedValue(true),
+        }
+
+        const useCase = new PostProductionFeedUseCase<RowModelBase>(
+            deps,
+            () => strategy
+        )
 
         const ctx: PostProductionFeedContext = {
             slot: "10008",

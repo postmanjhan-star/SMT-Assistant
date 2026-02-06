@@ -9,17 +9,13 @@ import {
 import { PostProductionFeedContext } from "./PostProductionFeedContext"
 import { PostProductionFeedDeps } from "./PostProductionFeedDeps"
 import { RowModelBase } from "./PostProductionFeedTypes"
-import { NormalModeStrategy } from "./NormalModeStrategy"
-import { TestingModeStrategy } from "./TestingModeStrategy"
+import { PostProductionFeedStrategy } from "./PostProductionFeedStrategy"
 
 export class PostProductionFeedUseCase<TRow extends RowModelBase> {
-    private normalStrategy: NormalModeStrategy<TRow>
-    private testingStrategy: TestingModeStrategy<TRow>
-
-    constructor(private deps: PostProductionFeedDeps<TRow>) {
-        this.normalStrategy = new NormalModeStrategy(deps)
-        this.testingStrategy = new TestingModeStrategy(deps)
-    }
+    constructor(
+        private deps: PostProductionFeedDeps,
+        private getStrategy: () => PostProductionFeedStrategy
+    ) {}
 
     async execute(ctx: PostProductionFeedContext): Promise<void> {
         const { slot, subSlot, slotIdno, result } = ctx
@@ -57,14 +53,17 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
 
                     await this.deps.ui.success(`巡檢通過：${slotIdno}`)
 
-                    const row = this.deps.grid.getRow(slot, subSlot)
+                    const row = this.deps.store.getRow(slot, subSlot)
 
                     if (!row) {
                         await this.deps.ui.error(`找不到槽位 ${slotIdno}`)
                         return
                     }
 
-                    this.deps.grid.applyInspectionUpdate(row, result.materialInventory.idno)
+                    this.deps.store.applyInspectionUpdate(
+                        row,
+                        result.materialInventory.idno
+                    )
                     return
                 }
             }
@@ -85,11 +84,8 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
             }
         }
 
-        if (this.deps.isTestingMode()) {
-            success = await this.testingStrategy.submit(ctx)
-        } else {
-            success = await this.normalStrategy.submit(ctx)
-        }
+        const strategy = this.getStrategy()
+        success = await strategy.submit(ctx)
 
         if (!success) return
 
@@ -98,23 +94,23 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
             inputSlot: slot,
             inputSubSlot: subSlot,
             materialInventory: result?.materialInventory,
-            correctState: this.deps.getCorrectState(),
+            correctState: this.deps.store.getCorrectState(),
         })
 
-        const row = this.deps.grid.getRow(slot, subSlot)
+        const row = this.deps.store.getRow(slot, subSlot)
 
         if (!row) {
             await this.deps.ui.error(`找不到槽位 ${slotIdno}`)
             return
         }
 
-        const rowId = this.deps.grid.getRowId(row)
+        const rowId = this.deps.store.getRowId(row)
         const newAppendedIdno = appendMaterialCode(
             row.appendedMaterialInventoryIdno,
             result?.materialInventory?.idno
         )
 
-        const updated = this.deps.grid.setAppendedMaterialInventoryIdno(
+        const updated = this.deps.store.setAppendedMaterialInventoryIdno(
             rowId,
             newAppendedIdno
         )

@@ -1,7 +1,9 @@
 ﻿import { PanasonicMounterItemStatRead } from "@/client"
 import { MaterialInventoryLike } from "./PostProductionFeedContext"
-import { PostProductionFeedGridAdapter } from "@/ui/post-production/PostProductionFeedGridAdapter"
-import { CorrectState, RowModelBase } from "./PostProductionFeedTypes"
+import type {
+    PostProductionFeedStore,
+    PostProductionCorrectState,
+} from "@/stores/postProductionFeedStore"
 
 export type PostProductionFeedUi = {
     success: (msg: string) => Promise<void> | Promise<boolean>
@@ -12,15 +14,12 @@ export type PostProductionFeedUi = {
     resetSlotMaterialFormInputs: () => void
 }
 
-export type PostProductionFeedDeps<TRow extends RowModelBase> = {
-    grid: PostProductionFeedGridAdapter<TRow>
+export type PostProductionFeedDeps = {
+    store: PostProductionFeedStore
     ui: PostProductionFeedUi
     getMounterData: () => PanasonicMounterItemStatRead[]
     isTestingMode: () => boolean
     isProductionStarted: () => boolean
-    getCorrectState: () => CorrectState
-    setCorrectState: (state: CorrectState) => void
-    clearMaterialResult: () => void
     resetMaterialScan: () => void
     inspectionUpload: (params: {
         stat_id: number
@@ -33,6 +32,6 @@ export type PostProductionFeedDeps<TRow extends RowModelBase> = {
         inputSlot: string
         inputSubSlot: string
         materialInventory?: MaterialInventoryLike | null
-        correctState?: CorrectState
+        correctState?: PostProductionCorrectState
     }) => Promise<void>
 }

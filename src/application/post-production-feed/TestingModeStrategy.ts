@@ -1,10 +1,9 @@
 ﻿import { decideTestingSlotBinding } from "@/domain/slot/SlotBindingRules"
 import { PostProductionFeedContext } from "./PostProductionFeedContext"
 import { PostProductionFeedStrategyBase } from "./PostProductionFeedStrategy"
-import { RowModelBase } from "./PostProductionFeedTypes"
 import { MODE_NAME_TESTING } from "./PostProductionFeedConstants"
 
-export class TestingModeStrategy<TRow extends RowModelBase> extends PostProductionFeedStrategyBase<TRow> {
+export class TestingModeStrategy extends PostProductionFeedStrategyBase {
     async submit(ctx: PostProductionFeedContext): Promise<boolean> {
         const { result, slot, subSlot, slotIdno } = ctx
 
@@ -14,7 +13,7 @@ export class TestingModeStrategy<TRow extends RowModelBase> extends PostProducti
         }
 
         const matchedRows = result.matchedRows || []
-        const rowNode = this.deps.grid.getRowNode(`${slot}-${subSlot}`)
+        const rowNode = this.deps.store.getRowNode(`${slot}-${subSlot}`)
 
         if (!rowNode) {
             await this.deps.ui.error(`找不到的輸入槽位 ${slotIdno}`)
@@ -28,7 +27,7 @@ export class TestingModeStrategy<TRow extends RowModelBase> extends PostProducti
         )
 
         if (bindingDecision.kind === "match") {
-            const materialRowNode = this.deps.grid.getRowNode(
+            const materialRowNode = this.deps.store.getRowNode(
                 bindingDecision.matchedSlotIdno
             )
 
@@ -37,14 +36,14 @@ export class TestingModeStrategy<TRow extends RowModelBase> extends PostProducti
                 return false
             }
 
-            this.deps.grid.cleanErrorMaterialInventory(
+            this.deps.store.cleanErrorMaterialInventory(
                 result.materialInventory?.idno ?? "",
                 slot,
                 subSlot
             )
 
-            this.deps.setCorrectState("true")
-            this.deps.clearMaterialResult()
+            this.deps.store.setCorrectState("true")
+            this.deps.store.clearMaterialResult()
 
             await this.deps.ui.success(
                 `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功`
@@ -54,13 +53,13 @@ export class TestingModeStrategy<TRow extends RowModelBase> extends PostProducti
         }
 
         const testRemark = bindingDecision.remark
-        this.deps.clearMaterialResult()
+        this.deps.store.clearMaterialResult()
 
         await this.deps.ui.success(
             `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功 ${testRemark}`
         )
 
-        this.deps.setCorrectState("warning")
+        this.deps.store.setCorrectState("warning")
 
         return true
 

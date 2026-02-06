@@ -1,10 +1,9 @@
 import { decideSlotBinding } from "@/domain/slot/SlotBindingRules"
-import { PostProductionFeedContext, MaterialScanResult } from "./PostProductionFeedContext"
+import { PostProductionFeedContext } from "./PostProductionFeedContext"
 import { PostProductionFeedStrategyBase } from "./PostProductionFeedStrategy"
-import { RowModelBase } from "./PostProductionFeedTypes"
 import { MODE_NAME_NORMAL } from "./PostProductionFeedConstants"
 
-export class NormalModeStrategy<TRow extends RowModelBase> extends PostProductionFeedStrategyBase<TRow> {
+export class NormalModeStrategy extends PostProductionFeedStrategyBase {
     async submit(ctx: PostProductionFeedContext): Promise<boolean> {
         const { result, slot, subSlot, slotIdno } = ctx
 
@@ -21,7 +20,7 @@ export class NormalModeStrategy<TRow extends RowModelBase> extends PostProductio
         }
 
         if (bindingDecision.kind === "match") {
-            const rowNode = this.deps.grid.getRowNode(
+            const rowNode = this.deps.store.getRowNode(
                 bindingDecision.matchedSlotIdno
             )
 
@@ -30,14 +29,14 @@ export class NormalModeStrategy<TRow extends RowModelBase> extends PostProductio
                 return false
             }
 
-            this.deps.grid.cleanErrorMaterialInventory(
+            this.deps.store.cleanErrorMaterialInventory(
                 result.materialInventory?.idno ?? "",
                 slot,
                 subSlot
             )
 
-            this.deps.clearMaterialResult()
-            this.deps.setCorrectState("true")
+            this.deps.store.clearMaterialResult()
+            this.deps.store.setCorrectState("true")
 
             await this.deps.ui.success(
                 `${MODE_NAME_NORMAL}：槽位 ${slotIdno} 綁定成功`
@@ -50,8 +49,8 @@ export class NormalModeStrategy<TRow extends RowModelBase> extends PostProductio
             subSlot,
             bindingDecision.suggestedSlotIdno
         )
-        this.deps.clearMaterialResult()
-        this.deps.setCorrectState("false")
+        this.deps.store.clearMaterialResult()
+        this.deps.store.setCorrectState("false")
         return false
     }
 }

@@ -31,8 +31,8 @@ import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 import StopProductionButton from "./components/StopProductionButton.vue";
 import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
 import SlotIdnoInput from "./components/SlotIdnoInput.vue";
-import { PostProductionFeedUseCase } from "@/application/post-production-feed/PostProductionFeedUseCase";
-import { PostProductionFeedGridAdapter } from "@/ui/post-production/PostProductionFeedGridAdapter";
+import { usePostProductionFeed } from "@/composables/usePostProductionFeed";
+import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore";
 
 import { useDateFormatter } from '@/composables/useDateFormatter'
 
@@ -55,7 +55,7 @@ const testingMode = ref<ProduceTypeEnum>(null)
 const isTestingMode = ref<boolean>(false)
 const productionUuid = ref<string>('')
 const uploading = ref(false)
-const correctState = ref<CorrectState>('false')
+const postProductionFeedStore = usePostProductionFeedStore()
 
 const mounterData = ref<PanasonicMounterItemStatRead[]>([]);
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
@@ -68,15 +68,8 @@ const slotFormValue = ref({
 const materialFormValue = ref({ materialInventoryIdno: '' });
 const materialInventoryIdnoInput = ref<InputInst>();
 
-type ResultType = {
-    success: boolean,
-    materialInventory?: SmtMaterialInventoryEx | null,
-    matchedRows?: any[]
-}
-
 const dialog = useDialog()
 
-const materialInventoryResult = ref<ResultType | null>(null)
 
 type CorrectState = 'true' | 'false' | 'warning'
 
@@ -263,14 +256,10 @@ const materialResetKey = ref(0)
 
 function handleSlotDone() {
     // 清掉這一輪狀態
-    materialInventoryResult.value = null
+    postProductionFeedStore.clearMaterialResult()
 
     // 🔑 觸發 MaterialInput reset
     materialResetKey.value++
-}
-
-function clearMaterialResult() {
-    materialInventoryResult.value = null
 }
 
 function onClickBackArrow(event: Event) { router.push(`/smt/panasonic-mounter/`); }
@@ -324,11 +313,11 @@ async function handleSlotSubmit({
     subSlot: string
     slotIdno: string
 }) {
-    return postProductionFeed.execute({
+    return submitPostProductionFeed({
         slot,
         subSlot,
         slotIdno,
-        result: materialInventoryResult.value,
+        result: postProductionFeedStore.materialResult,
     })
 }
 
@@ -380,11 +369,11 @@ function handleMaterialMatched(payload: {
     materialInventory: SmtMaterialInventoryEx
     matchedRows: any[]
 }) {
-    materialInventoryResult.value = {
+    postProductionFeedStore.setMaterialResult({
         success: true,
         materialInventory: payload.materialInventory,
         matchedRows: payload.matchedRows
-    }
+    })
 
     // 掃碼成功後，引導使用者下一步
     slotIdnoInput.value?.focus()
@@ -430,8 +419,9 @@ async function appendedMaterialUpload(params: {
 
 const productionStarted = ref(false)
 
-const postProductionFeed = new PostProductionFeedUseCase({
-    grid: new PostProductionFeedGridAdapter(() => gridApi.value, () => rowData.value),
+const { submit: submitPostProductionFeed } = usePostProductionFeed<RowModel>({
+    gridApi,
+    rowData,
     ui: {
         success: showSuccess,
         warn: showWarn,
@@ -443,11 +433,6 @@ const postProductionFeed = new PostProductionFeedUseCase({
     getMounterData: () => mounterData.value,
     isTestingMode: () => isTestingMode.value,
     isProductionStarted: () => productionStarted.value,
-    getCorrectState: () => correctState.value,
-    setCorrectState: (state) => {
-        correctState.value = state
-    },
-    clearMaterialResult,
     resetMaterialScan: handleSlotDone,
     inspectionUpload,
     appendedMaterialUpload,
@@ -790,7 +775,7 @@ function hideVirtualKeyboard() {
 
                 <n-gi>
                     <SlotIdnoInput :disabled="!productionStarted" :is-testing-mode="isTestingMode"
-                        :has-material="!!materialInventoryResult" @submit="handleSlotSubmit" @error="showError"
+                        :has-material="!!postProductionFeedStore.materialResult" @submit="handleSlotSubmit" @error="showError"
                         @done="handleSlotDone" />
                 </n-gi>
             </n-grid>
