@@ -8,6 +8,15 @@ export type PostProductionMaterialInventory = {
     remark?: string
 }
 
+export type PostProductionFeedUi = {
+    success: (msg: string) => Promise<void> | Promise<boolean>
+    warn: (msg: string) => boolean | void
+    error: (msg: string) => Promise<void> | Promise<boolean>
+    notifyError: (msg: string) => void
+    playErrorTone: () => Promise<void>
+    resetSlotMaterialFormInputs: () => void
+}
+
 export type PostProductionMaterialResult = {
     success: boolean
     materialInventory?: PostProductionMaterialInventory | null
@@ -41,9 +50,14 @@ export const usePostProductionFeedStore = defineStore(
         const materialResult = ref<PostProductionMaterialResult | null>(null)
 
         let grid: PostProductionGridPort | null = null
+        let ui: PostProductionFeedUi | null = null
 
         function bindGrid(port: PostProductionGridPort) {
             grid = port
+        }
+
+        function bindUi(handlers: PostProductionFeedUi) {
+            ui = handlers
         }
 
         function setMaterialResult(
@@ -62,6 +76,31 @@ export const usePostProductionFeedStore = defineStore(
 
         function getCorrectState() {
             return correctState.value
+        }
+
+        async function success(msg: string): Promise<void> {
+            await ui?.success?.(msg)
+        }
+
+        function warn(msg: string): boolean {
+            const result = ui?.warn?.(msg)
+            return typeof result === "boolean" ? result : false
+        }
+
+        async function error(msg: string): Promise<void> {
+            await ui?.error?.(msg)
+        }
+
+        function notifyError(msg: string) {
+            ui?.notifyError?.(msg)
+        }
+
+        async function playErrorTone(): Promise<void> {
+            await ui?.playErrorTone?.()
+        }
+
+        function resetSlotMaterialFormInputs() {
+            ui?.resetSlotMaterialFormInputs?.()
         }
 
         function getRowNode(rowId: string) {
@@ -107,10 +146,17 @@ export const usePostProductionFeedStore = defineStore(
             correctState,
             materialResult,
             bindGrid,
+            bindUi,
             setMaterialResult,
             clearMaterialResult,
             setCorrectState,
             getCorrectState,
+            success,
+            warn,
+            error,
+            notifyError,
+            playErrorTone,
+            resetSlotMaterialFormInputs,
             getRowNode,
             getRow,
             getRowId,

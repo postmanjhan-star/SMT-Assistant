@@ -25,8 +25,8 @@ export abstract class PostProductionFeedStrategyBase
 
         this.deps.store.deselectRow(materialRowId)
 
-        await this.deps.ui.playErrorTone()
-        this.deps.ui.notifyError(`錯誤的槽位 ${inputSlotIdno}`)
-        this.deps.ui.resetSlotMaterialFormInputs()
+        await this.deps.store.playErrorTone()
+        this.deps.store.notifyError(`錯誤的槽位 ${inputSlotIdno}`)
+        this.deps.store.resetSlotMaterialFormInputs()
     }
 }

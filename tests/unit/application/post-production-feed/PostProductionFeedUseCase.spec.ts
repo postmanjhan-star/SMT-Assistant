@@ -40,17 +40,17 @@ describe("PostProductionFeedUseCase", () => {
         setActivePinia(createPinia())
         const store = usePostProductionFeedStore()
         store.bindGrid(grid)
+        store.bindUi({
+            success: vi.fn().mockResolvedValue(undefined),
+            warn: vi.fn(),
+            error: vi.fn().mockResolvedValue(undefined),
+            notifyError: vi.fn(),
+            playErrorTone: vi.fn().mockResolvedValue(undefined),
+            resetSlotMaterialFormInputs: vi.fn(),
+        })
 
         const deps = {
             store,
-            ui: {
-                success: vi.fn().mockResolvedValue(undefined),
-                warn: vi.fn(),
-                error: vi.fn().mockResolvedValue(undefined),
-                notifyError: vi.fn(),
-                playErrorTone: vi.fn().mockResolvedValue(undefined),
-                resetSlotMaterialFormInputs: vi.fn(),
-            },
             getMounterData: () => [stat],
             isTestingMode: () => true,
             isProductionStarted: () => true,

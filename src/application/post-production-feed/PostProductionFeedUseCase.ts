@@ -28,7 +28,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
         )
 
         if (!stat) {
-            await this.deps.ui.error(`找不到槽位 ${slotIdno}`)
+            await this.deps.store.error(`找不到槽位 ${slotIdno}`)
             return
         }
 
@@ -51,12 +51,12 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
 
                     this.deps.resetMaterialScan()
 
-                    await this.deps.ui.success(`巡檢通過：${slotIdno}`)
+                    await this.deps.store.success(`巡檢通過：${slotIdno}`)
 
                     const row = this.deps.store.getRow(slot, subSlot)
 
                     if (!row) {
-                        await this.deps.ui.error(`找不到槽位 ${slotIdno}`)
+                        await this.deps.store.error(`找不到槽位 ${slotIdno}`)
                         return
                     }
 
@@ -76,7 +76,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
                 })
 
                 if (loadedSlot) {
-                    await this.deps.ui.error(
+                    await this.deps.store.error(
                         `巡檢失敗：此料號位於 ${formatSlotId(loadedSlot)}，非 ${slotIdno}`
                     )
                     return
@@ -100,7 +100,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
         const row = this.deps.store.getRow(slot, subSlot)
 
         if (!row) {
-            await this.deps.ui.error(`找不到槽位 ${slotIdno}`)
+            await this.deps.store.error(`找不到槽位 ${slotIdno}`)
             return
         }
 
@@ -116,7 +116,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
         )
 
         if (!updated) {
-            await this.deps.ui.error(`找不到AG Grid 資料列 ${rowId}`)
+            await this.deps.store.error(`找不到AG Grid 資料列 ${rowId}`)
         }
     }
 

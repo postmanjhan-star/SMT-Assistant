@@ -8,7 +8,7 @@ export class TestingModeStrategy extends PostProductionFeedStrategyBase {
         const { result, slot, subSlot, slotIdno } = ctx
 
         if (!result) {
-            this.deps.ui.warn("請先掃描物料條碼")
+            this.deps.store.warn("請先掃描物料條碼")
             return false
         }
 
@@ -16,7 +16,7 @@ export class TestingModeStrategy extends PostProductionFeedStrategyBase {
         const rowNode = this.deps.store.getRowNode(`${slot}-${subSlot}`)
 
         if (!rowNode) {
-            await this.deps.ui.error(`找不到的輸入槽位 ${slotIdno}`)
+            await this.deps.store.error(`找不到的輸入槽位 ${slotIdno}`)
             return false
         }
 
@@ -32,7 +32,7 @@ export class TestingModeStrategy extends PostProductionFeedStrategyBase {
             )
 
             if (!materialRowNode) {
-                await this.deps.ui.error(`錯誤的槽位 ${slotIdno}`)
+                await this.deps.store.error(`錯誤的槽位 ${slotIdno}`)
                 return false
             }
 
@@ -45,7 +45,7 @@ export class TestingModeStrategy extends PostProductionFeedStrategyBase {
             this.deps.store.setCorrectState("true")
             this.deps.store.clearMaterialResult()
 
-            await this.deps.ui.success(
+            await this.deps.store.success(
                 `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功`
             )
 
@@ -55,7 +55,7 @@ export class TestingModeStrategy extends PostProductionFeedStrategyBase {
         const testRemark = bindingDecision.remark
         this.deps.store.clearMaterialResult()
 
-        await this.deps.ui.success(
+        await this.deps.store.success(
             `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功 ${testRemark}`
         )
 

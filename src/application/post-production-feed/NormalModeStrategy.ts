@@ -7,7 +7,7 @@ export class NormalModeStrategy extends PostProductionFeedStrategyBase {
     async submit(ctx: PostProductionFeedContext): Promise<boolean> {
         const { result, slot, subSlot, slotIdno } = ctx
 
-        if (!result) return this.deps.ui.warn("請先掃描物料條碼")
+        if (!result) return this.deps.store.warn("請先掃描物料條碼")
 
         const matchedRows = result.matchedRows || []
         const bindingDecision = decideSlotBinding(
@@ -16,7 +16,7 @@ export class NormalModeStrategy extends PostProductionFeedStrategyBase {
         )
 
         if (bindingDecision.kind === "no_allowed_slots") {
-            return this.deps.ui.warn("此物料未匹配任何槽位")
+            return this.deps.store.warn("此物料未匹配任何槽位")
         }
 
         if (bindingDecision.kind === "match") {
@@ -25,7 +25,7 @@ export class NormalModeStrategy extends PostProductionFeedStrategyBase {
             )
 
             if (!rowNode) {
-                await this.deps.ui.error(`找不到物料槽位 ${slotIdno}`)
+                await this.deps.store.error(`找不到物料槽位 ${slotIdno}`)
                 return false
             }
 
@@ -38,7 +38,7 @@ export class NormalModeStrategy extends PostProductionFeedStrategyBase {
             this.deps.store.clearMaterialResult()
             this.deps.store.setCorrectState("true")
 
-            await this.deps.ui.success(
+            await this.deps.store.success(
                 `${MODE_NAME_NORMAL}：槽位 ${slotIdno} 綁定成功`
             )
             return true
