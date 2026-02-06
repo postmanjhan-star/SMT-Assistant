@@ -9,15 +9,21 @@ export class TestingModeStrategy implements SlotSubmitStrategy {
     constructor(private deps: SlotSubmitDeps) {}
 
     async submit(ctx: SlotSubmitContext): Promise<boolean> {
-        const { grid, ui, resetInputs } = this.deps
+        const { store } = this.deps
         const { result, slot, subSlot, slotIdno } = ctx
 
-        if (!result) { await ui.warn('錯誤的槽位'); return false; }
+        if (!result) {
+            store.setLastResult({ type: 'warn', message: '錯誤的槽位' })
+            return false
+        }
 
         const matchedRows = result.matchedRows || []
         const inputSlotIdno = formatSlotIdno({ slotIdno: slot, subSlotIdno: subSlot })
 
-        if (!grid.hasRow(inputSlotIdno)) { await ui.error(`不存在槽位 ${slotIdno}`); return false; }
+        if (!store.hasRow(inputSlotIdno)) {
+            store.setLastResult({ type: 'error', message: `不存在槽位 ${slotIdno}` })
+            return false
+        }
 
         if (matchedRows.length > 0) {
             const bindingDecision = decideSlotBinding(
@@ -26,21 +32,28 @@ export class TestingModeStrategy implements SlotSubmitStrategy {
             )
 
             if (bindingDecision.kind === 'match') {
-                if (!grid.hasRow(bindingDecision.matchedSlotIdno)) {
-                    await ui.error(`槽位錯誤 ${slotIdno}`)
+                if (!store.hasRow(bindingDecision.matchedSlotIdno)) {
+                    store.setLastResult({ type: 'error', message: `槽位錯誤 ${slotIdno}` })
                     return false
                 }
 
-                grid.cleanErrorMaterialInventory(result.materialInventory?.idno, slot, subSlot)
-
-                grid.applyBindingSuccess(
+                const applied = store.applyMatch(
                     bindingDecision.matchedSlotIdno,
-                    result.materialInventory?.idno ?? '',
-                    result.materialInventory?.remark ?? ''
+                    result.materialInventory ?? null,
+                    slot,
+                    subSlot
                 )
 
-                resetInputs()
-                await ui.success(`${MODE_NAME_TESTING}??? ${slotIdno} ????`)
+                if (!applied) {
+                    store.setLastResult({ type: 'error', message: `槽位錯誤 ${slotIdno}` })
+                    return false
+                }
+
+                store.resetInputs()
+                store.setLastResult({
+                    type: 'success',
+                    message: `${MODE_NAME_TESTING}??? ${slotIdno} ????`,
+                })
                 return true
             }
 
@@ -49,26 +62,38 @@ export class TestingModeStrategy implements SlotSubmitStrategy {
                     ? bindingDecision.suggestedSlotIdno
                     : `${slot}-${subSlot}`
 
-            grid.markMismatch(slot, subSlot, result.materialInventory?.idno ?? '')
-            grid.deselectRow(suggestedSlot)
+            store.applyMismatch(
+                { slot, subSlot },
+                suggestedSlot,
+                result.materialInventory?.idno ?? ''
+            )
 
-            await ui.error(`錯誤的槽位 ${slotIdno} ，此物料應放置於 ${suggestedSlot}`)
-            resetInputs()
+            store.setLastResult({
+                type: 'error',
+                message: `錯誤的槽位 ${slotIdno} ，此物料應放置於 ${suggestedSlot}`,
+            })
+            store.resetInputs()
             return false
         }
 
         // 
         const testRemark = TESTING_FORCE_BIND_REMARK
-        const updated = grid.applyWarningBinding(
+        const updated = store.applyWarningBinding(
             inputSlotIdno,
-            result.materialInventory?.idno ?? '',
+            result.materialInventory ?? null,
             testRemark
         )
 
-        if (!updated) { await ui.error(`槽位不存在 ${slotIdno}`); return false; }
+        if (!updated) {
+            store.setLastResult({ type: 'error', message: `槽位不存在 ${slotIdno}` })
+            return false
+        }
 
-        await ui.success(`${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功 ${testRemark}`)
-        resetInputs()
+        store.setLastResult({
+            type: 'success',
+            message: `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功 ${testRemark}`,
+        })
+        store.resetInputs()
         return true
     }
 }
