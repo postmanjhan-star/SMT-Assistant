@@ -4,8 +4,7 @@ import { GetRowIdParams, GridApi, GridOptions, RowNode } from "ag-grid-community
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormRules, useDialog } from 'naive-ui';
-import * as Tone from 'tone';
+import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, NModal, NRadioGroup, NRadioButton, NButton, FormRules, useDialog } from 'naive-ui';
 import { onMounted, ref } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
@@ -28,6 +27,7 @@ import { usePostProductionFeed } from "@/composables/usePostProductionFeed";
 import { usePostProductionFeedUploads } from "@/composables/usePostProductionFeedUploads";
 import { usePostProductionRollShortage } from "@/composables/usePostProductionRollShortage";
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore";
+import { useUiFeedback } from '@/composables/useUiFeedback';
 import { usePanasonicProductionLoader } from "@/composables/usePanasonicProductionLoader";
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData";
 
@@ -38,7 +38,6 @@ const { format } = useDateFormatter()
 
 const route = useRoute();
 const router = useRouter();
-const message = useMessage();
 useMeta({ title: 'Panasonic Mounter Assistant' });
 
 const MODE_NAME_TESTING = '🧪 試產生產模式'
@@ -69,7 +68,7 @@ const materialFormValue = ref({ materialInventoryIdno: '' });
 const materialInventoryIdnoInput = ref<InputInst>();
 
 const dialog = useDialog()
-
+const { success: showSuccess, warn: showWarn, error: showError, info, notifyError, playErrorTone } = useUiFeedback()
 
 type RowModel = ProductionRowModel
 const gridApi = ref<GridApi | null>(null);
@@ -157,6 +156,8 @@ const gridOptions: GridOptions = {
 
 onMounted(async () => {
     try {
+        postProductionFeedStore.closeRollShortageModal()
+
         productionUuid.value = route.params.productionUuid.toString().trim()
         const { mounterData: loadedStats } = await load()
 
@@ -192,70 +193,6 @@ function handleSlotDone() {
 function onClickBackArrow(event: Event) { router.push(`/smt/panasonic-mounter/`); }
 
 
-async function playSuccessTone() {
-    await Tone.start();
-    //create a synth and connect it to the main output (your speakers)
-    const synth = new Tone.Synth().toDestination();
-    //play a middle 'C' for the duration of an 8th note
-    const now = Tone.now()
-    synth.triggerAttackRelease("C4", "8n", now)
-    synth.triggerAttackRelease("G4", "8n", now + 0.1)
-    synth.triggerAttackRelease("F4", "8n", now + 0.2)
-}
-
-async function playErrorTone() {
-    await Tone.start();
-    //create a synth and connect it to the main output (your speakers)
-    const synth = new Tone.Synth().toDestination();
-    Tone.start();
-    const now = Tone.now()
-    synth.triggerAttackRelease("D4", "8n", now)
-    // synth.triggerAttackRelease("A4", "8n", now + 0.1)
-    synth.triggerAttackRelease("D4", "8n", now + 0.2)
-}
-
-async function showSuccess(msg: string) {
-    await playSuccessTone()
-    message.success(msg)
-    return true
-}
-
-function showWarn(msg: string) {
-    message.warning(msg)
-    return false
-}
-
-async function showError(msg: string) {
-    await playErrorTone()
-    message.error(msg)
-    return false
-}
-
-async function handleSlotSubmit({
-    slot,
-    subSlot,
-    slotIdno
-}: {
-    slot: string
-    subSlot: string
-    slotIdno: string
-}) {
-    return submitPostProductionFeed({
-        slot,
-        subSlot,
-        slotIdno,
-        result: postProductionFeedStore.materialResult,
-    })
-}
-
-
-function speak(text: string) {
-    text = text.split('').join(', ') // Convert `10010` to `1,0,0,1,0` for speaking characters one by one
-    const utterance = new SpeechSynthesisUtterance()
-    utterance.text = text
-    utterance.lang = 'zh-CN' // zh-CN is much louder and clear
-    speechSynthesis.speak(utterance)
-}
 
 function resetSlotMaterialFormInputs() {
     slotFormValue.value.slotIdno = ''
@@ -294,9 +231,9 @@ const { submit: submitPostProductionFeed } = usePostProductionFeed<RowModel>({
     ui: {
         success: showSuccess,
         warn: showWarn,
-        info: (msg: string) => message.info(msg),
+        info,
         error: showError,
-        notifyError: (msg: string) => message.error(msg),
+        notifyError,
         playErrorTone,
         resetSlotMaterialFormInputs,
     },
@@ -427,6 +364,10 @@ const showMaterialQueryModal = ref(false)
 
 async function onMaterialQuery() {
     //接料查詢
+    if (!productionUuid.value) {
+        showError('尚未取得生產 UUID')
+        return
+    }
     showMaterialQueryModal.value = true
 }
 
@@ -434,12 +375,14 @@ async function onMaterialQuery() {
 function hideVirtualKeyboard() {
     // navigator.virtualKeyboard.overlaysContent = true
     // navigator.virtualKeyboard.hide()
-}
+} 
 </script>
 
 <template>
     <!-- 單捲不足 Modal -->
-    <n-modal v-model:show="showRollShortageModal" preset="dialog" title="單捲不足">
+    <n-modal v-model:show="postProductionFeedStore.showRollShortageModal" preset="dialog" title="單捲不足" closable
+        mask-closable close-on-esc>
+
         <n-form :model="rollShortageFormValue" :rules="rollShortageRules" label-placement="top"
             ref="rollShortageFormRef">
             <n-form-item show-require-mark label="單包條碼" path="materialInventoryIdno">
@@ -531,8 +474,8 @@ function hideVirtualKeyboard() {
 
                 <n-gi>
                     <SlotIdnoInput :disabled="!productionStarted" :is-testing-mode="isTestingMode"
-                        :has-material="!!postProductionFeedStore.materialResult" @submit="handleSlotSubmit" @error="showError"
-                        @done="handleSlotDone" />
+                        :has-material="!!postProductionFeedStore.materialResult" @submit="handleSlotSubmit"
+                        @error="showError" @done="handleSlotDone" />
                 </n-gi>
             </n-grid>
         </n-space>

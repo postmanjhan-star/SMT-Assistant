@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { NModal, NButton, useMessage } from 'naive-ui'
+import { watch, toRef } from 'vue'
+import { NModal, NButton } from 'naive-ui'
 import { AgGridVue } from 'ag-grid-vue3'
-import type { GridOptions, RowNode, GetRowIdParams } from 'ag-grid-community'
-import { SmtService } from '@/client'
+import type { GridOptions, GetRowIdParams } from 'ag-grid-community'
+import { usePanasonicMaterialQuery } from '@/composables/usePanasonicMaterialQuery'
+import { useDateFormatter } from '@/composables/useDateFormatter'
 
 const props = defineProps<{
     uuid: string
@@ -15,30 +16,46 @@ const emit = defineEmits<{
     (e: 'error', msg: string): void
 }>()
 
-const message = useMessage()
+const { format } = useDateFormatter()
 
-// 資料
-type MaterialQueryRowModel = {
-    correct: string
-    slotIdno: string
-    subSlotIdno: string
-    materialInventoryIdno: string
-    materialInventoryType: string
-    checktime: string
-    operatorName: string
-    remark?: string
-}
-const rowData = ref<MaterialQueryRowModel[]>([])
+const uuidRef = toRef(props, 'uuid')
+const show = toRef(props, 'show')
+const { rowData, load } = usePanasonicMaterialQuery(uuidRef)
 
 // Grid Options
 const gridOptions: GridOptions = {
     columnDefs: [
-        { field: "correct", headerName: "", flex: 1 },
+        {
+            field: "correct",
+            headerName: "",
+            flex: 1,
+            refData: {
+                MATCHED_MATERIAL_PACK: "✅",
+                TESTING_MATERIAL_PACK: "⚠️",
+                UNMATCHED_MATERIAL_PACK: "❌",
+                UNCHECKED_MATERIAL_PACK: "",
+            },
+        },
         { field: "slotIdno", headerName: '槽位', flex: 3 },
         { field: "subSlotIdno", headerName: '子槽位', flex: 2 },
         { field: "materialInventoryIdno", headerName: '接料代碼', flex: 5 },
-        { field: "materialInventoryType", headerName: '物料類型', flex: 5 },
-        { field: "checktime", headerName: '接料時間', flex: 5 },
+        {
+            field: "materialInventoryType",
+            headerName: '物料類型',
+            flex: 5,
+            refData: {
+                NEW_MATERIAL_PACK: "新物料",
+                REUSED_MATERIAL_PACK: "舊料",
+                IMPORTED_MATERIAL_PACK: "未標註的物料",
+                INSPECTION_MATERIAL_PACK: "巡檢物料",
+            },
+        },
+        {
+            field: "checktime",
+            headerName: '接料時間',
+            flex: 5,
+            valueFormatter: (params) => format(params.value),
+        },
         { field: "operatorName", headerName: '操作人員', flex: 5 },
         { field: "remark", headerName: '備註', flex: 5 },
     ],
@@ -49,24 +66,8 @@ const gridOptions: GridOptions = {
 
 
 async function fetchLogs() {
-    if (!props.uuid) return 
-
     try {
-        const logs = await SmtService.getTheStatsOfLogsByUuid({ uuid: props.uuid })
-        const newRowData: MaterialQueryRowModel[] = []
-        for (const log of logs) {
-            newRowData.push({
-                correct: log.check_pack_code_match,
-                slotIdno: log.slot_idno,
-                subSlotIdno: log.sub_slot_idno,
-                materialInventoryIdno: log.material_pack_code,
-                materialInventoryType: log.feed_material_pack_type,
-                operatorName: log.operator_id ?? '',
-                checktime: log.created_at,
-                remark: log.check_pack_code_match === 'TESTING_MATERIAL_PACK' ? '廠商測試料' : ''
-            })
-        }
-        rowData.value = newRowData
+        await load()
     } catch (e) {
         console.error(e)
         emit('error', `找不到接料資訊 ${props.uuid}`)
@@ -76,9 +77,12 @@ async function fetchLogs() {
 watch(
     () => props.show,
     async (val) => {
-        if (val) {
-            await fetchLogs()
+        if (!val) return
+        if (!props.uuid) {
+            emit('error', 'production uuid 不存在')
+            return
         }
+        await fetchLogs()
     },
     { immediate: true }
 )
@@ -86,7 +90,16 @@ watch(
 </script>
 
 <template>
-    <n-modal v-model:show="props.show" preset="dialog" title="查詢物料" :style="{ width: '90vw', maxWidth: '1400px' }">
+    <n-modal
+        :show="show"
+        preset="dialog"
+        title="查詢物料"
+        closable
+        mask-closable
+        close-on-esc
+        :style="{ width: '90vw', maxWidth: '1400px' }"
+        @update:show="emit('update:show', $event)"
+    >
         <div style="height: 350px; padding: 1rem;">
             <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" :gridOptions="gridOptions"
                 style="height: 100%;"></ag-grid-vue>

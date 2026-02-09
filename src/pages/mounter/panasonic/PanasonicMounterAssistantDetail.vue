@@ -4,8 +4,7 @@ import { GetRowIdParams, GridOptions, RowNode, CellValueChangedEvent, GridApi, G
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useMessage, NModal, NRadioGroup, NRadioButton, NButton, FormInst, FormRules, useDialog } from 'naive-ui';
-import * as Tone from 'tone';
+import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, NModal, NRadioGroup, NRadioButton, NButton, FormInst, FormRules, useDialog } from 'naive-ui';
 import { onMounted, ref, computed, nextTick, shallowRef, Slot, watch } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
@@ -24,6 +23,7 @@ import {
     SmtService
 } from '@/client';
 import { useAuthStore } from '@/stores/authStore';
+import { useUiFeedback } from '@/composables/useUiFeedback';
 import { CloudCog } from "lucide-vue-next";
 
 import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
@@ -36,7 +36,6 @@ import { SlotSubmitStrategy } from "@/application/slot-submit/SlotSubmitStrategy
 import { TestingModeStrategy } from "@/application/slot-submit/TestingModeStrategy";
 import { NormalModeStrategy } from "@/application/slot-submit/NormalModeStrategy";
 import { SlotSubmitFeedGridAdapter } from "@/ui/slot-submit/SlotSubmitFeedGridAdapter";
-import { h } from "vue";
 import { useSlotSubmitStore } from "@/stores/slotSubmitStore";
 import { useSlotSubmitFeedback } from "@/composables/useSlotSubmitFeedback";
 import { useSlotSubmitAutoUpload } from "@/composables/useSlotSubmitAutoUpload";
@@ -46,7 +45,6 @@ const { format } = useDateFormatter()
 
 const route = useRoute();
 const router = useRouter();
-const message = useMessage();
 useMeta({ title: 'Panasonic Mounter Assistant' });
 
 const MODE_NAME_TESTING = '🧪 試產生產模式'
@@ -87,6 +85,13 @@ type ResultType = {
 }
 
 const dialog = useDialog()
+const { success: showSuccess, warn: showWarn, error: showError, info } = useUiFeedback()
+
+useSlotSubmitFeedback({
+    success: showSuccess,
+    warn: showWarn,
+    error: showError
+})
 
 const materialInventoryResult = ref<ResultType | null>(null)
 
@@ -284,66 +289,6 @@ onMounted(async () => {
 function onClickBackArrow(event: Event) { router.push(`/smt/panasonic-mounter/`); }
 
 
-async function playSuccessTone() {
-    await Tone.start();
-    //create a synth and connect it to the main output (your speakers)
-    const synth = new Tone.Synth().toDestination();
-    //play a middle 'C' for the duration of an 8th note
-    const now = Tone.now()
-    synth.triggerAttackRelease("C4", "8n", now)
-    synth.triggerAttackRelease("G4", "8n", now + 0.1)
-    synth.triggerAttackRelease("F4", "8n", now + 0.2)
-}
-
-async function playErrorTone() {
-    await Tone.start();
-    //create a synth and connect it to the main output (your speakers)
-    const synth = new Tone.Synth().toDestination();
-    Tone.start();
-    const now = Tone.now()
-    synth.triggerAttackRelease("D4", "8n", now)
-    // synth.triggerAttackRelease("A4", "8n", now + 0.1)
-    synth.triggerAttackRelease("D4", "8n", now + 0.2)
-}
-
-async function showSuccess(msg: string): Promise<void> {
-    await playSuccessTone()
-
-    message.success(() =>
-        h('span', { 'data-testid': 'success-message' }, msg)
-    )
-}
-
-function showWarn(msg: string): void {
-
-    message.warning(() =>
-        h('span', { 'data-testid': 'warning-message' }, msg)
-    )
-}
-
-async function showError(msg: string): Promise<void> {
-
-    message.error(() =>
-        h('span', { 'data-testid': 'error-message' }, msg)
-    )
-
-    playErrorTone().catch(() => {})
-}
-
-useSlotSubmitFeedback({
-    success: showSuccess,
-    warn: showWarn,
-    error: showError
-})
-
-
-function speak(text: string) {
-    text = text.split('').join(', ') // Convert `10010` to `1,0,0,1,0` for speaking characters one by one
-    const utterance = new SpeechSynthesisUtterance()
-    utterance.text = text
-    utterance.lang = 'zh-CN' // zh-CN is much louder and clear
-    speechSynthesis.speak(utterance)
-}
 
 function resetSlotMaterialFormInputs() {
     slotFormValue.value.slotIdno = ''
@@ -524,7 +469,6 @@ async function onSubmitShortage() {
         const materialMatchRowArray = getMaterialMatchedRowArray(materialInventory.material_idno)
 
         if (materialMatchRowArray.length === 0) {
-            await playErrorTone()
             return showError('表格內無此物料')
         }
 
@@ -533,7 +477,7 @@ async function onSubmitShortage() {
     } catch (error) {
 
         if (error instanceof ApiError && error.status === 404 && isTestingMode) {
-            message.info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
+            info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
             correctState = 'warning'
         } else {
             if (error instanceof ApiError) {
@@ -544,10 +488,10 @@ async function onSubmitShortage() {
                     500: '系統錯誤'
                 }[error.status] ?? '未知錯誤'
 
-                message.error(msg)
+                showError(msg)
             } else {
                 console.error(error)
-                message.error('發生未知例外')
+                showError('發生未知例外')
             }
             return null
         }

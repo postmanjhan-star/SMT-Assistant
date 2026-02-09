@@ -1,4 +1,5 @@
-﻿import { ref } from "vue"
+﻿import { storeToRefs } from "pinia"
+import { ref } from "vue"
 import type { FormInst } from "naive-ui"
 import { ApiError, type PanasonicMounterItemStatRead } from "@/client"
 import {
@@ -41,11 +42,11 @@ export function usePostProductionRollShortage<
     const store = usePostProductionFeedStore()
     const rollShortageFormRef = ref<FormInst | null>(null)
 
-    const showRollShortageModal = store.showRollShortageModal
-    const rollShortageFormValue = store.rollShortageFormValue
+    const { showRollShortageModal, rollShortageFormValue } = storeToRefs(store)
 
     const onRollShortage = () => {
         store.openRollShortageModal()
+        
     }
 
     const getMaterialMatchedRows = (materialIdno: string): TRow[] => {
