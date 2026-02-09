@@ -15,7 +15,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/fuji-mounter/:mounterIdno/:workOrderIdno',
-        component: () => import("../smt-app/FujiMounterAssistantDetail/MainPage.vue"),
+        component: () => import("../pages/mounter/fuji/FujiMounterAssistantDetail.vue"),
       },
       {
         path: '/smt/panasonic-mounter',
@@ -43,7 +43,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/fuji-mounter-production/:productionUuid',
-        component: () => import("../smt-app/FujiMounterAssistantProduction/MainPage.vue")
+        component: () => import("../pages/mounter/fuji/FujiMounterAssistantProduction.vue")
       }
     ],
   },
