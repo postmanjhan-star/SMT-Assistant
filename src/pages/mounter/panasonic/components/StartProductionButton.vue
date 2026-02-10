@@ -12,9 +12,9 @@ import {
     BoardSideEnum,
     MachineSideEnum,
     FeedMaterialTypeEnum,
-    SmtMaterialInventory,
-    SmtService
+    SmtMaterialInventory
 } from '@/client';
+import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
 
 type CorrectState = 'true' | 'false' | 'warning'
 
@@ -132,7 +132,7 @@ async function startProductionUpload(rows?: RowModel[]) {
             check_pack_code_match: convertMatch(row.correct)
         }))
 
-        const response = await SmtService.addPanasonicMounterItemStats({ requestBody: payload })
+        const response = await startPanasonicProduction(payload)
         productionStatUuid.value = response[0].uuid
 
         response.forEach(stat => {

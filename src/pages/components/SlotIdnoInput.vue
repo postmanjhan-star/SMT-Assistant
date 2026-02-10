@@ -5,6 +5,7 @@ import { NForm, NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 const props = defineProps<{
     isTestingMode: boolean
     hasMaterial: boolean
+    disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -65,12 +66,18 @@ function onSubmit() {
     // ✅ 告知父層「slot 已完成」
     emit('done')
 }
+
+function focus() {
+    slotIdnoInput.value?.focus()
+}
+
+defineExpose({ focus })
 </script>
 
 <template>
     <n-form size="large" :model="formValue" @submit.prevent="onSubmit">
         <n-form-item label="打件機料件槽位">
-            <n-input ref="slotIdnoInput" v-model:value.lazy="formValue.slotIdno" />
+            <n-input ref="slotIdnoInput" v-model:value.lazy="formValue.slotIdno" :disabled="props.disabled" />
         </n-form-item>
     </n-form>
 </template>

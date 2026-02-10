@@ -26,8 +26,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUiFeedback } from '@/composables/useUiFeedback';
 import { CloudCog } from "lucide-vue-next";
 
-import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
-import SlotIdnoInput from "./components/SlotIdnoInput.vue";
+import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue";
+import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue";
 import StartProductionButton from "./components/StartProductionButton.vue";
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 
@@ -39,6 +39,8 @@ import { SlotSubmitFeedGridAdapter } from "@/ui/slot-submit/SlotSubmitFeedGridAd
 import { useSlotSubmitStore } from "@/stores/slotSubmitStore";
 import { useSlotSubmitFeedback } from "@/composables/useSlotSubmitFeedback";
 import { useSlotSubmitAutoUpload } from "@/composables/useSlotSubmitAutoUpload";
+import { stopPanasonicProduction } from '@/application/panasonic/production/StopPanasonicProduction'
+import { useSlotSubmitHandler } from '@/composables/useSlotSubmitHandler'
 
 
 const { format } = useDateFormatter()
@@ -63,7 +65,7 @@ const currentUsername = computed(() =>
 
 const mounterData = ref<PanasonicMounterFileRead>();
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
-const slotIdnoInput = ref<InputInst>();
+const slotIdnoInput = ref<{ focus: () => void } | null>(null);
 const slotFormValue = ref({
     slotIdno: '',
     materialInventoryIdno: '',
@@ -378,10 +380,7 @@ async function stopProduction() {
 }
 
 async function uploadEndProductionTime(uuid: string) {
-    await SmtService.updateTheStatsOfProductionEndTimeRecord({
-        uuid: uuid,
-        endTime: new Date().toISOString()
-    })
+    await stopPanasonicProduction(uuid)
 }
 
 const rollShortageFormRef = ref<FormInst | null>(null)
@@ -417,14 +416,16 @@ const slotSubmitStrategy = computed<SlotSubmitStrategy>(() => {
         : new NormalModeStrategy({ store: slotSubmitStore })
 })
 
-async function handleSlotSubmit(payload) {
-    const success = await slotSubmitStrategy.value.submit({
-        ...payload,
-        result: materialInventoryResult.value
-    })
-    if (success && !slotSubmitStore.isTestingMode) scheduleAutoUploadCheck()
-    return success
-}
+const { handleSlotSubmit } = useSlotSubmitHandler({
+    submit: (payload) =>
+        slotSubmitStrategy.value.submit({
+            ...payload,
+            result: materialInventoryResult.value,
+        }),
+    afterSuccess: () => {
+        if (!slotSubmitStore.isTestingMode) scheduleAutoUploadCheck()
+    },
+})
 
 async function onSubmitShortage() {
     // 可以先驗證表單
@@ -635,7 +636,7 @@ function hideVirtualKeyboard() {
 
                 <n-gi>
                     <SlotIdnoInput :is-testing-mode="isTestingMode" :has-material="!!materialInventoryResult"
-                        @submit="handleSlotSubmit" @error="showError" @done="handleSlotDone" />
+                        ref="slotIdnoInput" @submit="handleSlotSubmit" @error="showError" @done="handleSlotDone" />
                 </n-gi>
             </n-grid>
         </n-space>

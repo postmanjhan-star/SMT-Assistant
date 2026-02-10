@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDialog } from 'naive-ui'
-import { SmtService } from '@/client'
+import { stopPanasonicProduction } from '@/application/panasonic/production/StopPanasonicProduction'
 
 const props = defineProps<{
     uuid: string
@@ -31,10 +31,7 @@ async function stopProduction() {
 }
 
 async function uploadEndProductionTime(uuid: string) {
-    await SmtService.updateTheStatsOfProductionEndTimeRecord({
-        uuid,
-        endTime: new Date().toISOString()
-    })
+    await stopPanasonicProduction(uuid)
 }
 </script>
 

@@ -7,6 +7,7 @@ import {
 } from "@/domain/material/BarcodeScanRules"
 import { SmtMaterialInventory } from "@/client"
 import { BarcodeScanDeps } from "./BarcodeScanDeps"
+import type { SlotCandidate } from "@/domain/slot/SlotBindingRules"
 
 // SmtMaterialInventory 擴增 remark 屬性
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string };
@@ -14,10 +15,12 @@ type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string };
 /**
  * 掃描單包條碼的核心業務邏輯
  */
-export class BarcodeScanUseCase {
-    constructor(private deps: BarcodeScanDeps) {}
+export class BarcodeScanUseCase<TRow = SlotCandidate> {
+    constructor(private deps: BarcodeScanDeps<TRow>) {}
 
-    async execute(barcode: string): Promise<ScanResult<SmtMaterialInventoryEx>> {
+    async execute(
+        barcode: string
+    ): Promise<ScanResult<SmtMaterialInventoryEx, TRow>> {
         const { validator, materialRepository, getMaterialMatchedRows, isTestingMode } = this.deps
 
         if (!validator.validate(barcode)) {

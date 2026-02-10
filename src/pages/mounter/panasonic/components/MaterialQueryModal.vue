@@ -3,7 +3,7 @@ import { watch, toRef } from 'vue'
 import { NModal, NButton } from 'naive-ui'
 import { AgGridVue } from 'ag-grid-vue3'
 import type { GridOptions, GetRowIdParams } from 'ag-grid-community'
-import { usePanasonicMaterialQuery } from '@/composables/usePanasonicMaterialQuery'
+import { usePanasonicMaterialQuery } from '@/composables/panasonic/usePanasonicMaterialQuery'
 import { useDateFormatter } from '@/composables/useDateFormatter'
 
 const props = defineProps<{

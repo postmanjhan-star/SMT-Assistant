@@ -8,30 +8,36 @@ export type MaterialInventoryBase = {
     remark?: string
 }
 
-export type ScanSuccess<TMaterial> = {
+export type ScanSuccess<TMaterial, TRow = SlotCandidate> = {
     status: 'success'
     data: {
         materialInventory: TMaterial
-        matchedRows: SlotCandidate[]
+        matchedRows: TRow[]
     }
 }
 
-export type VirtualSuccess<TMaterial> = {
+export type VirtualSuccess<TMaterial, TRow = SlotCandidate> = {
     status: 'virtual_success'
     data: {
         materialInventory: TMaterial
-        matchedRows: SlotCandidate[]
+        matchedRows: TRow[]
     }
 }
 
-export type NoMatchInGridResult = { status: 'no_match_in_grid' }
+export type NoMatchInGridResult<TMaterial, TRow = SlotCandidate> = {
+    status: 'no_match_in_grid'
+    data: {
+        materialInventory: TMaterial
+        matchedRows: TRow[]
+    }
+}
 export type ApiErrorResult = { status: 'api_error'; error: unknown }
 export type UnknownErrorResult = { status: 'unknown_error'; error: unknown }
 
-export type ScanResult<TMaterial> =
-    | ScanSuccess<TMaterial>
-    | VirtualSuccess<TMaterial>
-    | NoMatchInGridResult
+export type ScanResult<TMaterial, TRow = SlotCandidate> =
+    | ScanSuccess<TMaterial, TRow>
+    | VirtualSuccess<TMaterial, TRow>
+    | NoMatchInGridResult<TMaterial, TRow>
     | ApiErrorResult
     | UnknownErrorResult
 
@@ -49,17 +55,20 @@ export const createVirtualMaterial = (idno: string): MaterialInventoryBase => ({
 
 export const invalidBarcodeResult = (
     message: string = 'invalid barcode format'
-): ScanResult<never> => ({
+): ScanResult<never, never> => ({
     status: 'unknown_error',
     error: new Error(message),
 })
 
-export const decideScanSuccess = <TMaterial>(
+export const decideScanSuccess = <TMaterial, TRow = SlotCandidate>(
     materialInventory: TMaterial,
-    matchedRows: SlotCandidate[]
-): ScanResult<TMaterial> => {
+    matchedRows: TRow[]
+): ScanResult<TMaterial, TRow> => {
     if (matchedRows.length === 0) {
-        return { status: 'no_match_in_grid' }
+        return {
+            status: 'no_match_in_grid',
+            data: { materialInventory, matchedRows },
+        }
     }
 
     return {
@@ -68,13 +77,13 @@ export const decideScanSuccess = <TMaterial>(
     }
 }
 
-export const decideScanError = <TMaterial>(input: {
+export const decideScanError = <TMaterial, TRow = SlotCandidate>(input: {
     errorKind: ScanErrorKind
     error: unknown
     isTestingMode: boolean
     barcode: string
     createVirtualMaterial: (barcode: string) => TMaterial
-}): ScanResult<TMaterial> => {
+}): ScanResult<TMaterial, TRow> => {
     if (input.isTestingMode && input.errorKind === 'not_found') {
         return {
             status: 'virtual_success',

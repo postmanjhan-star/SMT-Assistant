@@ -1,30 +1,37 @@
 <script setup lang="ts">
-import { GetRowIdParams, GridOptions, RowNode } from "ag-grid-community";
+import { GetRowIdParams, GridOptions } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
 import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { InputInst, NButton, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, useDialog } from 'naive-ui';
-import { onMounted, ref } from 'vue'
+import { NButton, NGi, NGrid, NP, NPageHeader, NSpace, NTag, useDialog } from 'naive-ui';
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import { useMeta } from 'vue-meta'
 import { useRoute, useRouter } from 'vue-router'
-import {
-    ApiError,
-    CheckMaterialMatchEnum,
-    FujiMounterFileRead,
-    FujiMounterItemStatCreate,
-    ProduceTypeEnum,
-    SmtMaterialInventory,
-    SmtService,
-    BoardSideEnum
-} from '@/client';
+import { ApiError, CheckMaterialMatchEnum, ProduceTypeEnum } from '@/client';
+import type { BoardSideEnum, FujiMounterItemStatCreate, SmtMaterialInventory } from '@/client';
 import { useUiFeedback } from '@/composables/useUiFeedback';
+import {
+    useFujiProductionState,
+    type FujiMounterRowModel,
+} from '@/composables/fuji/pre-production/useFujiProductionState'
+import { useSlotSubmitHandler } from '@/composables/useSlotSubmitHandler'
+import { FujiMounterGridAdapter } from '@/ui/fuji/FujiMounterGridAdapter'
+import MaterialInventoryBarcodeInput from '@/pages/components/MaterialInventoryBarcodeInput.vue'
+import SlotIdnoInput from '@/pages/components/SlotIdnoInput.vue'
+import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'
+import { ApiMaterialRepository } from '@/infrastruture/api/material/ApiMaterialRepository'
+import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase'
+import { findAvailableMaterialRows } from '@/domain/material/FujiMaterialMatchRules'
+import { parseFujiSlotIdno } from '@/domain/slot/FujiSlotParser'
+import { loadFujiProductionSlots } from '@/application/preproduction/FujiProductionLoadUseCase'
+import { startFujiProduction } from '@/application/fuji/production/StartFujiProduction'
+import { stopFujiProduction } from '@/application/fuji/production/StopFujiProduction'
+import { NormalModeStrategy } from '@/application/slot-submit/NormalModeStrategy'
+import { TestingModeStrategy } from '@/application/slot-submit/TestingModeStrategy'
+import type { SlotSubmitStoreLike } from '@/application/slot-submit/SlotSubmitDeps'
 
 const route = useRoute()
 const router = useRouter()
-const dialog = useDialog()
-const { success: showSuccess, warn: showWarn, error: showError, info } = useUiFeedback()
-useMeta( { title: 'Fuji Mounter Assistant' } )
-
 const MODE_NAME_TESTING = '🧪 試產生產模式'
 const MODE_NAME_NORMAL = '✅ 正式生產模式'
 
@@ -34,30 +41,145 @@ const boardSide = ref<BoardSideEnum>( route.query.work_sheet_side as BoardSideEn
 const mounterIdno = ref<string>( route.params.mounterIdno.toString() )
 const isTestingMode = ref<boolean>( route.query.testing_mode === '1' )
 
+const dialog = useDialog()
+const { success: showSuccess, warn: showWarn, error: showError } = useUiFeedback()
+const { rows: rowData, setFromApi } = useFujiProductionState()
+
+type RowModel = FujiMounterRowModel
+
+const materialInventory = ref<SmtMaterialInventory | null>(null)
+const slotIdnoInput = ref<{ focus: () => void } | null>(null)
+const materialResetKey = ref(0)
+
+const getMaterialMatchedRows = (materialIdno: string) =>
+    findAvailableMaterialRows(rowData.value, materialIdno)
+
+const materialScanUseCase = computed(
+    () =>
+        new BarcodeScanUseCase<RowModel>({
+            validator: new SimpleBarcodeValidator(),
+            materialRepository: new ApiMaterialRepository(),
+            isTestingMode: isTestingMode.value,
+            getMaterialMatchedRows,
+        })
+)
+
+const scanMaterial = (barcode: string) => materialScanUseCase.value.execute(barcode)
+
+function handleMaterialMatched(payload: { materialInventory: SmtMaterialInventory }) {
+    materialInventory.value = payload.materialInventory
+    slotIdnoInput.value?.focus()
+}
+
+function handleMaterialError(msg: string) {
+    materialInventory.value = null
+    showError(msg)
+}
+
+function resetMaterialState() {
+    materialInventory.value = null
+    materialResetKey.value += 1
+}
+
+
+const gridAdapter = shallowRef<FujiMounterGridAdapter<RowModel> | null>(null)
+
+function onGridReady(params: { api: any }) {
+    gridAdapter.value = new FujiMounterGridAdapter<RowModel>(params.api)
+}
+
+const toSlotKey = (
+    machineIdno: string,
+    stage: string,
+    slot: string | number
+) => `${machineIdno}-${stage}-${slot}`
+
+const findRowByParsedSlot = (parsed: {
+    machineIdno: string
+    stage: string
+    slot: number
+}) =>
+    rowData.value.find(
+        row =>
+            row.mounterIdno === parsed.machineIdno &&
+            row.stage === parsed.stage &&
+            row.slot === parsed.slot
+    )
+
+const slotSubmitStore: SlotSubmitStoreLike = {
+    setLastResult(result) {
+        if (!result) return
+        if (result.type === 'success') return showSuccess(result.message)
+        if (result.type === 'warn') return showWarn(result.message)
+        return showError(result.message)
+    },
+    resetInputs() {
+        resetMaterialState()
+    },
+    hasRow(rowId: string): boolean {
+        const parsed = parseFujiSlotIdno(rowId)
+        if (!parsed) return false
+        return !!findRowByParsedSlot(parsed)
+    },
+    applyMatch(
+        correctSlotIdno: string,
+        materialInfo?: { idno?: string; remark?: string } | null,
+        _inputSlot?: string,
+        _inputSubSlot?: string | null
+    ): boolean {
+        const parsed = parseFujiSlotIdno(correctSlotIdno)
+        if (!parsed) return false
+        const adapter = gridAdapter.value
+        if (!adapter) return false
+        const row = findRowByParsedSlot(parsed)
+        if (!row) return false
+        adapter.markMatched(row, materialInfo?.idno ?? '')
+        if (materialInfo?.remark) {
+            row.remark = materialInfo.remark
+        }
+        return true
+    },
+    applyWarningBinding(
+        slotIdno: string,
+        materialInfo?: { idno?: string } | null,
+        _remark?: string
+    ): boolean {
+        const parsed = parseFujiSlotIdno(slotIdno)
+        if (!parsed) return false
+        const adapter = gridAdapter.value
+        if (!adapter) return false
+        const row = findRowByParsedSlot(parsed)
+        if (!row) return false
+        adapter.markTesting(row, materialInfo?.idno ?? '')
+        return true
+    },
+    applyMismatch(
+        inputSlot: { slot: string; subSlot: string | null },
+        _expectedSlotIdno: string,
+        materialIdno?: string
+    ) {
+        const slotKey = `${inputSlot.slot}-${inputSlot.subSlot ?? ''}`
+        const parsed = parseFujiSlotIdno(slotKey)
+        if (!parsed) return
+        const adapter = gridAdapter.value
+        if (!adapter) return
+        const row = findRowByParsedSlot(parsed)
+        if (!row) return
+        adapter.markUnmatched(row, materialIdno ?? '')
+    },
+}
+
+const slotSubmitStrategy = computed(() => {
+    return isTestingMode.value
+        ? new TestingModeStrategy({ store: slotSubmitStore })
+        : new NormalModeStrategy({ store: slotSubmitStore })
+})
+useMeta( { title: 'Fuji Mounter Assistant' } )
+
 const productionUuid = ref<string>( '' )
 const productionStarted = ref( false )
 
-const slotFormValue = ref( { slotIdno: '' } );
-const slotIdnoInput = ref<InputInst>();
 
-const materialFormValue = ref( { materialInventoryIdno: '' } );
-const materialInventoryIdnoInput = ref<InputInst>();
-let materialInventoryFromScan: SmtMaterialInventory | null = null;
-
-type RowModel = {
-    correct: CheckMaterialMatchEnum | null,
-    id: number,
-    mounterIdno: string,
-    boardSide: string,
-    stage: string,
-    slot: number,
-    materialIdno: string,
-    operatorIdno: string | null,
-    materialInventoryIdno: string | null,
-    remark?: string,
-}
-
-const rowData = ref<RowModel[]>( [] );
 
 const gridOptions: GridOptions = {
     columnDefs: [
@@ -79,73 +201,29 @@ const gridOptions: GridOptions = {
 }
 
 onMounted( async () => {
-    let fstDataArray: FujiMounterFileRead[] = [];
     try {
-        fstDataArray = await SmtService.getFujiMounterMaterialSlotPairs( {
+        const data = await loadFujiProductionSlots( {
             workOrderIdno: workOrderIdno.value,
             mounterIdno: mounterIdno.value,
             productIdno: productIdno.value,
             boardSide: boardSide.value,
             testingMode: isTestingMode.value,
-            testingProductIdno: isTestingMode.value ? route.query.testing_product_idno as string : null,
+            testingProductIdno: isTestingMode.value
+                ? ( route.query.testing_product_idno as string )
+                : null,
         } )
-    }
-    catch ( error ) {
-        if ( error instanceof ApiError && error.status === 404 ) { router.push( '/http-status/404' ) }
-        else {
-            showError( "讀取打件資料失敗" );
-            console.error( error );
+        setFromApi(data)
+    } catch ( error ) {
+        if ( error instanceof ApiError && error.status === 404 ) {
+            router.push( '/http-status/404' )
+        } else {
+            showError( '讀取打件資料失敗' )
+            console.error( error )
         }
     }
-
-    const newRowData: RowModel[] = []
-    for ( let masterData of fstDataArray ) {
-        for ( let detailData of masterData.fuji_mounter_file_items ) {
-            let stage = detailData.stage;
-            if (stage === '1') stage = 'A';
-            else if (stage === '2') stage = 'B';
-            else if (stage === '3') stage = 'C';
-            else if (stage === '4') stage = 'D';
-
-            newRowData.push( {
-                id: detailData.id,
-                mounterIdno: masterData.mounter_idno,
-                boardSide: masterData.board_side,
-                stage: stage,
-                slot: detailData.slot,
-                operatorIdno: null,
-                materialIdno: detailData.part_number,
-                materialInventoryIdno: null,
-                correct: null,
-            } )
-        }
-    }
-    rowData.value = newRowData;
 } )
 
 function onClickBackArrow ( event: Event ) { router.push( `/smt/fuji-mounter/` ) }
-
-function parseSlotIdno ( slotIdno: string ) {
-    // Slot barcode format: mounterId-stage-slotNumber, e.g., XP2B1-A-25
-    const slotIdnoArray = slotIdno.split( '-' )
-    if ( slotIdnoArray.length < 3 ) return [ null, null, null ];
-    const machineIdno = slotIdnoArray[ 0 ];
-    let stage = slotIdnoArray[ 1 ];
-
-    // Handle numeric stage mapping if necessary (1->A, 2->B, etc.)
-    if ( stage === '1' ) stage = 'A';
-    else if ( stage === '2' ) stage = 'B';
-    else if ( stage === '3' ) stage = 'C';
-    else if ( stage === '4' ) stage = 'D';
-
-    const slotNumber = Number( slotIdnoArray[ 2 ] );
-    return [ machineIdno, stage, slotNumber ]
-}
-
-
-function getMaterialMatchedRows ( materialIdno: string ): RowModel[] {
-    return rowData.value.filter( row => row.materialIdno === materialIdno && ( !row.materialInventoryIdno || row.correct !== CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK ) )
-}
 
 async function checkAndStartProduction() {
     if (isTestingMode.value || rowData.value.length === 0) {
@@ -160,91 +238,51 @@ async function checkAndStartProduction() {
     }
 }
 
-function resetForms () {
-    materialFormValue.value.materialInventoryIdno = ''
-    slotFormValue.value.slotIdno = ''
-    materialInventoryFromScan = null;
-    materialInventoryIdnoInput.value?.focus()
-}
-
-async function onSubmitMaterialInventoryForm ( event: Event ) {
-    const idno = materialFormValue.value.materialInventoryIdno.trim();
-    if ( !idno ) return showWarn( '請輸入物料號' );
-
-    try {
-        materialInventoryFromScan = await SmtService.getMaterialInventoryForSmt( { materialInventoryIdno: idno } )
-    } catch ( error ) {
-        if ( isTestingMode.value && error instanceof ApiError && error.status === 404 ) {
-            info( `${ MODE_NAME_TESTING }：使用測試物料 ${ idno }` );
-            materialInventoryFromScan = {
-                idno: idno,
-                material_idno: `TEST-${ idno }`,
-                material_id: 0,
-                material_name: 'Testing Material'
-            } as unknown as SmtMaterialInventory;
-        } else {
-            const msg = { 404: '查無此條碼', 504: 'ERP 連線超時', 502: 'ERP 連線錯誤' }[ ( error as ApiError ).status ] ?? '條碼查詢失敗';
-            showError( msg );
-            resetForms();
-            return;
+const { handleSlotSubmit } = useSlotSubmitHandler({
+    submit: async (payload) => {
+        const trimmed = payload.slotIdno.trim()
+        if (!trimmed) {
+            await showWarn('請輸入槽位')
+            return false
         }
-    }
 
-    const matchedRows = getMaterialMatchedRows( materialInventoryFromScan.material_idno );
-    if ( matchedRows.length === 0 ) {
-        if ( !isTestingMode.value ) {
-            showError( '無匹配槽位或槽位已上料' );
-            resetForms();
-            return;
-        } else {
-            info( '無匹配槽位，請掃描任意槽位以強制綁定' );
+        const parsed = parseFujiSlotIdno(trimmed)
+        if (!parsed) {
+            await showError('槽位格式錯誤')
+            return false
         }
-    }
 
-    slotIdnoInput.value?.focus();
-}
-
-async function onSubmitSlotForm ( event: Event ) {
-    const inputSlotIdno = slotFormValue.value.slotIdno.trim();
-    if ( !inputSlotIdno ) return showWarn( '請輸入槽位' );
-    if ( !materialInventoryFromScan ) return showError( '請先掃描物料條碼' );
-
-    const [ mounter, stage, slot ] = parseSlotIdno( inputSlotIdno );
-    if ( !mounter ) return showError( '槽位條碼格式錯誤' );
-
-    const matchedRows = getMaterialMatchedRows( materialInventoryFromScan.material_idno );
-    const targetRow = matchedRows.find( r => r.mounterIdno === mounter && r.stage === stage && r.slot === slot );
-
-    if ( targetRow ) {
-        targetRow.materialInventoryIdno = materialInventoryFromScan.idno;
-        targetRow.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK;
-        gridOptions.api.applyTransaction( { update: [ targetRow ] } );
-        showSuccess( `槽位 ${ stage }-${ slot } 綁定成功` );
-    } else {
-        if ( isTestingMode.value ) {
-            const rowNode = gridOptions.api.getRowNode( `${ mounter }-${ stage }-${ slot }` );
-            if ( rowNode ) {
-                rowNode.data.materialInventoryIdno = materialInventoryFromScan.idno;
-                rowNode.data.correct = CheckMaterialMatchEnum.TESTING_MATERIAL_PACK;
-                rowNode.data.remark = `[廠商測試新料]`;
-                gridOptions.api.applyTransaction( { update: [ rowNode.data ] } );
-                showSuccess( `${ MODE_NAME_TESTING }：槽位 ${ stage }-${ slot } 已標記為測試料` );
-            } else {
-                showError( `找不到輸入的槽位 ${ inputSlotIdno }` );
+        const slot = `${parsed.machineIdno}-${parsed.stage}`
+        const subSlot = String(parsed.slot)
+        const result = materialInventory.value
+            ? {
+                success: true,
+                materialInventory: materialInventory.value,
+                matchedRows: findAvailableMaterialRows(
+                    rowData.value,
+                    materialInventory.value.material_idno
+                ).map(row => ({
+                    slotIdno: `${row.mounterIdno}-${row.stage}`,
+                    subSlotIdno: String(row.slot),
+                })),
             }
-        } else {
-            const rowNode = gridOptions.api.getRowNode( `${ mounter }-${ stage }-${ slot }` );
-            if ( rowNode ) {
-                rowNode.data.materialInventoryIdno = materialInventoryFromScan.idno;
-                rowNode.data.correct = CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK;
-                gridOptions.api.applyTransaction( { update: [ rowNode.data ] } );
-            }
-            showError( `錯誤的槽位，此物料應放置於 ${ matchedRows.map( r => `${ r.stage }-${ r.slot }` ).join( ', ' ) }` );
-        }
-    }
-    resetForms();
-    await checkAndStartProduction();
-}
+            : null
+
+        return slotSubmitStrategy.value.submit({
+            result,
+            slot,
+            subSlot,
+            slotIdno: toSlotKey(parsed.machineIdno, parsed.stage, parsed.slot),
+        })
+    },
+    afterSuccess: async () => {
+        resetMaterialState()
+        await checkAndStartProduction()
+    },
+})
+
+
+
 
 async function onProduction () {
     const invalidRows = rowData.value.filter( r => !r.correct && !isTestingMode.value );
@@ -301,7 +339,7 @@ async function startProductionUpload () {
         console.log(payload)
 
         // 假設後端會新增此 API
-        const response = await SmtService.addFujiMounterItemStats( { requestBody: payload } );
+        const response = await startFujiProduction( payload );
 
         // 假設後端回傳的資料包含 production_id
         if ( response && response.length > 0 && response[ 0 ].uuid ) {
@@ -326,7 +364,7 @@ async function onStopProduction () {
         onPositiveClick: async () => {
             try {
                 // 假設後端會新增此 API
-                await SmtService.updateFujiItemStatsEndTime( { uuid: productionUuid.value } );
+                await stopFujiProduction( productionUuid.value );
                 productionStarted.value = false;
                 showSuccess( '生產已結束' );
                 router.push( '/smt/fuji-mounter/' );
@@ -375,27 +413,21 @@ async function onStopProduction () {
 
             <n-grid cols="1 s:2" responsive="screen" x-gap="20">
                 <n-gi>
-                    <n-form size="large" :model="materialFormValue" @submit.prevent="onSubmitMaterialInventoryForm">
-                        <n-form-item label="物料單包條碼">
-                            <n-input type="text" size="large" v-model:value.lazy="materialFormValue.materialInventoryIdno"
-                                autofocus ref="materialInventoryIdnoInput" :disabled="productionStarted" />
-                        </n-form-item>
-                    </n-form>
+                    <MaterialInventoryBarcodeInput :disabled="productionStarted" :is-testing-mode="isTestingMode"
+                        :get-material-matched-rows="getMaterialMatchedRows" :reset-key="materialResetKey"
+                        :scan="scanMaterial" :allow-no-match-in-testing="true" @matched="handleMaterialMatched"
+                        @error="handleMaterialError" />
                 </n-gi>
                 <n-gi>
-                    <n-form size="large" :model="slotFormValue" @submit.prevent="onSubmitSlotForm">
-                        <n-form-item label="位置">
-                            <n-input type="text" size="large" v-model:value.lazy="slotFormValue.slotIdno"
-                                ref="slotIdnoInput" :disabled="productionStarted" />
-                        </n-form-item>
-                    </n-form>
+                    <SlotIdnoInput ref="slotIdnoInput" :disabled="productionStarted" :is-testing-mode="isTestingMode"
+                        :has-material="!!materialInventory" @submit="handleSlotSubmit" @error="showError" />
                 </n-gi>
             </n-grid>
         </n-space>
 
         <div style="height: 2000px; padding: 1rem;">
             <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;"
-                :gridOptions="gridOptions">
+                :gridOptions="gridOptions" @grid-ready="onGridReady">
             </ag-grid-vue>
         </div>
     </n-space>

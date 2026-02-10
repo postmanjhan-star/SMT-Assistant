@@ -11,9 +11,9 @@ export interface MaterialRepository {
     fetchByBarcode(barcode: string): Promise<MaterialRepositoryResult>
 }
 
-export interface BarcodeScanDeps {
+export interface BarcodeScanDeps<TRow = SlotCandidate> {
     validator: BarcodeValidator
     materialRepository: MaterialRepository
-    getMaterialMatchedRows: (materialIdno: string) => SlotCandidate[]
+    getMaterialMatchedRows: (materialIdno: string) => TRow[]
     isTestingMode: boolean
 }

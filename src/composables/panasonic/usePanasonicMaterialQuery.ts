@@ -1,5 +1,5 @@
 import { ref, type Ref } from "vue"
-import { loadPanasonicMaterialQueryRows } from "@/application/material-query/PanasonicMaterialQueryUseCase"
+import { loadPanasonicMaterialQueryRows } from "@/application/panasonic/material-query/PanasonicMaterialQueryUseCase"
 import type { PanasonicMaterialQueryRowModel } from "@/domain/material/buildPanasonicMaterialQueryRows"
 
 export function usePanasonicMaterialQuery(uuid: Ref<string>) {

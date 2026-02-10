@@ -5,10 +5,15 @@ import * as Tone from 'tone'
 import { ApiError, SmtMaterialInventory } from '@/client'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
 import { ApiMaterialRepository } from '@/infrastruture/api/material/ApiMaterialRepository';
-import { SimpleBarcodeValidator } from '@/application/barcode-scan/SimpleBarcodeValidator'
+import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'
 import { BarcodeScanDeps } from '@/application/barcode-scan/BarcodeScanDeps'
+import {
+    ScanResultLike,
+    decideMaterialScanAction,
+} from '@/domain/material/MaterialScanDecision'
 
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
+type MatchedPayload = { materialInventory: SmtMaterialInventoryEx; matchedRows: any[] }
 
 /* ================= props / emits ================= */
 
@@ -16,6 +21,9 @@ const props = defineProps<{
     isTestingMode: boolean
     getMaterialMatchedRows: (materialIdno: string) => any[]
     resetKey: number
+    disabled?: boolean
+    allowNoMatchInTesting?: boolean
+    scan?: (barcode: string) => Promise<ScanResultLike<SmtMaterialInventoryEx, any>>
 }>()
 
 watch(
@@ -26,10 +34,7 @@ watch(
 )
 
 const emit = defineEmits<{
-    (e: 'matched', payload: {
-        materialInventory: SmtMaterialInventoryEx
-        matchedRows: any[]
-    }): void
+    (e: 'matched', payload: MatchedPayload): void
     (e: 'error', msg: string): void
 }>()
 
@@ -75,57 +80,68 @@ const scanUseCase = computed(() => {
 async function onSubmit() {
     const idno = formValue.value.materialInventoryIdno.trim()
 
-    const result = await scanUseCase.value.execute(idno);
+    const result = props.scan
+        ? await props.scan(idno)
+        : await scanUseCase.value.execute(idno)
 
-    switch (result.status) {
-        case 'success':
-            await playSuccessTone();
+    const decision = decideMaterialScanAction(result, {
+        isTestingMode: props.isTestingMode,
+        allowNoMatchInTesting: props.allowNoMatchInTesting,
+    })
+
+    if (decision.action === 'matched') {
+        if (decision.tone === 'success') {
+            await playSuccessTone()
             message.success(
                 props.isTestingMode
                     ? '🧪 試產模式：物料匹配成功'
                     : '✅ 正式生產模式：物料匹配成功'
-            );
-            emit('matched', result.data);
-            break;
+            )
+        } else {
+            await playSuccessTone()
+            const infoMessage =
+                decision.messageKey === 'virtual'
+                    ? '🧪 試產模式：使用虛擬物料'
+                    : '🧪 試產模式：物料匹配成功'
+            message.info(infoMessage)
+        }
 
-        case 'virtual_success':
-            await playSuccessTone();
-            message.info('🧪 試產模式：使用虛擬物料');
-            emit('matched', result.data);
-            break;
-
-        case 'no_match_in_grid':
-            await playErrorTone();
-            emit('error', '表格內無此物料');
-            reset();
-            break;
-
-        case 'api_error':
-            await playErrorTone();
-            let msg = '未知 API 錯誤';
-            if (result.error instanceof ApiError) {
-                msg = {
-                    404: '查無此條碼',
-                    504: 'ERP 連線超時',
-                    502: 'ERP 連線錯誤',
-                    500: '系統錯誤'
-                }[result.error.status] ?? '未知錯誤';
-            } else {
-                console.error("An unexpected API error occurred", result.error);
-            }
-            emit('error', msg);
-            reset();
-            break;
-
-        case 'unknown_error':
-            await playErrorTone();
-            const error = result.error as Error;
-            const errorMessage = error.message === 'invalid barcode format' ? '請輸入物料號' : '未知例外';
-            emit('error', errorMessage);
-            console.error(result.error);
-            reset();
-            break;
+        emit('matched', decision.payload as MatchedPayload)
+        return
     }
+
+    await playErrorTone()
+
+    if (decision.errorKind === 'no_match') {
+        emit('error', '槽位不存在')
+        reset()
+        return
+    }
+
+    if (decision.errorKind === 'api_error') {
+        let msg = '未知 API 錯誤'
+        const error = decision.error
+        if (error instanceof ApiError) {
+            msg = {
+                404: '查無此條碼',
+                504: 'ERP 連線超時',
+                502: 'ERP 連線錯誤',
+                500: '系統錯誤',
+            }[error.status] ?? '未知錯誤'
+        } else {
+            console.error('An unexpected API error occurred', error)
+        }
+        emit('error', msg)
+        reset()
+        return
+    }
+
+    const error = decision.error as Error
+    const errorMessage =
+        error?.message === 'invalid barcode format' ? '請輸入物料號' : '未知例外'
+    emit('error', errorMessage)
+    console.error(decision.error)
+    reset()
 }
 
 function reset() {
@@ -139,7 +155,8 @@ function reset() {
 <template>
     <n-form size="large" :model="formValue" @submit.prevent="onSubmit">
         <n-form-item label="物料單包條碼">
-            <n-input ref="materialInventoryIdnoInput" autofocus v-model:value.lazy="formValue.materialInventoryIdno" />
+            <n-input ref="materialInventoryIdnoInput" autofocus v-model:value.lazy="formValue.materialInventoryIdno"
+            :disabled="props.disabled" />
         </n-form-item>
     </n-form>
 </template>

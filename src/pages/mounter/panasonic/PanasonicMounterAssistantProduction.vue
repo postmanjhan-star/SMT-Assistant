@@ -14,21 +14,21 @@ import {
     PanasonicMounterItemStatCreate,
     ProduceTypeEnum,
     SmtMaterialInventory,
-    SmtService,
     BoardSideEnum,
     MachineSideEnum
 } from '@/client';
+import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
 
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 import StopProductionButton from "./components/StopProductionButton.vue";
-import MaterialInventoryBarcodeInput from "./components/MaterialInventoryBarcodeInput.vue";
-import SlotIdnoInput from "./components/SlotIdnoInput.vue";
+import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue";
+import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue";
 import { usePostProductionFeed } from "@/composables/usePostProductionFeed";
 import { usePostProductionFeedUploads } from "@/composables/usePostProductionFeedUploads";
 import { usePostProductionRollShortage } from "@/composables/usePostProductionRollShortage";
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore";
 import { useUiFeedback } from '@/composables/useUiFeedback';
-import { usePanasonicProductionLoader } from "@/composables/usePanasonicProductionLoader";
+import { usePanasonicProductionLoader } from "@/composables/panasonic/usePanasonicProductionLoader";
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData";
 
 import { useDateFormatter } from '@/composables/useDateFormatter'
@@ -245,6 +245,23 @@ const { submit: submitPostProductionFeed } = usePostProductionFeed<RowModel>({
     appendedMaterialUpload,
 })
 
+async function handleSlotSubmit({
+    slot,
+    subSlot,
+    slotIdno
+}: {
+    slot: string
+    subSlot: string
+    slotIdno: string
+}) {
+    return submitPostProductionFeed({
+        slot,
+        subSlot,
+        slotIdno,
+        result: postProductionFeedStore.materialResult,
+    })
+}
+
 function onProduction() {
 
     const invalid = rowData.value.filter(r => {
@@ -308,9 +325,7 @@ async function startProductionUpload(isTestingMode: boolean) {
 
         console.log('Upload payload', payload)
 
-        const response = await SmtService.addPanasonicMounterItemStats(
-            { requestBody: payload }
-        )
+        const response = await startPanasonicProduction(payload)
 
         showSuccess('開始生產，資料上傳成功')
         productionStarted.value = true
