@@ -13,7 +13,7 @@ import {
     WorkflowSummaryRead,
     WorkflowService
 } from '@/client';
-import { useDateFormatter } from "@/composables/useDateFormatter";
+import { useDateFormatter } from "@/ui/shared/composables/useDateFormatter";
 
 const router = useRouter();
 

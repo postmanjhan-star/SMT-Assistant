@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { GetRowIdParams, GridOptions } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
@@ -9,17 +9,17 @@ import { useMeta } from 'vue-meta'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, CheckMaterialMatchEnum, ProduceTypeEnum } from '@/client';
 import type { BoardSideEnum, FujiMounterItemStatCreate, SmtMaterialInventory } from '@/client';
-import { useUiFeedback } from '@/composables/useUiFeedback';
+import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier';
 import {
     useFujiProductionState,
     type FujiMounterRowModel,
-} from '@/composables/fuji/pre-production/useFujiProductionState'
-import { useSlotSubmitHandler } from '@/composables/useSlotSubmitHandler'
-import { FujiMounterGridAdapter } from '@/ui/fuji/FujiMounterGridAdapter'
+} from '@/ui/pre-production/fuji/useFujiProductionState'
+import { SlotSubmissionRunner } from '@/application/slot-submit/SlotSubmissionRunner'
+import { FujiMounterGridAdapter } from '@/ui/pre-production/fuji/FujiMounterGridAdapter'
 import MaterialInventoryBarcodeInput from '@/pages/components/MaterialInventoryBarcodeInput.vue'
 import SlotIdnoInput from '@/pages/components/SlotIdnoInput.vue'
 import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'
-import { ApiMaterialRepository } from '@/infrastruture/api/material/ApiMaterialRepository'
+import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase'
 import { findAvailableMaterialRows } from '@/domain/material/FujiMaterialMatchRules'
 import { parseFujiSlotIdno } from '@/domain/slot/FujiSlotParser'
@@ -42,7 +42,7 @@ const mounterIdno = ref<string>( route.params.mounterIdno.toString() )
 const isTestingMode = ref<boolean>( route.query.testing_mode === '1' )
 
 const dialog = useDialog()
-const { success: showSuccess, warn: showWarn, error: showError } = useUiFeedback()
+const { success: showSuccess, warn: showWarn, error: showError } = useUiNotifier()
 const { rows: rowData, setFromApi } = useFujiProductionState()
 
 type RowModel = FujiMounterRowModel
@@ -183,15 +183,25 @@ const productionStarted = ref( false )
 
 const gridOptions: GridOptions = {
     columnDefs: [
-        { field: "correct", headerName: '', flex: 1, minWidth: 60, refData: { 'MATCHED_MATERIAL_PACK': '✅', 'UNMATCHED_MATERIAL_PACK': '❌', 'TESTING_MATERIAL_PACK': '⚠️' } },
-        { field: "mounterIdno", headerName: '機台', flex: 1, minWidth: 90 },
-        { field: "stage", headerName: 'Stage', flex: 1, minWidth: 90 },
-        { field: "slot", headerName: '槽位', flex: 1, minWidth: 90 },
-        { field: "boardSide", headerName: 'PCB面', flex: 1, minWidth: 90 },
-        { field: "materialIdno", headerName: '物料號', flex: 4, minWidth: 160 },
-        { field: "operatorIdno", headerName: '上料人員', flex: 4, minWidth: 160 },
-        { field: "materialInventoryIdno", headerName: '單包條碼', flex: 5, minWidth: 180 },
-        { field: "remark", headerName: '備註', flex: 3, minWidth: 120 },
+        {
+            field: 'correct',
+            headerName: '',
+            flex: 1,
+            minWidth: 60,
+            refData: {
+                MATCHED_MATERIAL_PACK: '✅',
+                UNMATCHED_MATERIAL_PACK: '❌',
+                TESTING_MATERIAL_PACK: '⚠️'
+            }
+        },
+        { field: 'mounterIdno', headerName: '機台', flex: 1, minWidth: 90 },
+        { field: 'stage', headerName: 'Stage', flex: 1, minWidth: 90 },
+        { field: 'slot', headerName: '槽位', flex: 1, minWidth: 90 },
+        { field: 'boardSide', headerName: 'PCB面', flex: 1, minWidth: 90 },
+        { field: 'materialIdno', headerName: '物料號', flex: 4, minWidth: 160 },
+        { field: 'operatorIdno', headerName: '上料人員', flex: 4, minWidth: 160 },
+        { field: 'materialInventoryIdno', headerName: '物料條碼', flex: 5, minWidth: 180 },
+        { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
     ],
     defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
     enableCellChangeFlash: true,
@@ -217,7 +227,7 @@ onMounted( async () => {
         if ( error instanceof ApiError && error.status === 404 ) {
             router.push( '/http-status/404' )
         } else {
-            showError( '讀取打件資料失敗' )
+            showError('讀取檔案資料失敗')
             console.error( error )
         }
     }
@@ -233,12 +243,12 @@ async function checkAndStartProduction() {
     const allCorrect = rowData.value.every(r => r.correct === CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK);
 
     if (allCorrect) {
-        await showSuccess('所有物料已正確上料，將自動開始生產...');
+        await showSuccess('所有物料已完成上料，準備進入正式生產...');
         await startProductionUpload();
     }
 }
 
-const { handleSlotSubmit } = useSlotSubmitHandler({
+const { handleSlotSubmit } = SlotSubmissionRunner({
     submit: async (payload) => {
         const trimmed = payload.slotIdno.trim()
         if (!trimmed) {
@@ -287,7 +297,7 @@ const { handleSlotSubmit } = useSlotSubmitHandler({
 async function onProduction () {
     const invalidRows = rowData.value.filter( r => !r.correct && !isTestingMode.value );
     if ( invalidRows.length > 0 ) {
-        return showError( '尚有槽位未上料，不能開始生產' );
+        return showError('尚有槽位未綁定，不能開始生產');
     }
 
     dialog.warning( {
@@ -304,7 +314,7 @@ function handleProductionStarted( productionStatUuid: string ) {
     productionStarted.value = true
     productionUuid.value = productionStatUuid
 
-    // 2️⃣ 更新 URL（保留 query，但移除 testing_mode）
+    // 2️⃣ 更新 URL（保留 query，並移除 testing_mode）
     const newQuery: any = { ...route.query, uuid: productionStatUuid }
     delete newQuery.testing_mode
     delete newQuery.testing_product_idno
@@ -338,24 +348,24 @@ async function startProductionUpload () {
 
         console.log(payload)
 
-        // 假設後端會新增此 API
+        // 假設後端已新增此 API
         const response = await startFujiProduction( payload );
 
-        // 假設後端回傳的資料包含 production_id
+        // 假設後端回傳 production_id
         if ( response && response.length > 0 && response[ 0 ].uuid ) {
-            showSuccess( '開始生產，資料上傳成功' );
+            showSuccess('開始生產，資料已上傳');
             handleProductionStarted( response[ 0 ].uuid );
         } else {
-            showError( '開始生產失敗，後端未回傳生產ID' );
+            showError('開始生產失敗，後端未回傳生產ID');
         }
     } catch ( err ) {
         console.error( 'upload failed: ', err );
-        showError( '資料上傳失敗' );
+        showError('資料上傳失敗');
     }
 }
 
 async function onStopProduction () {
-    if ( !productionUuid.value ) return showError( '沒有生產ID，無法停止' );
+    if (!productionUuid.value) return showError('沒有生產ID，無法停止');
     dialog.warning( {
         title: '停止生產確認',
         content: '確定要停止生產嗎？',
@@ -363,13 +373,13 @@ async function onStopProduction () {
         negativeText: '取消',
         onPositiveClick: async () => {
             try {
-                // 假設後端會新增此 API
+                // 假設後端已新增此 API
                 await stopFujiProduction( productionUuid.value );
                 productionStarted.value = false;
-                showSuccess( '生產已結束' );
+                showSuccess('生產已結束');
                 router.push( '/smt/fuji-mounter/' );
             } catch ( e ) {
-                showError( '停止生產失敗' );
+                showError('停止生產失敗');
                 console.error( e );
             }
         },
@@ -401,7 +411,7 @@ async function onStopProduction () {
                         </n-space>
                         <n-space size="small">
                             <n-button v-if="!productionStarted" type="success" size="small" @click="onProduction">
-                                🚀 開始生產
+                                ▶️ 開始生產
                             </n-button>
                             <n-button v-else type="error" size="small" @click="onStopProduction">
                                 🛑 結束生產

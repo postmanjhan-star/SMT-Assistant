@@ -30,7 +30,7 @@ export const buildPanasonicMaterialQueryRows = (
         checktime: log.created_at,
         remark:
             log.check_pack_code_match === "TESTING_MATERIAL_PACK"
-                ? "廠商測試料"
+                ? "[虛擬測試物料]"
                 : "",
     }))
 }

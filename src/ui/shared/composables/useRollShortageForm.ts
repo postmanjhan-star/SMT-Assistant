@@ -19,7 +19,7 @@ export type RollShortageFormValue = {
     type: string
 }
 
-export type UsePostProductionRollShortageOptions<TRow extends {
+export type useRollShortageFormOptions<TRow extends {
     slotIdno: string
     subSlotIdno?: string | null
     materialIdno: string
@@ -31,14 +31,14 @@ export type UsePostProductionRollShortageOptions<TRow extends {
     getOperatorId?: () => string | null
 }
 
-export function usePostProductionRollShortage<
+export function useRollShortageForm<
     TRow extends {
         slotIdno: string
         subSlotIdno?: string | null
         materialIdno: string
         appendedMaterialInventoryIdno: string
     }
->(options: UsePostProductionRollShortageOptions<TRow>) {
+>(options: useRollShortageFormOptions<TRow>) {
     const store = usePostProductionFeedStore()
     const rollShortageFormRef = ref<FormInst | null>(null)
 

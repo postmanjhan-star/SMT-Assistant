@@ -1,4 +1,4 @@
-import { stopPanasonicProductionStats } from '@/infrastruture/panasonic/production/PanasonicProductionApi'
+import { stopPanasonicProductionStats } from '@/infra/panasonic/production/PanasonicProductionApi'
 
 export async function stopPanasonicProduction(uuid: string) {
     return stopPanasonicProductionStats({

@@ -1,6 +1,6 @@
 import { NormalModeStrategy } from '@/application/slot-submit/NormalModeStrategy';
 import { SlotSubmitDeps } from '@/application/slot-submit/SlotSubmitDeps';
-import { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter';
+import { SlotSubmitFeedGridAdapter } from '@/ui/shared/grid/slot-submit/SlotSubmitFeedGridAdapter';
 import { SlotSubmitContext } from '@/application/slot-submit/SlotSubmitContext';
 import { createPinia, setActivePinia } from 'pinia';
 import { useSlotSubmitStore } from '@/stores/slotSubmitStore';

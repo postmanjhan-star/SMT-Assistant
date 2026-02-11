@@ -1,4 +1,4 @@
-import { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter';
+import { SlotSubmitFeedGridAdapter } from '@/ui/shared/grid/slot-submit/SlotSubmitFeedGridAdapter';
 
 describe('SlotSubmitFeedGridAdapter', () => {
     let grid: SlotSubmitFeedGridAdapter;

@@ -7,7 +7,7 @@ export type SlotSubmitFeedbackHandlers = {
     error?: (msg: string) => Promise<void> | void
 }
 
-export function useSlotSubmitFeedback(handlers: SlotSubmitFeedbackHandlers) {
+export function useSlotResultNotifier(handlers: SlotSubmitFeedbackHandlers) {
     const store = useSlotSubmitStore()
 
     watch(

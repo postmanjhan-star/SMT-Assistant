@@ -2,7 +2,7 @@ import { h } from 'vue'
 import * as Tone from 'tone'
 import { useMessage } from 'naive-ui'
 
-export function useUiFeedback() {
+export function useUiNotifier() {
   const message = useMessage()
 
   async function playSuccessTone() {

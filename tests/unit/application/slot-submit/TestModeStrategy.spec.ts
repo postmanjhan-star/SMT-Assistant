@@ -1,7 +1,7 @@
 import { TestingModeStrategy } from '@/application/slot-submit/TestingModeStrategy';
 import { SlotSubmitDeps } from '@/application/slot-submit/SlotSubmitDeps';
 import { SlotSubmitContext } from '@/application/slot-submit/SlotSubmitContext';
-import { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter';
+import { SlotSubmitFeedGridAdapter } from '@/ui/shared/grid/slot-submit/SlotSubmitFeedGridAdapter';
 import { TESTING_FORCE_BIND_REMARK } from '@/domain/slot/SlotBindingRules';
 import { createPinia, setActivePinia } from 'pinia';
 import { useSlotSubmitStore } from '@/stores/slotSubmitStore';

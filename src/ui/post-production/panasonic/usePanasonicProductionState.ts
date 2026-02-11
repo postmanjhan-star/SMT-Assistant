@@ -6,7 +6,7 @@ import {
 import type { PanasonicMounterItemStatRead } from "@/client"
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData"
 
-export function usePanasonicProductionLoader(productionUuid: Ref<string>) {
+export function usePanasonicProductionState(productionUuid: Ref<string>) {
     const mounterData = ref<PanasonicMounterItemStatRead[]>([])
     const rowData = ref<ProductionRowModel[]>([])
     const productionStarted = ref(false)

@@ -4,7 +4,7 @@ import { NForm, NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'
 import { ApiError, SmtMaterialInventory } from '@/client'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
-import { ApiMaterialRepository } from '@/infrastruture/api/material/ApiMaterialRepository';
+import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository';
 import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'
 import { BarcodeScanDeps } from '@/application/barcode-scan/BarcodeScanDeps'
 import {

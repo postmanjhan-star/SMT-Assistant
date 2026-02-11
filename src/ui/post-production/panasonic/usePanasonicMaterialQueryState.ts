@@ -1,8 +1,8 @@
-import { ref, type Ref } from "vue"
+﻿import { ref, type Ref } from "vue"
 import { loadPanasonicMaterialQueryRows } from "@/application/panasonic/material-query/PanasonicMaterialQueryUseCase"
 import type { PanasonicMaterialQueryRowModel } from "@/domain/material/buildPanasonicMaterialQueryRows"
 
-export function usePanasonicMaterialQuery(uuid: Ref<string>) {
+export function usePanasonicMaterialQueryState(uuid: Ref<string>) {
     const rowData = ref<PanasonicMaterialQueryRowModel[]>([])
 
     const load = async () => {

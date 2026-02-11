@@ -52,7 +52,7 @@ export class TestingModeStrategy implements SlotSubmitStrategy {
                 store.resetInputs()
                 store.setLastResult({
                     type: 'success',
-                    message: `${MODE_NAME_TESTING}??? ${slotIdno} ????`,
+                    message: `${MODE_NAME_TESTING}: 槽位 ${slotIdno} 綁定成功`,
                 })
                 return true
             }

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { shouldAutoUpload } from '@/domain/slot/SlotBindingRules'
-import type { SlotSubmitFeedGridAdapter } from '@/ui/slot-submit/SlotSubmitFeedGridAdapter'
+import type { SlotSubmitFeedGridAdapter } from '@/ui/shared/grid/slot-submit/SlotSubmitFeedGridAdapter'
 
 export type SlotSubmitMode = 'normal' | 'testing'
 

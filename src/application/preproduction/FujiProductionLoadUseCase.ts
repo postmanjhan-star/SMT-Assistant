@@ -2,7 +2,7 @@ import type { FujiMounterFileRead } from '@/client'
 import {
     fetchFujiProductionSlots,
     type LoadFujiProductionSlotsParams,
-} from '@/infrastruture/fuji/production/FujiProductionApi'
+} from '@/infra/fuji/production/FujiProductionApi'
 
 export async function loadFujiProductionSlots(
     params: LoadFujiProductionSlotsParams

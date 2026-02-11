@@ -51,6 +51,7 @@ const config: PlaywrightTestConfig = {
     screenshot: { mode: 'only-on-failure', fullPage: true },
 
     video: 'retain-on-failure',
+    headless: false,
   },
 
   /* Configure projects for major browsers */

@@ -19,15 +19,15 @@ import {
 } from '@/client';
 
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
-import { useDateFormatter } from '@/composables/useDateFormatter';
-import { useUiFeedback } from '@/composables/useUiFeedback';
+import { useDateFormatter } from '@/ui/shared/composables/useDateFormatter';
+import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier';
 
 const { format } = useDateFormatter();
 
 const route = useRoute();
 const router = useRouter();
 const dialog = useDialog();
-const { success: showSuccess, warn: showWarn, error: showError, info } = useUiFeedback();
+const { success: showSuccess, warn: showWarn, error: showError, info } = useUiNotifier();
 useMeta({ title: 'Fuji Mounter Production' });
 
 const MODE_NAME_TESTING = '🧪 試產生產模式';
