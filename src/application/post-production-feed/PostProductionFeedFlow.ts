@@ -11,7 +11,7 @@ export class PostProductionFeedFlow<TRow extends RowModelBase> {
     private getStrategy: () => PostProductionFeedStrategy
   ) {}
 
-  async execute(ctx: PostProductionFeedContext): Promise<void> {
+  async execute(ctx: PostProductionFeedContext): Promise<boolean> {
     const useCase = new PostProductionFeedUseCase<TRow>(this.deps, this.getStrategy)
     return useCase.execute(ctx)
   }

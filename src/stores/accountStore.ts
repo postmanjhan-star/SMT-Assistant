@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import { MeService } from "../client";
+import { MeService } from "@/client";
 
 const useAccountStore = defineStore( 'account', () => {
     const authorizedModules = ref<any>( [] );

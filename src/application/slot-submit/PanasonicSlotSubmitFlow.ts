@@ -21,9 +21,15 @@ export class PanasonicSlotSubmitFlow {
   }
 
   private getStrategy(): SlotSubmitStrategy {
+    const storeDeps =
+      this.deps.store.getDeps?.() ??
+      (this.deps.store.deps as any)?.value ??
+      this.deps.store.deps ??
+      {}
+    const deps = { ...storeDeps, store: this.deps.store }
     return this.deps.isTestingMode
-      ? new TestingModeStrategy({ store: this.deps.store })
-      : new NormalModeStrategy({ store: this.deps.store })
+      ? new TestingModeStrategy(deps)
+      : new NormalModeStrategy(deps)
   }
 
   async execute(payload: SlotSubmitPayload): Promise<boolean> {

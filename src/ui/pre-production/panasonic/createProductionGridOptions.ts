@@ -90,7 +90,7 @@ export function createProductionGridOptions(
             `${node.data.slotIdno}-${node.data.subSlotIdno}`,
         rowModelType: 'clientSide',
         getRowId: (params: GetRowIdParams<ProductionRowModel>) =>
-            `${params.data.slotIdno}-${params.data.subSlotIdno}`,
+            `${params.data.slotIdno}-${params.data.subSlotIdno ?? ''}`,
         debounceVerticalScrollbar: false,
         enableCellTextSelection: true,
         rowSelection: 'multiple',

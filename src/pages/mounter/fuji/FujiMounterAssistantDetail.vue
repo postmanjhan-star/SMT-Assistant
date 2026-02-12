@@ -22,7 +22,7 @@ import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'
 import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase'
 import { findAvailableMaterialRows } from '@/domain/material/FujiMaterialMatchRules'
-import { parseFujiSlotIdno } from '@/domain/slot/FujiSlotParser'
+import { parseFujiSlotIdno, parseFujiSlotInput } from '@/domain/slot/FujiSlotParser'
 import { loadFujiProductionSlots } from '@/application/preproduction/FujiProductionLoadUseCase'
 import { startFujiProduction } from '@/application/fuji/production/StartFujiProduction'
 import { stopFujiProduction } from '@/application/fuji/production/StopFujiProduction'
@@ -124,8 +124,7 @@ const slotSubmitStore: SlotSubmitStoreLike = {
     applyMatch(
         correctSlotIdno: string,
         materialInfo?: { idno?: string; remark?: string } | null,
-        _inputSlot?: string,
-        _inputSubSlot?: string | null
+        _input?: { slot?: string; subSlot?: string | null }
     ): boolean {
         const parsed = parseFujiSlotIdno(correctSlotIdno)
         if (!parsed) return false
@@ -133,6 +132,11 @@ const slotSubmitStore: SlotSubmitStoreLike = {
         if (!adapter) return false
         const row = findRowByParsedSlot(parsed)
         if (!row) return false
+        adapter.clearErrorMaterialInventory(materialInfo?.idno ?? '', {
+            mounterIdno: parsed.machineIdno,
+            stage: parsed.stage,
+            slot: parsed.slot
+        })
         adapter.markMatched(row, materialInfo?.idno ?? '')
         if (materialInfo?.remark) {
             row.remark = materialInfo.remark
@@ -256,14 +260,13 @@ const { handleSlotSubmit } = SlotSubmissionRunner({
             return false
         }
 
-        const parsed = parseFujiSlotIdno(trimmed)
-        if (!parsed) {
+        if (!payload.slot) {
             await showError('槽位格式錯誤')
             return false
         }
 
-        const slot = `${parsed.machineIdno}-${parsed.stage}`
-        const subSlot = String(parsed.slot)
+        const slot = payload.slot
+        const subSlot = payload.subSlot
         const result = materialInventory.value
             ? {
                 success: true,
@@ -282,7 +285,7 @@ const { handleSlotSubmit } = SlotSubmissionRunner({
             result,
             slot,
             subSlot,
-            slotIdno: toSlotKey(parsed.machineIdno, parsed.stage, parsed.slot),
+            slotIdno: `${slot}-${subSlot}`,
         })
     },
     afterSuccess: async () => {
@@ -430,7 +433,8 @@ async function onStopProduction () {
                 </n-gi>
                 <n-gi>
                     <SlotIdnoInput ref="slotIdnoInput" :disabled="productionStarted" :is-testing-mode="isTestingMode"
-                        :has-material="!!materialInventory" @submit="handleSlotSubmit" @error="showError" />
+                        :has-material="!!materialInventory" :parse-slot-idno="parseFujiSlotInput"
+                        @submit="handleSlotSubmit" @error="showError" />
                 </n-gi>
             </n-grid>
         </n-space>

@@ -18,21 +18,29 @@ import {
   NTag,
 } from 'naive-ui'
 import { reactive, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useMeta } from 'vue-meta'
 
 import MaterialQueryModal from "./components/MaterialQueryModal.vue"
 import StopProductionButton from "./components/StopProductionButton.vue"
 import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
 import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
-import { usePanasonicProductionInputs } from '@/ui/post-production/panasonic/usePanasonicProductionInputs'
+import { usePostProductionFeedStore } from '@/stores/postProductionFeedStore'
+import { useSlotInputSelection } from '@/ui/shared/composables/useSlotInputSelection'
 import { usePanasonicProductionPage } from '@/ui/post-production/panasonic/usePanasonicProductionPage'
 import { createPanasonicProductionGrid } from '@/ui/post-production/panasonic/PanasonicProductionGridAdapter'
+import { parsePanasonicSlotIdno } from '@/domain/slot/PanasonicSlotParser'
 
 useMeta({ title: 'Panasonic Mounter Assistant' })
 
 const slotIdnoInput = ref<{ focus: () => void } | null>(null)
-const inputs = usePanasonicProductionInputs({
-  focusSlotInput: () => slotIdnoInput.value?.focus()
+const store = usePostProductionFeedStore()
+const { materialResult } = storeToRefs(store)
+const inputs = useSlotInputSelection({
+  materialResult,
+  focusSlotInput: () => slotIdnoInput.value?.focus(),
+  setMaterialResult: store.setMaterialResult,
+  clearMaterialResult: store.clearMaterialResult,
 })
 const rawPage = usePanasonicProductionPage({
   onResetInputs: inputs.onSlotSubmitted,
@@ -40,6 +48,14 @@ const rawPage = usePanasonicProductionPage({
 const rollShortageFormRef = rawPage.rollShortageFormRef
 const page = reactive(rawPage)
 const gridOptions = createPanasonicProductionGrid()
+
+function handleMaterialMatched(payload: { materialInventory: any; matchedRows: any[] }) {
+  inputs.onMaterialMatched({
+    success: true,
+    materialInventory: payload.materialInventory,
+    matchedRows: payload.matchedRows,
+  })
+}
 </script>
 
 <template>
@@ -163,7 +179,7 @@ const gridOptions = createPanasonicProductionGrid()
             :disabled="!page.productionStarted"
             :is-testing-mode="page.isTestingMode"
             :get-material-matched-rows="page.getMaterialMatchedRowArray"
-            @matched="inputs.onMaterialMatched"
+            @matched="handleMaterialMatched"
             :reset-key="inputs.resetKey.value"
             @error="page.ui.error"
           />
@@ -174,10 +190,11 @@ const gridOptions = createPanasonicProductionGrid()
             :disabled="!page.productionStarted"
             :is-testing-mode="page.isTestingMode"
             :has-material="inputs.hasMaterial.value"
+            :parse-slot-idno="parsePanasonicSlotIdno"
+            :reset-key="inputs.slotResetKey.value"
             ref="slotIdnoInput"
             @submit="page.handleSlotSubmit"
             @error="page.ui.error"
-            @done="inputs.onSlotSubmitted"
           />
         </n-gi>
       </n-grid>

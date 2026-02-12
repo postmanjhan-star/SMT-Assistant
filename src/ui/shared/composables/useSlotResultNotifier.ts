@@ -1,4 +1,5 @@
 import { watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useSlotSubmitStore } from '@/stores/slotSubmitStore'
 
 export type SlotSubmitFeedbackHandlers = {
@@ -9,9 +10,10 @@ export type SlotSubmitFeedbackHandlers = {
 
 export function useSlotResultNotifier(handlers: SlotSubmitFeedbackHandlers) {
     const store = useSlotSubmitStore()
+    const { lastResult } = storeToRefs(store)
 
     watch(
-        () => store.lastResult,
+        lastResult,
         async (result) => {
             if (!result) return
 
@@ -24,11 +26,12 @@ export function useSlotResultNotifier(handlers: SlotSubmitFeedbackHandlers) {
                     await handlers.error?.(result.message)
                 }
             } finally {
-                if (store.lastResult === result) {
+                if (lastResult.value === result) {
                     store.clearLastResult()
                 }
             }
-        }
+        },
+        { flush: 'sync' }
     )
 
     return { store }

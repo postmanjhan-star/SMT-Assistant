@@ -2,7 +2,7 @@
 import {
     loadPanasonicProduction,
     type PanasonicProductionLoadResult,
-} from "@/application/post-production-load/ProductionLoadUseCase"
+} from "@/application/panasonic/post-production-load/ProductionLoadUseCase"
 import type { PanasonicMounterItemStatRead } from "@/client"
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData"
 

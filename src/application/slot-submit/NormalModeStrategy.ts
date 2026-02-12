@@ -1,15 +1,32 @@
 import { SlotSubmitContext } from "./SlotSubmitContext";
 import { SlotSubmitStrategy } from "./SlotSubmitStrategy";
-import { SlotSubmitDeps } from "./SlotSubmitDeps";
+import { SlotSubmitDeps, type SlotSubmitBindingPort } from "./SlotSubmitDeps";
 import { decideSlotBinding } from "@/domain/slot/SlotBindingRules";
 
 const MODE_NAME_NORMAL = '✅ 正式生產模式'
 
 export class NormalModeStrategy implements SlotSubmitStrategy {
-    constructor(private deps: SlotSubmitDeps) {}
+    constructor(private deps: SlotSubmitDeps) { }
 
     async submit(ctx: SlotSubmitContext): Promise<boolean> {
         const { store } = this.deps
+        const fallbackBinding: SlotSubmitBindingPort = {
+            applyMatch: () => false,
+            applyMismatch: () => { },
+            applyWarningBinding: () => false,
+        }
+        const storeBinding: SlotSubmitBindingPort | null =
+            store.applyMatch
+                ? {
+                    applyMatch: store.applyMatch,
+                    applyMismatch: store.applyMismatch ?? (() => { }),
+                    applyWarningBinding:
+                        store.applyWarningBinding ?? (() => false),
+                }
+                : null
+        const binding: SlotSubmitBindingPort =
+            this.deps.binding ?? storeBinding ?? fallbackBinding
+        const resetInputs = this.deps.resetInputs ?? store.resetInputs ?? (() => { })
         const { result, slot, subSlot } = ctx
 
         if (!result) {
@@ -31,11 +48,10 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
         if (bindingDecision.kind === 'match') {
             const correctSlotIdno = bindingDecision.matchedSlotIdno
 
-            const applied = store.applyMatch(
+            const applied = binding.applyMatch(
                 correctSlotIdno,
                 result.materialInventory ?? null,
-                slot,
-                subSlot
+                { slot, subSlot }
             )
 
             if (!applied) {
@@ -46,7 +62,7 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
                 return false
             }
 
-            store.resetInputs()
+            resetInputs()
             store.setLastResult({
                 type: 'success',
                 message: `${MODE_NAME_NORMAL}：槽位 ${correctSlotIdno} 綁定成功`,
@@ -54,9 +70,8 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
             return true
         } else {
             const suggestedSlot = bindingDecision.suggestedSlotIdno
-            
-            // handleMistmatch logic
-            store.applyMismatch(
+
+            binding.applyMismatch(
                 { slot, subSlot },
                 suggestedSlot,
                 result.materialInventory?.idno ?? ''
@@ -66,7 +81,7 @@ export class NormalModeStrategy implements SlotSubmitStrategy {
                 type: 'error',
                 message: `錯誤的槽位 ${bindingDecision.inputSlotIdno}，此物料應放置於 ${suggestedSlot}`,
             })
-            store.resetInputs()
+            resetInputs()
             return false
         }
     }

@@ -125,12 +125,16 @@ export function usePanasonicProductionPage(options: PanasonicProductionPageOptio
     subSlot: string
     slotIdno: string
   }) => {
-    return submitPostProductionFeed({
+    const success = await submitPostProductionFeed({
       slot,
       subSlot,
       slotIdno,
       result: postProductionFeedStore.materialResult,
     })
+    if (success) {
+      options.onResetInputs()
+    }
+    return success
   }
 
   const rollTypeOptions = [

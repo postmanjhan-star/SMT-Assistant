@@ -34,6 +34,8 @@ import { useRollShortageForm } from '@/ui/pre-production/panasonic/useRollShorta
 import { usePanasonicProductionData } from '@/ui/pre-production/panasonic/usePanasonicProductionData'
 import { usePanasonicSlotFlow } from '@/ui/pre-production/panasonic/usePanasonicSlotFlow'
 import { useProductionGridBinding } from '@/ui/pre-production/panasonic/useProductionGridBinding'
+import { useSlotInputSelection } from '@/ui/shared/composables/useSlotInputSelection'
+import { parsePanasonicSlotIdno } from '@/domain/slot/PanasonicSlotParser'
 
 
 const route = useRoute();
@@ -54,7 +56,7 @@ const currentUsername = computed(() =>
 
 
 
-const slotIdnoInput = ref<{ focus: () => void } | null>(null);
+const slotIdnoInput = ref<{ focus: () => void; clear?: () => void } | null>(null);
 const slotFormValue = ref({
     slotIdno: '',
     materialInventoryIdno: '',
@@ -90,7 +92,10 @@ function normalizeRouteValue(
 
 const isTestingMode = route.query.testing_mode === '1'
 
-const materialResetKey = ref(0)
+const inputs = useSlotInputSelection<ResultType>({
+    materialResult: materialInventoryResult,
+    focusSlotInput: () => slotIdnoInput.value?.focus()
+})
 
 const workOrderIdno = computed(() =>
     normalizeRouteValue(route.params.workOrderIdno as any)
@@ -113,14 +118,6 @@ const workSheetSideQuery = computed(() =>
 )
 
 
-function handleSlotDone() {
-    // 清掉這一輪狀態
-    materialInventoryResult.value = null
-
-    // ?? 觸發 MaterialInput reset
-    materialResetKey.value++
-}
-
 const { rowData } = usePanasonicProductionData()
 const { onGridReady } = useProductionGridBinding({
     resetInputs: resetSlotSubmitInputs
@@ -141,8 +138,9 @@ function resetSlotMaterialFormInputs() {
 }
 
 function resetSlotSubmitInputs() {
+    slotIdnoInput.value?.clear?.()
     resetSlotMaterialFormInputs()
-    materialInventoryResult.value = null
+    inputs.onSlotSubmitted()
 }
 
 
@@ -159,14 +157,11 @@ function handleMaterialMatched(payload: {
     materialInventory: SmtMaterialInventoryEx
     matchedRows: any[]
 }) {
-    materialInventoryResult.value = {
+    inputs.onMaterialMatched({
         success: true,
         materialInventory: payload.materialInventory,
         matchedRows: payload.matchedRows
-    }
-
-    // 掃碼成功後，引導使用者下一步
-    slotIdnoInput.value?.focus()
+    })
 }
 
 
@@ -232,13 +227,21 @@ function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null 
     return s as unknown as FeedMaterialTypeEnum
 }
 
-const { handleSlotSubmit } = usePanasonicSlotFlow({
+const { handleSlotSubmit: submitSlot } = usePanasonicSlotFlow({
     isTestingMode,
     getResult: () => materialInventoryResult.value,
     autoUpload: (rows) => {
         if (startProductionBtnRef.value) startProductionBtnRef.value.submit(rows)
     }
 })
+
+async function handleSlotSubmit(payload: { slotIdno: string; slot: string; subSlot: string }) {
+    const success = await submitSlot(payload)
+    if (success) {
+        resetSlotSubmitInputs()
+    }
+    return success
+}
 
 async function onSubmitShortage() {
     // 可以先驗證表單
@@ -414,12 +417,13 @@ function hideVirtualKeyboard() {
                 <n-gi>
                     <MaterialInventoryBarcodeInput :is-testing-mode="isTestingMode"
                         :get-material-matched-rows="getMaterialMatchedRowArray" @matched="handleMaterialMatched"
-                        :reset-key="materialResetKey" @error="showError" />
+                        :reset-key="inputs.resetKey.value" @error="showError" />
                 </n-gi>
 
                 <n-gi>
-                    <SlotIdnoInput :is-testing-mode="isTestingMode" :has-material="!!materialInventoryResult"
-                        ref="slotIdnoInput" @submit="handleSlotSubmit" @error="showError" @done="handleSlotDone" />
+                        <SlotIdnoInput :is-testing-mode="isTestingMode" :has-material="inputs.hasMaterial.value"
+                        :parse-slot-idno="parsePanasonicSlotIdno" :reset-key="inputs.slotResetKey.value" ref="slotIdnoInput"
+                        :key="inputs.slotResetKey.value" @submit="handleSlotSubmit" @error="showError" />
                 </n-gi>
             </n-grid>
         </n-space>

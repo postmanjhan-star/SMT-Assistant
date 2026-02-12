@@ -5,6 +5,9 @@ export class FujiMounterGridAdapter<
         correct: CheckMaterialMatchEnum | null
         materialInventoryIdno: string | null
         remark?: string
+        mounterIdno?: string
+        stage?: string
+        slot?: string | number
     }
 > {
     constructor(private api: any) {}
@@ -30,5 +33,30 @@ export class FujiMounterGridAdapter<
         row.materialInventoryIdno = inventoryIdno
         row.correct = CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK
         this.updateRow(row)
+    }
+
+    clearErrorMaterialInventory(
+        currentPackCode: string,
+        keep: { mounterIdno: string; stage: string; slot: string | number }
+    ) {
+        if (!currentPackCode) return
+        this.api.forEachNode((node: { data?: Row }) => {
+            const row = node?.data
+            if (!row) return
+            if (row.materialInventoryIdno !== currentPackCode) return
+
+            const isSameSlot =
+                row.mounterIdno === keep.mounterIdno &&
+                row.stage === keep.stage &&
+                String(row.slot) === String(keep.slot)
+            if (isSameSlot) return
+
+            if (row.correct === CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK) return
+
+            row.materialInventoryIdno = ''
+            row.correct = null
+            if (row.remark !== undefined) row.remark = ''
+            this.updateRow(row)
+        })
     }
 }

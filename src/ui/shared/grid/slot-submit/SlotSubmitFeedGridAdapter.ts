@@ -3,8 +3,42 @@
 export class SlotSubmitFeedGridAdapter {
     constructor(private api: GridApi) {}
 
+    private parseRowId(rowId: string): { slot: string; subSlot: string } | null {
+        const trimmed = rowId?.toString().trim()
+        if (!trimmed) return null
+
+        const lastDash = trimmed.lastIndexOf("-")
+        if (lastDash === -1) {
+            return { slot: trimmed, subSlot: "" }
+        }
+
+        const slot = trimmed.slice(0, lastDash)
+        const subSlot = trimmed.slice(lastDash + 1)
+        return { slot, subSlot }
+    }
+
+    private getRowNodeById(rowId: string) {
+        const direct = this.api.getRowNode(rowId)
+        if (direct) return direct
+
+        const parsed = this.parseRowId(rowId)
+        if (!parsed) return null
+
+        let found: any = null
+        this.api.forEachNode((node) => {
+            if (found) return
+            const nodeSlot = String(node.data?.slotIdno ?? "").trim()
+            const nodeSubSlot = String(node.data?.subSlotIdno ?? "").trim()
+            if (nodeSlot === parsed.slot && nodeSubSlot === parsed.subSlot) {
+                found = node
+            }
+        })
+
+        return found
+    }
+
     hasRow(rowId: string): boolean {
-        return !!this.api.getRowNode(rowId)
+        return !!this.getRowNodeById(rowId)
     }
 
     applyBindingSuccess(
@@ -12,7 +46,7 @@ export class SlotSubmitFeedGridAdapter {
         materialInventoryIdno?: string,
         remark?: string
     ): boolean {
-        const rowNode = this.api.getRowNode(rowId)
+        const rowNode = this.getRowNodeById(rowId)
         if (!rowNode) return false
 
         rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
@@ -27,7 +61,7 @@ export class SlotSubmitFeedGridAdapter {
         materialInventoryIdno: string,
         remark: string
     ): boolean {
-        const rowNode = this.api.getRowNode(rowId)
+        const rowNode = this.getRowNodeById(rowId)
         if (!rowNode) return false
 
         rowNode.setDataValue('correct', 'warning')
@@ -38,7 +72,7 @@ export class SlotSubmitFeedGridAdapter {
     }
 
     deselectRow(rowId: string): boolean {
-        const rowNode = this.api.getRowNode(rowId)
+        const rowNode = this.getRowNodeById(rowId)
         if (!rowNode) return false
         rowNode.setSelected(false)
         return true
@@ -81,8 +115,8 @@ export class SlotSubmitFeedGridAdapter {
         inputSubSlot: string | null,
         materialIdno: string
     ) {
-        const inputSlotIdno = `${inputSlot}-${inputSubSlot}`
-        const existingNode = this.api.getRowNode(inputSlotIdno)
+        const inputSlotIdno = `${inputSlot}-${inputSubSlot ?? ""}`
+        const existingNode = this.getRowNodeById(inputSlotIdno)
 
         if (existingNode) {
             existingNode.setDataValue("correct", "false")

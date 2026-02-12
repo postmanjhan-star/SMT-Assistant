@@ -17,7 +17,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
         private getStrategy: () => PostProductionFeedStrategy
     ) {}
 
-    async execute(ctx: PostProductionFeedContext): Promise<void> {
+    async execute(ctx: PostProductionFeedContext): Promise<boolean> {
         const { slot, subSlot, slotIdno, result } = ctx
         let success = false
 
@@ -29,7 +29,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
 
         if (!stat) {
             await this.deps.store.error(`找不到槽位 ${slotIdno}`)
-            return
+            return false
         }
 
         if (!this.deps.isTestingMode()) {
@@ -57,14 +57,14 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
 
                     if (!row) {
                         await this.deps.store.error(`找不到槽位 ${slotIdno}`)
-                        return
+                        return false
                     }
 
                     this.deps.store.applyInspectionUpdate(
                         row,
                         result.materialInventory.idno
                     )
-                    return
+                    return true
                 }
             }
 
@@ -79,7 +79,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
                     await this.deps.store.error(
                         `巡檢失敗：此料號位於 ${formatSlotId(loadedSlot)}，非 ${slotIdno}`
                     )
-                    return
+                    return false
                 }
             }
         }
@@ -87,7 +87,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
         const strategy = this.getStrategy()
         success = await strategy.submit(ctx)
 
-        if (!success) return
+        if (!success) return false
 
         await this.deps.appendedMaterialUpload({
             stat_id: stat.id,
@@ -101,7 +101,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
 
         if (!row) {
             await this.deps.store.error(`找不到槽位 ${slotIdno}`)
-            return
+            return false
         }
 
         const rowId = this.deps.store.getRowId(row)
@@ -117,7 +117,10 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
 
         if (!updated) {
             await this.deps.store.error(`找不到AG Grid 資料列 ${rowId}`)
+            return false
         }
+
+        return true
     }
 
     private toStatLike(stat: PanasonicMounterItemStatRead): StatLike {

@@ -23,7 +23,11 @@ export function useUiNotifier() {
   }
 
   async function success(msg: string) {
-    await playSuccessTone()
+    try {
+      await playSuccessTone()
+    } catch {
+      // ignore tone errors to ensure message still appears
+    }
     message.success(() => h('span', { 'data-testid': 'success-message' }, msg))
   }
 

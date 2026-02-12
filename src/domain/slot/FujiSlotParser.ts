@@ -5,7 +5,7 @@ export type ParsedFujiSlot = {
 }
 
 export function parseFujiSlotIdno(slotIdno: string): ParsedFujiSlot | null {
-    const parts = slotIdno.split("-")
+    const parts = slotIdno.trim().split("-")
     if (parts.length < 3) return null
 
     const machineIdno = parts[0]
@@ -20,4 +20,19 @@ export function parseFujiSlotIdno(slotIdno: string): ParsedFujiSlot | null {
     if (!slot || !["A", "B", "C", "D"].includes(stage)) return null
 
     return { machineIdno, stage: stage as ParsedFujiSlot["stage"], slot }
+}
+
+export type ParsedFujiSlotInput = {
+    slot: string
+    subSlot: string
+}
+
+export function parseFujiSlotInput(raw: string): ParsedFujiSlotInput | null {
+    const parsed = parseFujiSlotIdno(raw)
+    if (!parsed) return null
+
+    return {
+        slot: `${parsed.machineIdno}-${parsed.stage}`,
+        subSlot: String(parsed.slot),
+    }
 }

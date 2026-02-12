@@ -21,6 +21,7 @@ import {
 import MaterialQueryModal from "./components/MaterialQueryModal.vue";
 import { useDateFormatter } from '@/ui/shared/composables/useDateFormatter';
 import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier';
+import { findLoadedSlotByPack, isInspectionScan, type StatLike } from '@/domain/production/PostProductionFeedRules';
 
 const { format } = useDateFormatter();
 
@@ -42,6 +43,7 @@ const productionUuid = ref<string>('');
 const productionStarted = ref(false);
 
 const mounterData = ref<FujiMounterItemStatRead[]>([]);
+const inspectionStats = ref<StatLike[]>([]);
 
 const materialFormValue = ref({ materialInventoryIdno: '' });
 const slotFormValue = ref({ slotIdno: '' });
@@ -128,30 +130,43 @@ onMounted(async () => {
     } catch (e) {
         console.error("Failed to fetch logs", e);
     }
+    inspectionStats.value = buildInspectionStats(logs, mounterData.value);
 
     const newRowData: RowModel[] = mounterData.value.map(stat => {
         let feedRecords = (stat as any).feed_records as any[] || [];
 
         if (logs.length > 0) {
-            const matchingLogs = logs.filter(l =>
-                String(l.slot_idno) === String(stat.slot_idno) &&
-                (l.sub_slot_idno ?? '') === (stat.sub_slot_idno ?? '')
+            const statSlotKey = normalizeSlotKey(stat.slot_idno, stat.sub_slot_idno);
+            const matchingLogs = logs.filter(
+                l => normalizeSlotKey(l.slot_idno, l.sub_slot_idno) === statSlotKey
             );
 
-            if (feedRecords.length === 0) {
-                feedRecords = matchingLogs;
-            } else {
-                const recordMap = new Map<number, any>();
-                feedRecords.forEach((r: any) => recordMap.set(r.id, r));
-                matchingLogs.forEach((l: any) => recordMap.set(l.id, l));
-                feedRecords = Array.from(recordMap.values());
+            if (matchingLogs.length > 0) {
+                feedRecords = mergeFeedRecords(feedRecords, matchingLogs);
             }
         }
 
         /** =========================
          *  巡檢紀錄
          *  ========================= */
-        const inspectionRecords = feedRecords.filter(
+        const normalizedFeedRecords = feedRecords.map((r: any) => ({
+            ...r,
+            feed_material_pack_type: normalizeFeedMaterialType(
+                r.feed_material_pack_type ??
+                r.feedMaterialPackType ??
+                r.feed_material_type ??
+                r.feedMaterialType ??
+                ''
+            ),
+            material_pack_code:
+                r.material_pack_code ??
+                r.materialPackCode ??
+                r.material_pack_idno ??
+                r.materialPackIdno ??
+                r.material_pack_code
+        }));
+
+        const inspectionRecords = normalizedFeedRecords.filter(
             (r: any) =>
                 r.feed_material_pack_type === FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
         );
@@ -167,7 +182,7 @@ onMounted(async () => {
         /** =========================
          *  上料 / 接料紀錄
          *  ========================= */
-        const materialRecords = feedRecords
+        const materialRecords = normalizedFeedRecords
             .filter(
                 (r: any) =>
                     r.feed_material_pack_type !== FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
@@ -177,7 +192,9 @@ onMounted(async () => {
                 new Date(b.operation_time).getTime()
             );
 
-        const importMaterialPack = feedRecords.find((r: any) => r.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK);
+        const importMaterialPack = normalizedFeedRecords.find(
+            (r: any) => r.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
+        );
 
         const latestMaterialRecord =
             materialRecords.length > 0
@@ -186,7 +203,7 @@ onMounted(async () => {
 
         const appendedCodes = [
             ...new Set(
-                materialRecords
+                normalizedFeedRecords
                     .filter((r: any) => r.feed_material_pack_type !== FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK)
                     .map((r: any) => r.material_pack_code)
                     .filter((c: any) => !!c)
@@ -274,6 +291,114 @@ function parseSlotIdno(
     return [machineIdno, stage, slotNumber];
 }
 
+function normalizeStageLabel(stage: unknown): string {
+    if (stage == null) return '';
+    const value = String(stage);
+    if (value === '1') return 'A';
+    if (value === '2') return 'B';
+    if (value === '3') return 'C';
+    if (value === '4') return 'D';
+    return value;
+}
+
+function normalizeSlotKey(slotIdnoRaw: unknown, subSlotRaw: unknown): string {
+    const slotIdno = String(slotIdnoRaw ?? '').trim();
+    const subSlotIdno = normalizeStageLabel(subSlotRaw ?? '');
+    return `${slotIdno}-${subSlotIdno}`;
+}
+
+function statMatchesStage(statStage: unknown, inputStage: string | null) {
+    if (!inputStage) return false;
+    const rawStage = String(statStage ?? '');
+    const labelStage = normalizeStageLabel(statStage);
+    return inputStage === rawStage || inputStage === labelStage;
+}
+
+function normalizeFeedMaterialType(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    const upper = raw.toUpperCase();
+    if (upper.includes('IMPORT')) return FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK;
+    if (upper.includes('INSPECT')) return FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK;
+    if (upper.includes('REUSE')) return FeedMaterialTypeEnum.REUSED_MATERIAL_PACK;
+    if (upper.includes('NEW')) return FeedMaterialTypeEnum.NEW_MATERIAL_PACK;
+    return upper;
+}
+
+function getRecordType(record: any): string {
+    return normalizeFeedMaterialType(
+        record?.feed_material_pack_type ??
+        record?.feedMaterialPackType ??
+        record?.feed_material_type ??
+        record?.feedMaterialType ??
+        ''
+    );
+}
+
+function getRecordPackCode(record: any): string | null {
+    return (
+        record?.material_pack_code ??
+        record?.materialPackCode ??
+        record?.material_pack_idno ??
+        record?.materialPackIdno ??
+        null
+    );
+}
+
+function getRecordUniqueKey(record: any): string {
+    const recordId = record?.feed_record_id ?? record?.feedRecordId ?? record?.id;
+    if (recordId != null) return `record_id:${recordId}`;
+    const slotIdno = record?.slot_idno ?? record?.slotIdno ?? '';
+    const subSlotIdno = record?.sub_slot_idno ?? record?.subSlotIdno ?? '';
+    const operationTime = record?.operation_time ?? record?.operationTime ?? record?.created_at ?? '';
+    const materialPackCode = getRecordPackCode(record) ?? '';
+    return `composite:${getRecordType(record)}-${normalizeSlotKey(slotIdno, subSlotIdno)}-${materialPackCode}-${operationTime}`;
+}
+
+function mergeFeedRecords(baseRecords: any[], logRecords: any[]): any[] {
+    const recordMap = new Map<string, any>();
+    baseRecords.forEach((record: any) => recordMap.set(getRecordUniqueKey(record), record));
+    logRecords.forEach((record: any) => recordMap.set(getRecordUniqueKey(record), record));
+    return Array.from(recordMap.values());
+}
+
+function buildInspectionStats(logs: any[], stats: FujiMounterItemStatRead[]): StatLike[] {
+    const map = new Map<string, StatLike>();
+
+    const addRecord = (slotIdnoRaw: unknown, subSlotRaw: unknown, record: any) => {
+        const slotIdno = String(slotIdnoRaw ?? '').trim();
+        if (!slotIdno) return;
+        const subSlotIdno = normalizeStageLabel(subSlotRaw ?? '');
+        const key = normalizeSlotKey(slotIdno, subSlotIdno);
+
+        let stat = map.get(key);
+        if (!stat) {
+            stat = {
+                slotIdno,
+                subSlotIdno,
+                feedRecords: []
+            };
+            map.set(key, stat);
+        }
+
+        stat.feedRecords?.push({
+            feedMaterialPackType: getRecordType(record),
+            materialPackCode: getRecordPackCode(record)
+        });
+    };
+
+    logs.forEach((record) => addRecord(record?.slot_idno, record?.sub_slot_idno, record));
+
+    stats.forEach((stat) => {
+        const feedRecords = (stat as any)?.feed_records ?? [];
+        feedRecords.forEach((record: any) => {
+            addRecord(stat.slot_idno, stat.sub_slot_idno, record);
+        });
+    });
+
+    return Array.from(map.values());
+}
+
 function getMaterialMatchedRows(materialIdno: string): RowModel[] {
     return rowData.value.filter(row => row.materialIdno === materialIdno);
 }
@@ -283,6 +408,41 @@ function resetForms() {
     slotFormValue.value.slotIdno = '';
     materialInventoryFromScan = null;
     materialInputRef.value?.focus();
+}
+
+function applyInspectionUpdate(
+    mounter: string,
+    stage: string | null,
+    slot: number | null,
+    materialIdno: string
+) {
+    const rowId = `${mounter}-${stage}-${slot}`;
+    const rowNode = gridApi.value?.getRowNode(rowId);
+    if (rowNode) {
+        const nextCount = (rowNode.data.inspectCount ?? 0) + 1;
+        rowNode.setDataValue('inspectMaterialPackCode', materialIdno);
+        rowNode.setDataValue('inspectTime', new Date().toISOString());
+        rowNode.setDataValue('inspectCount', nextCount);
+        rowNode.setDataValue('remark', `巡檢 ${nextCount} 次`);
+        return;
+    }
+
+    const row = rowData.value.find(
+        r =>
+            r.mounterIdno === mounter &&
+            r.stage === stage &&
+            r.slot === slot
+    );
+    if (!row) return;
+
+    row.inspectMaterialPackCode = materialIdno;
+    row.inspectTime = new Date().toISOString();
+    row.inspectCount = (row.inspectCount ?? 0) + 1;
+    row.remark = `巡檢 ${row.inspectCount} 次`;
+
+    if (gridApi.value) {
+        gridApi.value.applyTransaction({ update: [row] });
+    }
 }
 
 async function onSubmitMaterialInventoryForm() {
@@ -324,8 +484,13 @@ async function onSubmitMaterialInventoryForm() {
     slotInputRef.value?.focus();
 }
 
-function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null {
-    return s as unknown as FeedMaterialTypeEnum
+
+function toPackCodeMatch(state: CheckMaterialMatchEnum | null): 'true' | 'false' | 'warning' | null {
+    if (state == null) return null;
+    if (state === CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK) return 'true';
+    if (state === CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK) return 'false';
+    if (state === CheckMaterialMatchEnum.TESTING_MATERIAL_PACK) return 'warning';
+    return null;
 }
 
 async function appendedMaterialUpload(params: {
@@ -342,8 +507,27 @@ async function appendedMaterialUpload(params: {
         slot_idno: params.inputSlot,
         sub_slot_idno: params.inputSubSlot ?? null,
         material_pack_code: params.materialInventory.idno,
-        feed_material_pack_type: convertFeedMaterialType('new') as FeedMaterialTypeEnum,
-        check_pack_code_match: params.correctState
+        feed_material_pack_type: 'new',
+        check_pack_code_match: toPackCodeMatch(params.correctState)
+    };
+    await SmtService.addFujiMounterItemStatRoll({ requestBody: payload as any });
+}
+
+async function inspectionUpload(params: {
+    stat_id: number,
+    inputSlot: string,
+    inputSubSlot: string | null,
+    materialInventory: SmtMaterialInventory
+}) {
+    const payload = {
+        stat_item_id: params.stat_id,
+        operator_id: '',
+        operation_time: new Date().toISOString(),
+        slot_idno: params.inputSlot,
+        sub_slot_idno: params.inputSubSlot ?? null,
+        material_pack_code: params.materialInventory.idno,
+        feed_material_pack_type: 'inspect',
+        check_pack_code_match: 'true'
     };
     await SmtService.addFujiMounterItemStatRoll({ requestBody: payload as any });
 }
@@ -354,6 +538,72 @@ async function onSubmitSlotForm() {
 
     const [mounter, stage, slot] = parseSlotIdno(inputSlotIdno);
     if (!mounter) return showError('槽位條碼格式錯誤');
+
+    if (!isTestingMode.value && productionStarted.value && materialInventoryFromScan) {
+        const stat = inspectionStats.value.find(
+            stat =>
+                String(stat.slotIdno) === String(slot ?? '') &&
+                statMatchesStage(stat.subSlotIdno, stage)
+        );
+
+        if (stat) {
+            const isInspection = isInspectionScan({
+                productionStarted: productionStarted.value,
+                stat,
+                importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                inputPackIdno: materialInventoryFromScan.idno
+            });
+
+            if (isInspection) {
+                const statItem = mounterData.value.find(
+                    stat =>
+                        String(stat.slot_idno) === String(slot ?? '') &&
+                        statMatchesStage(stat.sub_slot_idno, stage)
+                );
+                if (!statItem) {
+                    showError(`找不到槽位 ${stage}-${slot}`);
+                    resetForms();
+                    return;
+                }
+                try {
+                    await inspectionUpload({
+                        stat_id: statItem.id,
+                        inputSlot: String(slot),
+                        inputSubSlot: stage,
+                        materialInventory: materialInventoryFromScan
+                    });
+
+                    applyInspectionUpdate(mounter, stage, slot, materialInventoryFromScan.idno);
+
+                    showSuccess(`巡檢通過：${stage}-${slot}`);
+                } catch (error) {
+                    showError('巡檢上傳失敗');
+                    console.error(error);
+                }
+
+                resetForms();
+                return;
+            }
+        }
+
+        const loadedSlot = findLoadedSlotByPack({
+            stats: inspectionStats.value,
+            importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+            inputPackIdno: materialInventoryFromScan.idno
+        });
+
+        if (loadedSlot) {
+            const loadedStage = normalizeStageLabel(loadedSlot.subSlotIdno ?? '');
+            const isSameSlot =
+                String(loadedSlot.slotIdno) === String(slot ?? '') &&
+                loadedStage === String(stage ?? '');
+            if (!isSameSlot) {
+                showError(`巡檢失敗：此料號位於 ${loadedStage}-${loadedSlot.slotIdno}，非 ${stage}-${slot}`);
+                resetForms();
+                return;
+            }
+        }
+    }
 
     const matchedRows = getMaterialMatchedRows(materialInventoryFromScan.material_idno);
     const targetRow = matchedRows.find(r => r.mounterIdno === mounter && r.stage === stage && r.slot === slot);
@@ -381,7 +631,7 @@ async function onSubmitSlotForm() {
                 const newAppended = currentCodes.join(', ');
                 rowNode.setDataValue('appendedMaterialInventoryIdno', newAppended);
             }
-            showSuccess(`槽位 ${stage}-${slot} 驗證成功`);
+            showSuccess(`${isTestingMode.value ? MODE_NAME_TESTING : MODE_NAME_NORMAL}：物料綁定成功`);
         } catch (error) {
             showError('上傳接料資料失敗');
             console.error(error);

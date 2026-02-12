@@ -65,6 +65,22 @@ async function playErrorTone() {
     synth.triggerAttackRelease('D4', '8n', now + 0.2)
 }
 
+async function safePlaySuccessTone() {
+    try {
+        await playSuccessTone()
+    } catch (error) {
+        console.warn('playSuccessTone failed', error)
+    }
+}
+
+async function safePlayErrorTone() {
+    try {
+        await playErrorTone()
+    } catch (error) {
+        console.warn('playErrorTone failed', error)
+    }
+}
+
 /* ================= main logic ================= */
 
 const scanUseCase = computed(() => {
@@ -90,15 +106,16 @@ async function onSubmit() {
     })
 
     if (decision.action === 'matched') {
+        emit('matched', decision.payload as MatchedPayload)
         if (decision.tone === 'success') {
-            await playSuccessTone()
+            await safePlaySuccessTone()
             message.success(
                 props.isTestingMode
                     ? '🧪 試產模式：物料匹配成功'
                     : '✅ 正式生產模式：物料匹配成功'
             )
         } else {
-            await playSuccessTone()
+            await safePlaySuccessTone()
             const infoMessage =
                 decision.messageKey === 'virtual'
                     ? '🧪 試產模式：使用虛擬物料'
@@ -106,11 +123,10 @@ async function onSubmit() {
             message.info(infoMessage)
         }
 
-        emit('matched', decision.payload as MatchedPayload)
         return
     }
 
-    await playErrorTone()
+    await safePlayErrorTone()
 
     if (decision.errorKind === 'no_match') {
         emit('error', '槽位不存在')
@@ -155,7 +171,7 @@ function reset() {
 <template>
     <n-form size="large" :model="formValue" @submit.prevent="onSubmit">
         <n-form-item label="物料單包條碼">
-            <n-input ref="materialInventoryIdnoInput" autofocus v-model:value.lazy="formValue.materialInventoryIdno"
+        <n-input ref="materialInventoryIdnoInput" autofocus v-model:value="formValue.materialInventoryIdno"
             :disabled="props.disabled" />
         </n-form-item>
     </n-form>
