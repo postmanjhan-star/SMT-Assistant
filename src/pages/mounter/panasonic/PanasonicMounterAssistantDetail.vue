@@ -1,449 +1,476 @@
-﻿<script setup lang="ts">
-
-import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
-import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
-import { AgGridVue } from "ag-grid-vue3"; // the AG Grid Vue Component
-import { InputInst, NForm, NFormItem, NGi, NGrid, NInput, NP, NPageHeader, NSpace, NTag, NButton, useDialog } from 'naive-ui';
-import { ref, computed } from 'vue';
-import { useMeta } from 'vue-meta';
-import { useRoute, useRouter } from 'vue-router';
+<script setup lang="ts">
+import "ag-grid-community/styles/ag-grid.css"
+import "ag-grid-community/styles/ag-theme-balham.css"
+import { AgGridVue } from "ag-grid-vue3"
 import {
-    ApiError,
-    CheckMaterialMatchEnum,
-    PanasonicFeedRecordCreate,
-    FeedMaterialTypeEnum,
-    SmtService
-} from '@/client';
-import { useAuthStore } from '@/stores/authStore';
-import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier';
+  NButton,
+  NGi,
+  NPageHeader,
+  NSpace,
+  NTag,
+  useDialog,
+  type FormInst,
+} from "naive-ui"
+import { computed, ref, watchEffect, type Ref } from "vue"
+import { useMeta } from "vue-meta"
+import { useRoute, useRouter } from "vue-router"
+import { useAuthStore } from "@/stores/authStore"
+import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 
-import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue";
-import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue";
-import StartProductionButton from "./components/StartProductionButton.vue";
-import MaterialQueryModal from "./components/MaterialQueryModal.vue";
+import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
+import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
+import StartProductionButton from "./components/StartProductionButton.vue"
+import MaterialQueryModal from "./components/MaterialQueryModal.vue"
+import PanasonicRollShortageModal from "@/pages/components/panasonic/PanasonicRollShortageModal.vue"
+import PanasonicMounterLayout from "@/pages/components/panasonic/PanasonicMounterLayout.vue"
+import PanasonicMounterInfoBar from "@/pages/components/panasonic/PanasonicMounterInfoBar.vue"
 
 import type {
-    ProductionRowModel,
-    CorrectState,
-    SmtMaterialInventoryEx
-} from './types/production'
-import { createProductionGridOptions } from '@/ui/pre-production/panasonic/createProductionGridOptions'
-import { useSlotResultNotifier } from "@/ui/shared/composables/useSlotResultNotifier";
-import { useProductionState } from '@/ui/pre-production/panasonic/useProductionState'
-import { useRollShortageForm } from '@/ui/pre-production/panasonic/useRollShortageForm'
-import { usePanasonicProductionData } from '@/ui/pre-production/panasonic/usePanasonicProductionData'
-import { usePanasonicSlotFlow } from '@/ui/pre-production/panasonic/usePanasonicSlotFlow'
-import { useProductionGridBinding } from '@/ui/pre-production/panasonic/useProductionGridBinding'
-import { useSlotInputSelection } from '@/ui/shared/composables/useSlotInputSelection'
-import { parsePanasonicSlotIdno } from '@/domain/slot/PanasonicSlotParser'
+  InputComponentHandle,
+  MaterialMatchedPayload,
+  ProductionRowModel,
+} from "./types/production"
+import { createProductionGridOptions } from "@/ui/workflows/preproduction/panasonic/createProductionGridOptions"
+import { useSlotResultNotifier } from "@/ui/shared/composables/useSlotResultNotifier"
+import { useProductionState } from "@/ui/workflows/preproduction/panasonic/composables/useProductionState"
+import { useRollShortageForm } from "@/ui/workflows/preproduction/panasonic/composables/useRollShortageForm"
+import { usePanasonicProductionData } from "@/ui/workflows/preproduction/panasonic/composables/usePanasonicProductionData"
+import { usePanasonicSlotFlow } from "@/ui/workflows/preproduction/panasonic/composables/usePanasonicSlotFlow"
+import { useProductionGridBinding } from "@/ui/workflows/preproduction/panasonic/composables/useProductionGridBinding"
+import { useSlotInputSelection } from "@/ui/shared/composables/useSlotInputSelection"
+import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
+import { MaterialMatchingPolicy } from "@/domain/preproduction/MaterialMatchingPolicy"
+import { SubmitSlotUseCase } from "@/application/preproduction/SubmitSlotUseCase"
+import {
+  SubmitRollShortageUseCase,
+  type SubmitRollShortageError,
+} from "@/application/preproduction/SubmitRollShortageUseCase"
+import { ProductionLifecycleUseCase } from "@/application/preproduction/ProductionLifecycleUseCase"
+import { ApiSmtProductionRepository } from "@/infrastructure/repositories/SmtProductionRepository"
+import { usePanasonicInputReset } from "@/ui/shared/composables/panasonic/usePanasonicInputReset"
 
+const route = useRoute()
+const router = useRouter()
+useMeta({ title: "Panasonic Mounter Assistant" })
 
-const route = useRoute();
-const router = useRouter();
-useMeta({ title: 'Panasonic Mounter Assistant' });
+const MODE_NAME_TESTING = "🧪 試產生產模式"
+const MODE_NAME_NORMAL = "✅ 正式生產模式"
 
-const MODE_NAME_TESTING = '🧪 試產生產模式'
-const MODE_NAME_NORMAL = '✅ 正式生產模式'
+type StartProductionButtonHandle = {
+  submit: (rows?: unknown[]) => Promise<void> | void
+}
 
-const authStore = useAuthStore();
-// 從 Store 取得使用者名稱 (Store 已與 localStorage 同步)
-const currentUsername = computed(() =>
+type SlotInputResult = {
+  success: boolean
+  materialInventory?: MaterialMatchedPayload["materialInventory"] | null
+  matchedRows?: MaterialMatchedPayload["matchedRows"]
+}
+
+const slotIdnoInput = ref<InputComponentHandle | null>(null)
+const materialInventoryInput = ref<InputComponentHandle | null>(null)
+const startProductionBtnRef = ref<StartProductionButtonHandle | null>(null)
+
+const authStore = useAuthStore()
+const currentUsername = computed(
+  () =>
     authStore.authState.OAuth2PasswordBearer?.username ??
     authStore.authState.HTTPBasic?.value?.username ??
-    ''
-);
-
-
-
-
-const slotIdnoInput = ref<{ focus: () => void; clear?: () => void } | null>(null);
-const slotFormValue = ref({
-    slotIdno: '',
-    materialInventoryIdno: '',
-    remark: '',   // ✅ 新增 remark
-})
-const materialFormValue = ref({ materialInventoryIdno: '' });
-const materialInventoryIdnoInput = ref<InputInst>();
-
-const startProductionBtnRef = ref<any>(null)
-type ResultType = {
-    success: boolean,
-    materialInventory?: SmtMaterialInventoryEx | null,
-    matchedRows?: any[]
-}
+    ""
+)
 
 const dialog = useDialog()
-const { success: showSuccess, warn: showWarn, error: showError, info } = useUiNotifier()
+const { success: showSuccess, warn: showWarn, error: showError, info } =
+  useUiNotifier()
 
 useSlotResultNotifier({
-    success: showSuccess,
-    warn: showWarn,
-    error: showError
+  success: showSuccess,
+  warn: showWarn,
+  error: showError,
 })
 
-const materialInventoryResult = ref<ResultType | null>(null)
+const materialInventoryResult = ref<SlotInputResult | null>(null)
 
-function normalizeRouteValue(
-    val: string | string[] | null | undefined
-): string {
-    if (Array.isArray(val)) return val[0] ?? ''
-    return val ?? ''
+function normalizeRouteValue(val: unknown): string {
+  if (Array.isArray(val)) return String(val[0] ?? "").trim()
+  return String(val ?? "").trim()
 }
 
-const isTestingMode = route.query.testing_mode === '1'
+const isTestingMode = route.query.testing_mode === "1"
 
-const inputs = useSlotInputSelection<ResultType>({
-    materialResult: materialInventoryResult,
-    focusSlotInput: () => slotIdnoInput.value?.focus()
-})
-
-const workOrderIdno = computed(() =>
-    normalizeRouteValue(route.params.workOrderIdno as any)
-)
-
-const productIdno = computed(() =>
-    normalizeRouteValue(route.query.product_idno)
-)
-
-const mounterIdno = computed(() =>
-    normalizeRouteValue(route.params.mounterIdno as any)
-)
-
-const machineSideQuery = computed(() =>
-    normalizeRouteValue(route.query.machine_side)
-)
-
+const workOrderIdno = computed(() => normalizeRouteValue(route.params.workOrderIdno))
+const productIdno = computed(() => normalizeRouteValue(route.query.product_idno))
+const mounterIdno = computed(() => normalizeRouteValue(route.params.mounterIdno))
+const machineSideQuery = computed(() => normalizeRouteValue(route.query.machine_side))
 const workSheetSideQuery = computed(() =>
-    normalizeRouteValue(route.query.work_sheet_side)
+  normalizeRouteValue(route.query.work_sheet_side)
 )
 
-
-const { rowData } = usePanasonicProductionData()
-const { onGridReady } = useProductionGridBinding({
-    resetInputs: resetSlotSubmitInputs
+const inputs = useSlotInputSelection<SlotInputResult>({
+  materialResult: materialInventoryResult,
+  focusSlotInput: () => slotIdnoInput.value?.focus(),
 })
 
+const { resetInputsAfterSlotSubmit } = usePanasonicInputReset({
+  clearMaterialResult: () => {
+    materialInventoryResult.value = null
+  },
+  bumpResetKeys: () => inputs.bumpResetKeys(),
+  materialInputRef: materialInventoryInput,
+  slotInputRef: slotIdnoInput,
+})
+
+const { mounterData, rowData } = usePanasonicProductionData()
+const { onGridReady } = useProductionGridBinding({
+  resetInputs: resetInputsAfterSlotSubmit,
+})
 const gridOptions = createProductionGridOptions(rowData)
 
-function onClickBackArrow(event: Event) { router.push(`/smt/panasonic-mounter/`); }
-
-
-
-function resetSlotMaterialFormInputs() {
-    slotFormValue.value.slotIdno = ''
-    slotFormValue.value.materialInventoryIdno = ''
-    slotFormValue.value.remark = ''
-    materialFormValue.value.materialInventoryIdno = ''
-    materialInventoryIdnoInput.value?.focus()
+function onClickBackArrow() {
+  router.push("/smt/panasonic-mounter/")
 }
 
-function resetSlotSubmitInputs() {
-    slotIdnoInput.value?.clear?.()
-    resetSlotMaterialFormInputs()
-    inputs.onSlotSubmitted()
+function getMaterialMatchedRows(materialIdno: string): ProductionRowModel[] {
+  return MaterialMatchingPolicy.filterUnboundRows(rowData.value, materialIdno)
 }
 
-
-function getMaterialMatchedRowArray(materialIdno: string): ProductionRowModel[] {
-    return rowData.value.filter(row => 
-        row.materialIdno === materialIdno &&
-        (!row.materialInventoryIdno || row.correct !== 'true')
-    )
+function handleMaterialMatched(payload: MaterialMatchedPayload) {
+  inputs.onMaterialMatched({
+    success: true,
+    materialInventory: payload.materialInventory,
+    matchedRows: payload.matchedRows,
+  })
 }
-
-
-
-function handleMaterialMatched(payload: {
-    materialInventory: SmtMaterialInventoryEx
-    matchedRows: any[]
-}) {
-    inputs.onMaterialMatched({
-        success: true,
-        materialInventory: payload.materialInventory,
-        matchedRows: payload.matchedRows
-    })
-}
-
-
-function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
-    return s as unknown as CheckMaterialMatchEnum
-}
-
 
 const {
-    productionStarted,
-    productionUuid,
-    start: startProduction,
-    stop: stopProduction
+  productionStarted,
+  productionUuid,
+  start: startProduction,
+  stop: stopProduction,
 } = useProductionState()
 
-const statMap = new Map<string, any>()
+const productionLifecycleUseCase = new ProductionLifecycleUseCase({
+  start: startProduction,
+  stop: stopProduction,
+})
+
+const statMap = new Map<string, { id: number }>()
+
+function makeSlotKey(slotIdno: string, subSlotIdno?: string | null): string {
+  const slot = (slotIdno ?? "").trim()
+  const sub = (subSlotIdno ?? "").trim()
+  return sub ? `${slot}-${sub}` : slot
+}
+
+watchEffect(() => {
+  statMap.clear()
+  const items = mounterData.value?.panasonic_mounter_file_items ?? []
+  items.forEach((item) => {
+    if (!item?.id || !item.slot_idno) return
+    const key = makeSlotKey(item.slot_idno, item.sub_slot_idno)
+    statMap.set(key, { id: item.id })
+  })
+})
+
+function getStatBySlotIdno(slotIdno: string): { id: number } | null {
+  const parsed = parsePanasonicSlotIdno(slotIdno.trim())
+  if (!parsed) return null
+  const key = makeSlotKey(parsed.slot, parsed.subSlot)
+  return statMap.get(key) ?? statMap.get(parsed.slot) ?? null
+}
 
 function handleProductionStarted(productionStatUuid: string) {
-    // 1️⃣ 更新狀態
-    startProduction(productionStatUuid)
+  const intent = productionLifecycleUseCase.handleStarted({
+    uuid: productionStatUuid,
+    currentPath: route.path,
+    currentQuery: route.query,
+  })
 
-    // 2️⃣ 更新 URL（保留 query）
-    router.replace({
-        path: route.path,
-        query: {
-            ...route.query,
-            uuid: productionStatUuid
-        }
-    })
-
-    // 3️⃣ 導向 UUID 頁（你已經設好的路由）
-    router.push(`/smt/panasonic-mounter-production/${productionStatUuid}`)
+  router.replace(intent.replace)
+  router.push(intent.push)
 }
 
 async function onStopProduction() {
-    dialog.warning({
-        title: '結束生產確認',
-        content: '確定要結束生產嗎？',
-        positiveText: '確定',
-        negativeText: '取消',
-        onPositiveClick: async () => {
-            await stopProduction()
-            return showSuccess('生產已結束')
-        },
-        onNegativeClick: () => {
-            return
-        }
-    })
+  dialog.warning({
+    title: "結束生產確認",
+    content: "確定要結束生產嗎？",
+    positiveText: "確定",
+    negativeText: "取消",
+    onPositiveClick: async () => {
+      await productionLifecycleUseCase.stop()
+      return showSuccess("生產已結束")
+    },
+    onNegativeClick: () => undefined,
+  })
 }
 
-const rollShortage = useRollShortageForm()
+const {
+  show: showRollShortageModal,
+  formRef: rollShortageFormRef,
+  formValue: rollShortageFormValue,
+  rules: rollShortageRules,
+  open: openRollShortage,
+  close: closeRollShortage,
+} = useRollShortageForm()
+
 const rollTypeOptions = [
-    { label: '接料', value: 'roll' },
-    { label: '新捲料', value: 'new' }
+  { label: "接料", value: "roll" },
+  { label: "新捲料", value: "new" },
 ]
 
 function onRollShortage() {
-    //單捲不足
-    rollShortage.open()
+  openRollShortage()
 }
 
-function convertFeedMaterialType(s: string | null): FeedMaterialTypeEnum | null {
-    return s as unknown as FeedMaterialTypeEnum
+function resetRollShortageForm() {
+  rollShortageFormValue.value = {
+    materialInventoryIdno: "",
+    slotIdno: "",
+    type: "",
+  }
 }
 
 const { handleSlotSubmit: submitSlot } = usePanasonicSlotFlow({
-    isTestingMode,
-    getResult: () => materialInventoryResult.value,
-    autoUpload: (rows) => {
-        if (startProductionBtnRef.value) startProductionBtnRef.value.submit(rows)
-    }
+  isTestingMode,
+  getResult: () => materialInventoryResult.value,
+  autoUpload: (rows) => {
+    startProductionBtnRef.value?.submit(rows)
+  },
+  onResetInputs: resetInputsAfterSlotSubmit,
 })
 
-async function handleSlotSubmit(payload: { slotIdno: string; slot: string; subSlot: string }) {
-    const success = await submitSlot(payload)
-    if (success) {
-        resetSlotSubmitInputs()
-    }
-    return success
+const smtRepository = new ApiSmtProductionRepository()
+const submitSlotUseCase = new SubmitSlotUseCase({ submitSlot })
+const submitRollShortageUseCase = new SubmitRollShortageUseCase({
+  repository: smtRepository,
+  getRowData: () => rowData.value,
+  getStatBySlotIdno,
+  isTestingMode: () => isTestingMode,
+  operatorId: () => currentUsername.value || null,
+  now: () => new Date().toISOString(),
+})
+
+async function handleSlotSubmitWithPolicy(payload: {
+  slotIdno: string
+  slot: string
+  subSlot: string
+}) {
+  const result = await submitSlotUseCase.execute(payload)
+  return result.success
+}
+
+function getRollShortageErrorMessage(error: SubmitRollShortageError): string | null {
+  switch (error.code) {
+    case "materialInventoryIdno_required":
+      return "請輸入物料號"
+    case "slotIdno_required":
+      return "請輸入槽位"
+    case "type_required":
+      return "請選擇物料類型"
+    case "stat_not_found":
+      return "找不到對應的槽位"
+    case "row_not_found":
+      return `找不到槽位 ${error.slotIdno}`
+    case "no_material_in_grid":
+      return "表格內無此物料"
+    case "inventory_not_found":
+      return "查無此條碼"
+    case "erp_timeout":
+      return "ERP 連線超時，請確認 ERP 連線"
+    case "erp_bad_gateway":
+      return "ERP 連線錯誤，請確認 ERP 連線"
+    case "server_error":
+      return "系統錯誤"
+    case "unknown_api_error":
+      return "未知錯誤"
+    case "unknown_error":
+      return "發生未知例外"
+    default:
+      return null
+  }
 }
 
 async function onSubmitShortage() {
-    // 可以先驗證表單
-    const idno = rollShortage.formValue.value.materialInventoryIdno.trim()
-    if (!idno) return showError('請輸入物料號')
+  try {
+    await rollShortageFormRef.value?.validate()
+  } catch {
+    return
+  }
 
-    const inputSlotIdno = rollShortage.formValue.value.slotIdno.trim()
-    if (!inputSlotIdno) return showError('請輸入槽位')
-    const stat = statMap.get(inputSlotIdno)
-    const [inputSlot, inputSubSlot = ''] = inputSlotIdno.split('-')
-    if (!stat) return showError('找不到對應的槽位')
+  const result = await submitRollShortageUseCase.execute({
+    materialInventoryIdno: rollShortageFormValue.value.materialInventoryIdno,
+    slotIdno: rollShortageFormValue.value.slotIdno,
+    type: rollShortageFormValue.value.type,
+  })
 
-    const row = rowData.value.find(
-        r => r.slotIdno === inputSlot && (r.subSlotIdno ?? '') === inputSubSlot
-    )
+  if (result.ok === false) {
+    const message = getRollShortageErrorMessage(result.error)
+    if (message) showError(message)
+    return
+  }
 
-    if (!row) {
-        return showError(`找不到槽位 ${inputSlotIdno}`)
-    }
+  if (result.info?.code === "testing_virtual_material") {
+    info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${result.info.idno}`)
+  }
 
-    const rowId = `${row.slotIdno}-${row.subSlotIdno ?? ''}`
+  const { row, rowId, newAppendedMaterialInventoryIdno } = result.update
+  const materialRowNode = gridOptions.api.getRowNode(rowId)
+  if (!materialRowNode) {
+    showError(`找不到AG Grid 資料列 ${rowId}`)
+    return
+  }
 
-    const materialRowNode = gridOptions.api.getRowNode(rowId)
-    if (!materialRowNode) {
-        return showError(`找不到AG Grid 資料列 ${rowId}`)
-    }
-    const packType = rollShortage.formValue.value.type
-    if (!packType) return showError('請選擇物料類型')
+  showSuccess("新增成功")
+  materialRowNode.setDataValue(
+    "appendedMaterialInventoryIdno",
+    newAppendedMaterialInventoryIdno
+  )
+  row.appendedMaterialInventoryIdno = newAppendedMaterialInventoryIdno
 
-    let materialInventory: SmtMaterialInventoryEx | null = null
-
-    const isTestingMode = route.query.testing_mode === '1'
-
-    let correctState: CorrectState | null = null
-
-    try {
-        rollShortage.formRef.value?.validate()
-
-        materialInventory = await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: idno })
-
-        const materialMatchRowArray = getMaterialMatchedRowArray(materialInventory.material_idno)
-
-        if (materialMatchRowArray.length === 0) {
-            return showError('表格內無此物料')
-        }
-
-        correctState = 'true'
-
-    } catch (error) {
-
-        if (error instanceof ApiError && error.status === 404 && isTestingMode) {
-            info(`${MODE_NAME_TESTING}：使用物料 [廠商測試新料] ${idno}`)
-            correctState = 'warning'
-        } else {
-            if (error instanceof ApiError) {
-                const msg = {
-                    404: '查無此條碼',
-                    504: 'ERP 連線超時，請確認 ERP 連線',
-                    502: 'ERP 連線錯誤，請確認 ERP 連線',
-                    500: '系統錯誤'
-                }[error.status] ?? '未知錯誤'
-
-                showError(msg)
-            } else {
-                console.error(error)
-                showError('發生未知例外')
-            }
-            return null
-        }
-    }
-
-    const payload: PanasonicFeedRecordCreate = {
-        stat_item_id: stat.id,
-        operator_id: currentUsername.value || null,
-        operation_time: new Date().toISOString(),
-        slot_idno: inputSlot,
-        sub_slot_idno: inputSubSlot ?? null,
-        material_pack_code: idno,
-        feed_material_pack_type: convertFeedMaterialType(packType),
-        check_pack_code_match: convertMatch(correctState)
-    }
-    console.log("送出資料", payload)
-    await SmtService.addPanasonicMounterItemStatRoll(
-        { requestBody: payload }
-    )
-    showSuccess("新增成功")
-
-    const oldAppendedIdno = row.appendedMaterialInventoryIdno?.trim() || ""
-
-    const newAppendedIdno = oldAppendedIdno ? `${oldAppendedIdno}, ${idno}` : idno
-
-    materialRowNode.setDataValue('appendedMaterialInventoryIdno', newAppendedIdno)
-
-    row.appendedMaterialInventoryIdno = newAppendedIdno
-
-    rollShortage.close()
-    rollShortage.formValue.value = { materialInventoryIdno: '', slotIdno: '', type: '' }
+  closeRollShortage()
+  resetRollShortageForm()
 }
 
 const showMaterialQueryModal = ref(false)
 
-async function onMaterialQuery() {
-    //接料查詢
-    showMaterialQueryModal.value = true
-
+function onMaterialQuery() {
+  showMaterialQueryModal.value = true
 }
 
-// VirtualKeyboard API does not work properly on Honeywell. 
-function hideVirtualKeyboard() {
-    // navigator.virtualKeyboard.overlaysContent = true
-    // navigator.virtualKeyboard.hide()
+function onRollShortageModalUpdate(value: boolean) {
+  if (!value) closeRollShortage()
+}
+
+function getRollShortageFormRef(): Ref<FormInst | null> {
+  return rollShortageFormRef
 }
 </script>
 
 <template>
-    <!-- 接料查詢 Modal -->
-    <MaterialQueryModal v-model:show="showMaterialQueryModal" :uuid="productionUuid" @error="showError" />
-    <n-space vertical :wrap-item="false" style="height: calc(100vh - 60px);">
+  <PanasonicRollShortageModal
+    :show="showRollShortageModal"
+    :form-value="rollShortageFormValue"
+    :rules="rollShortageRules"
+    :roll-type-options="rollTypeOptions"
+    :form-ref="getRollShortageFormRef()"
+    @update:show="onRollShortageModalUpdate"
+    @cancel="closeRollShortage"
+    @submit="onSubmitShortage"
+  />
 
-        <n-space vertical size="small"
-            style="padding: 0px 1rem 0 1rem; position: sticky; top: 0px; background-color: var(--table-color); z-index: 1;">
-            <n-page-header @back=" onClickBackArrow($event)" style="margin-bottom: 1rem;">
-                <!-- 機號 + 模式標籤 -->
-                <template #title>
-                    <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
-                        <span>{{ route.params.mounterIdno }}</span>
-                        <n-tag :type="route.query.testing_mode === '1' ? 'warning' : 'success'" size="small" bordered>
-                            {{ route.query.testing_mode === '1' ? MODE_NAME_TESTING : MODE_NAME_NORMAL }}
-                        </n-tag>
-                    </div>
-                </template>
-                <template #default>
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <!-- 左側：工單資訊 -->
-                        <n-space size="small">
-                            <n-p>
-                                工單：<n-tag type="info" size="small">{{ route.params.workOrderIdno }}</n-tag>
-                            </n-p>
-                            <n-p>
-                                成品料號：<n-tag type="info" size="small">{{ route.query.product_idno }}</n-tag>
-                            </n-p>
-                            <n-p>
-                                工件面向：<n-tag type="info" size="small">{{ route.query.work_sheet_side }}</n-tag>
-                            </n-p>
-                            <n-p>
-                                機台面向：<n-tag type="info" size="small">{{ route.query.machine_side }}</n-tag>
-                            </n-p>
-                        </n-space>
+  <MaterialQueryModal v-model:show="showMaterialQueryModal" :uuid="productionUuid" @error="showError" />
 
-                        <!-- 右側：功能按鈕 -->
-                        <n-space size="small">
-                            <StartProductionButton ref="startProductionBtnRef" v-if="!productionStarted" :is-testing-mode="isTestingMode"
-                                :row-data="rowData" :operator_id="currentUsername" :work-order-idno="workOrderIdno" :product-idno="productIdno"
-                                :mounter-idno="mounterIdno" :machine-side-query="machineSideQuery"
-                                :work-sheet-side-query="workSheetSideQuery" @started="handleProductionStarted"
-                                @error="showError" />
-                            <n-button v-else type="error" size="small" @click="onStopProduction">
-                                🛑 結束生產
-                            </n-button>
-                            <n-button type="warning" size="small" @click="onRollShortage"
-                                :disabled="!productionStarted">
-                                ⚠️ 單捲不足
-                            </n-button>
-                            <n-button type="info" size="small" @click="onMaterialQuery" :disabled="!productionStarted">
-                                🔍 接料查詢
-                            </n-button>
-                        </n-space>
-                    </div>
-                </template>
-            </n-page-header>
+  <PanasonicMounterLayout>
+    <template #header>
+      <n-page-header @back="onClickBackArrow" class="page-header">
+        <template #title>
+          <div class="page-title">
+            <span>{{ mounterIdno }}</span>
+            <n-tag :type="isTestingMode ? 'warning' : 'success'" size="small" bordered>
+              {{ isTestingMode ? MODE_NAME_TESTING : MODE_NAME_NORMAL }}
+            </n-tag>
+          </div>
+        </template>
+        <template #default>
+          <div class="page-toolbar">
+            <PanasonicMounterInfoBar
+              :work-order="workOrderIdno"
+              :product="productIdno"
+              :board-side="workSheetSideQuery"
+              :machine-side="machineSideQuery"
+            />
 
-            <n-grid cols="2 s:2" responsive="screen" x-gap="20">
-                <n-gi>
-                    <MaterialInventoryBarcodeInput :is-testing-mode="isTestingMode"
-                        :get-material-matched-rows="getMaterialMatchedRowArray" @matched="handleMaterialMatched"
-                        :reset-key="inputs.resetKey.value" @error="showError" />
-                </n-gi>
+            <n-space size="small">
+              <StartProductionButton
+                ref="startProductionBtnRef"
+                v-if="!productionStarted"
+                :is-testing-mode="isTestingMode"
+                :row-data="rowData"
+                :operator_id="currentUsername"
+                :work-order-idno="workOrderIdno"
+                :product-idno="productIdno"
+                :mounter-idno="mounterIdno"
+                :machine-side-query="machineSideQuery"
+                :work-sheet-side-query="workSheetSideQuery"
+                @started="handleProductionStarted"
+                @error="showError"
+              />
+              <n-button v-else type="error" size="small" @click="onStopProduction">
+                🛑 結束生產
+              </n-button>
+              <n-button type="warning" size="small" @click="onRollShortage" :disabled="!productionStarted">
+                ⚠️ 單捲不足
+              </n-button>
+              <n-button type="info" size="small" @click="onMaterialQuery" :disabled="!productionStarted">
+                🔍 接料查詢
+              </n-button>
+            </n-space>
+          </div>
+        </template>
+      </n-page-header>
+    </template>
 
-                <n-gi>
-                        <SlotIdnoInput :is-testing-mode="isTestingMode" :has-material="inputs.hasMaterial.value"
-                        :parse-slot-idno="parsePanasonicSlotIdno" :reset-key="inputs.slotResetKey.value" ref="slotIdnoInput"
-                        :key="inputs.slotResetKey.value" @submit="handleSlotSubmit" @error="showError" />
-                </n-gi>
-            </n-grid>
-        </n-space>
+    <template #inputs>
+      <n-gi>
+        <MaterialInventoryBarcodeInput
+          :is-testing-mode="isTestingMode"
+          ref="materialInventoryInput"
+          :get-material-matched-rows="getMaterialMatchedRows"
+          @matched="handleMaterialMatched"
+          :reset-key="inputs.resetKey.value"
+          @error="showError"
+        />
+      </n-gi>
 
-        <div style="height: 2000px; padding: 1rem;">
-            <ag-grid-vue class="ag-theme-balham-dark" :rowData="rowData" style="height: 100%;"
-                :gridOptions="gridOptions" @grid-ready="onGridReady">
-            </ag-grid-vue>
-        </div>
+      <n-gi>
+        <SlotIdnoInput
+          :is-testing-mode="isTestingMode"
+          :has-material="inputs.hasMaterial.value"
+          :parse-slot-idno="parsePanasonicSlotIdno"
+          :reset-key="inputs.slotResetKey.value"
+          ref="slotIdnoInput"
+          :key="inputs.slotResetKey.value"
+          @submit="handleSlotSubmitWithPolicy"
+          @error="showError"
+        />
+      </n-gi>
+    </template>
 
-    </n-space>
-
-
+    <ag-grid-vue
+      class="ag-theme-balham-dark grid-content"
+      :rowData="rowData"
+      :gridOptions="gridOptions"
+      @grid-ready="onGridReady"
+    />
+  </PanasonicMounterLayout>
 </template>
 
+<style scoped>
+.page-header {
+  margin-bottom: 1rem;
+}
 
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.grid-content {
+  height: 100%;
+}
+</style>
 
 <style>
 body {
-    /* This does not work. */
-    margin-block-end: env(keyboard-inset-height, 5000px);
+  /* This does not work. */
+  margin-block-end: env(keyboard-inset-height, 5000px);
 }
 </style>

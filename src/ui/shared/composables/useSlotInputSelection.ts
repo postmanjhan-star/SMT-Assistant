@@ -1,5 +1,8 @@
-import { computed, ref, unref, type Ref } from 'vue'
+import { computed, ref, unref, type Ref } from "vue"
 
+// Backward compatible options:
+// - `materialResult` can be a local ref or a store ref from `storeToRefs`.
+// - optional setter/clearer are preserved for legacy callers.
 export type SlotInputSelectionOptions<T> = {
   materialResult: Ref<T | null>
   focusSlotInput?: () => void
@@ -28,18 +31,23 @@ export function useSlotInputSelection<T>(options: SlotInputSelectionOptions<T>) 
 
   function onMaterialMatched(payload: T) {
     setResult(payload)
-    if (options.focusSlotInput) {
-      options.focusSlotInput()
-      requestAnimationFrame(() => {
-        options.focusSlotInput?.()
-      })
-    }
+
+    if (!options.focusSlotInput) return
+
+    options.focusSlotInput()
+    requestAnimationFrame(() => {
+      options.focusSlotInput?.()
+    })
+  }
+
+  function bumpResetKeys() {
+    resetKey.value += 1
+    slotResetKey.value += 1
   }
 
   function onSlotSubmitted() {
     clearResult()
-    resetKey.value += 1
-    slotResetKey.value += 1
+    bumpResetKeys()
   }
 
   return {
@@ -48,5 +56,6 @@ export function useSlotInputSelection<T>(options: SlotInputSelectionOptions<T>) 
     hasMaterial,
     onMaterialMatched,
     onSlotSubmitted,
+    bumpResetKeys,
   }
 }
