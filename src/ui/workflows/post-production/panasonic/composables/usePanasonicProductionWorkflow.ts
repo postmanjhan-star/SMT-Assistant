@@ -44,6 +44,7 @@ export function usePanasonicProductionWorkflow(
 
   const productionUuid = ref("")
   const isTestingMode = ref(route.query.testing_mode === "1")
+  const machineSideQuery = computed(() => normalizeRoute(route.query.machine_side))
 
   const mounterIdno = computed(() => normalizeRoute(route.params.mounterIdno))
   const workOrderIdno = ref("")
@@ -51,9 +52,31 @@ export function usePanasonicProductionWorkflow(
   const boardSide = ref<BoardSideEnum | null>(null)
   const machineSide = ref<MachineSideEnum | null>(null)
 
+  const machineSideFromRows = computed(() => {
+    let hasFront = false
+    let hasBack = false
+
+    rowData.value.forEach((row) => {
+      const slotIdno = String(row.slotIdno ?? "").trim()
+      if (!slotIdno) return
+
+      if (slotIdno.startsWith("1")) hasFront = true
+      if (slotIdno.startsWith("2")) hasBack = true
+    })
+
+    if (hasFront && hasBack) return "1+2"
+    if (hasFront) return "1"
+    if (hasBack) return "2"
+    return ""
+  })
+
   const machineSideLabel = computed(() => {
+    if (machineSideFromRows.value) return machineSideFromRows.value
     if (machineSide.value === MachineSideEnum.FRONT) return "1"
     if (machineSide.value === MachineSideEnum.BACK) return "2"
+    if (machineSideQuery.value === "1+2") return "1+2"
+    if (machineSideQuery.value === "1") return "1"
+    if (machineSideQuery.value === "2") return "2"
     return ""
   })
 

@@ -5,7 +5,7 @@ export type ProductionLifecycleDeps = {
 
 export type ProductionStartedIntent = {
     replace: { path: string; query: Record<string, any> }
-    push: { path: string }
+    push: { path: string; query: Record<string, any> }
 }
 
 export class ProductionLifecycleUseCase {
@@ -17,6 +17,9 @@ export class ProductionLifecycleUseCase {
         currentQuery: Record<string, any>
     }): ProductionStartedIntent {
         this.deps.start(input.uuid)
+        const pushQuery = { ...input.currentQuery }
+        delete pushQuery.uuid
+
         return {
             replace: {
                 path: input.currentPath,
@@ -27,6 +30,7 @@ export class ProductionLifecycleUseCase {
             },
             push: {
                 path: `/smt/panasonic-mounter-production/${input.uuid}`,
+                query: pushQuery,
             },
         }
     }
