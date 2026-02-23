@@ -165,6 +165,15 @@ function reset() {
     materialInventoryIdnoInput.value?.focus()
 }
 
+function focus() {
+    materialInventoryIdnoInput.value?.focus()
+}
+
+function clear() {
+    formValue.value.materialInventoryIdno = ''
+}
+
+defineExpose({ focus, clear })
 
 </script>
 

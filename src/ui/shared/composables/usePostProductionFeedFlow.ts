@@ -7,7 +7,7 @@ import type {
 } from '@/application/post-production-feed/PostProductionFeedContext'
 import type { RowModelBase } from '@/application/post-production-feed/PostProductionFeedTypes'
 import type { PostProductionFeedDeps } from '@/application/post-production-feed/PostProductionFeedDeps'
-import { PostProductionFeedGridAdapter } from '@/ui/post-production/PostProductionFeedGridAdapter'
+import { PostProductionFeedGridAdapter } from '@/ui/workflows/post-production/panasonic/PostProductionFeedGridAdapter'
 import {
   usePostProductionFeedStore,
   type PostProductionCorrectState,

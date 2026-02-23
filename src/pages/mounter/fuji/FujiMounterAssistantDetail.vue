@@ -13,9 +13,9 @@ import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier';
 import {
     useFujiProductionState,
     type FujiMounterRowModel,
-} from '@/ui/pre-production/fuji/useFujiProductionState'
+} from '@/ui/workflows/preproduction/fuji/composables/useFujiProductionState'
 import { SlotSubmissionRunner } from '@/application/slot-submit/SlotSubmissionRunner'
-import { FujiMounterGridAdapter } from '@/ui/pre-production/fuji/FujiMounterGridAdapter'
+import { FujiMounterGridAdapter } from '@/ui/workflows/preproduction/fuji/FujiMounterGridAdapter'
 import MaterialInventoryBarcodeInput from '@/pages/components/MaterialInventoryBarcodeInput.vue'
 import SlotIdnoInput from '@/pages/components/SlotIdnoInput.vue'
 import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'

@@ -1,6 +1,6 @@
 import { SmtService, type PanasonicMounterFileRead } from '@/client'
 
-type PanasonicMounterMaterialSlotParams = Parameters<
+export type PanasonicMounterMaterialSlotParams = Parameters<
   typeof SmtService.getPanasonicMounterMaterialSlotPairs
 >[0]
 

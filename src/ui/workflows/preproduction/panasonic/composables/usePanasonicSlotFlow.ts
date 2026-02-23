@@ -7,6 +7,7 @@ export type PanasonicSlotFlowOptions = {
   isTestingMode: boolean
   getResult?: () => any
   autoUpload?: (rows: any[]) => void
+  onResetInputs?: () => void
 }
 
 export function usePanasonicSlotFlow(options: PanasonicSlotFlowOptions) {
@@ -34,8 +35,19 @@ export function usePanasonicSlotFlow(options: PanasonicSlotFlowOptions) {
     }
   })
 
-  const handleSlotSubmit = (payload: { slotIdno: string; slot: string; subSlot: string }) =>
-    flow.execute(payload)
+  const handleSlotSubmit = async (payload: {
+    slotIdno: string
+    slot: string
+    subSlot: string
+  }) => {
+    let success = false
+    try {
+      success = await flow.execute(payload)
+      return success
+    } finally {
+      options.onResetInputs?.()
+    }
+  }
 
   return {
     store,

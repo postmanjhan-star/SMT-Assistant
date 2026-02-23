@@ -12,7 +12,7 @@ import { useDialog, type FormRules } from 'naive-ui'
 import type { GridApi } from 'ag-grid-community'
 
 import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
-import { usePanasonicProductionState } from '@/ui/post-production/panasonic/usePanasonicProductionState'
+import { usePanasonicProductionState } from '@/ui/workflows/post-production/panasonic/composables/usePanasonicProductionState'
 import { usePostProductionFeedFlow } from '@/ui/shared/composables/usePostProductionFeedFlow'
 import { PostProductionRecordUploader } from '@/application/post-production-feed/PostProductionRecordUploader'
 import { PostProductionRecordApi } from '@/infra/post-production/PostProductionRecordApi'
@@ -125,16 +125,18 @@ export function usePanasonicProductionPage(options: PanasonicProductionPageOptio
     subSlot: string
     slotIdno: string
   }) => {
-    const success = await submitPostProductionFeed({
-      slot,
-      subSlot,
-      slotIdno,
-      result: postProductionFeedStore.materialResult,
-    })
-    if (success) {
+    let success = false
+    try {
+      success = await submitPostProductionFeed({
+        slot,
+        subSlot,
+        slotIdno,
+        result: postProductionFeedStore.materialResult,
+      })
+      return success
+    } finally {
       options.onResetInputs()
     }
-    return success
   }
 
   const rollTypeOptions = [

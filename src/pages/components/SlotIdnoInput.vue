@@ -84,18 +84,6 @@ async function onSubmit() {
         slot,
         subSlot
     })
-
-    formValue.value.slotIdno = ''
-    slotIdnoInput.value?.focus()
-
-      // ✅ 清 slot input（只清自己）
-    formValue.value.slotIdno = ''
-
-    // ✅ 告知父層「slot 已完成」
-    emit('done')
-
-    await nextTick()
-    formValue.value.slotIdno = ''
 }
 
 function focus() {

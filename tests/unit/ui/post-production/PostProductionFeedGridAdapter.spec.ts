@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { PostProductionFeedGridAdapter } from '@/ui/post-production/PostProductionFeedGridAdapter'
+import { PostProductionFeedGridAdapter } from '@/ui/workflows/post-production/panasonic/PostProductionFeedGridAdapter'
 import { RowModelBase } from '@/application/post-production-feed/PostProductionFeedTypes'
 
 describe('PostProductionFeedGridAdapter', () => {

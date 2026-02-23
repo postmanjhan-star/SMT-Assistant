@@ -1,204 +1,116 @@
 ﻿import { defineStore } from "pinia"
-import { ref } from "vue"
+import { computed } from "vue"
+import {
+  usePostProductionStateStore,
+  type PostProductionCorrectState,
+  type PostProductionMaterialInventory,
+  type PostProductionMaterialResult,
+} from "@/stores/postProductionStateStore"
+import {
+  usePostProductionUiStore,
+  type PostProductionFeedUi,
+} from "@/stores/postProductionUiStore"
+import {
+  usePostProductionGridStore,
+  type PostProductionGridPort,
+} from "@/stores/postProductionGridStore"
+import {
+  usePostProductionModalStore,
+  type PostProductionRollShortageFormValue,
+} from "@/stores/postProductionModalStore"
 
-export type PostProductionCorrectState = "true" | "false" | "warning"
+// Migration guide:
+// - State: usePostProductionStateStore
+// - UI handlers: usePostProductionUiStore
+// - Grid integration: usePostProductionGridStore
+// - Modal control: usePostProductionModalStore
+// - Facade (compat): usePostProductionFeedStore
 
-export type PostProductionMaterialInventory = {
-    idno: string
-    remark?: string
-}
-
-export type PostProductionFeedUi = {
-    success: (msg: string) => Promise<void> | Promise<boolean>
-    warn: (msg: string) => boolean | void
-    info?: (msg: string) => void
-    error: (msg: string) => Promise<void> | Promise<boolean>
-    notifyError: (msg: string) => void
-    playErrorTone: () => Promise<void>
-    resetSlotMaterialFormInputs: () => void
-}
-
-export type PostProductionMaterialResult = {
-    success: boolean
-    materialInventory?: PostProductionMaterialInventory | null
-    matchedRows?: Array<{
-        slotIdno: string
-        subSlotIdno?: string | null
-    }>
-}
-
-export type PostProductionGridPort = {
-    getRowNode: (rowId: string) => any
-    getRow: (slot: string, subSlot: string) => any | undefined
-    getRowId: (row: { slotIdno: string; subSlotIdno?: string | null }) => string
-    deselectRow: (rowId: string) => boolean
-    cleanErrorMaterialInventory: (
-        currentPackCode: string,
-        inputSlot: string,
-        inputSubSlot: string
-    ) => void
-    applyInspectionUpdate: (row: any, materialPackIdno: string) => void
-    setAppendedMaterialInventoryIdno: (
-        rowId: string,
-        appendedIdno: string
-    ) => boolean
-}
+export type {
+  PostProductionCorrectState,
+  PostProductionMaterialInventory,
+  PostProductionMaterialResult,
+} from "@/stores/postProductionStateStore"
+export type { PostProductionFeedUi } from "@/stores/postProductionUiStore"
+export type { PostProductionGridPort } from "@/stores/postProductionGridStore"
+export type { PostProductionRollShortageFormValue } from "@/stores/postProductionModalStore"
 
 export const usePostProductionFeedStore = defineStore(
-    "postProductionFeed",
-    () => {
-        const correctState = ref<PostProductionCorrectState>("false")
-        const materialResult = ref<PostProductionMaterialResult | null>(null)
-        const showRollShortageModal = ref(false)
-        const rollShortageFormValue = ref({
-            materialInventoryIdno: "",
-            slotIdno: "",
-            type: "",
-        })
+  "postProductionFeed",
+  () => {
+    const stateStore = usePostProductionStateStore()
+    const uiStore = usePostProductionUiStore()
+    const gridStore = usePostProductionGridStore()
+    const modalStore = usePostProductionModalStore()
 
-        let grid: PostProductionGridPort | null = null
-        let ui: PostProductionFeedUi | null = null
+    const correctState = computed({
+      get: () => stateStore.correctState,
+      set: (value: PostProductionCorrectState) => {
+        stateStore.setCorrectState(value)
+      },
+    })
 
-        function bindGrid(port: PostProductionGridPort) {
-            grid = port
+    const materialResult = computed({
+      get: () => stateStore.materialResult,
+      set: (value: PostProductionMaterialResult | null) => {
+        stateStore.setMaterialResult(value)
+      },
+    })
+
+    const showRollShortageModal = computed({
+      get: () => modalStore.showRollShortageModal,
+      set: (value: boolean) => {
+        if (value) {
+          modalStore.openRollShortageModal()
+          return
         }
+        modalStore.closeRollShortageModal()
+      },
+    })
 
-        function bindUi(handlers: PostProductionFeedUi) {
-            ui = handlers
-        }
+    const rollShortageFormValue = computed({
+      get: () => modalStore.rollShortageFormValue,
+      set: (value: PostProductionRollShortageFormValue) => {
+        modalStore.rollShortageFormValue = value
+      },
+    })
 
-        function setMaterialResult(
-            result: PostProductionMaterialResult | null
-        ) {
-            materialResult.value = result
-        }
+    return {
+      correctState,
+      materialResult,
+      setMaterialResult: stateStore.setMaterialResult,
+      clearMaterialResult: stateStore.clearMaterialResult,
+      setCorrectState: stateStore.setCorrectState,
+      getCorrectState: stateStore.getCorrectState,
 
-        function clearMaterialResult() {
-            materialResult.value = null
-        }
+      bindUi: uiStore.bindUi,
+      success: uiStore.success,
+      warn: uiStore.warn,
+      info: uiStore.info,
+      error: uiStore.error,
+      notifyError: uiStore.notifyError,
+      playErrorTone: uiStore.playErrorTone,
+      resetSlotMaterialFormInputs: uiStore.resetSlotMaterialFormInputs,
 
-        function setCorrectState(state: PostProductionCorrectState) {
-            correctState.value = state
-        }
+      bindGrid: gridStore.bindGrid,
+      getRowNode: gridStore.getRowNode,
+      getRow: gridStore.getRow,
+      getRowId: gridStore.getRowId,
+      deselectRow: gridStore.deselectRow,
+      cleanErrorMaterialInventory: gridStore.cleanErrorMaterialInventory,
+      applyInspectionUpdate: gridStore.applyInspectionUpdate,
+      setAppendedMaterialInventoryIdno:
+        gridStore.setAppendedMaterialInventoryIdno,
 
-        function getCorrectState() {
-            return correctState.value
-        }
-
-        async function success(msg: string): Promise<void> {
-            await ui?.success?.(msg)
-        }
-
-        function warn(msg: string): boolean {
-            const result = ui?.warn?.(msg)
-            return typeof result === "boolean" ? result : false
-        }
-
-        function info(msg: string) {
-            ui?.info?.(msg)
-        }
-
-        async function error(msg: string): Promise<void> {
-            await ui?.error?.(msg)
-        }
-
-        function notifyError(msg: string) {
-            ui?.notifyError?.(msg)
-        }
-
-        async function playErrorTone(): Promise<void> {
-            await ui?.playErrorTone?.()
-        }
-
-        function resetSlotMaterialFormInputs() {
-            ui?.resetSlotMaterialFormInputs?.()
-        }
-
-        function openRollShortageModal() {
-            showRollShortageModal.value = true
-        }
-
-        function closeRollShortageModal() {
-            showRollShortageModal.value = false
-        }
-
-        function resetRollShortageForm() {
-            rollShortageFormValue.value = {
-                materialInventoryIdno: "",
-                slotIdno: "",
-                type: "",
-            }
-        }
-
-        function getRowNode(rowId: string) {
-            return grid?.getRowNode(rowId)
-        }
-
-        function getRow(slot: string, subSlot: string) {
-            return grid?.getRow(slot, subSlot)
-        }
-
-        function getRowId(row: { slotIdno: string; subSlotIdno?: string | null }) {
-            return grid?.getRowId(row) ?? ""
-        }
-
-        function deselectRow(rowId: string): boolean {
-            return grid?.deselectRow(rowId) ?? false
-        }
-
-        function cleanErrorMaterialInventory(
-            currentPackCode: string,
-            inputSlot: string,
-            inputSubSlot: string
-        ) {
-            grid?.cleanErrorMaterialInventory(
-                currentPackCode,
-                inputSlot,
-                inputSubSlot
-            )
-        }
-
-        function applyInspectionUpdate(row: any, materialPackIdno: string) {
-            grid?.applyInspectionUpdate(row, materialPackIdno)
-        }
-
-        function setAppendedMaterialInventoryIdno(
-            rowId: string,
-            appendedIdno: string
-        ): boolean {
-            return grid?.setAppendedMaterialInventoryIdno(rowId, appendedIdno) ?? false
-        }
-
-        return {
-            correctState,
-            materialResult,
-            bindGrid,
-            bindUi,
-            setMaterialResult,
-            clearMaterialResult,
-            setCorrectState,
-            getCorrectState,
-            showRollShortageModal,
-            rollShortageFormValue,
-            success,
-            warn,
-            info,
-            error,
-            notifyError,
-            playErrorTone,
-            resetSlotMaterialFormInputs,
-            openRollShortageModal,
-            closeRollShortageModal,
-            resetRollShortageForm,
-            getRowNode,
-            getRow,
-            getRowId,
-            deselectRow,
-            cleanErrorMaterialInventory,
-            applyInspectionUpdate,
-            setAppendedMaterialInventoryIdno,
-        }
+      showRollShortageModal,
+      rollShortageFormValue,
+      openRollShortageModal: modalStore.openRollShortageModal,
+      closeRollShortageModal: modalStore.closeRollShortageModal,
+      resetRollShortageForm: modalStore.resetRollShortageForm,
     }
+  }
 )
 
-export type PostProductionFeedStore = ReturnType<typeof usePostProductionFeedStore>
+export type PostProductionFeedStore = ReturnType<
+  typeof usePostProductionFeedStore
+>
