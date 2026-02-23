@@ -11,7 +11,7 @@ import {
   type FormInst,
   type FormRules,
 } from "naive-ui"
-import type { Ref } from "vue"
+import type { Ref, VNodeRef } from "vue"
 
 export type PanasonicRollShortageFormValue = {
   materialInventoryIdno: string
@@ -42,9 +42,13 @@ function onUpdateShow(value: boolean) {
   emit("update:show", value)
 }
 
-function setFormRef(inst: FormInst | null) {
+function isFormInst(value: unknown): value is FormInst {
+  return !!value && typeof value === "object" && "validate" in value
+}
+
+const setFormRef: VNodeRef = (value) => {
   if (!props.formRef) return
-  props.formRef.value = inst
+  props.formRef.value = isFormInst(value) ? value : null
 }
 </script>
 

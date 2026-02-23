@@ -2,8 +2,8 @@
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
-import { NButton, NGi, NPageHeader, NSpace, NTag, type FormInst } from "naive-ui"
-import { ref, type Ref } from "vue"
+import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
+import { ref } from "vue"
 import { storeToRefs } from "pinia"
 import { useMeta } from "vue-meta"
 
@@ -23,6 +23,10 @@ import { usePanasonicProductionPage } from "@/ui/workflows/post-production/panas
 import { createPanasonicProductionGrid } from "@/ui/workflows/post-production/panasonic/PanasonicProductionGridAdapter"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import { usePanasonicInputReset } from "@/ui/shared/composables/panasonic/usePanasonicInputReset"
+import {
+  PANASONIC_MODE_NAME_NORMAL,
+  PANASONIC_MODE_NAME_TESTING,
+} from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import type {
   InputComponentHandle,
   MaterialMatchedPayload,
@@ -80,21 +84,21 @@ const {
 })
 
 const gridOptions = createPanasonicProductionGrid()
+const rollShortageBindings = { formRef: rollShortageFormRef }
 
-function handleMaterialMatched(payload: MaterialMatchedPayload) {
+function handleMaterialMatched(payload: {
+  materialInventory: MaterialMatchedPayload["materialInventory"]
+  matchedRows: unknown[]
+}) {
   inputs.onMaterialMatched({
     success: true,
     materialInventory: payload.materialInventory,
-    matchedRows: payload.matchedRows,
+    matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
   })
 }
 
 function onRollShortageModalUpdate(value: boolean) {
   if (!value) closeRollShortage()
-}
-
-function getRollShortageFormRef(): Ref<FormInst | null> {
-  return rollShortageFormRef
 }
 </script>
 
@@ -104,7 +108,7 @@ function getRollShortageFormRef(): Ref<FormInst | null> {
     :form-value="rollShortageFormValue"
     :rules="rollShortageRules"
     :roll-type-options="rollTypeOptions"
-    :form-ref="getRollShortageFormRef()"
+    :form-ref="rollShortageBindings.formRef"
     @update:show="onRollShortageModalUpdate"
     @cancel="closeRollShortage"
     @submit="onSubmitShortage"
@@ -123,7 +127,7 @@ function getRollShortageFormRef(): Ref<FormInst | null> {
           <div class="page-title">
             <span>{{ mounterIdno }}</span>
             <n-tag :type="isTestingMode ? 'warning' : 'success'" size="small" bordered>
-              {{ isTestingMode ? "🧪 試產生產模式" : "✅ 正式生產模式" }}
+              {{ isTestingMode ? PANASONIC_MODE_NAME_TESTING : PANASONIC_MODE_NAME_NORMAL }}
             </n-tag>
           </div>
         </template>

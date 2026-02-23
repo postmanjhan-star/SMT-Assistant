@@ -1,4 +1,8 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import {
+  guardPanasonicDetailRoute,
+  guardPanasonicProductionRoute,
+} from "./panasonicRouteGuards";
 
 // 2. 定义一些路由
 // 每个路由都需要映射到一个组件。
@@ -31,6 +35,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/panasonic-mounter/:mounterIdno/:workOrderIdno',
+        beforeEnter: guardPanasonicDetailRoute,
         component: () => import("../pages/mounter/panasonic/PanasonicMounterAssistantDetail.vue"),
       },
       {
@@ -39,6 +44,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/smt/panasonic-mounter-production/:productionUuid',
+        beforeEnter: guardPanasonicProductionRoute,
         component: () => import("../pages/mounter/panasonic/PanasonicMounterAssistantProduction.vue")
       },
       {

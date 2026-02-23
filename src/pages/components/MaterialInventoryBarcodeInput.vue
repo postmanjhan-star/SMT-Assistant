@@ -13,17 +13,21 @@ import {
 } from '@/domain/material/MaterialScanDecision'
 
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
-type MatchedPayload = { materialInventory: SmtMaterialInventoryEx; matchedRows: any[] }
+type MatchedRow = unknown
+type MatchedPayload = {
+    materialInventory: SmtMaterialInventoryEx
+    matchedRows: MatchedRow[]
+}
 
 /* ================= props / emits ================= */
 
 const props = defineProps<{
     isTestingMode: boolean
-    getMaterialMatchedRows: (materialIdno: string) => any[]
+    getMaterialMatchedRows: (materialIdno: string) => MatchedRow[]
     resetKey: number
     disabled?: boolean
     allowNoMatchInTesting?: boolean
-    scan?: (barcode: string) => Promise<ScanResultLike<SmtMaterialInventoryEx, any>>
+    scan?: (barcode: string) => Promise<ScanResultLike<SmtMaterialInventoryEx, MatchedRow>>
 }>()
 
 watch(
@@ -84,7 +88,7 @@ async function safePlayErrorTone() {
 /* ================= main logic ================= */
 
 const scanUseCase = computed(() => {
-    const deps: BarcodeScanDeps = {
+    const deps: BarcodeScanDeps<MatchedRow> = {
         validator: new SimpleBarcodeValidator(),
         materialRepository: new ApiMaterialRepository(),
         isTestingMode: props.isTestingMode,

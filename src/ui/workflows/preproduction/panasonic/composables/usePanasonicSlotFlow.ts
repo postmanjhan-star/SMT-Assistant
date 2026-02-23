@@ -3,14 +3,16 @@ import { SlotUploadScheduler } from '@/application/slot-submit/SlotUploadSchedul
 import { useSlotUploadScheduler } from '@/ui/shared/composables/useSlotUploadScheduler'
 import { PanasonicSlotSubmitFlow } from '@/application/slot-submit/PanasonicSlotSubmitFlow'
 
-export type PanasonicSlotFlowOptions = {
+export type PanasonicSlotFlowOptions<TResult = unknown, TRow = unknown> = {
   isTestingMode: boolean
-  getResult?: () => any
-  autoUpload?: (rows: any[]) => void
+  getResult?: () => TResult
+  autoUpload?: (rows: TRow[]) => void
   onResetInputs?: () => void
 }
 
-export function usePanasonicSlotFlow(options: PanasonicSlotFlowOptions) {
+export function usePanasonicSlotFlow<TResult = unknown, TRow = unknown>(
+  options: PanasonicSlotFlowOptions<TResult, TRow>
+) {
   const store = useSlotSubmitStore()
 
   const scheduler = new SlotUploadScheduler({
@@ -19,7 +21,7 @@ export function usePanasonicSlotFlow(options: PanasonicSlotFlowOptions) {
       return { shouldUpload: shouldAutoUpload, rows: store.pendingAutoUpload }
     },
     onUpload: (rows) => {
-      options.autoUpload?.(rows)
+      options.autoUpload?.(rows as TRow[])
       store.clearPendingAutoUpload()
     }
   })
