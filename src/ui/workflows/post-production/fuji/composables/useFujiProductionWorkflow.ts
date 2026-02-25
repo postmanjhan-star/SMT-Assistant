@@ -1,4 +1,4 @@
-import { onMounted, ref } from "vue"
+﻿import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type GridApi, type GridReadyEvent } from "ag-grid-community"
 import { useDialog, type InputInst } from "naive-ui"
@@ -6,6 +6,7 @@ import {
   ApiError,
   CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
+  MaterialOperationTypeEnum,
   ProduceTypeEnum,
   SmtService,
   type BoardSideEnum,
@@ -18,6 +19,7 @@ import {
   appendMaterialCode,
   findLoadedSlotByPack,
   isInspectionScan,
+  removeMaterialCode,
   type StatLike,
 } from "@/domain/production/PostProductionFeedRules"
 import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
@@ -30,6 +32,8 @@ import {
 
 const MODE_NAME_TESTING = "🧪 試產生產模式"
 const MODE_NAME_NORMAL = "✅ 正式生產模式"
+const MATERIAL_UNLOAD_TRIGGER = "S5555"
+const MATERIAL_UNLOAD_MODE_NAME = "換料卸除"
 
 function normalizeStageLabel(stage: unknown): string {
   if (stage == null) return ""
@@ -56,10 +60,10 @@ function toUploadSubSlotIdno(value: unknown): string | null {
 
 function getApiErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
-    if (error.status === 422) return `${fallback}（資料格式錯誤）`
-    if (error.status === 404) return `${fallback}（找不到對應資料）`
-    if (error.status === 500) return `${fallback}（系統錯誤）`
-    if (error.status === 504) return `${fallback}（服務逾時）`
+    if (error.status === 422) return `${fallback}：參數錯誤`
+    if (error.status === 404) return `${fallback}：找不到資料`
+    if (error.status === 500) return `${fallback}：伺服器錯誤`
+    if (error.status === 504) return `${fallback}：服務逾時`
   }
   return fallback
 }
@@ -88,8 +92,22 @@ export function useFujiProductionWorkflow() {
   const slotInputRef = ref<InputInst | null>(null)
   const materialInventoryFromScan = ref<SmtMaterialInventory | null>(null)
 
+  const isUnloadMode = ref(false)
+  const unloadMaterialValue = ref("")
+  const unloadSlotValue = ref("")
+
   const gridApi = ref<GridApi | null>(null)
   const showMaterialQueryModal = ref(false)
+
+  function parseAppendedCodes(value: string | null | undefined): string[] {
+    const raw = String(value ?? "").trim()
+    if (!raw) return []
+
+    return raw
+      .split(",")
+      .map((code) => code.trim())
+      .filter((code) => code.length > 0)
+  }
 
   function resolveUploadSlotByStatId(
     statId: number,
@@ -117,6 +135,29 @@ export function useFujiProductionWorkflow() {
     slotFormValue.value.slotIdno = ""
     materialInventoryFromScan.value = null
     materialInputRef.value?.focus()
+  }
+
+  function enterUnloadMode() {
+    isUnloadMode.value = true
+    unloadMaterialValue.value = ""
+    unloadSlotValue.value = ""
+    resetForms()
+  }
+
+  function exitUnloadMode() {
+    isUnloadMode.value = false
+    unloadMaterialValue.value = ""
+    unloadSlotValue.value = ""
+    resetForms()
+  }
+
+  function toggleUnloadMode() {
+    if (isUnloadMode.value) {
+      exitUnloadMode()
+      return
+    }
+
+    enterUnloadMode()
   }
 
   function applyInspectionUpdate(
@@ -156,7 +197,13 @@ export function useFujiProductionWorkflow() {
 
   async function onSubmitMaterialInventoryForm() {
     const idno = materialFormValue.value.materialInventoryIdno.trim()
-    if (!idno) return showWarn("請輸入物料號")
+    if (!idno) return showWarn("請輸入物料條碼")
+
+    if (idno.toUpperCase() === MATERIAL_UNLOAD_TRIGGER) {
+      toggleUnloadMode()
+      materialFormValue.value.materialInventoryIdno = ""
+      return
+    }
 
     try {
       materialInventoryFromScan.value = await SmtService.getMaterialInventoryForSmt({
@@ -174,10 +221,10 @@ export function useFujiProductionWorkflow() {
       } else {
         const status = error instanceof ApiError ? error.status : null
         const msg = {
-          404: "查無此條碼",
-          504: "ERP 連線超時",
-          502: "ERP 連線錯誤",
-        }[status as 404 | 504 | 502] ?? "條碼查詢失敗"
+          404: "查無此物料",
+          504: "ERP 服務逾時",
+          502: "ERP 服務錯誤",
+        }[status as 404 | 504 | 502] ?? "物料查詢失敗"
         showError(msg)
         resetForms()
         return
@@ -186,7 +233,7 @@ export function useFujiProductionWorkflow() {
 
     const material = materialInventoryFromScan.value
     if (!material) {
-      showError("條碼查詢失敗")
+      showError("物料查詢失敗")
       resetForms()
       return
     }
@@ -194,14 +241,14 @@ export function useFujiProductionWorkflow() {
     const matchedRows = getMaterialMatchedRows(material.material_idno)
     if (matchedRows.length === 0) {
       if (!isTestingMode.value) {
-        showError("無匹配槽位")
+        showError("查無可綁定槽位")
         resetForms()
         return
       }
 
-      info("無匹配槽位，請掃描任意槽位以強制綁定")
+      info("查無可綁定槽位，請直接掃描槽位進行測試綁定")
     } else {
-      showSuccess(`掃描成功：${material.material_idno}`)
+      showSuccess(`物料已匹配：${material.material_idno}`)
     }
 
     slotInputRef.value?.focus()
@@ -231,6 +278,7 @@ export function useFujiProductionWorkflow() {
       slot_idno: params.inputSlot,
       sub_slot_idno: params.inputSubSlot ?? null,
       material_pack_code: params.materialInventory.idno,
+      operation_type: MaterialOperationTypeEnum.FEED,
       feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
       check_pack_code_match: toPackCodeMatch(params.correctState),
     }
@@ -251,11 +299,107 @@ export function useFujiProductionWorkflow() {
       slot_idno: params.inputSlot,
       sub_slot_idno: params.inputSubSlot ?? null,
       material_pack_code: params.materialInventory.idno,
+      operation_type: MaterialOperationTypeEnum.FEED,
       feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
       check_pack_code_match: "true",
     }
 
     await SmtService.addFujiMounterItemStatRoll({ requestBody: payload as any })
+  }
+
+  async function submitUnload(params: {
+    materialPackCode: string
+    slotIdno: string
+  }): Promise<boolean> {
+    const materialPackCode = params.materialPackCode.trim()
+    const slotIdno = params.slotIdno.trim()
+
+    if (!materialPackCode) {
+      showError("請先輸入物料條碼")
+      return false
+    }
+
+    if (!slotIdno) {
+      showError("請輸入槽位")
+      return false
+    }
+
+    const parsed = parseFujiSlotIdno(slotIdno)
+    if (!parsed) {
+      showError("槽位格式錯誤")
+      return false
+    }
+
+    const stat = mounterData.value.find((current) =>
+      isFujiStatSlotMatch(current, parsed.slot, parsed.stage)
+    )
+    if (!stat) {
+      showError(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    const rowId = `${parsed.machineIdno}-${parsed.stage}-${parsed.slot}`
+    const row = rowData.value.find(
+      (current) =>
+        current.mounterIdno === parsed.machineIdno &&
+        current.stage === parsed.stage &&
+        current.slot === parsed.slot
+    )
+
+    if (!row) {
+      showError(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    const inMain = String(row.materialInventoryIdno ?? "").trim() === materialPackCode
+    const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(
+      materialPackCode
+    )
+    if (!inMain && !inAppended) {
+      showError(`料號 ${materialPackCode} 不在槽位 ${slotIdno} 的主料或接料清單`)
+      return false
+    }
+
+    try {
+      const uploadSlot = resolveUploadSlotByStatId(stat.id, {
+        slotIdno: String(parsed.slot),
+        subSlotIdno: parsed.stage,
+      })
+
+      await SmtService.addFujiMounterItemStatRoll({
+        requestBody: {
+          stat_item_id: stat.id,
+          operator_id: "",
+          operation_time: new Date().toISOString(),
+          slot_idno: uploadSlot.slotIdno,
+          sub_slot_idno: uploadSlot.subSlotIdno ?? null,
+          material_pack_code: materialPackCode,
+          operation_type: MaterialOperationTypeEnum.UNFEED,
+          feed_material_pack_type: null,
+          unfeed_material_pack_type: "NORMAL_UNFEED",
+          check_pack_code_match: null,
+        } as any,
+      })
+
+      const nextAppended = removeMaterialCode(
+        row.appendedMaterialInventoryIdno,
+        materialPackCode
+      )
+      row.appendedMaterialInventoryIdno = nextAppended
+      try {
+        const rowNode = gridApi.value?.getRowNode?.(rowId)
+        rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
+      } catch {
+        // Grid may be unmounted in unload mode.
+      }
+
+      showSuccess(`卸料成功：${materialPackCode} @ ${slotIdno}`)
+      return true
+    } catch (error) {
+      showError("上傳卸料資料失敗")
+      console.error(error)
+      return false
+    }
   }
 
   async function onSubmitSlotForm() {
@@ -264,7 +408,7 @@ export function useFujiProductionWorkflow() {
     if (!materialInventoryFromScan.value) return showError("請先掃描物料條碼")
 
     const parsed = parseFujiSlotIdno(inputSlotIdno)
-    if (!parsed) return showError("槽位條碼格式錯誤")
+    if (!parsed) return showError("槽位格式錯誤")
 
     const mounter = parsed.machineIdno
     const stage = parsed.stage
@@ -392,7 +536,7 @@ export function useFujiProductionWorkflow() {
           })
 
           rowNode.setDataValue("correct", CheckMaterialMatchEnum.TESTING_MATERIAL_PACK)
-          rowNode.setDataValue("remark", "[廠商測試新料]")
+          rowNode.setDataValue("remark", "[測試模式綁定]")
           rowNode.setDataValue("operationTime", new Date().toISOString())
           rowNode.setDataValue(
             "appendedMaterialInventoryIdno",
@@ -404,7 +548,7 @@ export function useFujiProductionWorkflow() {
           console.error(error)
         }
       } else {
-        showError(`找不到輸入的槽位 ${inputSlotIdno}`)
+        showError(`找不到輸入槽位 ${inputSlotIdno}`)
       }
     } else {
       const rowNode = gridApi.value?.getRowNode(`${mounter}-${stage}-${slot}`)
@@ -434,18 +578,18 @@ export function useFujiProductionWorkflow() {
         }
       }
 
-      showError(`錯誤的槽位，此物料應放置於 ${matchedRows.map((row) => `${row.stage}-${row.slot}`).join(", ")}`)
+      showError(`綁定失敗：此槽位應為 ${matchedRows.map((row) => `${row.stage}-${row.slot}`).join(", ")}`)
     }
 
     resetForms()
   }
 
   async function onStopProduction() {
-    if (!productionUuid.value) return showError("沒有生產ID，無法停止")
+    if (!productionUuid.value) return showError("找不到生產ID，無法結束")
 
     dialog.warning({
-      title: "停止生產確認",
-      content: "確定要停止生產嗎？",
+      title: "結束生產確認",
+      content: "確定要結束生產嗎？",
       positiveText: "確定",
       negativeText: "取消",
       onPositiveClick: async () => {
@@ -455,7 +599,7 @@ export function useFujiProductionWorkflow() {
           showSuccess("生產已結束")
           router.push("/smt/fuji-mounter/")
         } catch (error) {
-          showError("停止生產失敗")
+          showError("結束生產失敗")
           console.error(error)
         }
       },
@@ -490,7 +634,7 @@ export function useFujiProductionWorkflow() {
       if (error instanceof ApiError && error.status === 404) {
         router.push("/http-status/404")
       } else {
-        showError("讀取生產資料失敗")
+        showError("載入生產資料失敗")
         console.error(error)
       }
     }
@@ -509,6 +653,8 @@ export function useFujiProductionWorkflow() {
   return {
     MODE_NAME_TESTING,
     MODE_NAME_NORMAL,
+    MATERIAL_UNLOAD_TRIGGER,
+    MATERIAL_UNLOAD_MODE_NAME,
     workOrderIdno,
     productIdno,
     mounterIdno,
@@ -521,11 +667,17 @@ export function useFujiProductionWorkflow() {
     slotFormValue,
     materialInputRef,
     slotInputRef,
+    isUnloadMode,
+    unloadMaterialValue,
+    unloadSlotValue,
     showMaterialQueryModal,
     onGridReady,
     onClickBackArrow,
     onSubmitMaterialInventoryForm,
     onSubmitSlotForm,
+    submitUnload,
+    enterUnloadMode,
+    exitUnloadMode,
     onStopProduction,
     onMaterialQuery,
     showError,

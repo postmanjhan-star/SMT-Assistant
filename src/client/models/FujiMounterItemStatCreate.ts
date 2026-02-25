@@ -5,7 +5,9 @@
 
 import type { BoardSideEnum } from './BoardSideEnum';
 import type { CheckMaterialMatchEnum } from './CheckMaterialMatchEnum';
+import type { FeedMaterialTypeEnum } from './FeedMaterialTypeEnum';
 import type { MachineSideEnum } from './MachineSideEnum';
+import type { MaterialOperationTypeEnum } from './MaterialOperationTypeEnum';
 import type { ProduceTypeEnum } from './ProduceTypeEnum';
 
 export type FujiMounterItemStatCreate = {
@@ -23,5 +25,7 @@ export type FujiMounterItemStatCreate = {
     material_idno: (string | null);
     material_pack_code: (string | null);
     produce_mode: (ProduceTypeEnum | null);
+    operation_type?: MaterialOperationTypeEnum;
+    feed_material_pack_type?: (FeedMaterialTypeEnum | null);
     check_pack_code_match: (CheckMaterialMatchEnum | null);
 };

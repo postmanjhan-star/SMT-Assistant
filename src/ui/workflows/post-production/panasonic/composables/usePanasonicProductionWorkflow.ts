@@ -17,6 +17,7 @@ import { usePostProductionFeedFlow } from "@/ui/shared/composables/usePostProduc
 import { useRollShortageForm } from "@/ui/shared/composables/useRollShortageForm"
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore"
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData"
+import { removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import {
   createPostproductionPanasonicDeps,
   type PostproductionPanasonicDeps,
@@ -168,6 +169,153 @@ export function usePanasonicProductionWorkflow(
       return success
     } finally {
       options.onResetInputs()
+    }
+  }
+
+  const parseUnloadSlotInput = (
+    rawSlot: string
+  ): { slot: string; subSlot: string | null } | null => {
+    const trimmed = rawSlot.trim()
+    if (!trimmed) return null
+
+    const parts = trimmed.split("-")
+    if (parts.length > 2) return null
+
+    const slot = String(parts[0] ?? "").trim()
+    if (!slot) return null
+
+    const subSlotPart = String(parts[1] ?? "").trim()
+    return {
+      slot,
+      subSlot: subSlotPart ? subSlotPart : null,
+    }
+  }
+
+  const parseAppendedCodes = (value: string | null | undefined): string[] => {
+    const raw = String(value ?? "").trim()
+    if (!raw) return []
+    return raw
+      .split(",")
+      .map((code) => code.trim())
+      .filter((code) => code.length > 0)
+  }
+
+  const getProductionRowByStat = (statId: number) =>
+    rowData.value.find((row) => row.id === statId)
+
+  const getStatBySlotInput = (slotInput: string) => {
+    const parsed = parseUnloadSlotInput(slotInput)
+    if (!parsed) {
+      return {
+        ok: false as const,
+        error: "槽位格式錯誤",
+      }
+    }
+
+    const bySlot = mounterData.value.filter(
+      (stat) => String(stat.slot_idno ?? "").trim() === parsed.slot
+    )
+
+    if (bySlot.length === 0) {
+      return {
+        ok: false as const,
+        error: `找不到槽位 ${slotInput}`,
+      }
+    }
+
+    if (!parsed.subSlot) {
+      if (bySlot.length > 1) {
+        return {
+          ok: false as const,
+          error: `槽位 ${parsed.slot} 有多個子槽位，請輸入完整格式（例如 ${parsed.slot}-L）`,
+        }
+      }
+
+      return {
+        ok: true as const,
+        stat: bySlot[0],
+      }
+    }
+
+    const matched = bySlot.find(
+      (stat) => String(stat.sub_slot_idno ?? "").trim() === parsed.subSlot
+    )
+    if (!matched) {
+      return {
+        ok: false as const,
+        error: `找不到槽位 ${parsed.slot}-${parsed.subSlot}`,
+      }
+    }
+
+    return {
+      ok: true as const,
+      stat: matched,
+    }
+  }
+
+  const submitUnload = async (params: {
+    materialPackCode: string
+    slotIdno: string
+  }): Promise<boolean> => {
+    const materialPackCode = params.materialPackCode.trim()
+    const slotIdno = params.slotIdno.trim()
+
+    if (!materialPackCode) {
+      ui.error("請先輸入物料條碼")
+      return false
+    }
+
+    const resolved = getStatBySlotInput(slotIdno)
+    if (!resolved.ok) {
+      ui.error(resolved.error)
+      return false
+    }
+
+    const stat = resolved.stat
+    const row = getProductionRowByStat(stat.id)
+    if (!row) {
+      ui.error(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    const inMain = String(row.materialInventoryIdno ?? "").trim() === materialPackCode
+    const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(
+      materialPackCode
+    )
+
+    if (!inMain && !inAppended) {
+      ui.error(`料號 ${materialPackCode} 不在槽位 ${slotIdno} 的主料或接料清單`)
+      return false
+    }
+
+    try {
+      await recordUploader.uploadUnfeed({
+        statId: stat.id,
+        slotIdno: String(stat.slot_idno ?? ""),
+        subSlotIdno: String(stat.sub_slot_idno ?? "").trim() || null,
+        materialPackCode,
+      })
+
+      const nextAppended = removeMaterialCode(
+        row.appendedMaterialInventoryIdno,
+        materialPackCode
+      )
+      row.appendedMaterialInventoryIdno = nextAppended
+
+      const rowId = `${row.slotIdno}-${row.subSlotIdno}`
+      try {
+        const rowNode = gridApi.value?.getRowNode?.(rowId)
+        rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
+      } catch {
+        // Grid may be unmounted in unload mode.
+      }
+
+      ui.success(`卸料成功：${materialPackCode} @ ${slotIdno}`)
+      return true
+    } catch (error) {
+      ui.error("卸料上傳失敗")
+      console.error(error)
+      return false
     }
   }
 
@@ -346,6 +494,7 @@ export function usePanasonicProductionWorkflow(
     onProduction,
     handleProductionStopped,
     handleSlotSubmit,
+    submitUnload,
     rollShortageFormRef,
     rollShortageFormValue,
     showRollShortageModal,

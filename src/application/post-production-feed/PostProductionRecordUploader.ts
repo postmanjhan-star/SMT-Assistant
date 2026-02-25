@@ -19,6 +19,7 @@ export class PostProductionRecordUploader {
       slotIdno: params.slotIdno,
       subSlotIdno: params.subSlotIdno ?? null,
       materialPackCode: params.materialPackCode,
+      operationType: 'FEED',
       feedMaterialPackType: 'inspect',
       checkPackCodeMatch: 'true',
       operationTime: new Date().toISOString(),
@@ -42,8 +43,32 @@ export class PostProductionRecordUploader {
       slotIdno: params.slotIdno,
       subSlotIdno: params.subSlotIdno ?? null,
       materialPackCode: params.materialPackCode,
+      operationType: 'FEED',
       feedMaterialPackType: params.feedMaterialPackType ?? 'new',
       checkPackCodeMatch: (params.correctState ?? null) as CheckMaterialMatchEnum | string | null,
+      operationTime: new Date().toISOString(),
+      operatorId: params.operatorId ?? '',
+    })
+
+    return this.api.uploadFeedRecord(payload)
+  }
+
+  async uploadUnfeed(params: {
+    statId: number
+    slotIdno: string
+    subSlotIdno?: string | null
+    materialPackCode: string
+    operatorId?: string | null
+  }) {
+    const payload = buildPanasonicFeedRecordPayload({
+      statId: params.statId,
+      slotIdno: params.slotIdno,
+      subSlotIdno: params.subSlotIdno ?? null,
+      materialPackCode: params.materialPackCode,
+      operationType: 'UNFEED',
+      feedMaterialPackType: null,
+      unfeedMaterialPackType: 'NORMAL_UNFEED',
+      checkPackCodeMatch: null,
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })

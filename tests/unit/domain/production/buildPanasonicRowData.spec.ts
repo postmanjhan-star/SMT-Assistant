@@ -175,6 +175,54 @@ describe("buildProductionRowData", () => {
         expect(row.appendedMaterialInventoryIdno).toBe("APP-1, APP-2")
     })
 
+    it("removes appended code when UNFEED record appears later", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    id: 10,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "APP-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+                    operation_type: "FEED" as any,
+                }),
+                makeFeedRecord({
+                    id: 11,
+                    operation_time: "2024-01-01T00:00:01Z",
+                    material_pack_code: "APP-2",
+                    feed_material_pack_type: FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
+                    operation_type: "FEED" as any,
+                }),
+                makeFeedRecord({
+                    id: 12,
+                    operation_time: "2024-01-01T00:00:02Z",
+                    material_pack_code: "APP-1",
+                    feed_material_pack_type: null,
+                    operation_type: "UNFEED" as any,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+        expect(row.appendedMaterialInventoryIdno).toBe("APP-2")
+    })
+
+    it("treats missing operation_type as FEED for backward compatibility", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    id: 20,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "APP-LEGACY",
+                    feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+                    operation_type: undefined as any,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+        expect(row.appendedMaterialInventoryIdno).toBe("APP-LEGACY")
+    })
+
     it("uses imported operation time as firstAppendTime when present", () => {
         const stat = makeStat({
             feed_records: [

@@ -12,6 +12,7 @@ import {
     BoardSideEnum,
     MachineSideEnum,
     FeedMaterialTypeEnum,
+    MaterialOperationTypeEnum,
     SmtMaterialInventory
 } from '@/client';
 import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
@@ -28,6 +29,11 @@ type RowModel = {
     appendedMaterialInventoryIdno: string,
     remark?: string,
     firstAppendTime?: string | null,
+}
+
+type PanasonicStartStatPayload = PanasonicMounterItemStatCreate & {
+    feed_material_pack_type?: FeedMaterialTypeEnum
+    operation_type?: MaterialOperationTypeEnum
 }
 
 const props = defineProps({
@@ -113,7 +119,7 @@ async function startProductionUpload(rows?: RowModel[]) {
 
         const dataToUse = rows || props.rowData
 
-        const payload = dataToUse.map(row => ({
+        const payload: PanasonicStartStatPayload[] = dataToUse.map(row => ({
             operator_id: props.operator_id ?? null,
             operation_time: row.firstAppendTime 
                 ? new Date(row.firstAppendTime).toISOString()
@@ -128,6 +134,8 @@ async function startProductionUpload(rows?: RowModel[]) {
             sub_slot_idno: row.subSlotIdno ?? null,
             material_idno: row.materialIdno ?? null,
             material_pack_code: row.materialInventoryIdno ?? null,
+            feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+            operation_type: MaterialOperationTypeEnum.FEED,
             produce_mode: convertProduceMode(props.isTestingMode ?? false),
             check_pack_code_match: convertMatch(row.correct)
         }))

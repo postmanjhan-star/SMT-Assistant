@@ -3,6 +3,8 @@ import { useDialog } from "naive-ui"
 import { useRoute, useRouter } from "vue-router"
 import {
   CheckMaterialMatchEnum,
+  FeedMaterialTypeEnum,
+  MaterialOperationTypeEnum,
   ProduceTypeEnum,
   type BoardSideEnum,
   type FujiMounterItemStatCreate,
@@ -20,6 +22,11 @@ export type UseFujiPreproductionLifecycleOptions = {
   isTestingMode: Ref<boolean>
 }
 
+type FujiStartStatPayload = FujiMounterItemStatCreate & {
+  feed_material_pack_type?: FeedMaterialTypeEnum
+  operation_type?: MaterialOperationTypeEnum
+}
+
 export function useFujiPreproductionLifecycle(
   options: UseFujiPreproductionLifecycleOptions
 ) {
@@ -33,7 +40,7 @@ export function useFujiPreproductionLifecycle(
 
   async function startProductionUpload() {
     try {
-      const payload: FujiMounterItemStatCreate[] = options.rowData.value.map((row) => ({
+      const payload: FujiStartStatPayload[] = options.rowData.value.map((row) => ({
         work_order_no: options.workOrderIdno.value,
         product_idno: options.productIdno.value,
         machine_idno: row.mounterIdno,
@@ -42,6 +49,8 @@ export function useFujiPreproductionLifecycle(
         sub_slot_idno: row.stage,
         material_idno: row.materialIdno,
         material_pack_code: row.materialInventoryIdno ?? null,
+        feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+        operation_type: MaterialOperationTypeEnum.FEED,
         produce_mode: options.isTestingMode.value
           ? ProduceTypeEnum.TESTING_PRODUCE_MODE
           : ProduceTypeEnum.NORMAL_PRODUCE_MODE,

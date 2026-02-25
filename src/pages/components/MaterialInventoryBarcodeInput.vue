@@ -27,6 +27,7 @@ const props = defineProps<{
     resetKey: number
     disabled?: boolean
     allowNoMatchInTesting?: boolean
+    beforeScan?: (barcode: string) => boolean | Promise<boolean>
     scan?: (barcode: string) => Promise<ScanResultLike<SmtMaterialInventoryEx, MatchedRow>>
 }>()
 
@@ -99,6 +100,14 @@ const scanUseCase = computed(() => {
 
 async function onSubmit() {
     const idno = formValue.value.materialInventoryIdno.trim()
+
+    if (props.beforeScan) {
+        const shouldContinue = await props.beforeScan(idno)
+        if (!shouldContinue) {
+            reset()
+            return
+        }
+    }
 
     const result = props.scan
         ? await props.scan(idno)

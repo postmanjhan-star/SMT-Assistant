@@ -39,6 +39,9 @@ export const $FujiFeedRecordCreate = {
 }],
     isRequired: true,
 },
+        operation_type: {
+    type: 'MaterialOperationTypeEnum',
+},
         feed_material_pack_type: {
     type: 'any-of',
     contains: [{
@@ -46,7 +49,14 @@ export const $FujiFeedRecordCreate = {
 }, {
     type: 'null',
 }],
-    isRequired: true,
+},
+        unfeed_material_pack_type: {
+    type: 'any-of',
+    contains: [{
+    type: 'UnfeedMaterialTypeEnum',
+}, {
+    type: 'null',
+}],
 },
         check_pack_code_match: {
     type: 'any-of',

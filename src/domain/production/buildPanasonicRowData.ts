@@ -1,6 +1,7 @@
-import {
+﻿import {
     CheckMaterialMatchEnum,
     FeedMaterialTypeEnum,
+    MaterialOperationTypeEnum,
     PanasonicItemStatFeedLogRead,
     PanasonicMounterItemStatRead,
 } from "@/client"
@@ -26,9 +27,12 @@ type FeedRecordLike = {
     feed_record_id?: number
     operation_time?: string
     material_pack_code?: string | null
+    operation_type?: MaterialOperationTypeEnum | null
     feed_material_pack_type?: FeedMaterialTypeEnum | null
     check_pack_code_match?: CheckMaterialMatchEnum | null
 }
+
+type IndexedRecord = FeedRecordLike & { __index: number }
 
 const toRecordKey = (record: FeedRecordLike, index: number) => {
     if (record.id != null) return `id:${record.id}`
@@ -52,6 +56,7 @@ const mergeFeedRecords = (
             feed_record_id: log.feed_record_id,
             operation_time: log.operation_time,
             material_pack_code: log.material_pack_code,
+            operation_type: log.operation_type,
             feed_material_pack_type: log.feed_material_pack_type,
             check_pack_code_match: log.check_pack_code_match,
         }
@@ -61,37 +66,67 @@ const mergeFeedRecords = (
     return Array.from(recordMap.values())
 }
 
+const toOperationType = (value: unknown): MaterialOperationTypeEnum => {
+    if (value == null) return MaterialOperationTypeEnum.FEED
+    return value as MaterialOperationTypeEnum
+}
+
+const getTimeValue = (value: string | undefined): number => {
+    if (!value) return 0
+    const t = new Date(value).getTime()
+    return Number.isFinite(t) ? t : 0
+}
+
+const toSortedRecords = (records: FeedRecordLike[]): IndexedRecord[] => {
+    return records
+        .map((record, index) => ({ ...record, __index: index }))
+        .sort((a, b) => {
+            const timeDiff = getTimeValue(a.operation_time) - getTimeValue(b.operation_time)
+            if (timeDiff !== 0) return timeDiff
+
+            const aId = a.feed_record_id ?? a.id ?? Number.MAX_SAFE_INTEGER
+            const bId = b.feed_record_id ?? b.id ?? Number.MAX_SAFE_INTEGER
+            if (aId !== bId) return aId - bId
+
+            return a.__index - b.__index
+        })
+}
+
 const getLatestInspection = (records: FeedRecordLike[]) => {
     return records
-        .filter(
-            record =>
+        .filter((record) => {
+            return (
+                toOperationType(record.operation_type) === MaterialOperationTypeEnum.FEED &&
                 record.feed_material_pack_type ===
-                FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
-        )
-        .sort((a, b) => {
-            const timeA = a.operation_time
-                ? new Date(a.operation_time).getTime()
-                : 0
-            const timeB = b.operation_time
-                ? new Date(b.operation_time).getTime()
-                : 0
-            return timeB - timeA
-        })[0]
+                    FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
+            )
+        })
+        .sort((a, b) => getTimeValue(b.operation_time) - getTimeValue(a.operation_time))[0]
 }
 
 const getAppendedCodes = (records: FeedRecordLike[]) => {
-    const codes = records
-        .filter(
-            record =>
-                record.feed_material_pack_type ===
-                    FeedMaterialTypeEnum.REUSED_MATERIAL_PACK ||
-                record.feed_material_pack_type ===
-                    FeedMaterialTypeEnum.NEW_MATERIAL_PACK
-        )
-        .map(record => record.material_pack_code)
-        .filter((code): code is string => !!code && code.trim().length > 0)
+    const appendedCodes = new Set<string>()
 
-    return Array.from(new Set(codes)).join(", ")
+    toSortedRecords(records).forEach((record) => {
+        const operationType = toOperationType(record.operation_type)
+        const code = String(record.material_pack_code ?? "").trim()
+        if (!code) return
+
+        if (operationType === MaterialOperationTypeEnum.UNFEED) {
+            appendedCodes.delete(code)
+            return
+        }
+
+        const feedType = record.feed_material_pack_type
+        if (
+            feedType === FeedMaterialTypeEnum.NEW_MATERIAL_PACK ||
+            feedType === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK
+        ) {
+            appendedCodes.add(code)
+        }
+    })
+
+    return Array.from(appendedCodes).join(", ")
 }
 
 const getFirstAppendTime = (
@@ -99,50 +134,42 @@ const getFirstAppendTime = (
     feedRecords: FeedRecordLike[]
 ) => {
     if (importRecord?.operation_time) return importRecord.operation_time
-    return feedRecords[0]?.operation_time ?? null
+
+    const first = toSortedRecords(feedRecords)[0]
+    return first?.operation_time ?? null
 }
 
-/**
- * buildProductionRowData 是「把後端生產資料轉換成前端可顯示 RowModel」的唯一入口。
- * 不關心 UI / API / Vue，只負責資料結構轉換與商業規則套用。
- *
- * What it does:
- * 1. 合併 stats 與 logs 的 feed records（依 slot/subSlot + record.id，logs 覆蓋）
- * 2. 分類 feed 類型（IMPORTED / NEW / REUSED / INSPECTION）
- * 3. 推導最新巡檢資料（inspect* + count）
- * 4. correct = IMPORTED_MATERIAL_PACK.check_pack_code_match
- * 5. 組裝 appendedMaterialInventoryIdno（NEW/REUSED 去重串接）
- * 6. 推導 firstAppendTime（imported > 第一筆 record > null）
- * 7. remark = 巡檢次數（無則空字串）
- * 8. 輸出 RowModel 給 AG Grid 使用
- */
 export const buildProductionRowData = (
     stats: PanasonicMounterItemStatRead[],
     logs: PanasonicItemStatFeedLogRead[]
 ): ProductionRowModel[] => {
-    return stats.map(stat => {
+    return stats.map((stat) => {
         const baseRecords =
             (stat.feed_records as FeedRecordLike[] | undefined) ?? []
         const matchedLogs = logs.filter(
-            log =>
+            (log) =>
                 String(log.slot_idno) === String(stat.slot_idno) &&
                 (log.sub_slot_idno ?? "") === (stat.sub_slot_idno ?? "")
         )
 
         const feedRecords = mergeFeedRecords(baseRecords, matchedLogs)
 
-        const inspectionRecords = feedRecords.filter(
-            record =>
+        const inspectionRecords = feedRecords.filter((record) => {
+            return (
+                toOperationType(record.operation_type) === MaterialOperationTypeEnum.FEED &&
                 record.feed_material_pack_type ===
-                FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
-        )
+                    FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
+            )
+        })
+
         const inspectionCount = inspectionRecords.length
         const latestInspection = getLatestInspection(feedRecords)
 
-        const importRecord = feedRecords.find(
-            record =>
+        const importRecord = toSortedRecords(feedRecords).find(
+            (record) =>
+                toOperationType(record.operation_type) === MaterialOperationTypeEnum.FEED &&
                 record.feed_material_pack_type ===
-                FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
+                    FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
         )
 
         return {

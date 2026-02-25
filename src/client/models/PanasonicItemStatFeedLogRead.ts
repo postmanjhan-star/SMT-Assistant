@@ -7,7 +7,9 @@ import type { BoardSideEnum } from './BoardSideEnum';
 import type { CheckMaterialMatchEnum } from './CheckMaterialMatchEnum';
 import type { FeedMaterialTypeEnum } from './FeedMaterialTypeEnum';
 import type { MachineSideEnum } from './MachineSideEnum';
+import type { MaterialOperationTypeEnum } from './MaterialOperationTypeEnum';
 import type { ProduceTypeEnum } from './ProduceTypeEnum';
+import type { UnfeedMaterialTypeEnum } from './UnfeedMaterialTypeEnum';
 
 export type PanasonicItemStatFeedLogRead = {
     id: number;
@@ -20,7 +22,9 @@ export type PanasonicItemStatFeedLogRead = {
     board_side: (BoardSideEnum | null);
     material_idno: (string | null);
     material_pack_code: string;
+    operation_type: MaterialOperationTypeEnum;
     feed_material_pack_type: (FeedMaterialTypeEnum | null);
+    unfeed_material_pack_type: (UnfeedMaterialTypeEnum | null);
     slot_idno: string;
     sub_slot_idno: string;
     stat_uuid: string;

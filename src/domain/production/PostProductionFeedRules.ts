@@ -81,4 +81,21 @@ export const appendMaterialCode = (
     return currentCodes.join(", ")
 }
 
+export const removeMaterialCode = (
+    existing: string | null | undefined,
+    targetCode?: string | null
+): string => {
+    const oldValue = existing?.trim() || ""
+    if (!oldValue) return ""
+
+    const normalizedTarget = targetCode?.trim()
+    if (!normalizedTarget) return oldValue
+
+    return oldValue
+        .split(",")
+        .map((code) => code.trim())
+        .filter((code) => code && code !== normalizedTarget)
+        .join(", ")
+}
+
 export const formatSlotId = (slot: SlotId): string => formatSlotIdno(slot)

@@ -1,6 +1,7 @@
 ﻿import {
     type CheckMaterialMatchEnum,
     type FeedMaterialTypeEnum,
+    type UnfeedMaterialTypeEnum,
     SmtService,
 } from "@/client"
 import {
@@ -33,6 +34,15 @@ export type AppendRecordInput = {
     operatorId?: string | null
 }
 
+export type UnfeedRecordInput = {
+    statId: number
+    slotIdno: string
+    subSlotIdno?: string | null
+    materialPackCode: string
+    unfeedMaterialPackType?: UnfeedMaterialTypeEnum | string | null
+    operatorId?: string | null
+}
+
 export async function uploadPostProductionFeedRecord(
     input: PostProductionFeedRecordUpload
 ) {
@@ -50,6 +60,7 @@ export async function uploadInspectionRecord(input: InspectionRecordInput) {
         slotIdno: input.slotIdno,
         subSlotIdno: input.subSlotIdno ?? null,
         materialPackCode: input.materialPackCode,
+        operationType: "FEED",
         feedMaterialPackType: "inspect",
         checkPackCodeMatch: "true",
         operatorId: input.operatorId ?? "",
@@ -62,11 +73,26 @@ export async function uploadAppendRecord(input: AppendRecordInput) {
         slotIdno: input.slotIdno,
         subSlotIdno: input.subSlotIdno ?? null,
         materialPackCode: input.materialPackCode,
+        operationType: "FEED",
         feedMaterialPackType: input.feedMaterialPackType ?? "new",
         checkPackCodeMatch: (input.correctState ?? null) as
             | CheckMaterialMatchEnum
             | string
             | null,
+        operatorId: input.operatorId ?? "",
+    })
+}
+
+export async function uploadUnfeedRecord(input: UnfeedRecordInput) {
+    return uploadPostProductionFeedRecord({
+        statId: input.statId,
+        slotIdno: input.slotIdno,
+        subSlotIdno: input.subSlotIdno ?? null,
+        materialPackCode: input.materialPackCode,
+        operationType: "UNFEED",
+        feedMaterialPackType: null,
+        unfeedMaterialPackType: input.unfeedMaterialPackType ?? "NORMAL_UNFEED",
+        checkPackCodeMatch: null,
         operatorId: input.operatorId ?? "",
     })
 }

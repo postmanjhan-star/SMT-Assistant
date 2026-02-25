@@ -66,10 +66,23 @@ export const $PanasonicItemStatFeedLogRead = {
     type: 'string',
     isRequired: true,
 },
+        operation_type: {
+    type: 'MaterialOperationTypeEnum',
+    isRequired: true,
+},
         feed_material_pack_type: {
     type: 'any-of',
     contains: [{
     type: 'FeedMaterialTypeEnum',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
+},
+        unfeed_material_pack_type: {
+    type: 'any-of',
+    contains: [{
+    type: 'UnfeedMaterialTypeEnum',
 }, {
     type: 'null',
 }],
