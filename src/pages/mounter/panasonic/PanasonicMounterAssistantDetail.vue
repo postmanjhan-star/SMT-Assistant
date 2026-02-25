@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
@@ -105,6 +105,16 @@ function handleMaterialMatched(payload: {
     matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
   })
 }
+
+function onSlotSubmit(payload: {
+  slotIdno: string
+  slot: string
+  subSlot: string
+}) {
+  const pending = handleSlotSubmitWithPolicy(payload)
+  resetInputsAfterSlotSubmit()
+  return pending
+}
 </script>
 
 <template>
@@ -175,6 +185,7 @@ function handleMaterialMatched(payload: {
       <n-gi>
         <MaterialInventoryBarcodeInput
           :is-testing-mode="isTestingMode"
+          input-test-id="panasonic-main-material-input"
           ref="materialInventoryInput"
           :get-material-matched-rows="getMaterialMatchedRows"
           @matched="handleMaterialMatched"
@@ -189,9 +200,11 @@ function handleMaterialMatched(payload: {
           :has-material="inputs.hasMaterial.value"
           :parse-slot-idno="parsePanasonicSlotIdno"
           :reset-key="inputs.slotResetKey.value"
+          input-test-id="panasonic-main-slot-input"
           ref="slotIdnoInput"
           :key="inputs.slotResetKey.value"
-          @submit="handleSlotSubmitWithPolicy"
+          @submit="onSlotSubmit"
+          @done="resetInputsAfterSlotSubmit"
           @error="showError"
         />
       </n-gi>

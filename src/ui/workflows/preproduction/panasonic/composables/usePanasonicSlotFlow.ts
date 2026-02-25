@@ -1,4 +1,4 @@
-﻿import { useSlotSubmitStore } from '@/stores/slotSubmitStore'
+import { useSlotSubmitStore } from '@/stores/slotSubmitStore'
 import { SlotUploadScheduler } from '@/application/slot-submit/SlotUploadScheduler'
 import { useSlotUploadScheduler } from '@/ui/shared/composables/useSlotUploadScheduler'
 import { PanasonicSlotSubmitFlow } from '@/application/slot-submit/PanasonicSlotSubmitFlow'
@@ -42,13 +42,7 @@ export function usePanasonicSlotFlow<TResult = unknown, TRow = unknown>(
     slot: string
     subSlot: string
   }) => {
-    let success = false
-    try {
-      success = await flow.execute(payload)
-      return success
-    } finally {
-      options.onResetInputs?.()
-    }
+    return flow.execute(payload)
   }
 
   return {

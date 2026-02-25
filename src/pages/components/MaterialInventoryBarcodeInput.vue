@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { NForm, NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'
 import { ApiError, SmtMaterialInventory } from '@/client'
@@ -26,6 +26,7 @@ const props = defineProps<{
     getMaterialMatchedRows: (materialIdno: string) => MatchedRow[]
     resetKey: number
     disabled?: boolean
+    inputTestId?: string
     allowNoMatchInTesting?: boolean
     beforeScan?: (barcode: string) => boolean | Promise<boolean>
     scan?: (barcode: string) => Promise<ScanResultLike<SmtMaterialInventoryEx, MatchedRow>>
@@ -51,6 +52,7 @@ const materialInventoryIdnoInput = ref<InputInst | null>(null)
 const formValue = ref({
     materialInventoryIdno: ''
 })
+const PANASONIC_SLOT_SUBMITTED_EVENT = 'panasonic-slot-submitted'
 
 /* ================= tone ================= */
 
@@ -186,6 +188,19 @@ function clear() {
     formValue.value.materialInventoryIdno = ''
 }
 
+function handlePanasonicSlotSubmitted() {
+    if (props.inputTestId !== 'panasonic-main-material-input') return
+    reset()
+}
+
+onMounted(() => {
+    window.addEventListener(PANASONIC_SLOT_SUBMITTED_EVENT, handlePanasonicSlotSubmitted)
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener(PANASONIC_SLOT_SUBMITTED_EVENT, handlePanasonicSlotSubmitted)
+})
+
 defineExpose({ focus, clear })
 
 </script>
@@ -194,7 +209,7 @@ defineExpose({ focus, clear })
     <n-form size="large" :model="formValue" @submit.prevent="onSubmit">
         <n-form-item label="物料單包條碼">
         <n-input ref="materialInventoryIdnoInput" autofocus v-model:value="formValue.materialInventoryIdno"
-            :disabled="props.disabled" />
+            :disabled="props.disabled" :data-testid="props.inputTestId" />
         </n-form-item>
     </n-form>
 </template>

@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
@@ -176,30 +176,36 @@ function handleUnloadMaterialEnter() {
 }
 
 async function handleUnloadSlotSubmit() {
-  const material = unloadMaterialValue.value.trim()
-  const slot = unloadSlotValue.value.trim()
-
-  if (!isUnloadMode.value || !material) {
+  if (!isUnloadMode.value) {
     return
   }
 
-  if (!slot) {
+  const materialPackCode = unloadMaterialValue.value.trim()
+  const slotIdno = unloadSlotValue.value.trim()
+
+  if (!slotIdno) {
     ui.error("請輸入槽位")
     return
   }
 
+  // Enter on slot should clear both inputs immediately.
+  unloadMaterialValue.value = ""
+  unloadSlotValue.value = ""
+  focusUnloadMaterialInput()
+
+  if (!materialPackCode) {
+    ui.error("請先輸入物料條碼")
+    return
+  }
+
   const success = await submitUnload({
-    materialPackCode: material,
-    slotIdno: slot,
+    materialPackCode,
+    slotIdno,
   })
 
   if (!success) {
     return
   }
-
-  unloadMaterialValue.value = ""
-  unloadSlotValue.value = ""
-  focusUnloadMaterialInput()
 }
 
 function handleMaterialMatched(payload: {
@@ -211,6 +217,16 @@ function handleMaterialMatched(payload: {
     materialInventory: payload.materialInventory,
     matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
   })
+}
+
+function onNormalSlotSubmit(payload: {
+  slotIdno: string
+  slot: string
+  subSlot: string
+}) {
+  const pending = handleSlotSubmit(payload)
+  resetInputsAfterSlotSubmit()
+  return pending
 }
 
 function onRollShortageModalUpdate(value: boolean) {
@@ -312,6 +328,7 @@ function onRollShortageModalUpdate(value: boolean) {
           <MaterialInventoryBarcodeInput
             :disabled="!productionStarted"
             :is-testing-mode="isTestingMode"
+            input-test-id="panasonic-main-material-input"
             :get-material-matched-rows="getMaterialMatchedRowArray"
             @matched="handleMaterialMatched"
             :before-scan="handleBeforeMaterialScan"
@@ -328,8 +345,10 @@ function onRollShortageModalUpdate(value: boolean) {
             :has-material="inputs.hasMaterial.value"
             :parse-slot-idno="parsePanasonicSlotIdno"
             :reset-key="inputs.slotResetKey.value"
+            input-test-id="panasonic-main-slot-input"
             ref="slotIdnoInput"
-            @submit="handleSlotSubmit"
+            @submit="onNormalSlotSubmit"
+            @done="resetInputsAfterSlotSubmit"
             @error="ui.error"
           />
         </n-gi>

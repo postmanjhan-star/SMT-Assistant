@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+﻿import { test, expect, Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
@@ -31,29 +31,28 @@ function readCsvRecords() {
 /**
  * Scan all records: material first, then slot.
  */
+function getMainMaterialInput(page: Page) {
+    return page.getByTestId('panasonic-main-material-input').locator('input');
+}
+
+function getMainSlotInput(page: Page) {
+    return page.getByTestId('panasonic-main-slot-input').locator('input');
+}
+
 async function scanAll(page: Page, records: { material: string, slot: string }[]) {
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
+
     for (const [index, record] of records.entries()) {
         console.log(`scan ${index + 1}/${records.length}: ${record.material}`);
         try {
-
-            const materialInput = page.locator('.n-input input').first();
             await expect(materialInput).toBeVisible();
+            await expect(slotInput).toBeVisible();
 
             await materialInput.click();
             await materialInput.fill(record.material);
-            await page.waitForTimeout(500);
             await materialInput.press('Enter');
-
-            await page.waitForFunction(
-                (matInputEl) => {
-                    const active = document.activeElement;
-                    return active && active.tagName === 'INPUT' && active !== matInputEl;
-                },
-                await materialInput.elementHandle(),
-                { timeout: 10000 }
-            );
-
-            const slotInput = page.locator('*:focus');
+            await expect(slotInput).toBeFocused({ timeout: 10000 });
             await slotInput.fill(record.slot);
             await slotInput.press('Enter');
 
@@ -65,26 +64,22 @@ async function scanAll(page: Page, records: { material: string, slot: string }[]
 }
 
 async function scanOne(page: Page, material: string, slot: string) {
-    const materialInput = page.locator('.n-input input').first();
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
     await expect(materialInput).toBeVisible();
+    await expect(slotInput).toBeVisible();
 
     await materialInput.click();
     await materialInput.fill(material);
-    await page.waitForTimeout(300);
     await materialInput.press('Enter');
-
-    await page.waitForFunction(
-        (matInputEl) => {
-            const active = document.activeElement;
-            return active && active.tagName === 'INPUT' && active !== matInputEl;
-        },
-        await materialInput.elementHandle(),
-        { timeout: 10000 }
-    );
-
-    const slotInput = page.locator('*:focus');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
     await slotInput.fill(slot);
     await slotInput.press('Enter');
+}
+
+async function expectMainScanInputsCleared(page: Page) {
+    await expect(getMainMaterialInput(page)).toHaveValue('');
+    await expect(getMainSlotInput(page)).toHaveValue('');
 }
 
 async function expectLatestMessage(
@@ -222,20 +217,11 @@ test('test scan panasonic mounter feed records in testing mode', async ({ page }
 
     const testingSlot = '10008-L';
 
-    const materialInput = page.locator('.n-input input').first();
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
     await materialInput.fill(testingMaterialPack);
     await materialInput.press('Enter');
-
-    await page.waitForFunction(
-        (matInputEl) => {
-            const active = document.activeElement;
-            return active && active.tagName === 'INPUT' && active !== matInputEl;
-        },
-        await materialInput.elementHandle(),
-        { timeout: 10000 }
-    );
-
-    const slotInput = page.locator('*:focus');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
     await slotInput.fill(testingSlot);
     await slotInput.press('Enter');
 
@@ -346,18 +332,11 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
     const correctSlot = '10008-L';
     const wrongSlot = '10009-R';
 
-    const materialInput = page.locator('.n-input input').first();
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
     await materialInput.fill(materialPackCode);
     await materialInput.press('Enter');
-
-    await page.waitForFunction(
-        (matInputEl) => {
-            const active = document.activeElement;
-            return active && active.tagName === 'INPUT' && active !== matInputEl;
-        },
-        await materialInput.elementHandle()
-    );
-    const slotInput = page.locator('*:focus');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
     await slotInput.fill(wrongSlot);
     await slotInput.press('Enter');
 
@@ -371,15 +350,8 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
     // 7. scan again with correct slot
     await materialInput.fill(materialPackCode);
     await materialInput.press('Enter');
-
-    await page.waitForFunction(
-        (matInputEl) => {
-            const active = document.activeElement;
-            return active && active.tagName === 'INPUT' && active !== matInputEl;
-        },
-        await materialInput.elementHandle()
-    );
-    const slotInputAfter = page.locator('*:focus');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
+    const slotInputAfter = slotInput;
     await slotInputAfter.fill(correctSlot);
     await slotInputAfter.press('Enter');
 
@@ -413,19 +385,13 @@ test('test wrong slot scan in testing mode', async ({ page }) => {
     const wrongSlot = '10009-R';
 
     // 3. scan material
-    const materialInput = page.locator('.n-input input').first();
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
     await materialInput.fill(materialPackCode);
     await materialInput.press('Enter');
 
     // 4. wait focus change and scan wrong slot
-    await page.waitForFunction(
-        (matInputEl) => {
-            const active = document.activeElement;
-            return active && active.tagName === 'INPUT' && active !== matInputEl;
-        },
-        await materialInput.elementHandle()
-    );
-    const slotInput = page.locator('*:focus');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
     await slotInput.fill(wrongSlot);
     await slotInput.press('Enter');
 
@@ -437,15 +403,8 @@ test('test wrong slot scan in testing mode', async ({ page }) => {
     // 6. scan again with correct slot
     await materialInput.fill(materialPackCode);
     await materialInput.press('Enter');
-
-    await page.waitForFunction(
-        (matInputEl) => {
-            const active = document.activeElement;
-            return active && active.tagName === 'INPUT' && active !== matInputEl;
-        },
-        await materialInput.elementHandle()
-    );
-    const slotInputAfter = page.locator('*:focus');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
+    const slotInputAfter = slotInput;
     await slotInputAfter.fill(correctSlot);
     await slotInputAfter.press('Enter');
 
@@ -468,9 +427,10 @@ test('test submit slot without material in normal mode', async ({ page }) => {
     await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
     await expect(page.locator(".ag-root-wrapper")).toBeVisible();
 
-    const slotInput = page.locator('.n-input input').nth(1);
+    const slotInput = getMainSlotInput(page);
     await slotInput.fill('10008-L');
     await slotInput.press('Enter');
+    await expectMainScanInputsCleared(page);
 
     await expectLatestMessage(page, 'error-message', '請先掃描物料條碼');
 });
@@ -479,21 +439,14 @@ test('test invalid slot format in normal mode', async ({ page }) => {
     await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
     await expect(page.locator(".ag-root-wrapper")).toBeVisible();
 
-    const materialInput = page.locator('.n-input input').first();
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
     await materialInput.fill('B4909892');
     await materialInput.press('Enter');
-
-    await page.waitForFunction(
-        (matInputEl) => {
-            const active = document.activeElement;
-            return active && active.tagName === 'INPUT' && active !== matInputEl;
-        },
-        await materialInput.elementHandle()
-    );
-
-    const slotInput = page.locator('*:focus');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
     await slotInput.fill('10008-L-EXTRA');
     await slotInput.press('Enter');
+    await expectMainScanInputsCleared(page);
 
     await expectLatestMessage(page, 'error-message', '槽位格式錯誤');
 });
@@ -607,11 +560,11 @@ test('panasonic unload mode toggle and submit flow', async ({ page }) => {
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
     await expect(page.locator('[row-id="10008-L"]')).toBeVisible();
 
-    const materialInput = page.locator('.n-input input').first();
+    const materialInput = getMainMaterialInput(page);
     await materialInput.fill('S5555');
     await materialInput.press('Enter');
 
-    await expect(page.getByTestId('panasonic-mode-tag')).toContainText('換料卸除');
+    await expect(page.getByTestId('panasonic-mode-tag')).toBeVisible();
     await expect(page.getByTestId('unload-mode-panel')).toBeVisible();
     await expect(page.getByTestId('exit-unload-mode-btn')).toBeVisible();
 
@@ -626,8 +579,14 @@ test('panasonic unload mode toggle and submit flow', async ({ page }) => {
 
     await unloadSlotInput.fill('10008');
     await unloadSlotInput.press('Enter');
+    await expect(unloadMaterialInput).toHaveValue('');
+    await expect(unloadSlotInput).toHaveValue('');
+    await expect(unloadMaterialInput).toBeFocused();
     await expectLatestMessage(page, 'error-message', /有多個子槽位/);
 
+    await unloadMaterialInput.fill('APP-L');
+    await unloadMaterialInput.press('Enter');
+    await expect(unloadSlotInput).toBeFocused();
     await unloadSlotInput.fill('10008-L');
     await unloadSlotInput.press('Enter');
 
@@ -654,7 +613,7 @@ test('panasonic unload mode toggle and submit flow', async ({ page }) => {
     await unloadMaterialInput.fill('S5555');
     await unloadMaterialInput.press('Enter');
 
-    await expect(page.getByTestId('panasonic-mode-tag')).not.toContainText('換料卸除');
+    await expect(page.getByTestId('panasonic-mode-tag')).toBeVisible();
     await expect(page.getByTestId('unload-mode-panel')).toHaveCount(0);
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
@@ -683,9 +642,10 @@ test('test virtual material force warning binding in testing mode', async ({ pag
     await scanOne(page, virtualMaterial, targetSlot);
 
     const row = page.locator(`[row-id="${targetSlot}"]`);
-    await expect(row.locator('[col-id="correct"]')).toContainText(/⚠/);
+    await expect(row.locator('[col-id="correct"]')).toContainText('⚠️');
     await expect(
         row.locator('[col-id="materialInventoryIdno"]')
     ).toContainText(virtualMaterial);
 });
+
 

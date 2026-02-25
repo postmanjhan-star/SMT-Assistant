@@ -1,4 +1,4 @@
-﻿import { computed, onMounted, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import {
   ApiError,
@@ -158,18 +158,12 @@ export function usePanasonicProductionWorkflow(
     subSlot: string
     slotIdno: string
   }) => {
-    let success = false
-    try {
-      success = await submitPostProductionFeed({
-        slot,
-        subSlot,
-        slotIdno,
-        result: postProductionFeedStore.materialResult,
-      })
-      return success
-    } finally {
-      options.onResetInputs()
-    }
+    return submitPostProductionFeed({
+      slot,
+      subSlot,
+      slotIdno,
+      result: postProductionFeedStore.materialResult,
+    })
   }
 
   const parseUnloadSlotInput = (
