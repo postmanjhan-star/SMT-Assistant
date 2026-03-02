@@ -427,6 +427,123 @@ test('test invalid slot format in normal mode', async ({ page }) => {
     await expectLatestMessage(page, 'error-message', '槽位格式錯誤');
 });
 
+const MATERIAL_LOOKUP_ERROR_CASES: Array<{
+    label: string;
+    status: number;
+    expectedMessage: string;
+}> = [
+    { label: '404 not found', status: 404, expectedMessage: '查無此條碼' },
+    { label: '500 server error', status: 500, expectedMessage: '系統錯誤' },
+    { label: '502 bad gateway', status: 502, expectedMessage: 'ERP 連線錯誤，請確認 ERP 連線【請聯繫資訊管理部門】' },
+    { label: '504 timeout', status: 504, expectedMessage: 'ERP 連線超時，請確認 ERP 連線' },
+];
+
+for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
+    test(`test material scan shows shared ERP error (${errorCase.label}) in fuji detail page`, async ({ page }) => {
+        const unreachableMaterial = `erp-error-fuji-detail-${errorCase.status}`;
+
+        await page.route('**/smt/material_inventory/*', (route) => {
+            const url = new URL(route.request().url());
+            if (url.pathname.endsWith(`/smt/material_inventory/${unreachableMaterial}`)) {
+                return route.fulfill({
+                    status: errorCase.status,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ detail: `Mock ${errorCase.status}` }),
+                });
+            }
+            return route.continue();
+        });
+
+        await page.goto(FUJI_NORMAL_URL);
+        await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+        const materialInput = page.locator('.n-input input').first();
+        const slotInput = page.locator('.n-input input').nth(1);
+        await materialInput.fill(unreachableMaterial);
+        await materialInput.press('Enter');
+
+        await expectLatestMessage(page, 'error-message', errorCase.expectedMessage);
+        await expect(materialInput).toHaveValue('');
+        await expect(materialInput).toBeFocused();
+        await expect(slotInput).not.toBeFocused();
+    });
+}
+
+for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
+    test(`test material scan shows shared ERP error (${errorCase.label}) in fuji production page`, async ({ page }) => {
+        const productionUuid = `erp-error-fuji-production-${errorCase.status}`;
+        const unreachableMaterial = `erp-error-fuji-production-${errorCase.status}`;
+        const now = new Date().toISOString();
+
+        const mockStats = [
+            {
+                id: 1,
+                work_order_no: 'ZZ9999',
+                product_idno: '40X85-009B-TEST_SCAN',
+                machine_idno: 'XP2B1',
+                machine_side: 'FRONT',
+                board_side: 'TOP',
+                slot_idno: '9',
+                sub_slot_idno: 'A',
+                material_idno: 'MAT-1',
+                production_end: null,
+                produce_mode: 'NORMAL_PRODUCE_MODE',
+                feed_records: [
+                    {
+                        id: 1000,
+                        feed_record_id: 1000,
+                        operation_time: now,
+                        material_pack_code: 'MAIN-1',
+                        feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                        check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                    },
+                ],
+            },
+        ];
+
+        await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, (route) =>
+            route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(mockStats),
+            })
+        );
+
+        await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, (route) =>
+            route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify([]),
+            })
+        );
+
+        await page.route('**/smt/material_inventory/*', (route) => {
+            const url = new URL(route.request().url());
+            if (url.pathname.endsWith(`/smt/material_inventory/${unreachableMaterial}`)) {
+                return route.fulfill({
+                    status: errorCase.status,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ detail: `Mock ${errorCase.status}` }),
+                });
+            }
+            return route.continue();
+        });
+
+        await page.goto(`http://localhost/smt/fuji-mounter-production/${productionUuid}`);
+        await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+        const materialInput = page.getByTestId('material-input').locator('input');
+        const slotInput = page.getByPlaceholder('輸入槽位');
+        await materialInput.fill(unreachableMaterial);
+        await materialInput.press('Enter');
+
+        await expectLatestMessage(page, 'error-message', errorCase.expectedMessage);
+        await expect(materialInput).toHaveValue('');
+        await expect(materialInput).toBeFocused();
+        await expect(slotInput).not.toBeFocused();
+    });
+}
+
 test('test start production blocked when slots are not fully bound in normal mode', async ({ page }) => {
     await page.goto(FUJI_NORMAL_URL);
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();

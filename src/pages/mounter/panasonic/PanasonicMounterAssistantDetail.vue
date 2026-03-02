@@ -106,14 +106,16 @@ function handleMaterialMatched(payload: {
   })
 }
 
-function onSlotSubmit(payload: {
+async function onSlotSubmit(payload: {
   slotIdno: string
   slot: string
   subSlot: string
 }) {
-  const pending = handleSlotSubmitWithPolicy(payload)
-  resetInputsAfterSlotSubmit()
-  return pending
+  try {
+    return await handleSlotSubmitWithPolicy(payload)
+  } finally {
+    resetInputsAfterSlotSubmit()
+  }
 }
 </script>
 

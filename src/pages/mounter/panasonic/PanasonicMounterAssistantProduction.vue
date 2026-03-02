@@ -219,14 +219,22 @@ function handleMaterialMatched(payload: {
   })
 }
 
-function onNormalSlotSubmit(payload: {
+function handleMaterialScanError(msg: string) {
+  ui.error(msg)
+  clearNormalScanState()
+  focusMaterialInventoryInput()
+}
+
+async function onNormalSlotSubmit(payload: {
   slotIdno: string
   slot: string
   subSlot: string
 }) {
-  const pending = handleSlotSubmit(payload)
-  resetInputsAfterSlotSubmit()
-  return pending
+  try {
+    return await handleSlotSubmit(payload)
+  } finally {
+    resetInputsAfterSlotSubmit()
+  }
 }
 
 function onRollShortageModalUpdate(value: boolean) {
@@ -335,7 +343,7 @@ function onRollShortageModalUpdate(value: boolean) {
             :before-scan="handleBeforeMaterialScan"
             :reset-key="inputs.resetKey.value"
             ref="materialInventoryInput"
-            @error="ui.error"
+            @error="handleMaterialScanError"
           />
         </n-gi>
 

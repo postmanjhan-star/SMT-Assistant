@@ -2,7 +2,7 @@
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { NForm, NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'
-import { ApiError, SmtMaterialInventory } from '@/client'
+import { SmtMaterialInventory } from '@/client'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
 import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository';
 import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'
@@ -11,6 +11,7 @@ import {
     ScanResultLike,
     decideMaterialScanAction,
 } from '@/domain/material/MaterialScanDecision'
+import { resolveMaterialLookupError } from '@/domain/material/MaterialLookupError'
 
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 type MatchedRow = unknown
@@ -111,9 +112,17 @@ async function onSubmit() {
         }
     }
 
-    const result = props.scan
-        ? await props.scan(idno)
-        : await scanUseCase.value.execute(idno)
+    let result: ScanResultLike<SmtMaterialInventoryEx, MatchedRow>
+    try {
+        result = props.scan
+            ? await props.scan(idno)
+            : await scanUseCase.value.execute(idno)
+    } catch (error) {
+        await safePlayErrorTone()
+        emit('error', resolveMaterialLookupError(error))
+        reset()
+        return
+    }
 
     const decision = decideMaterialScanAction(result, {
         isTestingMode: props.isTestingMode,
@@ -150,26 +159,17 @@ async function onSubmit() {
     }
 
     if (decision.errorKind === 'api_error') {
-        let msg = '未知 API 錯誤'
         const error = decision.error
-        if (error instanceof ApiError) {
-            msg = {
-                404: '查無此條碼',
-                504: 'ERP 連線超時',
-                502: 'ERP 連線錯誤',
-                500: '系統錯誤',
-            }[error.status] ?? '未知錯誤'
-        } else {
-            console.error('An unexpected API error occurred', error)
-        }
-        emit('error', msg)
+        emit('error', resolveMaterialLookupError(error))
         reset()
         return
     }
 
     const error = decision.error as Error
     const errorMessage =
-        error?.message === 'invalid barcode format' ? '請輸入物料號' : '未知例外'
+        error?.message === 'invalid barcode format'
+            ? '請輸入物料號'
+            : resolveMaterialLookupError(decision.error)
     emit('error', errorMessage)
     console.error(decision.error)
     reset()

@@ -451,6 +451,230 @@ test('test invalid slot format in normal mode', async ({ page }) => {
     await expectLatestMessage(page, 'error-message', '槽位格式錯誤');
 });
 
+test('test successful scan flow focuses slot then resets to material in panasonic detail page', async ({ page }) => {
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
+    await expect(page.locator(".ag-root-wrapper")).toBeVisible();
+
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
+    await materialInput.fill('B4909892');
+    await materialInput.press('Enter');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
+
+    await slotInput.fill('10008-L');
+    await slotInput.press('Enter');
+
+    await expect(materialInput).toHaveValue('');
+    await expect(slotInput).toHaveValue('');
+    await expect(materialInput).toBeFocused();
+});
+
+test('test successful scan flow focuses slot then resets to material in panasonic production page', async ({ page }) => {
+    const productionUuid = 'slot-reset-panasonic-production';
+    const materialPackCode = 'SCAN-SUCCESS-1';
+    const now = new Date().toISOString();
+
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_idno: '88120-0001-S0',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'MAIN-L',
+                    feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(mockStats),
+        })
+    );
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([]),
+        })
+    );
+
+    await page.route('**/smt/material_inventory/*', (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith(`/smt/material_inventory/${materialPackCode}`)) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    id: 1,
+                    idno: materialPackCode,
+                    material_idno: '88120-0001-S0',
+                    material_name: 'TEST-MATERIAL',
+                }),
+            });
+        }
+        return route.continue();
+    });
+
+    await page.route('**/smt/panasonic_mounter_item/stat/roll', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({}),
+        })
+    );
+
+    await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
+    await materialInput.fill(materialPackCode);
+    await materialInput.press('Enter');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
+
+    await slotInput.fill('10008-L');
+    await slotInput.press('Enter');
+
+    await expect(materialInput).toHaveValue('');
+    await expect(slotInput).toHaveValue('');
+    await expect(materialInput).toBeFocused();
+});
+
+const MATERIAL_LOOKUP_ERROR_CASES: Array<{
+    label: string;
+    status: number;
+    expectedMessage: string;
+}> = [
+    { label: '404 not found', status: 404, expectedMessage: '查無此條碼' },
+    { label: '500 server error', status: 500, expectedMessage: '系統錯誤' },
+    { label: '502 bad gateway', status: 502, expectedMessage: 'ERP 連線錯誤，請確認 ERP 連線【請聯繫資訊管理部門】' },
+    { label: '504 timeout', status: 504, expectedMessage: 'ERP 連線超時，請確認 ERP 連線' },
+];
+
+for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
+    test(`test material scan shows shared ERP error (${errorCase.label}) in panasonic detail page`, async ({ page }) => {
+        const unreachableMaterial = `erp-error-panasonic-detail-${errorCase.status}`;
+
+        await page.route('**/smt/material_inventory/*', (route) => {
+            const url = new URL(route.request().url());
+            if (url.pathname.endsWith(`/smt/material_inventory/${unreachableMaterial}`)) {
+                return route.fulfill({
+                    status: errorCase.status,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ detail: `Mock ${errorCase.status}` }),
+                });
+            }
+            return route.continue();
+        });
+
+        await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
+        await expect(page.locator(".ag-root-wrapper")).toBeVisible();
+
+        const materialInput = getMainMaterialInput(page);
+        const slotInput = getMainSlotInput(page);
+        await materialInput.fill(unreachableMaterial);
+        await materialInput.press('Enter');
+
+        await expectLatestMessage(page, 'error-message', errorCase.expectedMessage);
+        await expect(materialInput).toHaveValue('');
+        await expect(materialInput).toBeFocused();
+        await expect(slotInput).not.toBeFocused();
+    });
+}
+
+for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
+    test(`test material scan shows shared ERP error (${errorCase.label}) in panasonic production page`, async ({ page }) => {
+        const productionUuid = `erp-error-panasonic-production-${errorCase.status}`;
+        const unreachableMaterial = `erp-error-panasonic-production-${errorCase.status}`;
+        const now = new Date().toISOString();
+
+        const mockStats = [
+            {
+                id: 1,
+                work_order_no: 'ZZ9999',
+                product_idno: '40Y85-010A-M3',
+                machine_idno: 'A1-NPM-W2',
+                machine_side: 'FRONT',
+                board_side: 'DUPLEX',
+                slot_idno: '10008',
+                sub_slot_idno: 'L',
+                material_idno: '88120-0001-S0',
+                production_end: null,
+                produce_mode: 'NORMAL_PRODUCE_MODE',
+                feed_records: [
+                    {
+                        id: 1000,
+                        feed_record_id: 1000,
+                        operation_time: now,
+                        material_pack_code: 'MAIN-L',
+                        feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                        check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                    },
+                ],
+            },
+        ];
+
+        await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, (route) =>
+            route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(mockStats),
+            })
+        );
+
+        await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, (route) =>
+            route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify([]),
+            })
+        );
+
+        await page.route('**/smt/material_inventory/*', (route) => {
+            const url = new URL(route.request().url());
+            if (url.pathname.endsWith(`/smt/material_inventory/${unreachableMaterial}`)) {
+                return route.fulfill({
+                    status: errorCase.status,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ detail: `Mock ${errorCase.status}` }),
+                });
+            }
+            return route.continue();
+        });
+
+        await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
+        await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+        const materialInput = getMainMaterialInput(page);
+        const slotInput = getMainSlotInput(page);
+        await materialInput.fill(unreachableMaterial);
+        await materialInput.press('Enter');
+
+        await expectLatestMessage(page, 'error-message', errorCase.expectedMessage);
+        await expect(materialInput).toHaveValue('');
+        await expect(materialInput).toBeFocused();
+        await expect(slotInput).not.toBeFocused();
+    });
+}
+
 test('panasonic unload mode toggle and submit flow', async ({ page }) => {
     const productionUuid = 'unload-mode-mock-uuid';
     const now = new Date().toISOString();

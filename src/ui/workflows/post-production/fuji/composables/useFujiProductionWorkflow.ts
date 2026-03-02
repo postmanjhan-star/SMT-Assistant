@@ -29,6 +29,7 @@ import {
   isFujiStatSlotMatch,
   type FujiProductionRowModel,
 } from "@/domain/production/buildFujiProductionRowData"
+import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 
 const MODE_NAME_TESTING = "🧪 試產生產模式"
 const MODE_NAME_NORMAL = "✅ 正式生產模式"
@@ -219,13 +220,7 @@ export function useFujiProductionWorkflow() {
           material_name: "Testing Material",
         } as unknown as SmtMaterialInventory
       } else {
-        const status = error instanceof ApiError ? error.status : null
-        const msg = {
-          404: "查無此物料",
-          504: "ERP 服務逾時",
-          502: "ERP 服務錯誤",
-        }[status as 404 | 504 | 502] ?? "物料查詢失敗"
-        showError(msg)
+        showError(resolveMaterialLookupError(error))
         resetForms()
         return
       }
