@@ -295,11 +295,19 @@ export function usePanasonicProductionWorkflow(
         materialPackCode
       )
       row.appendedMaterialInventoryIdno = nextAppended
+      row.correct = null
+      if (inMain) {
+        row.materialInventoryIdno = ""
+      }
 
       const rowId = `${row.slotIdno}-${row.subSlotIdno}`
       try {
         const rowNode = gridApi.value?.getRowNode?.(rowId)
         rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
+        rowNode?.setDataValue("correct", null)
+        if (inMain) {
+          rowNode?.setDataValue("materialInventoryIdno", "")
+        }
       } catch {
         // Grid may be unmounted in unload mode.
       }
@@ -443,7 +451,6 @@ export function usePanasonicProductionWorkflow(
   const handleProductionStopped = () => {
     productionStarted.value = false
     ui.success("生產已結束")
-    router.push(PANASONIC_HOME_PATH)
   }
 
   onMounted(async () => {

@@ -19,6 +19,8 @@ export type FujiFeedRecordLike = {
   slot_idno?: string
   sub_slot_idno?: string | null
   operation_time?: string
+  material_idno?: string | null
+  materialIdno?: string | null
   material_pack_code?: string | null
   materialPackCode?: string | null
   material_pack_idno?: string | null
@@ -119,6 +121,10 @@ function getRecordPackCode(record: FujiFeedRecordLike): string | null {
   )
 }
 
+function getRecordMaterialIdno(record: FujiFeedRecordLike): string | null {
+  return record.material_idno ?? record.materialIdno ?? null
+}
+
 function getRecordTime(record: FujiFeedRecordLike): string {
   return String(record.operation_time ?? "")
 }
@@ -205,6 +211,42 @@ function buildAppendedCodes(records: FujiFeedRecordLike[]): string {
   })
 
   return Array.from(codeSet).join(", ")
+}
+
+function normalizeValue(value: unknown): string {
+  return String(value ?? "").trim()
+}
+
+function getActiveImportedRecord(records: FujiFeedRecordLike[]): FujiFeedRecordLike | null {
+  let activeImport: FujiFeedRecordLike | null = null
+
+  sortRecords(records).forEach((record) => {
+    const operationType = getRecordOperationType(record)
+    const feedType = getRecordType(record)
+    const packCode = normalizeValue(getRecordPackCode(record))
+    const materialIdno = normalizeValue(getRecordMaterialIdno(record))
+
+    if (
+      operationType === MaterialOperationTypeEnum.FEED &&
+      feedType === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
+    ) {
+      activeImport = record
+      return
+    }
+
+    if (operationType === MaterialOperationTypeEnum.UNFEED && activeImport) {
+      const activePackCode = normalizeValue(getRecordPackCode(activeImport))
+      const activeMaterialIdno = normalizeValue(getRecordMaterialIdno(activeImport))
+      const samePackCode = !!packCode && activePackCode === packCode
+      const sameMaterialIdno = !!materialIdno && activeMaterialIdno === materialIdno
+
+      if (samePackCode || sameMaterialIdno) {
+        activeImport = null
+      }
+    }
+  })
+
+  return activeImport
 }
 
 export function parseFujiProductionSlotIdno(
@@ -305,28 +347,13 @@ export function buildFujiProductionRowData(
         (a, b) => getRecordTimeNumber(b) - getRecordTimeNumber(a)
       )[0] ?? null
 
-    const materialRecords = normalizedFeedRecords
-      .filter(
-        (record) =>
-          record.operation_type === MaterialOperationTypeEnum.FEED &&
-          record.feed_material_pack_type !== FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK
-      )
-      .sort((a, b) => getRecordTimeNumber(a) - getRecordTimeNumber(b))
-
-    const importMaterialPack = sortRecords(normalizedFeedRecords).find(
-      (record) =>
-        getRecordOperationType(record) === MaterialOperationTypeEnum.FEED &&
-        getRecordType(record) === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
-    )
-
-    const latestMaterialRecord =
-      materialRecords.length > 0 ? materialRecords[materialRecords.length - 1] : null
+    const activeImportedRecord = getActiveImportedRecord(normalizedFeedRecords)
 
     const appendedCodes = buildAppendedCodes(normalizedFeedRecords)
 
     const stage = normalizeStageLabel(stat.sub_slot_idno)
     const checkPackCodeMatch =
-      (importMaterialPack?.check_pack_code_match ?? stat.check_pack_code_match ?? null) as
+      (activeImportedRecord?.check_pack_code_match ?? null) as
         | CheckMaterialMatchEnum
         | null
 
@@ -353,8 +380,8 @@ export function buildFujiProductionRowData(
       stage,
       slot: Number(stat.slot_idno),
       materialIdno: String(stat.material_idno ?? ""),
-      materialInventoryIdno: latestMaterialRecord?.material_pack_code ?? "",
-      operationTime: latestMaterialRecord?.operation_time ?? null,
+      materialInventoryIdno: activeImportedRecord?.material_pack_code ?? "",
+      operationTime: activeImportedRecord?.operation_time ?? null,
       operatorIdno: null,
       appendedMaterialInventoryIdno: appendedCodes,
       remark: remarkParts.join(" ").trim(),

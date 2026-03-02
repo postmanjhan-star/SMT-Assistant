@@ -386,9 +386,17 @@ export function useFujiProductionWorkflow() {
         materialPackCode
       )
       row.appendedMaterialInventoryIdno = nextAppended
+      row.correct = null
+      if (inMain) {
+        row.materialInventoryIdno = ""
+      }
       try {
         const rowNode = gridApi.value?.getRowNode?.(rowId)
         rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
+        rowNode?.setDataValue("correct", null)
+        if (inMain) {
+          rowNode?.setDataValue("materialInventoryIdno", "")
+        }
       } catch {
         // Grid may be unmounted in unload mode.
       }
@@ -597,7 +605,6 @@ export function useFujiProductionWorkflow() {
           await SmtService.updateFujiItemStatsEndTime({ uuid: productionUuid.value })
           productionStarted.value = false
           showSuccess("生產已結束")
-          router.push("/smt/fuji-mounter/")
         } catch (error) {
           showError("結束生產失敗")
           console.error(error)

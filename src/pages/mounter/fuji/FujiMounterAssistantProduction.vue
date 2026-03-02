@@ -152,7 +152,7 @@ async function handleUnloadSlotSubmit() {
             <n-button v-if="productionStarted" type="error" size="small" @click="onStopProduction">
               🛑 結束生產
             </n-button>
-            <n-tag v-else type="success" size="small">生產已結束</n-tag>
+            <n-button v-else type="success" size="small" disabled>🚀 開始生產</n-button>
             <n-button type="info" size="small" @click="onMaterialQuery">🔍 接料查詢</n-button>
           </template>
         </template>

@@ -26,6 +26,7 @@ type FeedRecordLike = {
     id?: number
     feed_record_id?: number
     operation_time?: string
+    material_idno?: string | null
     material_pack_code?: string | null
     operation_type?: MaterialOperationTypeEnum | null
     feed_material_pack_type?: FeedMaterialTypeEnum | null
@@ -55,6 +56,7 @@ const mergeFeedRecords = (
             id: log.feed_record_id ?? log.id,
             feed_record_id: log.feed_record_id,
             operation_time: log.operation_time,
+            material_idno: log.material_idno,
             material_pack_code: log.material_pack_code,
             operation_type: log.operation_type,
             feed_material_pack_type: log.feed_material_pack_type,
@@ -102,6 +104,45 @@ const getLatestInspection = (records: FeedRecordLike[]) => {
             )
         })
         .sort((a, b) => getTimeValue(b.operation_time) - getTimeValue(a.operation_time))[0]
+}
+
+const normalizeValue = (value: unknown): string => String(value ?? "").trim()
+
+const getActiveImportedRecord = (
+    records: FeedRecordLike[]
+): IndexedRecord | undefined => {
+    let activeImport: IndexedRecord | undefined
+
+    toSortedRecords(records).forEach((record) => {
+        const operationType = toOperationType(record.operation_type)
+        const feedType = record.feed_material_pack_type
+        const packCode = normalizeValue(record.material_pack_code)
+        const materialIdno = normalizeValue(record.material_idno)
+
+        if (
+            operationType === MaterialOperationTypeEnum.FEED &&
+            feedType === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
+        ) {
+            activeImport = record
+            return
+        }
+
+        if (
+            operationType === MaterialOperationTypeEnum.UNFEED &&
+            activeImport
+        ) {
+            const activePackCode = normalizeValue(activeImport.material_pack_code)
+            const activeMaterialIdno = normalizeValue(activeImport.material_idno)
+            const samePackCode = !!packCode && activePackCode === packCode
+            const sameMaterialIdno = !!materialIdno && activeMaterialIdno === materialIdno
+
+            if (samePackCode || sameMaterialIdno) {
+                activeImport = undefined
+            }
+        }
+    })
+
+    return activeImport
 }
 
 const getAppendedCodes = (records: FeedRecordLike[]) => {
@@ -165,12 +206,7 @@ export const buildProductionRowData = (
         const inspectionCount = inspectionRecords.length
         const latestInspection = getLatestInspection(feedRecords)
 
-        const importRecord = toSortedRecords(feedRecords).find(
-            (record) =>
-                toOperationType(record.operation_type) === MaterialOperationTypeEnum.FEED &&
-                record.feed_material_pack_type ===
-                    FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
-        )
+        const importRecord = getActiveImportedRecord(feedRecords)
 
         return {
             id: stat.id,

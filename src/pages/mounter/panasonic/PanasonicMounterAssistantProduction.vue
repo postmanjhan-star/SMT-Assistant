@@ -294,9 +294,10 @@ function onRollShortageModalUpdate(value: boolean) {
                   v-if="!productionStarted"
                   type="success"
                   size="small"
+                  :disabled="!productionStarted"
                   @click="onProduction"
                 >
-                  ▶️ 開始生產
+                  🚀 開始生產
                 </n-button>
                 <StopProductionButton
                   v-else
