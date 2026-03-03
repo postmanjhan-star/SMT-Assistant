@@ -712,7 +712,7 @@ test('fuji unload/replace flow keeps grid visible and auto exits after successfu
     );
 
     const row = page.locator('[row-id="XP2B1-A-9"]');
-    await expect(row.locator('[col-id="correct"]')).not.toContainText('✅');
+    await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
 
     await unloadMaterialInput.fill(replacementPackCode);
     await unloadMaterialInput.press('Enter');
@@ -861,7 +861,7 @@ test('fuji force unload flow by slot (S5577) uses WRONG_MATERIAL and completes r
     );
 
     const row = page.locator('[row-id="XP2B1-A-9"]');
-    await expect(row.locator('[col-id="correct"]')).not.toContainText('✅');
+    await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
     await expect(unloadMaterialInput).toBeFocused();
 
     await unloadMaterialInput.fill(replacementPackCode);

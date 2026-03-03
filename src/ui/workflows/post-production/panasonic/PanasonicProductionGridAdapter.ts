@@ -1,4 +1,4 @@
-import type { GridOptions, GetRowIdParams, RowNode } from 'ag-grid-community'
+﻿import type { GridOptions, GetRowIdParams, RowNode } from 'ag-grid-community'
 import type { ProductionRowModel } from '@/domain/production/buildPanasonicRowData'
 import { useDateFormatter } from '@/ui/shared/composables/useDateFormatter'
 
@@ -16,49 +16,56 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
         refData: {
           MATCHED_MATERIAL_PACK: '✅',
           UNMATCHED_MATERIAL_PACK: '❌',
-          TESTING_MATERIAL_PACK: '⚠️'
-        }
+          UNLOADED_MATERIAL_PACK: '⛔',
+          TESTING_MATERIAL_PACK: '⚠️',
+        },
       },
       {
-        headerName: '巡檢條碼',
+        headerName: '巡檢料號',
         field: 'inspectMaterialPackCode',
         flex: 2,
-        minWidth: 100
+        minWidth: 100,
       },
       {
         headerName: '巡檢時間',
         field: 'inspectTime',
         flex: 2,
         minWidth: 150,
-        valueFormatter: (params) => format(params.value)
+        valueFormatter: (params) => format(params.value),
       },
-      { field: 'slotIdno', tooltipField: 'slotIdno', headerName: '槽位', flex: 3, minWidth: 90 },
-      { field: 'subSlotIdno', tooltipField: 'subSlotIdno', headerName: '副槽位', flex: 1, minWidth: 100 },
+      { field: 'slotIdno', tooltipField: 'slotIdno', headerName: '站位', flex: 3, minWidth: 90 },
+      {
+        field: 'subSlotIdno',
+        tooltipField: 'subSlotIdno',
+        headerName: '子站位',
+        flex: 1,
+        minWidth: 100,
+      },
       {
         field: 'firstAppendTime',
         tooltipField: 'firstAppendTime',
-        headerName: '上料時間',
+        headerName: '首次接料時間',
         flex: 3,
         minWidth: 180,
-        valueFormatter: (params) => format(params.value)
+        valueFormatter: (params) => format(params.value),
       },
       { field: 'materialIdno', tooltipField: 'materialIdno', headerName: '料號', flex: 4, minWidth: 140 },
       {
         field: 'materialInventoryIdno',
         tooltipField: 'materialInventoryIdno',
-        headerName: '上料條碼',
+        headerName: '主料捲號',
         flex: 5,
-        minWidth: 140
+        minWidth: 140,
       },
       {
         field: 'appendedMaterialInventoryIdno',
         tooltipField: 'appendedMaterialInventoryIdno',
-        headerName: '接料條碼',
+        headerName: '接料捲號',
         flex: 5,
-        minWidth: 140
+        minWidth: 140,
       },
-      { field: 'total', headerName: '數量', flex: 3, minWidth: 120 },
-      { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 }
+      { field: 'total', headerName: '總數', flex: 3, minWidth: 120 },
+      { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
     ],
     defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
 
@@ -96,6 +103,6 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
 
     suppressRowTransform: true,
 
-    enableBrowserTooltips: false
+    enableBrowserTooltips: false,
   }
 }

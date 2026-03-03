@@ -14,7 +14,7 @@ export type ProductionRowModel = {
     materialInventoryIdno: string | null
     appendedMaterialInventoryIdno: string
     total?: number | string
-    correct: CheckMaterialMatchEnum | null
+    correct: CheckMaterialMatchEnum | "UNLOADED_MATERIAL_PACK" | null
     firstAppendTime?: string | null
     inspectMaterialPackCode?: string
     inspectTime?: string | null

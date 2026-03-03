@@ -308,7 +308,7 @@ export function usePanasonicProductionWorkflow(
         materialPackCode
       )
       row.appendedMaterialInventoryIdno = nextAppended
-      row.correct = null
+      row.correct = "UNLOADED_MATERIAL_PACK"
       if (inMain) {
         row.materialInventoryIdno = ""
       }
@@ -317,7 +317,10 @@ export function usePanasonicProductionWorkflow(
       try {
         const rowNode = gridApi.value?.getRowNode?.(rowId)
         rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
-        rowNode?.setDataValue("correct", null)
+        rowNode?.setDataValue(
+          "correct",
+          "UNLOADED_MATERIAL_PACK"
+        )
         if (inMain) {
           rowNode?.setDataValue("materialInventoryIdno", "")
         }
@@ -577,6 +580,7 @@ export function usePanasonicProductionWorkflow(
   const onProduction = () => {
     const invalid = rowData.value.filter((row) => {
       if (row.correct === CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK) return true
+      if (row.correct === "UNLOADED_MATERIAL_PACK") return true
       if (!isTestingMode.value && row.correct == null) return true
       return false
     })
@@ -625,7 +629,8 @@ export function usePanasonicProductionWorkflow(
         material_idno: row.materialIdno ?? null,
         material_pack_code: row.materialInventoryIdno ?? null,
         produce_mode: convertProduceMode(testing),
-        check_pack_code_match: row.correct,
+        check_pack_code_match:
+          row.correct === "UNLOADED_MATERIAL_PACK" ? null : row.correct,
       }))
 
       await deps.startPanasonicProduction(payload)

@@ -41,7 +41,7 @@ type FujiMounterProductionSlot = {
 }
 
 export type FujiProductionRowModel = {
-  correct: CheckMaterialMatchEnum | null
+  correct: CheckMaterialMatchEnum | "UNLOADED_MATERIAL_PACK" | null
   id: number
   mounterIdno: string
   boardSide: string

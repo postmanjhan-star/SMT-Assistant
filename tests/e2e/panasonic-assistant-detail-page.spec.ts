@@ -830,7 +830,7 @@ test('panasonic unload/replace flow keeps grid visible and auto exits after succ
     );
 
     const row = page.locator('[row-id="10008-L"]');
-    await expect(row.locator('[col-id="correct"]')).not.toContainText('✅');
+    await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
 
     await unloadMaterialInput.fill(replacementPackCode);
     await unloadMaterialInput.press('Enter');
@@ -979,7 +979,7 @@ test('panasonic force unload flow by slot (S5577) uses WRONG_MATERIAL and comple
     );
 
     const row = page.locator('[row-id="10008-L"]');
-    await expect(row.locator('[col-id="correct"]')).not.toContainText('✅');
+    await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
     await expect(unloadMaterialInput).toBeFocused();
 
     await unloadMaterialInput.fill(replacementPackCode);

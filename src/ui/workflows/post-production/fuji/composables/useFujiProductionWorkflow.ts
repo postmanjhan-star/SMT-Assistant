@@ -384,14 +384,17 @@ export function useFujiProductionWorkflow() {
         materialPackCode
       )
       row.appendedMaterialInventoryIdno = nextAppended
-      row.correct = null
+      row.correct = "UNLOADED_MATERIAL_PACK"
       if (inMain) {
         row.materialInventoryIdno = ""
       }
       try {
         const rowNode = gridApi.value?.getRowNode?.(rowId)
         rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
-        rowNode?.setDataValue("correct", null)
+        rowNode?.setDataValue(
+          "correct",
+          "UNLOADED_MATERIAL_PACK"
+        )
         if (inMain) {
           rowNode?.setDataValue("materialInventoryIdno", "")
         }
