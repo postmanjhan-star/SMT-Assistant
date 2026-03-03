@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
@@ -27,15 +27,21 @@ import {
   PANASONIC_MODE_NAME_NORMAL,
   PANASONIC_MODE_NAME_TESTING,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
-import type {
-  InputComponentHandle,
-  MaterialMatchedPayload,
-} from "./types/production"
+import type { InputComponentHandle, MaterialMatchedPayload } from "./types/production"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
 
 const MATERIAL_UNLOAD_TRIGGER = "S5555"
+const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
 const MATERIAL_UNLOAD_MODE_NAME = "換料卸除"
+const MATERIAL_FORCE_UNLOAD_MODE_NAME = "單站強制卸除"
+
+type UnloadModeType = "pack_auto_slot" | "force_single_slot"
+type UnloadReplacePhase =
+  | "unload_scan"
+  | "force_unload_slot_scan"
+  | "replace_material_scan"
+  | "replace_slot_scan"
 
 const slotIdnoInput = ref<InputComponentHandle | null>(null)
 const materialInventoryInput = ref<InputComponentHandle | null>(null)
@@ -43,8 +49,12 @@ const unloadMaterialInput = ref<HTMLInputElement | null>(null)
 const unloadSlotInput = ref<HTMLInputElement | null>(null)
 
 const isUnloadMode = ref(false)
+const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
+const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
 const unloadMaterialValue = ref("")
 const unloadSlotValue = ref("")
+const resolvedUnloadSlotIdno = ref("")
+const replacementMaterialPackCode = ref("")
 
 const store = usePostProductionFeedStore()
 const { materialResult } = storeToRefs(store)
@@ -76,6 +86,10 @@ const {
   handleProductionStopped,
   handleSlotSubmit,
   submitUnload,
+  submitForceUnloadBySlot,
+  findUniqueUnloadSlotByPackCode,
+  validateReplacementMaterialForSlot,
+  submitReplace,
   rollShortageFormRef,
   rollShortageFormValue,
   showRollShortageModal,
@@ -95,25 +109,83 @@ const {
 
 const gridOptions = createPanasonicProductionGrid()
 const rollShortageBindings = { formRef: rollShortageFormRef }
-const hasUnloadMaterial = computed(
-  () => unloadMaterialValue.value.trim().length > 0
+
+const isUnloadScanPhase = computed(() => unloadReplacePhase.value === "unload_scan")
+const isForceUnloadSlotPhase = computed(
+  () => unloadReplacePhase.value === "force_unload_slot_scan"
 )
+const isReplaceMaterialPhase = computed(
+  () => unloadReplacePhase.value === "replace_material_scan"
+)
+const isReplaceSlotPhase = computed(() => unloadReplacePhase.value === "replace_slot_scan")
+
 const currentModeName = computed(() => {
   if (isUnloadMode.value) {
-    return MATERIAL_UNLOAD_MODE_NAME
+    return unloadModeType.value === "force_single_slot"
+      ? MATERIAL_FORCE_UNLOAD_MODE_NAME
+      : MATERIAL_UNLOAD_MODE_NAME
   }
-
-  return isTestingMode.value
-    ? PANASONIC_MODE_NAME_TESTING
-    : PANASONIC_MODE_NAME_NORMAL
+  return isTestingMode.value ? PANASONIC_MODE_NAME_TESTING : PANASONIC_MODE_NAME_NORMAL
 })
-const currentModeType = computed<"info" | "warning" | "success">(() => {
-  if (isUnloadMode.value) {
-    return "info"
-  }
 
+const currentModeType = computed<"info" | "warning" | "success">(() => {
+  if (isUnloadMode.value) return "info"
   return isTestingMode.value ? "warning" : "success"
 })
+
+const unloadMaterialLabel = computed(() => {
+  if (isUnloadScanPhase.value) return "卸除捲號（自動定位）"
+  if (isReplaceMaterialPhase.value) return "更換捲號"
+  return "更換捲號（待掃站位）"
+})
+
+const unloadMaterialPlaceholder = computed(() => {
+  if (isUnloadScanPhase.value) return "請掃描要卸除的捲號"
+  if (isForceUnloadSlotPhase.value) return "請先掃描站位進行強制卸除"
+  if (isReplaceMaterialPhase.value) return "請掃描要更換的捲號"
+  return replacementMaterialPackCode.value
+})
+
+const hasUnloadMaterial = computed(() => {
+  if (isReplaceSlotPhase.value) return replacementMaterialPackCode.value.trim().length > 0
+  return unloadMaterialValue.value.trim().length > 0
+})
+
+const isUnloadMaterialInputDisabled = computed(
+  () => isReplaceSlotPhase.value || isForceUnloadSlotPhase.value
+)
+
+const isUnloadSlotInputDisabled = computed(() => {
+  if (isForceUnloadSlotPhase.value) return false
+  if (isReplaceSlotPhase.value) return !hasUnloadMaterial.value
+  return true
+})
+
+const unloadSlotLabel = computed(() =>
+  isForceUnloadSlotPhase.value ? "卸除站位" : "站位編號"
+)
+
+const unloadSlotPlaceholder = computed(() => {
+  if (isForceUnloadSlotPhase.value) return "請掃描要卸除的站位"
+  if (isReplaceSlotPhase.value) return `請掃描原卸料站位 ${resolvedUnloadSlotIdno.value || ""}`
+  return "請先掃描更換捲號"
+})
+
+function toCanonicalPanasonicSlot(raw: string): string | null {
+  const parsed = parsePanasonicSlotIdno(raw)
+  if (!parsed) return null
+  const slot = String(parsed.slot ?? "").trim()
+  const subSlot = String(parsed.subSlot ?? "")
+    .trim()
+    .toUpperCase()
+  if (!slot) return null
+  return subSlot ? `${slot}-${subSlot}` : slot
+}
+
+function isExitTrigger(value: string) {
+  const code = value.trim().toUpperCase()
+  return code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER
+}
 
 function focusMaterialInventoryInput() {
   nextTick(() => {
@@ -127,6 +199,12 @@ function focusUnloadMaterialInput() {
   })
 }
 
+function focusUnloadSlotInput() {
+  nextTick(() => {
+    unloadSlotInput.value?.focus()
+  })
+}
+
 function clearNormalScanState() {
   store.clearMaterialResult()
   inputs.bumpResetKeys()
@@ -134,78 +212,208 @@ function clearNormalScanState() {
   slotIdnoInput.value?.clear?.()
 }
 
-function enterUnloadMode() {
-  isUnloadMode.value = true
+function resetUnloadFlowState(modeType: UnloadModeType = unloadModeType.value) {
+  unloadModeType.value = modeType
+  unloadReplacePhase.value =
+    modeType === "force_single_slot" ? "force_unload_slot_scan" : "unload_scan"
   unloadMaterialValue.value = ""
   unloadSlotValue.value = ""
+  resolvedUnloadSlotIdno.value = ""
+  replacementMaterialPackCode.value = ""
+}
+
+function enterUnloadMode(modeType: UnloadModeType) {
+  isUnloadMode.value = true
+  resetUnloadFlowState(modeType)
   clearNormalScanState()
+
+  if (modeType === "force_single_slot") {
+    focusUnloadSlotInput()
+    return
+  }
+
   focusUnloadMaterialInput()
 }
 
 function exitUnloadMode() {
   isUnloadMode.value = false
-  unloadMaterialValue.value = ""
-  unloadSlotValue.value = ""
+  resetUnloadFlowState("pack_auto_slot")
   clearNormalScanState()
   focusMaterialInventoryInput()
 }
 
+function resetToInitialUnloadPhase() {
+  unloadReplacePhase.value =
+    unloadModeType.value === "force_single_slot"
+      ? "force_unload_slot_scan"
+      : "unload_scan"
+}
+
 async function handleBeforeMaterialScan(barcode: string) {
-  if (barcode.trim().toUpperCase() !== MATERIAL_UNLOAD_TRIGGER) {
-    return true
+  const code = barcode.trim().toUpperCase()
+  if (code === MATERIAL_UNLOAD_TRIGGER) {
+    enterUnloadMode("pack_auto_slot")
+    return false
   }
 
-  enterUnloadMode()
-  return false
+  if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    enterUnloadMode("force_single_slot")
+    return false
+  }
+
+  return true
 }
 
-function handleUnloadMaterialEnter() {
-  const material = unloadMaterialValue.value.trim()
-  unloadMaterialValue.value = material
-
-  if (!material) {
-    return
-  }
-
-  if (material.toUpperCase() === MATERIAL_UNLOAD_TRIGGER) {
-    exitUnloadMode()
-    return
-  }
-
-  unloadSlotInput.value?.focus()
-}
-
-async function handleUnloadSlotSubmit() {
-  if (!isUnloadMode.value) {
-    return
-  }
-
-  const materialPackCode = unloadMaterialValue.value.trim()
-  const slotIdno = unloadSlotValue.value.trim()
-
-  if (!slotIdno) {
-    ui.error("請輸入槽位")
-    return
-  }
-
-  // Enter on slot should clear both inputs immediately.
-  unloadMaterialValue.value = ""
-  unloadSlotValue.value = ""
-  focusUnloadMaterialInput()
-
-  if (!materialPackCode) {
-    ui.error("請先輸入物料條碼")
+async function handleUnloadMaterialSubmit(materialPackCode: string) {
+  const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
+  if (!resolved.ok) {
+    ui.error(resolved.error)
+    unloadMaterialValue.value = ""
+    focusUnloadMaterialInput()
     return
   }
 
   const success = await submitUnload({
     materialPackCode,
-    slotIdno,
+    slotIdno: resolved.slotIdno,
   })
 
+  unloadMaterialValue.value = ""
   if (!success) {
+    focusUnloadMaterialInput()
     return
   }
+
+  resolvedUnloadSlotIdno.value = resolved.slotIdno
+  unloadReplacePhase.value = "replace_material_scan"
+  focusUnloadMaterialInput()
+}
+
+async function handleForceUnloadSlotSubmit(slotIdno: string) {
+  const result = await submitForceUnloadBySlot({
+    slotIdno,
+    unfeedReason: "WRONG_MATERIAL",
+  })
+
+  unloadSlotValue.value = ""
+  if (!result.ok) {
+    focusUnloadSlotInput()
+    return
+  }
+
+  resolvedUnloadSlotIdno.value = result.slotIdno ?? slotIdno
+  unloadReplacePhase.value = "replace_material_scan"
+  focusUnloadMaterialInput()
+}
+
+async function handleReplacementMaterialSubmit(materialPackCode: string) {
+  const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
+  if (!targetSlotIdno) {
+    ui.error("找不到卸料站位，請重新掃描")
+    resetToInitialUnloadPhase()
+    unloadMaterialValue.value = ""
+
+    if (isForceUnloadSlotPhase.value) {
+      focusUnloadSlotInput()
+    } else {
+      focusUnloadMaterialInput()
+    }
+    return
+  }
+
+  const canReplace = await validateReplacementMaterialForSlot({
+    materialPackCode,
+    slotIdno: targetSlotIdno,
+  })
+
+  unloadMaterialValue.value = ""
+  if (!canReplace) {
+    focusUnloadMaterialInput()
+    return
+  }
+
+  replacementMaterialPackCode.value = materialPackCode
+  unloadReplacePhase.value = "replace_slot_scan"
+  unloadSlotValue.value = ""
+  focusUnloadSlotInput()
+}
+
+function handleUnloadMaterialEnter() {
+  const material = unloadMaterialValue.value.trim()
+  unloadMaterialValue.value = material
+  if (!material) return
+
+  if (isExitTrigger(material)) {
+    exitUnloadMode()
+    return
+  }
+
+  if (isUnloadScanPhase.value) {
+    void handleUnloadMaterialSubmit(material)
+    return
+  }
+
+  if (isReplaceMaterialPhase.value) {
+    void handleReplacementMaterialSubmit(material)
+  }
+}
+
+async function handleUnloadSlotSubmit() {
+  if (!isUnloadMode.value) return
+
+  const slotIdno = unloadSlotValue.value.trim()
+  const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
+  const replacementPackCode = replacementMaterialPackCode.value.trim()
+
+  if (!slotIdno) {
+    ui.error("請輸入站位")
+    focusUnloadSlotInput()
+    return
+  }
+
+  if (isExitTrigger(slotIdno)) {
+    exitUnloadMode()
+    return
+  }
+
+  if (isForceUnloadSlotPhase.value) {
+    void handleForceUnloadSlotSubmit(slotIdno)
+    return
+  }
+
+  if (!isReplaceSlotPhase.value) {
+    focusUnloadSlotInput()
+    return
+  }
+
+  const normalizedInput = toCanonicalPanasonicSlot(slotIdno)
+  const normalizedTarget = toCanonicalPanasonicSlot(targetSlotIdno)
+  if (!normalizedInput || !normalizedTarget || normalizedInput !== normalizedTarget) {
+    ui.error(`請掃描原卸料站位 ${targetSlotIdno}`)
+    unloadSlotValue.value = ""
+    focusUnloadSlotInput()
+    return
+  }
+
+  if (!replacementPackCode) {
+    ui.error("找不到更換捲號，請重新掃描")
+    unloadReplacePhase.value = "replace_material_scan"
+    focusUnloadMaterialInput()
+    return
+  }
+
+  const success = await submitReplace({
+    materialPackCode: replacementPackCode,
+    slotIdno: targetSlotIdno,
+  })
+
+  unloadSlotValue.value = ""
+  if (!success) {
+    focusUnloadSlotInput()
+    return
+  }
+
+  exitUnloadMode()
 }
 
 function handleMaterialMatched(payload: {
@@ -254,11 +462,7 @@ function onRollShortageModalUpdate(value: boolean) {
     @submit="onSubmitShortage"
   />
 
-  <MaterialQueryModal
-    v-model:show="showMaterialQueryModal"
-    :uuid="productionUuid"
-    @error="ui.error"
-  />
+  <MaterialQueryModal v-model:show="showMaterialQueryModal" :uuid="productionUuid" @error="ui.error" />
 
   <PanasonicMounterLayout>
     <template #header>
@@ -266,12 +470,7 @@ function onRollShortageModalUpdate(value: boolean) {
         <template #title>
           <div class="page-title">
             <span>{{ mounterIdno }}</span>
-            <n-tag
-              data-testid="panasonic-mode-tag"
-              :type="currentModeType"
-              size="small"
-              bordered
-            >
+            <n-tag data-testid="panasonic-mode-tag" :type="currentModeType" size="small" bordered>
               {{ currentModeName }}
             </n-tag>
           </div>
@@ -294,7 +493,7 @@ function onRollShortageModalUpdate(value: boolean) {
                   size="small"
                   @click="exitUnloadMode"
                 >
-                  退出卸除模式
+                  退出換料模式
                 </n-button>
               </template>
               <template v-else>
@@ -305,7 +504,7 @@ function onRollShortageModalUpdate(value: boolean) {
                   :disabled="!productionStarted"
                   @click="onProduction"
                 >
-                  🚀 開始生產
+                  開始生產
                 </n-button>
                 <StopProductionButton
                   v-else
@@ -313,17 +512,10 @@ function onRollShortageModalUpdate(value: boolean) {
                   @stopped="handleProductionStopped"
                   @error="ui.error"
                 />
-                <n-button
-                  type="warning"
-                  size="small"
-                  @click="onRollShortage"
-                  :disabled="!productionStarted"
-                >
-                  ⚠️ 單捲不足
+                <n-button type="warning" size="small" @click="onRollShortage" :disabled="!productionStarted">
+                  提報 缺料/換料
                 </n-button>
-                <n-button type="info" size="small" @click="onMaterialQuery">
-                  🔍 接料查詢
-                </n-button>
+                <n-button type="info" size="small" @click="onMaterialQuery">物料追溯查詢</n-button>
               </template>
             </n-space>
           </div>
@@ -366,9 +558,7 @@ function onRollShortageModalUpdate(value: boolean) {
       <template v-else>
         <n-gi>
           <div class="unload-mode-input">
-            <label class="input-label" for="unload-material-input">
-              物料條碼 (換料卸除模式)
-            </label>
+            <label class="input-label" for="unload-material-input">{{ unloadMaterialLabel }}</label>
             <input
               id="unload-material-input"
               data-testid="unload-material-input"
@@ -376,7 +566,8 @@ function onRollShortageModalUpdate(value: boolean) {
               v-model="unloadMaterialValue"
               class="material-input"
               type="text"
-              placeholder="掃描物料條碼"
+              :placeholder="unloadMaterialPlaceholder"
+              :disabled="isUnloadMaterialInputDisabled"
               @keydown.enter.prevent="handleUnloadMaterialEnter"
             />
           </div>
@@ -384,7 +575,7 @@ function onRollShortageModalUpdate(value: boolean) {
 
         <n-gi>
           <div class="unload-mode-input">
-            <label class="input-label" for="unload-slot-input">槽位編號</label>
+            <label class="input-label" for="unload-slot-input">{{ unloadSlotLabel }}</label>
             <input
               id="unload-slot-input"
               data-testid="unload-slot-input"
@@ -392,8 +583,8 @@ function onRollShortageModalUpdate(value: boolean) {
               v-model="unloadSlotValue"
               class="slot-input"
               type="text"
-              placeholder="輸入槽位編號"
-              :disabled="!hasUnloadMaterial"
+              :placeholder="unloadSlotPlaceholder"
+              :disabled="isUnloadSlotInputDisabled"
               @keydown.enter.prevent="handleUnloadSlotSubmit"
             />
           </div>
@@ -402,23 +593,11 @@ function onRollShortageModalUpdate(value: boolean) {
     </template>
 
     <ag-grid-vue
-      v-if="!isUnloadMode"
       class="ag-theme-balham-dark grid-content"
       :rowData="rowData"
       :gridOptions="gridOptions"
       @grid-ready="onGridReady"
     />
-    <div v-else class="unload-mode-placeholder" data-testid="unload-mode-panel">
-      <div class="unload-mode-info">
-        <p>目前在「換料卸除」模式</p>
-        <p v-if="unloadMaterialValue" class="material-info">
-          物料: <strong>{{ unloadMaterialValue }}</strong>
-        </p>
-        <p v-if="unloadSlotValue" class="slot-info">
-          槽位: <strong>{{ unloadSlotValue }}</strong>
-        </p>
-      </div>
-    </div>
   </PanasonicMounterLayout>
 </template>
 
@@ -480,34 +659,16 @@ function onRollShortageModalUpdate(value: boolean) {
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.slot-input:disabled {
+.slot-input:disabled,
+.material-input:disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
   color: #bfbfbf;
-}
-
-.unload-mode-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  background-color: #fafafa;
-  border-top: 1px solid #f0f0f0;
-}
-
-.unload-mode-info {
-  text-align: center;
-  padding: 40px 20px;
-  background-color: #e6f7ff;
-  border: 2px solid #1890ff;
-  border-radius: 8px;
-  max-width: 400px;
 }
 </style>
 
 <style>
 body {
-  /* This does not work. */
   margin-block-end: env(keyboard-inset-height, 5000px);
 }
 </style>

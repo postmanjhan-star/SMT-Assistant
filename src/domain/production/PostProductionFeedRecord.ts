@@ -4,6 +4,7 @@
     MaterialOperationTypeEnum,
     PanasonicFeedRecordCreate,
     UnfeedMaterialTypeEnum,
+    UnfeedReasonEnum,
 } from "@/client"
 
 export type PostProductionFeedRecordInput = {
@@ -14,6 +15,7 @@ export type PostProductionFeedRecordInput = {
     operationType?: MaterialOperationTypeEnum | string | null
     feedMaterialPackType?: FeedMaterialTypeEnum | string | null
     unfeedMaterialPackType?: UnfeedMaterialTypeEnum | string | null
+    unfeedReason?: UnfeedReasonEnum | string | null
     checkPackCodeMatch?: CheckMaterialMatchEnum | string | null
     operationTime: string
     operatorId?: string | null
@@ -77,6 +79,9 @@ export const buildPanasonicFeedRecordPayload = (
         unfeed_material_pack_type: toUnfeedMaterialType(
             input.unfeedMaterialPackType
         ),
+        unfeed_reason: (input.unfeedReason ?? null) as
+            | UnfeedReasonEnum
+            | null,
         check_pack_code_match: toCheckMaterialMatch(input.checkPackCodeMatch),
     }
 }

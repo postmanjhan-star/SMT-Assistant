@@ -7,6 +7,7 @@ import type { CheckMaterialMatchEnum } from './CheckMaterialMatchEnum';
 import type { FeedMaterialTypeEnum } from './FeedMaterialTypeEnum';
 import type { MaterialOperationTypeEnum } from './MaterialOperationTypeEnum';
 import type { UnfeedMaterialTypeEnum } from './UnfeedMaterialTypeEnum';
+import type { UnfeedReasonEnum } from './UnfeedReasonEnum';
 
 export type FujiFeedRecordCreate = {
     stat_item_id: number;
@@ -18,5 +19,6 @@ export type FujiFeedRecordCreate = {
     operation_type?: MaterialOperationTypeEnum;
     feed_material_pack_type?: (FeedMaterialTypeEnum | null);
     unfeed_material_pack_type?: (UnfeedMaterialTypeEnum | null);
+    unfeed_reason?: (UnfeedReasonEnum | null);
     check_pack_code_match: (CheckMaterialMatchEnum | null);
 };

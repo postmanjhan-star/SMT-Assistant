@@ -124,6 +124,14 @@ export const $PanasonicMounterItemStatCreate = {
     type: 'null',
 }],
 },
+        unfeed_reason: {
+    type: 'any-of',
+    contains: [{
+    type: 'UnfeedReasonEnum',
+}, {
+    type: 'null',
+}],
+},
         check_pack_code_match: {
     type: 'any-of',
     contains: [{

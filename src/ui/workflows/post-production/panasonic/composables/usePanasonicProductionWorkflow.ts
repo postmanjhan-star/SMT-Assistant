@@ -7,6 +7,7 @@ import {
   MachineSideEnum,
   PanasonicMounterItemStatCreate,
   ProduceTypeEnum,
+  type UnfeedReasonEnum,
 } from "@/client"
 import { useDialog, type FormRules } from "naive-ui"
 import type { GridApi } from "ag-grid-community"
@@ -17,7 +18,11 @@ import { usePostProductionFeedFlow } from "@/ui/shared/composables/usePostProduc
 import { useRollShortageForm } from "@/ui/shared/composables/useRollShortageForm"
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore"
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData"
-import { removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
+import {
+  appendMaterialCode,
+  removeMaterialCode,
+} from "@/domain/production/PostProductionFeedRules"
+import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import {
   createPostproductionPanasonicDeps,
   type PostproductionPanasonicDeps,
@@ -197,6 +202,12 @@ export function usePanasonicProductionWorkflow(
   const getProductionRowByStat = (statId: number) =>
     rowData.value.find((row) => row.id === statId)
 
+  const toRowSlotIdno = (row: ProductionRowModel): string => {
+    const slot = String(row.slotIdno ?? "").trim()
+    const subSlot = String(row.subSlotIdno ?? "").trim()
+    return subSlot ? `${slot}-${subSlot}` : slot
+  }
+
   const getStatBySlotInput = (slotInput: string) => {
     const parsed = parseUnloadSlotInput(slotInput)
     if (!parsed) {
@@ -250,6 +261,7 @@ export function usePanasonicProductionWorkflow(
   const submitUnload = async (params: {
     materialPackCode: string
     slotIdno: string
+    unfeedReason?: UnfeedReasonEnum | string | null
   }): Promise<boolean> => {
     const materialPackCode = params.materialPackCode.trim()
     const slotIdno = params.slotIdno.trim()
@@ -288,6 +300,7 @@ export function usePanasonicProductionWorkflow(
         slotIdno: String(stat.slot_idno ?? ""),
         subSlotIdno: String(stat.sub_slot_idno ?? "").trim() || null,
         materialPackCode,
+        unfeedReason: params.unfeedReason ?? "MATERIAL_FINISHED",
       })
 
       const nextAppended = removeMaterialCode(
@@ -316,6 +329,190 @@ export function usePanasonicProductionWorkflow(
       return true
     } catch (error) {
       ui.error("卸料上傳失敗")
+      console.error(error)
+      return false
+    }
+  }
+
+  const submitForceUnloadBySlot = async (params: {
+    slotIdno: string
+    unfeedReason?: UnfeedReasonEnum | string | null
+  }): Promise<{
+    ok: boolean
+    slotIdno?: string
+    materialPackCode?: string
+  }> => {
+    const slotIdno = params.slotIdno.trim()
+    if (!slotIdno) {
+      ui.error("請輸入站位")
+      return { ok: false }
+    }
+
+    const resolved = getStatBySlotInput(slotIdno)
+    if (!resolved.ok) {
+      ui.error(resolved.error)
+      return { ok: false }
+    }
+
+    const row = getProductionRowByStat(resolved.stat.id)
+    if (!row) {
+      ui.error(`找不到槽位 ${slotIdno}`)
+      return { ok: false }
+    }
+
+    const appendedCodes = parseAppendedCodes(row.appendedMaterialInventoryIdno)
+    const preferredPackCode = appendedCodes[appendedCodes.length - 1]
+    const mainPackCode = String(row.materialInventoryIdno ?? "").trim()
+    const materialPackCode = String(preferredPackCode ?? mainPackCode).trim()
+
+    if (!materialPackCode) {
+      ui.error(`槽位 ${slotIdno} 無可卸除料號`)
+      return { ok: false }
+    }
+
+    const success = await submitUnload({
+      materialPackCode,
+      slotIdno,
+      unfeedReason: params.unfeedReason ?? "WRONG_MATERIAL",
+    })
+
+    if (!success) {
+      return { ok: false }
+    }
+
+    return {
+      ok: true,
+      slotIdno: toRowSlotIdno(row),
+      materialPackCode,
+    }
+  }
+
+  const findUniqueUnloadSlotByPackCode = (materialPackCode: string) => {
+    const targetPackCode = materialPackCode.trim()
+    if (!targetPackCode) {
+      return {
+        ok: false as const,
+        error: "請先輸入物料條碼",
+      }
+    }
+
+    const matchedRows = rowData.value.filter((row) => {
+      const inMain = String(row.materialInventoryIdno ?? "").trim() === targetPackCode
+      const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(
+        targetPackCode
+      )
+      return inMain || inAppended
+    })
+
+    if (matchedRows.length === 0) {
+      return {
+        ok: false as const,
+        error: `找不到料號 ${targetPackCode} 對應的站位`,
+      }
+    }
+
+    if (matchedRows.length > 1) {
+      const slots = matchedRows.map((row) => toRowSlotIdno(row)).join(", ")
+      return {
+        ok: false as const,
+        error: `料號 ${targetPackCode} 對應多個站位：${slots}`,
+      }
+    }
+
+    return {
+      ok: true as const,
+      slotIdno: toRowSlotIdno(matchedRows[0]),
+      rowId: `${matchedRows[0].slotIdno}-${matchedRows[0].subSlotIdno ?? ""}`,
+    }
+  }
+
+  const validateReplacementMaterialForSlot = async (params: {
+    materialPackCode: string
+    slotIdno: string
+  }): Promise<boolean> => {
+    const materialPackCode = params.materialPackCode.trim()
+    const slotIdno = params.slotIdno.trim()
+    if (!materialPackCode) {
+      ui.error("請先輸入物料條碼")
+      return false
+    }
+
+    const resolved = getStatBySlotInput(slotIdno)
+    if (!resolved.ok) {
+      ui.error(resolved.error)
+      return false
+    }
+
+    const row = getProductionRowByStat(resolved.stat.id)
+    if (!row) {
+      ui.error(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    try {
+      const materialInventory = await recordUploader.fetchMaterialInventory(materialPackCode)
+      const scannedMaterialId = String(materialInventory.material_idno ?? "").trim()
+      const expectedMaterialId = String(row.materialIdno ?? "").trim()
+      if (!scannedMaterialId || scannedMaterialId !== expectedMaterialId) {
+        ui.error(`料號不符：站位 ${slotIdno} 應為 ${expectedMaterialId}`)
+        return false
+      }
+      return true
+    } catch (error) {
+      ui.error(resolveMaterialLookupError(error))
+      return false
+    }
+  }
+
+  const submitReplace = async (params: {
+    materialPackCode: string
+    slotIdno: string
+  }): Promise<boolean> => {
+    const materialPackCode = params.materialPackCode.trim()
+    const slotIdno = params.slotIdno.trim()
+    if (!materialPackCode) {
+      ui.error("請先輸入物料條碼")
+      return false
+    }
+
+    const resolved = getStatBySlotInput(slotIdno)
+    if (!resolved.ok) {
+      ui.error(resolved.error)
+      return false
+    }
+
+    const stat = resolved.stat
+    const row = getProductionRowByStat(stat.id)
+    if (!row) {
+      ui.error(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    try {
+      await recordUploader.uploadAppend({
+        statId: stat.id,
+        slotIdno: String(stat.slot_idno ?? ""),
+        subSlotIdno: String(stat.sub_slot_idno ?? "").trim() || null,
+        materialPackCode,
+        correctState: "true",
+        feedMaterialPackType: "new",
+      })
+
+      const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
+      row.appendedMaterialInventoryIdno = nextAppended
+      row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+      const nextFirstAppendTime = row.firstAppendTime ?? new Date().toISOString()
+      row.firstAppendTime = nextFirstAppendTime
+
+      const rowNode = gridApi.value?.getRowNode?.(`${row.slotIdno}-${row.subSlotIdno ?? ""}`)
+      rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
+      rowNode?.setDataValue("correct", CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
+      rowNode?.setDataValue("firstAppendTime", nextFirstAppendTime)
+
+      ui.success(`接料成功：${materialPackCode} @ ${slotIdno}`)
+      return true
+    } catch (error) {
+      ui.error("上傳接料資料失敗")
       console.error(error)
       return false
     }
@@ -496,6 +693,10 @@ export function usePanasonicProductionWorkflow(
     handleProductionStopped,
     handleSlotSubmit,
     submitUnload,
+    submitForceUnloadBySlot,
+    findUniqueUnloadSlotByPackCode,
+    validateReplacementMaterialForSlot,
+    submitReplace,
     rollShortageFormRef,
     rollShortageFormValue,
     showRollShortageModal,

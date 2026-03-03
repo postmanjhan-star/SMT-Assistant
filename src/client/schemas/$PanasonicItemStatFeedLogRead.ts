@@ -88,6 +88,15 @@ export const $PanasonicItemStatFeedLogRead = {
 }],
     isRequired: true,
 },
+        unfeed_reason: {
+    type: 'any-of',
+    contains: [{
+    type: 'UnfeedReasonEnum',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
+},
         slot_idno: {
     type: 'string',
     isRequired: true,

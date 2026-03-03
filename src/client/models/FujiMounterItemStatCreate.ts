@@ -9,6 +9,8 @@ import type { FeedMaterialTypeEnum } from './FeedMaterialTypeEnum';
 import type { MachineSideEnum } from './MachineSideEnum';
 import type { MaterialOperationTypeEnum } from './MaterialOperationTypeEnum';
 import type { ProduceTypeEnum } from './ProduceTypeEnum';
+import type { UnfeedMaterialTypeEnum } from './UnfeedMaterialTypeEnum';
+import type { UnfeedReasonEnum } from './UnfeedReasonEnum';
 
 export type FujiMounterItemStatCreate = {
     operator_id: (string | null);
@@ -27,5 +29,7 @@ export type FujiMounterItemStatCreate = {
     produce_mode: (ProduceTypeEnum | null);
     operation_type?: MaterialOperationTypeEnum;
     feed_material_pack_type?: (FeedMaterialTypeEnum | null);
+    unfeed_material_pack_type?: (UnfeedMaterialTypeEnum | null);
+    unfeed_reason?: (UnfeedReasonEnum | null);
     check_pack_code_match: (CheckMaterialMatchEnum | null);
 };

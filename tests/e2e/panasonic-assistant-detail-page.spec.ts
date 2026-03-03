@@ -1,6 +1,19 @@
-﻿import { test, expect, Page } from '@playwright/test';
+﻿import { test, expect, Page, type TestInfo } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+const HEADED_VISUAL_STEP_DELAY_MS = 450;
+
+function shouldUseVisualStepDelay(testInfo: TestInfo) {
+    const title = testInfo.title.toLowerCase();
+    const isTargetTest =
+        title.includes('unload') || title.includes('換料') || title.includes('error');
+    return testInfo.project.use.headless === false && isTargetTest;
+}
+
+async function waitVisualStepIfNeeded(page: Page, testInfo: TestInfo) {
+    if (!shouldUseVisualStepDelay(testInfo)) return;
+    await page.waitForTimeout(HEADED_VISUAL_STEP_DELAY_MS);
+}
 
 /**
  * Read Panasonic CSV scan records used by e2e flow.
@@ -570,7 +583,7 @@ const MATERIAL_LOOKUP_ERROR_CASES: Array<{
 ];
 
 for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
-    test(`test material scan shows shared ERP error (${errorCase.label}) in panasonic detail page`, async ({ page }) => {
+    test(`test material scan shows shared ERP error (${errorCase.label}) in panasonic detail page`, async ({ page }, testInfo) => {
         const unreachableMaterial = `erp-error-panasonic-detail-${errorCase.status}`;
 
         await page.route('**/smt/material_inventory/*', (route) => {
@@ -592,6 +605,7 @@ for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
         const slotInput = getMainSlotInput(page);
         await materialInput.fill(unreachableMaterial);
         await materialInput.press('Enter');
+        await waitVisualStepIfNeeded(page, testInfo);
 
         await expectLatestMessage(page, 'error-message', errorCase.expectedMessage);
         await expect(materialInput).toHaveValue('');
@@ -601,7 +615,7 @@ for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
 }
 
 for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
-    test(`test material scan shows shared ERP error (${errorCase.label}) in panasonic production page`, async ({ page }) => {
+    test(`test material scan shows shared ERP error (${errorCase.label}) in panasonic production page`, async ({ page }, testInfo) => {
         const productionUuid = `erp-error-panasonic-production-${errorCase.status}`;
         const unreachableMaterial = `erp-error-panasonic-production-${errorCase.status}`;
         const now = new Date().toISOString();
@@ -667,6 +681,7 @@ for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
         const slotInput = getMainSlotInput(page);
         await materialInput.fill(unreachableMaterial);
         await materialInput.press('Enter');
+        await waitVisualStepIfNeeded(page, testInfo);
 
         await expectLatestMessage(page, 'error-message', errorCase.expectedMessage);
         await expect(materialInput).toHaveValue('');
@@ -675,9 +690,10 @@ for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
     });
 }
 
-test('panasonic unload mode toggle and submit flow', async ({ page }) => {
-    const productionUuid = 'unload-mode-mock-uuid';
+test('panasonic unload/replace flow keeps grid visible and auto exits after successful replace', async ({ page }, testInfo) => {
+    const productionUuid = 'unload-replace-panasonic-happy';
     const now = new Date().toISOString();
+    const replacementPackCode = 'REPLACE-L';
     const mockStats = [
         {
             id: 1,
@@ -751,22 +767,14 @@ test('panasonic unload mode toggle and submit flow', async ({ page }) => {
         })
     );
 
-    const unloadRequests: any[] = [];
+    const unfeedRequests: any[] = [];
+    const feedRequests: any[] = [];
     await page.route('**/smt/panasonic_mounter_item/stat/roll', async (route) => {
         const request = route.request();
         if (request.method() !== 'POST') return route.continue();
-
-        let body: any = null;
-        try {
-            body = request.postDataJSON();
-        } catch {
-            body = null;
-        }
-
-        if (body) {
-            unloadRequests.push(body);
-        }
-
+        const body = request.postDataJSON();
+        if (body?.operation_type === 'UNFEED') unfeedRequests.push(body);
+        if (body?.operation_type === 'FEED') feedRequests.push(body);
         return route.fulfill({
             status: 200,
             contentType: 'application/json',
@@ -774,75 +782,433 @@ test('panasonic unload mode toggle and submit flow', async ({ page }) => {
         });
     });
 
-    let materialInventoryRequestCount = 0;
     await page.route('**/smt/material_inventory/*', (route) => {
-        materialInventoryRequestCount += 1;
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith(`/smt/material_inventory/${replacementPackCode}`)) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    id: 1,
+                    idno: replacementPackCode,
+                    material_idno: '88120-0001-S0',
+                    material_name: 'TEST-MATERIAL',
+                }),
+            });
+        }
         return route.continue();
     });
 
     await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
-    await expect(page.locator('[row-id="10008-L"]')).toBeVisible();
 
     const materialInput = getMainMaterialInput(page);
     await materialInput.fill('S5555');
     await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
 
-    await expect(page.getByTestId('panasonic-mode-tag')).toBeVisible();
-    await expect(page.getByTestId('unload-mode-panel')).toBeVisible();
     await expect(page.getByTestId('exit-unload-mode-btn')).toBeVisible();
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
     const unloadMaterialInput = page.getByTestId('unload-material-input');
     const unloadSlotInput = page.getByTestId('unload-slot-input');
     await expect(unloadMaterialInput).toBeFocused();
-    expect(materialInventoryRequestCount).toBe(0);
 
     await unloadMaterialInput.fill('APP-L');
     await unloadMaterialInput.press('Enter');
-    await expect(unloadSlotInput).toBeFocused();
-
-    await unloadSlotInput.fill('10008');
-    await unloadSlotInput.press('Enter');
-    await expect(unloadMaterialInput).toHaveValue('');
-    await expect(unloadSlotInput).toHaveValue('');
-    await expect(unloadMaterialInput).toBeFocused();
-    await expectLatestMessage(page, 'error-message', /有多個子槽位/);
-
-    await unloadMaterialInput.fill('APP-L');
-    await unloadMaterialInput.press('Enter');
-    await expect(unloadSlotInput).toBeFocused();
-    await unloadSlotInput.fill('10008-L');
-    await unloadSlotInput.press('Enter');
-
-    await expect.poll(() => unloadRequests.length).toBe(1);
-    expect(unloadRequests[0]).toEqual(
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect.poll(() => unfeedRequests.length).toBe(1);
+    expect(unfeedRequests[0]).toEqual(
         expect.objectContaining({
             stat_item_id: 1,
             slot_idno: '10008',
             sub_slot_idno: 'L',
             material_pack_code: 'APP-L',
             operation_type: 'UNFEED',
-            feed_material_pack_type: null,
-            unfeed_material_pack_type: 'NORMAL_UNFEED',
-            check_pack_code_match: null,
+            unfeed_reason: 'MATERIAL_FINISHED',
         })
     );
 
-    await expectLatestMessage(page, 'success-message', /卸料成功/);
+    const row = page.locator('[row-id="10008-L"]');
+    await expect(row.locator('[col-id="correct"]')).not.toContainText('✅');
 
-    await expect(unloadMaterialInput).toHaveValue('');
-    await expect(unloadSlotInput).toHaveValue('');
-    await expect(unloadMaterialInput).toBeFocused();
-
-    await unloadMaterialInput.fill('S5555');
+    await unloadMaterialInput.fill(replacementPackCode);
     await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(unloadSlotInput).toBeFocused();
 
-    await expect(page.getByTestId('panasonic-mode-tag')).toBeVisible();
-    await expect(page.getByTestId('unload-mode-panel')).toHaveCount(0);
+    await unloadSlotInput.fill('10008-R');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expectLatestMessage(page, 'error-message', /請掃描原卸料站位/);
+    await expect(unloadSlotInput).toBeFocused();
+
+    await unloadSlotInput.fill('10008-L');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect.poll(() => feedRequests.length).toBe(1);
+    expect(feedRequests[0]).toEqual(
+        expect.objectContaining({
+            stat_item_id: 1,
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_pack_code: replacementPackCode,
+            operation_type: 'FEED',
+        })
+    );
+
+    await expect(row.locator('[col-id="correct"]')).toContainText('✅');
+    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText(replacementPackCode);
+    await expect(page.getByTestId('exit-unload-mode-btn')).toHaveCount(0);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+});
+
+test('panasonic force unload flow by slot (S5577) uses WRONG_MATERIAL and completes replace', async ({ page }, testInfo) => {
+    const productionUuid = 'force-unload-panasonic-happy';
+    const now = new Date().toISOString();
+    const replacementPackCode = 'FORCE-REPLACE-L';
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_idno: '88120-0001-S0',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'MAIN-L',
+                    feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+                {
+                    id: 1001,
+                    feed_record_id: 1001,
+                    operation_time: new Date(Date.now() + 1_000).toISOString(),
+                    material_pack_code: 'APP-L',
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(mockStats),
+        })
+    );
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([]),
+        })
+    );
+
+    const unfeedRequests: any[] = [];
+    const feedRequests: any[] = [];
+    await page.route('**/smt/panasonic_mounter_item/stat/roll', async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST') return route.continue();
+        const body = request.postDataJSON();
+        if (body?.operation_type === 'UNFEED') unfeedRequests.push(body);
+        if (body?.operation_type === 'FEED') feedRequests.push(body);
+        return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({}),
+        });
+    });
+
+    await page.route('**/smt/material_inventory/*', (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith(`/smt/material_inventory/${replacementPackCode}`)) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    id: 1,
+                    idno: replacementPackCode,
+                    material_idno: '88120-0001-S0',
+                    material_name: 'TEST-MATERIAL',
+                }),
+            });
+        }
+        return route.continue();
+    });
+
+    await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
-    const row = page.locator(`[row-id="10008-L"]`);
-    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).not.toContainText('APP-L');
+    const materialInput = getMainMaterialInput(page);
+    await materialInput.fill('S5577');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+
+    await expect(page.getByTestId('exit-unload-mode-btn')).toBeVisible();
+
+    const unloadMaterialInput = page.getByTestId('unload-material-input');
+    const unloadSlotInput = page.getByTestId('unload-slot-input');
+    await expect(unloadSlotInput).toBeFocused();
+
+    await unloadSlotInput.fill('10008-L');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect.poll(() => unfeedRequests.length).toBe(1);
+    expect(unfeedRequests[0]).toEqual(
+        expect.objectContaining({
+            stat_item_id: 1,
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_pack_code: 'APP-L',
+            operation_type: 'UNFEED',
+            unfeed_reason: 'WRONG_MATERIAL',
+        })
+    );
+
+    const row = page.locator('[row-id="10008-L"]');
+    await expect(row.locator('[col-id="correct"]')).not.toContainText('✅');
+    await expect(unloadMaterialInput).toBeFocused();
+
+    await unloadMaterialInput.fill(replacementPackCode);
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(unloadSlotInput).toBeFocused();
+
+    await unloadSlotInput.fill('10008-L');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect.poll(() => feedRequests.length).toBe(1);
+    expect(feedRequests[0]).toEqual(
+        expect.objectContaining({
+            stat_item_id: 1,
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_pack_code: replacementPackCode,
+            operation_type: 'FEED',
+        })
+    );
+
+    await expect(row.locator('[col-id="correct"]')).toContainText('✅');
+    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText(replacementPackCode);
+    await expect(page.getByTestId('exit-unload-mode-btn')).toHaveCount(0);
+});
+
+test('panasonic unload mode keeps phase when unload pack has no matched slot', async ({ page }, testInfo) => {
+    const productionUuid = 'unload-replace-panasonic-no-slot';
+    const now = new Date().toISOString();
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_idno: '88120-0001-S0',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'MAIN-L',
+                    feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = getMainMaterialInput(page);
+    await materialInput.fill('S5555');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(page.getByTestId('exit-unload-mode-btn')).toBeVisible();
+
+    const unloadMaterialInput = page.getByTestId('unload-material-input');
+    await unloadMaterialInput.fill('UNKNOWN-PACK');
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expectLatestMessage(page, 'error-message', /找不到料號/);
+    await expect(unloadMaterialInput).toBeFocused();
+    await expect(unloadMaterialInput).toHaveValue('');
+});
+
+test('panasonic unload mode shows error when unload pack maps to multiple slots', async ({ page }, testInfo) => {
+    const productionUuid = 'unload-replace-panasonic-multi-slot';
+    const now = new Date().toISOString();
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_idno: '88120-0001-S0',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'DUP-PACK',
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+        {
+            id: 2,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10009',
+            sub_slot_idno: 'R',
+            material_idno: '88120-0001-S1',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 2000,
+                    feed_record_id: 2000,
+                    operation_time: now,
+                    material_pack_code: 'DUP-PACK',
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = getMainMaterialInput(page);
+    await materialInput.fill('S5555');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+
+    const unloadMaterialInput = page.getByTestId('unload-material-input');
+    await unloadMaterialInput.fill('DUP-PACK');
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expectLatestMessage(page, 'error-message', /多個站位/);
+    await expect(unloadMaterialInput).toBeFocused();
+    await expect(unloadMaterialInput).toHaveValue('');
+});
+
+test('panasonic unload mode keeps replace phase when replacement ERP lookup fails', async ({ page }, testInfo) => {
+    const productionUuid = 'unload-replace-panasonic-replace-erp-fail';
+    const replacementPackCode = 'PANASONIC-ERP-FAIL';
+    const now = new Date().toISOString();
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_idno: '88120-0001-S0',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'APP-L',
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.route('**/smt/panasonic_mounter_item/stat/roll', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) })
+    );
+
+    await page.route('**/smt/material_inventory/*', (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith(`/smt/material_inventory/${replacementPackCode}`)) {
+            return route.fulfill({
+                status: 502,
+                contentType: 'application/json',
+                body: JSON.stringify({ detail: 'Bad Gateway' }),
+            });
+        }
+        return route.continue();
+    });
+
+    await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = getMainMaterialInput(page);
+    await materialInput.fill('S5555');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+
+    const unloadMaterialInput = page.getByTestId('unload-material-input');
+    await unloadMaterialInput.fill('APP-L');
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+
+    await unloadMaterialInput.fill(replacementPackCode);
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expectLatestMessage(page, 'error-message', /ERP 連線錯誤/);
+    await expect(unloadMaterialInput).toBeFocused();
+    await expect(unloadMaterialInput).toHaveValue('');
+    await expect(page.getByTestId('exit-unload-mode-btn')).toBeVisible();
 });
 
 test('test virtual material force warning binding in testing mode', async ({ page }) => {
@@ -871,5 +1237,7 @@ test('test virtual material force warning binding in testing mode', async ({ pag
         row.locator('[col-id="materialInventoryIdno"]')
     ).toContainText(virtualMaterial);
 });
+
+
 
 

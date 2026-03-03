@@ -9,6 +9,7 @@ import {
   MaterialOperationTypeEnum,
   ProduceTypeEnum,
   SmtService,
+  type UnfeedReasonEnum,
   type BoardSideEnum,
   type FujiItemStatFeedLogRead,
   type FujiMounterItemStatRead,
@@ -305,6 +306,7 @@ export function useFujiProductionWorkflow() {
   async function submitUnload(params: {
     materialPackCode: string
     slotIdno: string
+    unfeedReason?: UnfeedReasonEnum | string | null
   }): Promise<boolean> {
     const materialPackCode = params.materialPackCode.trim()
     const slotIdno = params.slotIdno.trim()
@@ -372,6 +374,7 @@ export function useFujiProductionWorkflow() {
           operation_type: MaterialOperationTypeEnum.UNFEED,
           feed_material_pack_type: null,
           unfeed_material_pack_type: "NORMAL_UNFEED",
+          unfeed_reason: params.unfeedReason ?? "MATERIAL_FINISHED",
           check_pack_code_match: null,
         } as any,
       })
@@ -403,6 +406,227 @@ export function useFujiProductionWorkflow() {
       console.error(error)
       return false
     }
+  }
+
+  async function submitForceUnloadBySlot(params: {
+    slotIdno: string
+    unfeedReason?: UnfeedReasonEnum | string | null
+  }): Promise<{
+    ok: boolean
+    slotIdno?: string
+    materialPackCode?: string
+  }> {
+    const slotIdno = params.slotIdno.trim()
+    if (!slotIdno) {
+      showError("請輸入槽位")
+      return { ok: false }
+    }
+
+    const parsed = parseFujiSlotIdno(slotIdno)
+    if (!parsed) {
+      showError("槽位格式錯誤")
+      return { ok: false }
+    }
+
+    const row = rowData.value.find(
+      (current) =>
+        current.mounterIdno === parsed.machineIdno &&
+        current.stage === parsed.stage &&
+        current.slot === parsed.slot
+    )
+    if (!row) {
+      showError(`找不到槽位 ${slotIdno}`)
+      return { ok: false }
+    }
+
+    const appendedCodes = parseAppendedCodes(row.appendedMaterialInventoryIdno)
+    const preferredPackCode = appendedCodes[appendedCodes.length - 1]
+    const mainPackCode = String(row.materialInventoryIdno ?? "").trim()
+    const materialPackCode = String(preferredPackCode ?? mainPackCode).trim()
+    if (!materialPackCode) {
+      showError(`槽位 ${slotIdno} 無可卸除料號`)
+      return { ok: false }
+    }
+
+    const success = await submitUnload({
+      materialPackCode,
+      slotIdno,
+      unfeedReason: params.unfeedReason ?? "WRONG_MATERIAL",
+    })
+    if (!success) {
+      return { ok: false }
+    }
+
+    return {
+      ok: true,
+      slotIdno: `${row.mounterIdno}-${row.stage}-${row.slot}`,
+      materialPackCode,
+    }
+  }
+
+  function findUniqueUnloadSlotByPackCode(materialPackCode: string) {
+    const targetPackCode = materialPackCode.trim()
+    if (!targetPackCode) {
+      return {
+        ok: false as const,
+        error: "請先輸入物料條碼",
+      }
+    }
+
+    const matchedRows = rowData.value.filter((row) => {
+      const inMain = String(row.materialInventoryIdno ?? "").trim() === targetPackCode
+      const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(
+        targetPackCode
+      )
+      return inMain || inAppended
+    })
+
+    if (matchedRows.length === 0) {
+      return {
+        ok: false as const,
+        error: `找不到料號 ${targetPackCode} 對應的站位`,
+      }
+    }
+
+    if (matchedRows.length > 1) {
+      const slots = matchedRows
+        .map((row) => `${row.mounterIdno}-${row.stage}-${row.slot}`)
+        .join(", ")
+      return {
+        ok: false as const,
+        error: `料號 ${targetPackCode} 對應多個站位：${slots}`,
+      }
+    }
+
+    const matched = matchedRows[0]
+    return {
+      ok: true as const,
+      slotIdno: `${matched.mounterIdno}-${matched.stage}-${matched.slot}`,
+      rowId: `${matched.mounterIdno}-${matched.stage}-${matched.slot}`,
+    }
+  }
+
+  async function validateReplacementMaterialForSlot(params: {
+    materialPackCode: string
+    slotIdno: string
+  }): Promise<boolean> {
+    const materialPackCode = params.materialPackCode.trim()
+    const slotIdno = params.slotIdno.trim()
+    if (!materialPackCode) {
+      showError("請先輸入物料條碼")
+      return false
+    }
+
+    const parsed = parseFujiSlotIdno(slotIdno)
+    if (!parsed) {
+      showError("槽位格式錯誤")
+      return false
+    }
+
+    const row = rowData.value.find(
+      (current) =>
+        current.mounterIdno === parsed.machineIdno &&
+        current.stage === parsed.stage &&
+        current.slot === parsed.slot
+    )
+    if (!row) {
+      showError(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    try {
+      const materialInventory = await SmtService.getMaterialInventoryForSmt({
+        materialInventoryIdno: materialPackCode,
+      })
+      const scannedMaterialId = String(materialInventory.material_idno ?? "").trim()
+      const expectedMaterialId = String(row.materialIdno ?? "").trim()
+      if (!scannedMaterialId || scannedMaterialId !== expectedMaterialId) {
+        showError(`料號不符：站位 ${slotIdno} 應為 ${expectedMaterialId}`)
+        return false
+      }
+      return true
+    } catch (error) {
+      showError(resolveMaterialLookupError(error))
+      return false
+    }
+  }
+
+  async function submitReplace(params: {
+    materialPackCode: string
+    slotIdno: string
+  }): Promise<boolean> {
+    const materialPackCode = params.materialPackCode.trim()
+    const slotIdno = params.slotIdno.trim()
+    if (!materialPackCode) {
+      showError("請先輸入物料條碼")
+      return false
+    }
+
+    const parsed = parseFujiSlotIdno(slotIdno)
+    if (!parsed) {
+      showError("槽位格式錯誤")
+      return false
+    }
+
+    const row = rowData.value.find(
+      (current) =>
+        current.mounterIdno === parsed.machineIdno &&
+        current.stage === parsed.stage &&
+        current.slot === parsed.slot
+    )
+    if (!row) {
+      showError(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    const stat = mounterData.value.find((current) =>
+      isFujiStatSlotMatch(current, parsed.slot, parsed.stage)
+    )
+    if (!stat) {
+      showError(`找不到槽位 ${slotIdno}`)
+      return false
+    }
+
+    try {
+      const uploadSlot = resolveUploadSlotByStatId(stat.id, {
+        slotIdno: String(parsed.slot),
+        subSlotIdno: parsed.stage,
+      })
+
+      await appendedMaterialUpload({
+        stat_id: stat.id,
+        inputSlot: uploadSlot.slotIdno,
+        inputSubSlot: uploadSlot.subSlotIdno,
+        materialInventory: { idno: materialPackCode } as SmtMaterialInventory,
+        correctState: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+      })
+    } catch (error) {
+      showError("上傳接料資料失敗")
+      console.error(error)
+      return false
+    }
+
+    const rowId = `${parsed.machineIdno}-${parsed.stage}-${parsed.slot}`
+    const now = new Date().toISOString()
+    const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
+    row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    row.appendedMaterialInventoryIdno = nextAppended
+    row.operationTime = now
+    const nextFirstAppendTime = row.firstAppendTime ?? now
+    row.firstAppendTime = nextFirstAppendTime
+
+    try {
+      const rowNode = gridApi.value?.getRowNode(rowId)
+      rowNode?.setDataValue("correct", CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
+      rowNode?.setDataValue("operationTime", now)
+      rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
+      rowNode?.setDataValue("firstAppendTime", nextFirstAppendTime)
+    } catch (error) {
+      console.error("Failed to refresh grid row after replace", error)
+    }
+
+    showSuccess(`接料成功：${materialPackCode} @ ${slotIdno}`)
+    return true
   }
 
   async function onSubmitSlotForm() {
@@ -678,6 +902,10 @@ export function useFujiProductionWorkflow() {
     onSubmitMaterialInventoryForm,
     onSubmitSlotForm,
     submitUnload,
+    submitForceUnloadBySlot,
+    findUniqueUnloadSlotByPackCode,
+    validateReplacementMaterialForSlot,
+    submitReplace,
     enterUnloadMode,
     exitUnloadMode,
     onStopProduction,

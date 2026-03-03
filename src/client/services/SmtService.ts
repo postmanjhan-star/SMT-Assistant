@@ -23,6 +23,8 @@ import type { PanasonicMounterItemStatCreate } from '../models/PanasonicMounterI
 import type { PanasonicMounterItemStatRead } from '../models/PanasonicMounterItemStatRead';
 import type { PanasonicMounterMaterialPackCreate } from '../models/PanasonicMounterMaterialPackCreate';
 import type { SmtMaterialInventory } from '../models/SmtMaterialInventory';
+import type { UnfeedMaterialTypeEnum } from '../models/UnfeedMaterialTypeEnum';
+import type { UnfeedReasonEnum } from '../models/UnfeedReasonEnum';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -260,9 +262,13 @@ uuid: string,
     public static updateTheStatsOfProductionEndTimeRecord({
 uuid,
 endTime,
+unfeedMaterialPackType = 'NORMAL_UNFEED',
+unfeedReason,
 }: {
 uuid: string,
 endTime?: (string | null),
+unfeedMaterialPackType?: UnfeedMaterialTypeEnum,
+unfeedReason?: (UnfeedReasonEnum | null),
 }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -272,6 +278,8 @@ endTime?: (string | null),
             },
             query: {
                 'end_time': endTime,
+                'unfeed_material_pack_type': unfeedMaterialPackType,
+                'unfeed_reason': unfeedReason,
             },
             errors: {
                 422: `Validation Error`,
@@ -309,9 +317,13 @@ uuid: string,
     public static updateFujiItemStatsEndTime({
 uuid,
 endTime,
+unfeedMaterialPackType = 'NORMAL_UNFEED',
+unfeedReason,
 }: {
 uuid: string,
 endTime?: (string | null),
+unfeedMaterialPackType?: UnfeedMaterialTypeEnum,
+unfeedReason?: (UnfeedReasonEnum | null),
 }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -321,6 +333,8 @@ endTime?: (string | null),
             },
             query: {
                 'end_time': endTime,
+                'unfeed_material_pack_type': unfeedMaterialPackType,
+                'unfeed_reason': unfeedReason,
             },
             errors: {
                 422: `Validation Error`,

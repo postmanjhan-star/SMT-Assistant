@@ -49,6 +49,15 @@ export const $PanasonicMounterItemFeedRecordRead = {
 }],
     isRequired: true,
 },
+        unfeed_reason: {
+    type: 'any-of',
+    contains: [{
+    type: 'UnfeedReasonEnum',
+}, {
+    type: 'null',
+}],
+    isRequired: true,
+},
         check_pack_code_match: {
     type: 'any-of',
     contains: [{

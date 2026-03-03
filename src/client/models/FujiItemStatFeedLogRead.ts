@@ -10,6 +10,7 @@ import type { MachineSideEnum } from './MachineSideEnum';
 import type { MaterialOperationTypeEnum } from './MaterialOperationTypeEnum';
 import type { ProduceTypeEnum } from './ProduceTypeEnum';
 import type { UnfeedMaterialTypeEnum } from './UnfeedMaterialTypeEnum';
+import type { UnfeedReasonEnum } from './UnfeedReasonEnum';
 
 export type FujiItemStatFeedLogRead = {
     id: number;
@@ -25,6 +26,7 @@ export type FujiItemStatFeedLogRead = {
     operation_type: MaterialOperationTypeEnum;
     feed_material_pack_type: (FeedMaterialTypeEnum | null);
     unfeed_material_pack_type: (UnfeedMaterialTypeEnum | null);
+    unfeed_reason: (UnfeedReasonEnum | null);
     slot_idno: string;
     sub_slot_idno: string;
     stat_uuid: string;

@@ -111,6 +111,22 @@ export const $FujiMounterItemStatCreate = {
     type: 'null',
 }],
 },
+        unfeed_material_pack_type: {
+    type: 'any-of',
+    contains: [{
+    type: 'UnfeedMaterialTypeEnum',
+}, {
+    type: 'null',
+}],
+},
+        unfeed_reason: {
+    type: 'any-of',
+    contains: [{
+    type: 'UnfeedReasonEnum',
+}, {
+    type: 'null',
+}],
+},
         check_pack_code_match: {
     type: 'any-of',
     contains: [{

@@ -10,6 +10,7 @@ import type { MachineSideEnum } from './MachineSideEnum';
 import type { MaterialOperationTypeEnum } from './MaterialOperationTypeEnum';
 import type { ProduceTypeEnum } from './ProduceTypeEnum';
 import type { UnfeedMaterialTypeEnum } from './UnfeedMaterialTypeEnum';
+import type { UnfeedReasonEnum } from './UnfeedReasonEnum';
 
 export type PanasonicMounterItemStatCreate = {
     operator_id: (string | null);
@@ -29,5 +30,6 @@ export type PanasonicMounterItemStatCreate = {
     operation_type?: MaterialOperationTypeEnum;
     feed_material_pack_type?: (FeedMaterialTypeEnum | null);
     unfeed_material_pack_type?: (UnfeedMaterialTypeEnum | null);
+    unfeed_reason?: (UnfeedReasonEnum | null);
     check_pack_code_match: (CheckMaterialMatchEnum | null);
 };

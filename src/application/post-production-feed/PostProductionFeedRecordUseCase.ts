@@ -2,6 +2,7 @@
     type CheckMaterialMatchEnum,
     type FeedMaterialTypeEnum,
     type UnfeedMaterialTypeEnum,
+    type UnfeedReasonEnum,
     SmtService,
 } from "@/client"
 import {
@@ -40,6 +41,7 @@ export type UnfeedRecordInput = {
     subSlotIdno?: string | null
     materialPackCode: string
     unfeedMaterialPackType?: UnfeedMaterialTypeEnum | string | null
+    unfeedReason?: UnfeedReasonEnum | string | null
     operatorId?: string | null
 }
 
@@ -92,6 +94,7 @@ export async function uploadUnfeedRecord(input: UnfeedRecordInput) {
         operationType: "UNFEED",
         feedMaterialPackType: null,
         unfeedMaterialPackType: input.unfeedMaterialPackType ?? "NORMAL_UNFEED",
+        unfeedReason: input.unfeedReason ?? null,
         checkPackCodeMatch: null,
         operatorId: input.operatorId ?? "",
     })

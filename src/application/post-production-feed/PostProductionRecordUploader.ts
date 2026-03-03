@@ -1,5 +1,9 @@
 ﻿import { buildPanasonicFeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
-import type { FeedMaterialTypeEnum, CheckMaterialMatchEnum } from '@/client'
+import type {
+  FeedMaterialTypeEnum,
+  CheckMaterialMatchEnum,
+  UnfeedReasonEnum,
+} from '@/client'
 import { PostProductionRecordApi } from '@/infra/post-production/PostProductionRecordApi'
 
 export type PostProductionCorrectState = 'true' | 'false' | 'warning'
@@ -58,6 +62,7 @@ export class PostProductionRecordUploader {
     slotIdno: string
     subSlotIdno?: string | null
     materialPackCode: string
+    unfeedReason?: UnfeedReasonEnum | string | null
     operatorId?: string | null
   }) {
     const payload = buildPanasonicFeedRecordPayload({
@@ -68,6 +73,7 @@ export class PostProductionRecordUploader {
       operationType: 'UNFEED',
       feedMaterialPackType: null,
       unfeedMaterialPackType: 'NORMAL_UNFEED',
+      unfeedReason: params.unfeedReason ?? null,
       checkPackCodeMatch: null,
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
