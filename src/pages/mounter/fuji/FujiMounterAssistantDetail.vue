@@ -56,7 +56,7 @@ const {
       >
         <template #actions>
           <n-button v-if="!productionStarted" type="success" size="small" @click="onProduction">
-            ▶️ 開始生產
+            🚀 開始生產
           </n-button>
           <n-button v-else type="error" size="small" @click="onStopProduction">
             🛑 結束生產

@@ -504,7 +504,7 @@ function onRollShortageModalUpdate(value: boolean) {
                   :disabled="!productionStarted"
                   @click="onProduction"
                 >
-                  開始生產
+                  🚀 開始生產
                 </n-button>
                 <StopProductionButton
                   v-else
@@ -513,9 +513,9 @@ function onRollShortageModalUpdate(value: boolean) {
                   @error="ui.error"
                 />
                 <n-button type="warning" size="small" @click="onRollShortage" :disabled="!productionStarted">
-                  提報 缺料/換料
+                  ⚠️ 單捲不足
                 </n-button>
-                <n-button type="info" size="small" @click="onMaterialQuery">物料追溯查詢</n-button>
+                <n-button type="info" size="small" @click="onMaterialQuery">🔍 接料查詢</n-button>
               </template>
             </n-space>
           </div>
