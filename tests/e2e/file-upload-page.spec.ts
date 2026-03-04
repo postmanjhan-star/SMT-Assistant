@@ -83,3 +83,41 @@ test('test fuji mounter file upload', async ({ page }) => {
 
     console.log("完成，FST 打件檔已上傳成功");
 });
+
+test('test panasonic mounter file upload with 3DASH file', async ({ page }) => {
+    await page.goto('http://localhost/smt/file-manager');
+    await page.getByRole('button', { name: '上傳 CSV/FST 檔案' }).click();
+    await page.waitForURL('**/smt/file-upload');
+
+    const csvFileName = '40Y85-010A-3DASH_UPLOAD_TEST-B+T.csv';
+    const csvPath = path.resolve(process.cwd(), `./tests/e2e/data/${csvFileName}`);
+
+    await page.locator('input[type="file"]').setInputFiles(csvPath);
+    await expect(page.getByText(csvFileName)).toBeVisible();
+
+    const productVerInput = page.locator('input#product_ver');
+    await productVerInput.click();
+    await productVerInput.fill('3DASH_PANA_TEST');
+
+    await page.getByRole('button', { name: '上傳' }).click();
+    await expect(page.locator('.n-message')).toContainText('成功');
+});
+
+test('test fuji mounter file upload with 3DASH file', async ({ page }) => {
+    await page.goto('http://localhost/smt/file-manager');
+    await page.getByRole('button', { name: '上傳 CSV/FST 檔案' }).click();
+    await page.waitForURL('**/smt/file-upload');
+
+    const fstFileName = '40X85-010A-3DASH_UPLOAD_TEST-XP2B1-B.fst';
+    const fstPath = path.resolve(process.cwd(), `./tests/e2e/data/${fstFileName}`);
+
+    await page.locator('input[type="file"]').setInputFiles(fstPath);
+    await expect(page.getByText(fstFileName)).toBeVisible();
+
+    const productVerInput = page.locator('input#product_ver');
+    await productVerInput.click();
+    await productVerInput.fill('3DASH_FUJI_TEST');
+
+    await page.getByRole('button', { name: '上傳' }).click();
+    await expect(page.locator('.n-message')).toContainText('成功');
+});
