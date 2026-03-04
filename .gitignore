@@ -30,3 +30,6 @@ coverage
 # Playwright
 /blob-report/
 /playwright/.auth/
+
+# Auto-generated
+components.d.ts

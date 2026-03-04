@@ -10,8 +10,13 @@ import { SlotCandidate } from '@/domain/slot/SlotBindingRules'
 describe('BarcodeScanRules', () => {
     describe('decideScanSuccess', () => {
         it('returns no_match_in_grid when matchedRows is empty', () => {
-            const result = decideScanSuccess({ idno: 'X' }, [])
-            expect(result).toEqual({ status: 'no_match_in_grid' })
+            const material = { idno: 'X' }
+            const matchedRows: SlotCandidate[] = []
+            const result = decideScanSuccess(material, matchedRows)
+            expect(result).toEqual({
+                status: 'no_match_in_grid',
+                data: { materialInventory: material, matchedRows },
+            })
         })
 
         it('returns success with data when matchedRows exists', () => {
