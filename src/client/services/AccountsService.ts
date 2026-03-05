@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AccountRead } from '../models/AccountRead';
+import type { Body_batch_create_employee_accounts_from_csv } from '../models/Body_batch_create_employee_accounts_from_csv';
 import type { EmployeeAccountCreate } from '../models/EmployeeAccountCreate';
 import type { EmployeeAccountRead } from '../models/EmployeeAccountRead';
 import type { EmployeeAccountUpdate } from '../models/EmployeeAccountUpdate';
@@ -18,10 +19,23 @@ export class AccountsService {
      * @returns AccountRead Successful Response
      * @throws ApiError
      */
-    public static getRecentAccounts(): CancelablePromise<Array<AccountRead>> {
+    public static getRecentAccounts({
+offset,
+limit = 20,
+}: {
+offset?: number,
+limit?: number,
+}): CancelablePromise<Array<AccountRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/accounts/',
+            query: {
+                'offset': offset,
+                'limit': limit,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
 
@@ -61,6 +75,27 @@ requestBody: Array<EmployeeAccountCreate>,
             url: '/accounts/batch',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Batch Create Employee Accounts From Csv
+     * @returns AccountRead Successful Response
+     * @throws ApiError
+     */
+    public static batchCreateEmployeeAccountsFromCsv({
+formData,
+}: {
+formData: Body_batch_create_employee_accounts_from_csv,
+}): CancelablePromise<Array<AccountRead>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/accounts/batch/csv',
+            formData: formData,
+            mediaType: 'multipart/form-data',
             errors: {
                 422: `Validation Error`,
             },

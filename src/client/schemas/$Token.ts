@@ -20,5 +20,21 @@ export const $Token = {
     type: 'null',
 }],
 },
+        expires_in: {
+    type: 'any-of',
+    contains: [{
+    type: 'number',
+}, {
+    type: 'null',
+}],
+},
+        refresh_expires_in: {
+    type: 'any-of',
+    contains: [{
+    type: 'number',
+}, {
+    type: 'null',
+}],
+},
     },
 } as const;

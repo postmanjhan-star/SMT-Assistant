@@ -7,7 +7,7 @@ export const $EmployeeAccountCreate = {
         role: {
     type: 'any-of',
     contains: [{
-    type: 'prisma__enums__EmployeeRoleEnum',
+    type: 'string',
 }, {
     type: 'null',
 }],

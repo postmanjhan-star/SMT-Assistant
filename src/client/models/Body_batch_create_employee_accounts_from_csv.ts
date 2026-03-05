@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $app__models__EnumsModel__EmployeeRoleEnum = {
-    type: 'Enum',
-} as const;
+
+export type Body_batch_create_employee_accounts_from_csv = {
+    file: Blob;
+};

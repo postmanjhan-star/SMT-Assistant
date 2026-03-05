@@ -34,15 +34,39 @@ formData: Body_login_for_access_token,
 
     /**
      * Refresh Tokens
-     * This endpoint refreshes the access token.
+     * Canonical refresh endpoint.
  *
- * It accepts `refresh_token` from either `x-refresh-token` header or `refresh_token` cookie.
- *
- * It returns the new tokens in the response body and also sets the `refresh_token` cookie.
+ * Requires refresh token in `x-refresh-token` header.
      * @returns Token Successful Response
      * @throws ApiError
      */
     public static refreshTokens({
+xRefreshToken,
+}: {
+xRefreshToken: string,
+}): CancelablePromise<Token> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/session/refresh',
+            headers: {
+                'x-refresh-token': xRefreshToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * @deprecated
+     * Refresh Tokens Legacy
+     * Legacy refresh endpoint.
+ *
+ * Accepts refresh token from either `x-refresh-token` header or `refresh_token` cookie.
+     * @returns Token Successful Response
+     * @throws ApiError
+     */
+    public static refreshTokensLegacy({
 xRefreshToken,
 refreshToken,
 }: {

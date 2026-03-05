@@ -28,7 +28,6 @@ export class SeastoneService {
 
     /**
      * Create Seastone Smart Rack
-     * Only accept request from SYSTEM_ADMIN
      * @returns SeastoneSmartRackReadWithoutChildren Successful Response
      * @throws ApiError
      */

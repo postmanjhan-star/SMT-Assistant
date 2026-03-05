@@ -11,7 +11,6 @@ export const $EmployeeAccountUpdate = {
 }, {
     type: 'null',
 }],
-    isRequired: true,
 },
         password: {
     type: 'any-of',
@@ -26,12 +25,11 @@ export const $EmployeeAccountUpdate = {
     contains: [{
     type: 'array',
     contains: {
-        type: 'app__models__EnumsModel__EmployeeRoleEnum',
-    },
+    type: 'string',
+},
 }, {
     type: 'null',
 }],
-    isRequired: true,
 },
     },
 } as const;
