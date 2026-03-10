@@ -2,6 +2,7 @@ import {
   BoardSideEnum,
   CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
+  MaterialOperationTypeEnum,
   MachineSideEnum,
   ProduceTypeEnum,
   type FujiItemStatFeedLogRead,
@@ -226,6 +227,91 @@ describe("buildFujiProductionRowData", () => {
 
     const [row] = buildFujiProductionRowData([stat], [])
     expect(row.appendedMaterialInventoryIdno).toBe("")
+  })
+
+  it("clears main pack and marks unloaded when UNFEED matches pack code", () => {
+    const stat = makeStat({
+      feed_records: [
+        makeFeedRecord({
+          id: 1,
+          operation_time: "2024-01-01T00:00:00Z",
+          material_pack_code: "PK-1",
+          feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+        }),
+        makeFeedRecord({
+          id: 2,
+          operation_time: "2024-01-01T00:01:00Z",
+          material_pack_code: "PK-1",
+          feed_material_pack_type: null,
+          operation_type: MaterialOperationTypeEnum.UNFEED,
+        }),
+      ],
+    })
+
+    const [row] = buildFujiProductionRowData([stat], [])
+
+    expect(row.materialInventoryIdno).toBe("")
+    expect(row.correct).toBe("UNLOADED_MATERIAL_PACK")
+  })
+
+  it("keeps main pack when UNFEED does not match", () => {
+    const stat = makeStat({
+      feed_records: [
+        makeFeedRecord({
+          id: 1,
+          operation_time: "2024-01-01T00:00:00Z",
+          material_pack_code: "PK-1",
+          feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+        }),
+        makeFeedRecord({
+          id: 2,
+          operation_time: "2024-01-01T00:01:00Z",
+          material_pack_code: "PK-2",
+          feed_material_pack_type: null,
+          operation_type: MaterialOperationTypeEnum.UNFEED,
+        }),
+      ],
+    })
+
+    const [row] = buildFujiProductionRowData([stat], [])
+
+    expect(row.materialInventoryIdno).toBe("PK-1")
+    expect(row.correct).toBe(CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
+  })
+
+  it("restores main pack and correct after a later import", () => {
+    const stat = makeStat({
+      feed_records: [
+        makeFeedRecord({
+          id: 1,
+          operation_time: "2024-01-01T00:00:00Z",
+          material_pack_code: "PK-1",
+          feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+        }),
+        makeFeedRecord({
+          id: 2,
+          operation_time: "2024-01-01T00:01:00Z",
+          material_pack_code: "PK-1",
+          feed_material_pack_type: null,
+          operation_type: MaterialOperationTypeEnum.UNFEED,
+        }),
+        makeFeedRecord({
+          id: 3,
+          operation_time: "2024-01-01T00:02:00Z",
+          material_pack_code: "PK-2",
+          feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+          check_pack_code_match: CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK,
+        }),
+      ],
+    })
+
+    const [row] = buildFujiProductionRowData([stat], [])
+
+    expect(row.materialInventoryIdno).toBe("PK-2")
+    expect(row.correct).toBe(CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
   })
 })
 

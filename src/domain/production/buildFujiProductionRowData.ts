@@ -217,8 +217,12 @@ function normalizeValue(value: unknown): string {
   return String(value ?? "").trim()
 }
 
-function getActiveImportedRecord(records: FujiFeedRecordLike[]): FujiFeedRecordLike | null {
+function resolveMainImportState(records: FujiFeedRecordLike[]): {
+  activeImport: FujiFeedRecordLike | null
+  lastMainOperation: MaterialOperationTypeEnum | null
+} {
   let activeImport: FujiFeedRecordLike | null = null
+  let lastMainOperation: MaterialOperationTypeEnum | null = null
 
   sortRecords(records).forEach((record) => {
     const operationType = getRecordOperationType(record)
@@ -231,6 +235,7 @@ function getActiveImportedRecord(records: FujiFeedRecordLike[]): FujiFeedRecordL
       feedType === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
     ) {
       activeImport = record
+      lastMainOperation = MaterialOperationTypeEnum.FEED
       return
     }
 
@@ -242,11 +247,12 @@ function getActiveImportedRecord(records: FujiFeedRecordLike[]): FujiFeedRecordL
 
       if (samePackCode || sameMaterialIdno) {
         activeImport = null
+        lastMainOperation = MaterialOperationTypeEnum.UNFEED
       }
     }
   })
 
-  return activeImport
+  return { activeImport, lastMainOperation }
 }
 
 export function parseFujiProductionSlotIdno(
@@ -347,7 +353,8 @@ export function buildFujiProductionRowData(
         (a, b) => getRecordTimeNumber(b) - getRecordTimeNumber(a)
       )[0] ?? null
 
-    const activeImportedRecord = getActiveImportedRecord(normalizedFeedRecords)
+    const { activeImport: activeImportedRecord, lastMainOperation } =
+      resolveMainImportState(normalizedFeedRecords)
 
     const appendedCodes = buildAppendedCodes(normalizedFeedRecords)
 
@@ -356,6 +363,12 @@ export function buildFujiProductionRowData(
       (activeImportedRecord?.check_pack_code_match ?? null) as
         | CheckMaterialMatchEnum
         | null
+    const correctValue =
+      activeImportedRecord != null
+        ? checkPackCodeMatch
+        : lastMainOperation === MaterialOperationTypeEnum.UNFEED
+          ? "UNLOADED_MATERIAL_PACK"
+          : null
 
     const remarkParts: string[] = []
     if (
@@ -371,7 +384,7 @@ export function buildFujiProductionRowData(
 
     return {
       id: stat.id,
-      correct: checkPackCodeMatch,
+      correct: correctValue,
       inspectMaterialPackCode: latestInspection?.material_pack_code ?? "",
       inspectTime: latestInspection?.operation_time ?? null,
       inspectCount,
