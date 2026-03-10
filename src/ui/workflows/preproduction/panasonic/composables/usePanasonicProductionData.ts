@@ -79,6 +79,7 @@ export function usePanasonicProductionData() {
         subSlotIdno: i.sub_slot_idno,
         firstAppendTime: null,
         materialIdno: i.smd_model_idno,
+        operatorIdno: null,
         appendedMaterialInventoryIdno: "",
         materialInventoryIdno: "",
       }))

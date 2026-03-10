@@ -42,6 +42,13 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
         minWidth: 100,
       },
       {
+        field: 'operatorIdno',
+        tooltipField: 'operatorIdno',
+        headerName: '上料人員',
+        flex: 2,
+        minWidth: 120,
+      },
+      {
         field: 'firstAppendTime',
         tooltipField: 'firstAppendTime',
         headerName: '首次接料時間',

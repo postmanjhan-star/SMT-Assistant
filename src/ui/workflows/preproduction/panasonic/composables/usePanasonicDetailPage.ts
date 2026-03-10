@@ -103,6 +103,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
   const { mounterData, rowData } = usePanasonicProductionData()
   const { gridApi, onGridReady } = useProductionGridBinding({
     resetInputs: options.onResetInputs,
+    getOperatorIdno: () => currentUsername.value || null,
   })
 
   const { getStatBySlotIdno } = usePanasonicStatMap({

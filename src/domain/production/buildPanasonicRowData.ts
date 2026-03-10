@@ -11,6 +11,7 @@ export type ProductionRowModel = {
     slotIdno: string
     subSlotIdno: string | null
     materialIdno: string
+    operatorIdno?: string | null
     materialInventoryIdno: string | null
     appendedMaterialInventoryIdno: string
     total?: number | string
@@ -31,6 +32,7 @@ type FeedRecordLike = {
     operation_type?: MaterialOperationTypeEnum | null
     feed_material_pack_type?: FeedMaterialTypeEnum | null
     check_pack_code_match?: CheckMaterialMatchEnum | null
+    operator_id?: string | null
 }
 
 type IndexedRecord = FeedRecordLike & { __index: number }
@@ -61,6 +63,7 @@ const mergeFeedRecords = (
             operation_type: log.operation_type,
             feed_material_pack_type: log.feed_material_pack_type,
             check_pack_code_match: log.check_pack_code_match,
+            operator_id: log.operator_id,
         }
         recordMap.set(toRecordKey(normalized, index), normalized)
     })
@@ -118,6 +121,20 @@ const isCorrectFeedType = (
         value === FeedMaterialTypeEnum.NEW_MATERIAL_PACK ||
         value === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK
     )
+}
+
+const getLatestOperatorId = (records: FeedRecordLike[]): string | null => {
+    const sorted = toSortedRecords(records)
+    for (let i = sorted.length - 1; i >= 0; i -= 1) {
+        const record = sorted[i]
+        if (toOperationType(record.operation_type) !== MaterialOperationTypeEnum.FEED) {
+            continue
+        }
+        if (!isCorrectFeedType(record.feed_material_pack_type)) continue
+        const operatorId = normalizeValue(record.operator_id)
+        if (operatorId) return operatorId
+    }
+    return null
 }
 
 const removeActiveByPackCode = (
@@ -305,12 +322,14 @@ export const buildProductionRowData = (
         const latestInspection = getLatestInspection(feedRecords)
 
         const importRecord = getActiveImportedRecord(feedRecords)
+        const operatorIdno = getLatestOperatorId(feedRecords)
 
         return {
             id: stat.id,
             slotIdno: stat.slot_idno ?? "",
             subSlotIdno: stat.sub_slot_idno ?? null,
             materialIdno: stat.material_idno ?? "",
+            operatorIdno,
             materialInventoryIdno: importRecord?.material_pack_code ?? null,
             appendedMaterialInventoryIdno: getAppendedCodes(feedRecords),
             correct: getCorrectValue(feedRecords),

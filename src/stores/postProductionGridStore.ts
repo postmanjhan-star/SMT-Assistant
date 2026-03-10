@@ -10,10 +10,15 @@ export type PostProductionGridPort = {
     inputSlot: string,
     inputSubSlot: string
   ) => void
-  applyInspectionUpdate: (row: any, materialPackIdno: string) => void
+  applyInspectionUpdate: (
+    row: any,
+    materialPackIdno: string,
+    operatorIdno?: string | null
+  ) => void
   setAppendedMaterialInventoryIdno: (
     rowId: string,
-    appendedIdno: string
+    appendedIdno: string,
+    operatorIdno?: string | null
   ) => boolean
 }
 
@@ -54,15 +59,23 @@ export const usePostProductionGridStore = defineStore(
       )
     }
 
-    function applyInspectionUpdate(row: any, materialPackIdno: string) {
-      grid?.applyInspectionUpdate(row, materialPackIdno)
+    function applyInspectionUpdate(
+      row: any,
+      materialPackIdno: string,
+      operatorIdno?: string | null
+    ) {
+      grid?.applyInspectionUpdate(row, materialPackIdno, operatorIdno)
     }
 
     function setAppendedMaterialInventoryIdno(
       rowId: string,
-      appendedIdno: string
+      appendedIdno: string,
+      operatorIdno?: string | null
     ): boolean {
-      return grid?.setAppendedMaterialInventoryIdno(rowId, appendedIdno) ?? false
+      return (
+        grid?.setAppendedMaterialInventoryIdno(rowId, appendedIdno, operatorIdno) ??
+        false
+      )
     }
 
     return {

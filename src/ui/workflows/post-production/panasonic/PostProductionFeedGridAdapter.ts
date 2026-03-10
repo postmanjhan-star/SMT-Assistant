@@ -70,26 +70,40 @@ export class PostProductionFeedGridAdapter<TRow extends RowModelBase> {
         })
     }
 
-    applyInspectionUpdate(row: TRow, materialPackIdno: string) {
+    applyInspectionUpdate(
+        row: TRow,
+        materialPackIdno: string,
+        operatorIdno?: string | null
+    ) {
         const api = this.getApi()
         if (!api) return
         row.inspectMaterialPackCode = materialPackIdno
         row.inspectTime = new Date().toISOString()
         row.inspectCount = (row.inspectCount ?? 0) + 1
         row.remark = `巡檢 ${row.inspectCount} 次`
+        if (operatorIdno) {
+            row.operatorIdno = operatorIdno
+        }
 
         api.applyTransaction({
             update: [row],
         })
     }
 
-    setAppendedMaterialInventoryIdno(rowId: string, appendedIdno: string): boolean {
+    setAppendedMaterialInventoryIdno(
+        rowId: string,
+        appendedIdno: string,
+        operatorIdno?: string | null
+    ): boolean {
         const api = this.getApi()
         if (!api) return false
         const rowNode = api.getRowNode(rowId)
         if (!rowNode) return false
 
         rowNode.setDataValue("appendedMaterialInventoryIdno", appendedIdno)
+        if (operatorIdno) {
+            rowNode.setDataValue("operatorIdno", operatorIdno)
+        }
         return true
     }
 }

@@ -6,17 +6,18 @@ import type {
 } from "@/stores/postProductionFeedStore"
 
 export type PostProductionFeedDeps = {
-    store: PostProductionFeedStore
-    getMounterData: () => PanasonicMounterItemStatRead[]
-    isTestingMode: () => boolean
-    isProductionStarted: () => boolean
-    resetMaterialScan: () => void
-    inspectionUpload: (params: {
-        stat_id: number
-        inputSlot: string
-        inputSubSlot: string
-        materialInventory: MaterialInventoryLike
-    }) => Promise<void>
+  store: PostProductionFeedStore
+  getMounterData: () => PanasonicMounterItemStatRead[]
+  isTestingMode: () => boolean
+  isProductionStarted: () => boolean
+  resetMaterialScan: () => void
+  getOperatorIdno: () => string | null
+  inspectionUpload: (params: {
+    stat_id: number
+    inputSlot: string
+    inputSubSlot: string
+    materialInventory: MaterialInventoryLike
+  }) => Promise<void>
     appendedMaterialUpload: (params: {
         stat_id: number
         inputSlot: string

@@ -54,6 +54,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
                     await this.deps.store.success(`巡檢通過：${slotIdno}`)
 
                     const row = this.deps.store.getRow(slot, subSlot)
+                    const operatorIdno = this.deps.getOperatorIdno()
 
                     if (!row) {
                         await this.deps.store.error(`找不到槽位 ${slotIdno}`)
@@ -62,7 +63,8 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
 
                     this.deps.store.applyInspectionUpdate(
                         row,
-                        result.materialInventory.idno
+                        result.materialInventory.idno,
+                        operatorIdno
                     )
                     return true
                 }
@@ -105,14 +107,20 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
         }
 
         const rowId = this.deps.store.getRowId(row)
+        const operatorIdno = this.deps.getOperatorIdno()
         const newAppendedIdno = appendMaterialCode(
             row.appendedMaterialInventoryIdno,
             result?.materialInventory?.idno
         )
 
+        if (operatorIdno) {
+            row.operatorIdno = operatorIdno
+        }
+
         const updated = this.deps.store.setAppendedMaterialInventoryIdno(
             rowId,
-            newAppendedIdno
+            newAppendedIdno,
+            operatorIdno
         )
 
         if (!updated) {

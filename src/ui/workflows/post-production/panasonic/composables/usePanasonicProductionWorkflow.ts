@@ -110,6 +110,7 @@ export function usePanasonicProductionWorkflow(
       slotIdno: params.inputSlot,
       subSlotIdno: params.inputSubSlot,
       materialPackCode: params.materialInventory.idno,
+      operatorId: currentUsername.value || null,
     })
 
   const appendedMaterialUpload = (params: {
@@ -131,6 +132,7 @@ export function usePanasonicProductionWorkflow(
       materialPackCode,
       correctState: params.correctState ?? null,
       feedMaterialPackType: "new",
+      operatorId: currentUsername.value || null,
     })
   }
 
@@ -158,6 +160,7 @@ export function usePanasonicProductionWorkflow(
     isTestingMode: () => isTestingMode.value,
     isProductionStarted: () => productionStarted.value,
     resetMaterialScan: options.onResetInputs,
+    getOperatorIdno: () => currentUsername.value || null,
     inspectionUpload,
     appendedMaterialUpload,
   })
@@ -309,6 +312,7 @@ export function usePanasonicProductionWorkflow(
         subSlotIdno: String(stat.sub_slot_idno ?? "").trim() || null,
         materialPackCode,
         unfeedReason: params.unfeedReason ?? "MATERIAL_FINISHED",
+        operatorId: currentUsername.value || null,
       })
 
       const nextAppended = removeMaterialCode(
@@ -507,11 +511,13 @@ export function usePanasonicProductionWorkflow(
         materialPackCode,
         correctState: "true",
         feedMaterialPackType: "new",
+        operatorId: currentUsername.value || null,
       })
 
       const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
       row.appendedMaterialInventoryIdno = nextAppended
       row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+      row.operatorIdno = currentUsername.value || null
       const nextFirstAppendTime = row.firstAppendTime ?? new Date().toISOString()
       row.firstAppendTime = nextFirstAppendTime
 
@@ -519,6 +525,7 @@ export function usePanasonicProductionWorkflow(
       rowNode?.setDataValue("appendedMaterialInventoryIdno", nextAppended)
       rowNode?.setDataValue("correct", CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
       rowNode?.setDataValue("firstAppendTime", nextFirstAppendTime)
+      rowNode?.setDataValue("operatorIdno", currentUsername.value || "")
 
       ui.success(`接料成功：${materialPackCode} @ ${slotIdno}`)
       return true

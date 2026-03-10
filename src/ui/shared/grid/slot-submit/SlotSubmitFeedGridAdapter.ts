@@ -1,7 +1,10 @@
 ﻿import { GridApi } from "ag-grid-community"
 
 export class SlotSubmitFeedGridAdapter {
-    constructor(private api: GridApi) {}
+    constructor(
+        private api: GridApi,
+        private getOperatorIdno: () => string | null | undefined = () => null
+    ) {}
 
     private parseRowId(rowId: string): { slot: string; subSlot: string } | null {
         const trimmed = rowId?.toString().trim()
@@ -49,6 +52,10 @@ export class SlotSubmitFeedGridAdapter {
         const rowNode = this.getRowNodeById(rowId)
         if (!rowNode) return false
 
+        const operatorIdno = this.getOperatorIdno()
+        if (operatorIdno) {
+            rowNode.setDataValue("operatorIdno", operatorIdno)
+        }
         rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
         rowNode.setDataValue('remark', remark ?? '')
         rowNode.setDataValue('correct', 'true')
@@ -64,6 +71,10 @@ export class SlotSubmitFeedGridAdapter {
         const rowNode = this.getRowNodeById(rowId)
         if (!rowNode) return false
 
+        const operatorIdno = this.getOperatorIdno()
+        if (operatorIdno) {
+            rowNode.setDataValue("operatorIdno", operatorIdno)
+        }
         rowNode.setDataValue('correct', 'warning')
         rowNode.setDataValue('remark', remark)
         rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
@@ -106,6 +117,7 @@ export class SlotSubmitFeedGridAdapter {
                 node.setDataValue("correct", "")
                 node.setDataValue("remark", "")
                 node.setDataValue("firstAppendTime", null)
+                node.setDataValue("operatorIdno", "")
             }
         })
     }

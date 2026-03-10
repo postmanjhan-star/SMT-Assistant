@@ -45,6 +45,13 @@ export function createProductionGridOptions(
                 valueFormatter: p => format(p.value),
             },
             {
+                field: 'operatorIdno',
+                tooltipField: 'operatorIdno',
+                headerName: '上料人員',
+                flex: 3,
+                minWidth: 120,
+            },
+            {
                 field: 'materialIdno',
                 tooltipField: 'materialIdno',
                 headerName: '料號',

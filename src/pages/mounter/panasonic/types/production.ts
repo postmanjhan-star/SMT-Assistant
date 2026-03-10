@@ -33,6 +33,7 @@ export type ProductionRowModel = {
   subSlotIdno: string | null
   firstAppendTime?: string | null
   materialIdno: string
+  operatorIdno?: string | null
   materialInventoryIdno: string | null
   appendedMaterialInventoryIdno: string
   remark?: string

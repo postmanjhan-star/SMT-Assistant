@@ -5,6 +5,7 @@ import { useSlotSubmitStore } from '@/stores/slotSubmitStore'
 
 export type ProductionGridBindingOptions = {
   resetInputs?: () => void
+  getOperatorIdno?: () => string | null | undefined
 }
 
 export function useProductionGridBinding(options: ProductionGridBindingOptions = {}) {
@@ -18,7 +19,10 @@ export function useProductionGridBinding(options: ProductionGridBindingOptions =
   watch(gridApi, api => {
     if (!api) return
     store.bindDeps({
-      grid: new SlotSubmitFeedGridAdapter(api),
+      grid: new SlotSubmitFeedGridAdapter(
+        api,
+        options.getOperatorIdno ?? (() => null)
+      ),
       resetInputs: options.resetInputs ?? (() => {})
     })
   })

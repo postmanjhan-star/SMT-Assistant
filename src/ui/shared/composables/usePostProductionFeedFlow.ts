@@ -24,6 +24,7 @@ export type PostProductionFeedFlowOptions<TRow extends RowModelBase> = {
   isTestingMode: () => boolean
   isProductionStarted: () => boolean
   resetMaterialScan: () => void
+  getOperatorIdno: () => string | null
   inspectionUpload: (params: {
     stat_id: number
     inputSlot: string
@@ -58,6 +59,7 @@ export function usePostProductionFeedFlow<TRow extends RowModelBase>(
     isTestingMode: options.isTestingMode,
     isProductionStarted: options.isProductionStarted,
     resetMaterialScan: options.resetMaterialScan,
+    getOperatorIdno: options.getOperatorIdno,
     inspectionUpload: options.inspectionUpload,
     appendedMaterialUpload: options.appendedMaterialUpload,
   }
