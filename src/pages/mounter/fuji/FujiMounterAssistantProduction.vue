@@ -35,6 +35,7 @@ const {
   mounterIdno,
   boardSide,
   isTestingMode,
+  currentUsername,
   productionUuid,
   productionStarted,
   rowData,
@@ -373,6 +374,7 @@ async function handleUnloadSlotSubmit() {
         :work-order-idno="workOrderIdno"
         :product-idno="productIdno"
         :board-side="boardSide ?? ''"
+        :operator-name="currentUsername"
         @back="onClickBackArrow"
       >
         <template #actions>

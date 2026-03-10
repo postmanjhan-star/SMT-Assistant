@@ -11,6 +11,7 @@ defineProps<{
   workOrderIdno: string
   productIdno: string
   boardSide: string
+  operatorName: string
 }>()
 
 defineEmits<{
@@ -34,6 +35,7 @@ defineEmits<{
           :work-order="workOrderIdno"
           :product="productIdno"
           :board-side="boardSide"
+          :operator-name="operatorName"
         />
 
         <n-space size="small">

@@ -151,6 +151,7 @@ async function onSlotSubmit(payload: {
               :product="productIdno"
               :board-side="workSheetSideQuery"
               :machine-side="machineSideQuery"
+              :operator-name="currentUsername"
             />
 
             <n-space size="small">

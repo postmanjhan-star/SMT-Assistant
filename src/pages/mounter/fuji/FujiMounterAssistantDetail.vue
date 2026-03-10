@@ -23,6 +23,7 @@ const {
   boardSide,
   mounterIdno,
   isTestingMode,
+  currentUsername,
   rowData,
   gridOptions,
   onGridReady,
@@ -52,6 +53,7 @@ const {
         :work-order-idno="workOrderIdno"
         :product-idno="productIdno"
         :board-side="boardSide"
+        :operator-name="currentUsername"
         @back="onClickBackArrow"
       >
         <template #actions>

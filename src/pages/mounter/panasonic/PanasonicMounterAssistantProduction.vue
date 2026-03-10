@@ -75,6 +75,7 @@ const {
   productionUuid,
   isTestingMode,
   mounterIdno,
+  currentUsername,
   rowData,
   productionStarted,
   workOrderIdno,
@@ -483,6 +484,7 @@ function onRollShortageModalUpdate(value: boolean) {
               :product="productIdno"
               :board-side="boardSide ?? ''"
               :machine-side="machineSideLabel"
+              :operator-name="currentUsername"
             />
 
             <n-space size="small">

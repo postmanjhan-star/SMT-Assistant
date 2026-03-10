@@ -1,4 +1,4 @@
-﻿import { onMounted, ref } from "vue"
+﻿import { computed, onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type GridApi, type GridReadyEvent } from "ag-grid-community"
 import { useDialog, type InputInst } from "naive-ui"
@@ -16,6 +16,7 @@ import {
   type SmtMaterialInventory,
 } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
+import { useAuthStore } from "@/stores/authStore"
 import {
   appendMaterialCode,
   findLoadedSlotByPack,
@@ -75,6 +76,13 @@ export function useFujiProductionWorkflow() {
   const router = useRouter()
   const dialog = useDialog()
   const { success: showSuccess, warn: showWarn, error: showError, info } = useUiNotifier()
+  const authStore = useAuthStore()
+  const currentUsername = computed(
+    () =>
+      authStore.authState.OAuth2PasswordBearer?.username ??
+      authStore.authState.HTTPBasic?.value?.username ??
+      ""
+  )
 
   const workOrderIdno = ref("")
   const productIdno = ref("")
@@ -889,6 +897,7 @@ export function useFujiProductionWorkflow() {
     mounterIdno,
     boardSide,
     isTestingMode,
+    currentUsername,
     productionUuid,
     productionStarted,
     rowData,

@@ -1,4 +1,4 @@
-import { shallowRef } from "vue"
+import { computed, shallowRef } from "vue"
 import { useRouter } from "vue-router"
 import type { GridReadyEvent } from "ag-grid-community"
 import {
@@ -10,6 +10,7 @@ import { createFujiPreproductionGridOptions } from "@/ui/workflows/preproduction
 import { useFujiPreproductionData } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionData"
 import { useFujiPreproductionLifecycle } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
 import { useFujiPreproductionSlotFlow } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionSlotFlow"
+import { useAuthStore } from "@/stores/authStore"
 
 export type FujiDetailPageOptions = {
   focusSlotInput?: () => void
@@ -17,6 +18,13 @@ export type FujiDetailPageOptions = {
 
 export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
   const router = useRouter()
+  const authStore = useAuthStore()
+  const currentUsername = computed(
+    () =>
+      authStore.authState.OAuth2PasswordBearer?.username ??
+      authStore.authState.HTTPBasic?.value?.username ??
+      ""
+  )
   const { rows: rowData, setFromApi } = useFujiProductionState()
 
   const { workOrderIdno, productIdno, boardSide, mounterIdno, isTestingMode } =
@@ -54,6 +62,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     boardSide,
     mounterIdno,
     isTestingMode,
+    currentUsername,
     rowData,
     gridOptions: createFujiPreproductionGridOptions(),
     onGridReady,
