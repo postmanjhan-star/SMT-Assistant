@@ -2,6 +2,7 @@
     BoardSideEnum,
     CheckMaterialMatchEnum,
     FeedMaterialTypeEnum,
+    MaterialOperationTypeEnum,
     MachineSideEnum,
     PanasonicItemStatFeedLogRead,
     PanasonicMounterItemFeedRecordRead,
@@ -120,23 +121,138 @@ describe("buildProductionRowData", () => {
         expect(row.remark).toBe("巡檢 2 次")
     })
 
-    it("sets correct only from imported records", () => {
+    it("uses latest active feed after unfeeding imported", () => {
         const stat = makeStat({
             feed_records: [
                 makeFeedRecord({
+                    id: 1,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "IMP-1",
                     feed_material_pack_type:
-                        FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-                    material_pack_code: "APP-1",
+                        FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    check_pack_code_match:
+                        CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+                makeFeedRecord({
+                    id: 2,
+                    operation_time: "2024-01-01T00:00:01Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type:
+                        FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.UNFEED,
+                }),
+                makeFeedRecord({
+                    id: 3,
+                    operation_time: "2024-01-01T00:00:02Z",
+                    material_pack_code: "NEW-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
                     check_pack_code_match:
                         CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
                 }),
             ],
         })
 
         const [row] = buildProductionRowData([stat], [])
 
-        expect(row.correct).toBeNull()
+        expect(row.correct).toBe(CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
         expect(row.materialInventoryIdno).toBeNull()
+    })
+
+    it("returns UNLOADED_MATERIAL_PACK when last status is UNFEED", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    id: 1,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type:
+                        FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+                makeFeedRecord({
+                    id: 2,
+                    operation_time: "2024-01-01T00:00:01Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type:
+                        FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.UNFEED,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+
+        expect(row.correct).toBe("UNLOADED_MATERIAL_PACK")
+    })
+
+    it("uses latest active feed even when imported remains active", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    id: 1,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type:
+                        FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    check_pack_code_match:
+                        CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+                makeFeedRecord({
+                    id: 2,
+                    operation_time: "2024-01-01T00:00:01Z",
+                    material_pack_code: "APP-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+                    check_pack_code_match:
+                        CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+
+        expect(row.correct).toBe(CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
+        expect(row.materialInventoryIdno).toBe("IMP-1")
+    })
+
+    it("falls back to older active feed after latest appended UNFEED", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    id: 1,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type:
+                        FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    check_pack_code_match:
+                        CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+                makeFeedRecord({
+                    id: 2,
+                    operation_time: "2024-01-01T00:00:01Z",
+                    material_pack_code: "APP-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
+                    check_pack_code_match:
+                        CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+                makeFeedRecord({
+                    id: 3,
+                    operation_time: "2024-01-01T00:00:02Z",
+                    material_pack_code: "APP-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.UNFEED,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+
+        expect(row.correct).toBe(CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
     })
 
     it("builds appendedMaterialInventoryIdno from NEW/REUSED codes", () => {

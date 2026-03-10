@@ -79,19 +79,21 @@ const getTimeValue = (value: string | undefined): number => {
     return Number.isFinite(t) ? t : 0
 }
 
+const compareRecords = (a: IndexedRecord, b: IndexedRecord) => {
+    const timeDiff = getTimeValue(a.operation_time) - getTimeValue(b.operation_time)
+    if (timeDiff !== 0) return timeDiff
+
+    const aId = a.feed_record_id ?? a.id ?? Number.MAX_SAFE_INTEGER
+    const bId = b.feed_record_id ?? b.id ?? Number.MAX_SAFE_INTEGER
+    if (aId !== bId) return aId - bId
+
+    return a.__index - b.__index
+}
+
 const toSortedRecords = (records: FeedRecordLike[]): IndexedRecord[] => {
     return records
         .map((record, index) => ({ ...record, __index: index }))
-        .sort((a, b) => {
-            const timeDiff = getTimeValue(a.operation_time) - getTimeValue(b.operation_time)
-            if (timeDiff !== 0) return timeDiff
-
-            const aId = a.feed_record_id ?? a.id ?? Number.MAX_SAFE_INTEGER
-            const bId = b.feed_record_id ?? b.id ?? Number.MAX_SAFE_INTEGER
-            if (aId !== bId) return aId - bId
-
-            return a.__index - b.__index
-        })
+        .sort(compareRecords)
 }
 
 const getLatestInspection = (records: FeedRecordLike[]) => {
@@ -107,6 +109,102 @@ const getLatestInspection = (records: FeedRecordLike[]) => {
 }
 
 const normalizeValue = (value: unknown): string => String(value ?? "").trim()
+
+const isCorrectFeedType = (
+    value: FeedMaterialTypeEnum | null | undefined
+) => {
+    return (
+        value === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK ||
+        value === FeedMaterialTypeEnum.NEW_MATERIAL_PACK ||
+        value === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK
+    )
+}
+
+const removeActiveByPackCode = (
+    activeRecords: IndexedRecord[],
+    packCode: string
+) => {
+    if (!packCode) return
+    for (let i = activeRecords.length - 1; i >= 0; i -= 1) {
+        const activePackCode = normalizeValue(activeRecords[i].material_pack_code)
+        if (activePackCode === packCode) {
+            activeRecords.splice(i, 1)
+        }
+    }
+}
+
+const removeActiveByMaterialIdno = (
+    activeRecords: IndexedRecord[],
+    materialIdno: string
+) => {
+    if (!materialIdno) return
+    for (let i = activeRecords.length - 1; i >= 0; i -= 1) {
+        const activeMaterialIdno = normalizeValue(activeRecords[i].material_idno)
+        if (activeMaterialIdno === materialIdno) {
+            activeRecords.splice(i, 1)
+        }
+    }
+}
+
+const getLatestActiveRecord = (activeRecords: IndexedRecord[]) => {
+    if (activeRecords.length === 0) return undefined
+    return activeRecords.reduce((latest, record) => {
+        return compareRecords(latest, record) < 0 ? record : latest
+    })
+}
+
+const getCorrectValue = (records: FeedRecordLike[]) => {
+    const activeRecords: IndexedRecord[] = []
+    let lastRelevantOperation: MaterialOperationTypeEnum | null = null
+
+    toSortedRecords(records).forEach((record) => {
+        const operationType = toOperationType(record.operation_type)
+
+        if (operationType === MaterialOperationTypeEnum.FEED) {
+            if (!isCorrectFeedType(record.feed_material_pack_type)) return
+
+            lastRelevantOperation = MaterialOperationTypeEnum.FEED
+
+            const packCode = normalizeValue(record.material_pack_code)
+            const materialIdno = normalizeValue(record.material_idno)
+
+            if (packCode) {
+                removeActiveByPackCode(activeRecords, packCode)
+            } else if (materialIdno) {
+                removeActiveByMaterialIdno(activeRecords, materialIdno)
+            }
+
+            activeRecords.push(record)
+            return
+        }
+
+        if (operationType === MaterialOperationTypeEnum.UNFEED) {
+            lastRelevantOperation = MaterialOperationTypeEnum.UNFEED
+
+            const packCode = normalizeValue(record.material_pack_code)
+            if (packCode) {
+                removeActiveByPackCode(activeRecords, packCode)
+                return
+            }
+
+            const materialIdno = normalizeValue(record.material_idno)
+            if (materialIdno) {
+                removeActiveByMaterialIdno(activeRecords, materialIdno)
+            }
+        }
+    })
+
+    if (activeRecords.length > 0) {
+        const latestActive = getLatestActiveRecord(activeRecords)
+        return latestActive?.check_pack_code_match ?? null
+    }
+
+    if (lastRelevantOperation === MaterialOperationTypeEnum.UNFEED) {
+        return "UNLOADED_MATERIAL_PACK"
+    }
+
+    return null
+}
 
 const getActiveImportedRecord = (
     records: FeedRecordLike[]
@@ -215,7 +313,7 @@ export const buildProductionRowData = (
             materialIdno: stat.material_idno ?? "",
             materialInventoryIdno: importRecord?.material_pack_code ?? null,
             appendedMaterialInventoryIdno: getAppendedCodes(feedRecords),
-            correct: importRecord?.check_pack_code_match ?? null,
+            correct: getCorrectValue(feedRecords),
             firstAppendTime: getFirstAppendTime(importRecord, feedRecords),
             inspectMaterialPackCode: latestInspection?.material_pack_code ?? "",
             inspectTime: latestInspection?.operation_time ?? null,
