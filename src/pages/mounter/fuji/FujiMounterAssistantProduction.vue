@@ -16,7 +16,11 @@ import { createFujiProductionGridOptions } from "@/ui/workflows/post-production/
 useMeta({ title: "Fuji Mounter Production" })
 
 const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
-const MATERIAL_FORCE_UNLOAD_MODE_NAME = "單站強制卸除"
+const MATERIAL_EXIT_TRIGGER = "S5566"
+const MATERIAL_IPQC_TRIGGER = "S5588"
+const MATERIAL_FORCE_UNLOAD_MODE_NAME = "⏏️單站卸除"
+const MATERIAL_FEED_MODE_NAME = "📥上料接料"
+const MATERIAL_IPQC_MODE_NAME = "🔍IPQC覆檢"
 
 type UnloadModeType = "pack_auto_slot" | "force_single_slot"
 type UnloadReplacePhase =
@@ -50,7 +54,7 @@ const {
   onGridReady,
   onClickBackArrow,
   onSubmitMaterialInventoryForm,
-  onSubmitSlotForm,
+  onSubmitSlotForm: onSubmitSlotFormRaw,
   submitUnload,
   submitForceUnloadBySlot,
   findUniqueUnloadSlotByPackCode,
@@ -69,21 +73,26 @@ const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
 const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
 const resolvedUnloadSlotIdno = ref("")
 const replacementMaterialPackCode = ref("")
+const isIpqcMode = ref(false)
 
 const gridOptions = createFujiProductionGridOptions()
 
-const currentModeName = computed(() => {
+const productionModeName = computed(() =>
+  isTestingMode.value ? MODE_NAME_TESTING : MODE_NAME_NORMAL
+)
+
+const productionModeType = computed<"warning" | "success">(() =>
+  isTestingMode.value ? "warning" : "success"
+)
+
+const operationModeName = computed(() => {
   if (isUnloadMode.value) {
     return unloadModeType.value === "force_single_slot"
       ? MATERIAL_FORCE_UNLOAD_MODE_NAME
       : MATERIAL_UNLOAD_MODE_NAME
   }
-  return isTestingMode.value ? MODE_NAME_TESTING : MODE_NAME_NORMAL
-})
-
-const currentModeType = computed<"info" | "warning" | "success">(() => {
-  if (isUnloadMode.value) return "info"
-  return isTestingMode.value ? "warning" : "success"
+  if (isIpqcMode.value) return MATERIAL_IPQC_MODE_NAME
+  return MATERIAL_FEED_MODE_NAME
 })
 
 const isUnloadScanPhase = computed(() => unloadReplacePhase.value === "unload_scan")
@@ -139,11 +148,6 @@ function toCanonicalFujiSlot(raw: string): string | null {
   return `${parsed.machineIdno}-${parsed.stage}-${parsed.slot}`
 }
 
-function isExitTrigger(value: string) {
-  const code = value.trim().toUpperCase()
-  return code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER
-}
-
 function resetUnloadFlowState(modeType: UnloadModeType = unloadModeType.value) {
   unloadModeType.value = modeType
   unloadReplacePhase.value =
@@ -179,6 +183,48 @@ function handleExitUnloadMode() {
   exitUnloadMode()
 }
 
+function enterIpqcMode() {
+  isIpqcMode.value = true
+  materialFormValue.value.materialInventoryIdno = ""
+  slotFormValue.value.slotIdno = ""
+  materialInputRef.value?.focus()
+}
+
+function exitIpqcMode() {
+  isIpqcMode.value = false
+  materialFormValue.value.materialInventoryIdno = ""
+  slotFormValue.value.slotIdno = ""
+  materialInputRef.value?.focus()
+}
+
+function toggleIpqcMode() {
+  if (isIpqcMode.value) {
+    exitIpqcMode()
+    return
+  }
+  enterIpqcMode()
+}
+
+function handleModeTriggerFromUnloadInput(code: string) {
+  if (code === MATERIAL_IPQC_TRIGGER) {
+    handleExitUnloadMode()
+    enterIpqcMode()
+    return true
+  }
+
+  if (code === MATERIAL_EXIT_TRIGGER) {
+    handleExitUnloadMode()
+    return true
+  }
+
+  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    handleExitUnloadMode()
+    return true
+  }
+
+  return false
+}
+
 watch(
   () => isUnloadMode.value,
   (enabled) => {
@@ -194,6 +240,7 @@ async function onMainMaterialSubmit() {
   if (barcode === MATERIAL_UNLOAD_TRIGGER) {
     materialFormValue.value.materialInventoryIdno = ""
     unloadModeType.value = "pack_auto_slot"
+    isIpqcMode.value = false
     enterUnloadMode()
     return
   }
@@ -201,11 +248,53 @@ async function onMainMaterialSubmit() {
   if (barcode === MATERIAL_FORCE_UNLOAD_TRIGGER) {
     materialFormValue.value.materialInventoryIdno = ""
     unloadModeType.value = "force_single_slot"
+    isIpqcMode.value = false
     enterUnloadMode()
     return
   }
 
+  if (barcode === MATERIAL_IPQC_TRIGGER) {
+    materialFormValue.value.materialInventoryIdno = ""
+    toggleIpqcMode()
+    return
+  }
+
+  if (barcode === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
+    materialFormValue.value.materialInventoryIdno = ""
+    exitIpqcMode()
+    return
+  }
+
   await onSubmitMaterialInventoryForm()
+}
+
+async function onMainSlotSubmit() {
+  const code = slotFormValue.value.slotIdno.trim().toUpperCase()
+  if (code === MATERIAL_UNLOAD_TRIGGER) {
+    unloadModeType.value = "pack_auto_slot"
+    isIpqcMode.value = false
+    enterUnloadMode()
+    return
+  }
+
+  if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    unloadModeType.value = "force_single_slot"
+    isIpqcMode.value = false
+    enterUnloadMode()
+    return
+  }
+
+  if (code === MATERIAL_IPQC_TRIGGER) {
+    toggleIpqcMode()
+    return
+  }
+
+  if (code === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
+    exitIpqcMode()
+    return
+  }
+
+  await onSubmitSlotFormRaw()
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
@@ -289,8 +378,7 @@ function handleUnloadMaterialEnter() {
   unloadMaterialValue.value = material
   if (!material) return
 
-  if (isExitTrigger(material)) {
-    handleExitUnloadMode()
+  if (handleModeTriggerFromUnloadInput(material.toUpperCase())) {
     return
   }
 
@@ -308,6 +396,7 @@ async function handleUnloadSlotSubmit() {
   if (!isUnloadMode.value) return
 
   const slotIdno = unloadSlotValue.value.trim()
+  const slotCommand = slotIdno.toUpperCase()
   const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
   const replacementPackCode = replacementMaterialPackCode.value.trim()
 
@@ -317,8 +406,7 @@ async function handleUnloadSlotSubmit() {
     return
   }
 
-  if (isExitTrigger(slotIdno)) {
-    handleExitUnloadMode()
+  if (handleModeTriggerFromUnloadInput(slotCommand)) {
     return
   }
 
@@ -378,8 +466,11 @@ async function handleUnloadSlotSubmit() {
         @back="onClickBackArrow"
       >
         <template #actions>
-          <n-tag data-testid="fuji-mode-tag" :type="currentModeType" size="small" bordered>
-            {{ currentModeName }}
+          <n-tag data-testid="fuji-mode-tag" :type="productionModeType" size="small" bordered>
+            {{ productionModeName }}
+          </n-tag>
+          <n-tag data-testid="fuji-operation-tag" type="info" size="small" bordered>
+            {{ operationModeName }}
           </n-tag>
 
           <template v-if="isUnloadMode">
@@ -422,7 +513,7 @@ async function handleUnloadSlotSubmit() {
           </n-form>
         </n-gi>
         <n-gi>
-          <n-form size="large" :model="slotFormValue" @submit.prevent="onSubmitSlotForm">
+          <n-form size="large" :model="slotFormValue" @submit.prevent="onMainSlotSubmit">
             <n-form-item label="槽位">
               <n-input
                 type="text"

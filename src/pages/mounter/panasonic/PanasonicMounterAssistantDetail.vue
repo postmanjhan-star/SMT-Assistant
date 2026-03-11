@@ -35,6 +35,8 @@ type StartProductionButtonHandle = {
   submit: (rows?: unknown[]) => Promise<void> | void
 }
 
+const OPERATION_MODE_NAME = "📥上料接料"
+
 const slotIdnoInput = ref<InputComponentHandle | null>(null)
 const materialInventoryInput = ref<InputComponentHandle | null>(null)
 const startProductionBtnRef = ref<StartProductionButtonHandle | null>(null)
@@ -141,6 +143,9 @@ async function onSlotSubmit(payload: {
             <span>{{ mounterIdno }}</span>
             <n-tag :type="isTestingMode ? 'warning' : 'success'" size="small" bordered>
               {{ isTestingMode ? PANASONIC_MODE_NAME_TESTING : PANASONIC_MODE_NAME_NORMAL }}
+            </n-tag>
+            <n-tag type="info" size="small" bordered>
+              {{ OPERATION_MODE_NAME }}
             </n-tag>
           </div>
         </template>

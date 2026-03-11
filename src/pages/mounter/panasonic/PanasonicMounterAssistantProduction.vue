@@ -32,9 +32,13 @@ import type { InputComponentHandle, MaterialMatchedPayload } from "./types/produ
 useMeta({ title: "Panasonic Mounter Assistant" })
 
 const MATERIAL_UNLOAD_TRIGGER = "S5555"
+const MATERIAL_EXIT_TRIGGER = "S5566"
 const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
-const MATERIAL_UNLOAD_MODE_NAME = "換料卸除"
-const MATERIAL_FORCE_UNLOAD_MODE_NAME = "單站強制卸除"
+const MATERIAL_IPQC_TRIGGER = "S5588"
+const MATERIAL_UNLOAD_MODE_NAME = "🔄換料卸除"
+const MATERIAL_FORCE_UNLOAD_MODE_NAME = "⏏️單站卸除"
+const MATERIAL_FEED_MODE_NAME = "📥上料接料"
+const MATERIAL_IPQC_MODE_NAME = "🔍IPQC覆檢"
 
 type UnloadModeType = "pack_auto_slot" | "force_single_slot"
 type UnloadReplacePhase =
@@ -49,6 +53,7 @@ const unloadMaterialInput = ref<HTMLInputElement | null>(null)
 const unloadSlotInput = ref<HTMLInputElement | null>(null)
 
 const isUnloadMode = ref(false)
+const isIpqcMode = ref(false)
 const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
 const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
 const unloadMaterialValue = ref("")
@@ -120,18 +125,22 @@ const isReplaceMaterialPhase = computed(
 )
 const isReplaceSlotPhase = computed(() => unloadReplacePhase.value === "replace_slot_scan")
 
-const currentModeName = computed(() => {
+const productionModeName = computed(() =>
+  isTestingMode.value ? PANASONIC_MODE_NAME_TESTING : PANASONIC_MODE_NAME_NORMAL
+)
+
+const productionModeType = computed<"warning" | "success">(() =>
+  isTestingMode.value ? "warning" : "success"
+)
+
+const operationModeName = computed(() => {
   if (isUnloadMode.value) {
     return unloadModeType.value === "force_single_slot"
       ? MATERIAL_FORCE_UNLOAD_MODE_NAME
       : MATERIAL_UNLOAD_MODE_NAME
   }
-  return isTestingMode.value ? PANASONIC_MODE_NAME_TESTING : PANASONIC_MODE_NAME_NORMAL
-})
-
-const currentModeType = computed<"info" | "warning" | "success">(() => {
-  if (isUnloadMode.value) return "info"
-  return isTestingMode.value ? "warning" : "success"
+  if (isIpqcMode.value) return MATERIAL_IPQC_MODE_NAME
+  return MATERIAL_FEED_MODE_NAME
 })
 
 const unloadMaterialLabel = computed(() => {
@@ -183,11 +192,6 @@ function toCanonicalPanasonicSlot(raw: string): string | null {
   return subSlot ? `${slot}-${subSlot}` : slot
 }
 
-function isExitTrigger(value: string) {
-  const code = value.trim().toUpperCase()
-  return code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER
-}
-
 function focusMaterialInventoryInput() {
   nextTick(() => {
     materialInventoryInput.value?.focus()
@@ -225,6 +229,7 @@ function resetUnloadFlowState(modeType: UnloadModeType = unloadModeType.value) {
 
 function enterUnloadMode(modeType: UnloadModeType) {
   isUnloadMode.value = true
+  isIpqcMode.value = false
   resetUnloadFlowState(modeType)
   clearNormalScanState()
 
@@ -243,6 +248,76 @@ function exitUnloadMode() {
   focusMaterialInventoryInput()
 }
 
+function enterIpqcMode() {
+  isIpqcMode.value = true
+  if (isUnloadMode.value) {
+    isUnloadMode.value = false
+    resetUnloadFlowState("pack_auto_slot")
+  }
+  clearNormalScanState()
+  focusMaterialInventoryInput()
+}
+
+function exitIpqcMode() {
+  isIpqcMode.value = false
+  clearNormalScanState()
+  focusMaterialInventoryInput()
+}
+
+function toggleIpqcMode() {
+  if (isIpqcMode.value) {
+    exitIpqcMode()
+    return
+  }
+  enterIpqcMode()
+}
+
+function handleModeTriggerFromNormalInput(code: string): boolean {
+  if (code === MATERIAL_UNLOAD_TRIGGER) {
+    isIpqcMode.value = false
+    enterUnloadMode("pack_auto_slot")
+    return true
+  }
+
+  if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    isIpqcMode.value = false
+    enterUnloadMode("force_single_slot")
+    return true
+  }
+
+  if (code === MATERIAL_IPQC_TRIGGER) {
+    toggleIpqcMode()
+    return true
+  }
+
+  if (code === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
+    exitIpqcMode()
+    return true
+  }
+
+  return false
+}
+
+function handleModeTriggerFromUnloadInput(code: string): boolean {
+  if (code === MATERIAL_IPQC_TRIGGER) {
+    exitUnloadMode()
+    enterIpqcMode()
+    return true
+  }
+
+  if (code === MATERIAL_EXIT_TRIGGER) {
+    exitUnloadMode()
+    return true
+  }
+
+  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    exitUnloadMode()
+    return true
+  }
+
+  return false
+}
+
 function resetToInitialUnloadPhase() {
   unloadReplacePhase.value =
     unloadModeType.value === "force_single_slot"
@@ -252,17 +327,12 @@ function resetToInitialUnloadPhase() {
 
 async function handleBeforeMaterialScan(barcode: string) {
   const code = barcode.trim().toUpperCase()
-  if (code === MATERIAL_UNLOAD_TRIGGER) {
-    enterUnloadMode("pack_auto_slot")
-    return false
-  }
+  return !handleModeTriggerFromNormalInput(code)
+}
 
-  if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-    enterUnloadMode("force_single_slot")
-    return false
-  }
-
-  return true
+async function handleBeforeSlotSubmit(raw: string) {
+  const code = raw.trim().toUpperCase()
+  return !handleModeTriggerFromNormalInput(code)
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
@@ -344,8 +414,7 @@ function handleUnloadMaterialEnter() {
   unloadMaterialValue.value = material
   if (!material) return
 
-  if (isExitTrigger(material)) {
-    exitUnloadMode()
+  if (handleModeTriggerFromUnloadInput(material.toUpperCase())) {
     return
   }
 
@@ -363,6 +432,7 @@ async function handleUnloadSlotSubmit() {
   if (!isUnloadMode.value) return
 
   const slotIdno = unloadSlotValue.value.trim()
+  const slotCommand = slotIdno.toUpperCase()
   const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
   const replacementPackCode = replacementMaterialPackCode.value.trim()
 
@@ -372,8 +442,7 @@ async function handleUnloadSlotSubmit() {
     return
   }
 
-  if (isExitTrigger(slotIdno)) {
-    exitUnloadMode()
+  if (handleModeTriggerFromUnloadInput(slotCommand)) {
     return
   }
 
@@ -471,8 +540,11 @@ function onRollShortageModalUpdate(value: boolean) {
         <template #title>
           <div class="page-title">
             <span>{{ mounterIdno }}</span>
-            <n-tag data-testid="panasonic-mode-tag" :type="currentModeType" size="small" bordered>
-              {{ currentModeName }}
+            <n-tag data-testid="panasonic-mode-tag" :type="productionModeType" size="small" bordered>
+              {{ productionModeName }}
+            </n-tag>
+            <n-tag data-testid="panasonic-operation-tag" type="info" size="small" bordered>
+              {{ operationModeName }}
             </n-tag>
           </div>
         </template>
@@ -550,6 +622,7 @@ function onRollShortageModalUpdate(value: boolean) {
             :reset-key="inputs.slotResetKey.value"
             input-test-id="panasonic-main-slot-input"
             ref="slotIdnoInput"
+            :before-submit="handleBeforeSlotSubmit"
             @submit="onNormalSlotSubmit"
             @done="resetInputsAfterSlotSubmit"
             @error="ui.error"

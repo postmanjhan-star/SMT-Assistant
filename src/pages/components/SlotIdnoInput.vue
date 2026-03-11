@@ -9,6 +9,7 @@ const props = defineProps<{
     resetKey?: number
     inputTestId?: string
     parseSlotIdno?: (raw: string) => { slot: string; subSlot: string } | null
+    beforeSubmit?: (raw: string) => boolean | Promise<boolean>
 }>()
 
 const emit = defineEmits<{
@@ -75,6 +76,14 @@ async function onSubmit() {
     // Non-empty Enter should clear slot input immediately.
     formValue.value.slotIdno = ''
     clearPanasonicMaterialInputFallback()
+
+    if (props.beforeSubmit) {
+        const shouldContinue = await props.beforeSubmit(raw)
+        if (!shouldContinue) {
+            emit('done')
+            return
+        }
+    }
 
     if (!props.hasMaterial) {
         emit('error', '請先掃描物料條碼')

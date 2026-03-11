@@ -36,7 +36,7 @@ import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupErro
 const MODE_NAME_TESTING = "🧪 試產生產模式"
 const MODE_NAME_NORMAL = "✅ 正式生產模式"
 const MATERIAL_UNLOAD_TRIGGER = "S5555"
-const MATERIAL_UNLOAD_MODE_NAME = "換料卸除"
+const MATERIAL_UNLOAD_MODE_NAME = "🔄換料卸除"
 
 function normalizeStageLabel(stage: unknown): string {
   if (stage == null) return ""
