@@ -688,7 +688,7 @@ test('fuji unload/replace flow keeps grid visible and auto exits after successfu
     await materialInput.press('Enter');
     await waitVisualStepIfNeeded(page, testInfo);
 
-    await expect(page.getByTestId('fuji-mode-tag')).toContainText('換料卸除');
+    await expect(page.getByTestId('fuji-operation-tag')).toContainText('換料卸除');
     await expect(page.getByTestId('fuji-exit-unload-mode-btn')).toBeVisible();
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 

@@ -30,8 +30,6 @@ type UnloadReplacePhase =
   | "replace_slot_scan"
 
 const {
-  MODE_NAME_TESTING,
-  MODE_NAME_NORMAL,
   MATERIAL_UNLOAD_TRIGGER,
   MATERIAL_UNLOAD_MODE_NAME,
   workOrderIdno,
@@ -76,14 +74,6 @@ const replacementMaterialPackCode = ref("")
 const isIpqcMode = ref(false)
 
 const gridOptions = createFujiProductionGridOptions()
-
-const productionModeName = computed(() =>
-  isTestingMode.value ? MODE_NAME_TESTING : MODE_NAME_NORMAL
-)
-
-const productionModeType = computed<"warning" | "success">(() =>
-  isTestingMode.value ? "warning" : "success"
-)
 
 const operationModeName = computed(() => {
   if (isUnloadMode.value) {
@@ -465,14 +455,12 @@ async function handleUnloadSlotSubmit() {
         :operator-name="currentUsername"
         @back="onClickBackArrow"
       >
-        <template #actions>
-          <n-tag data-testid="fuji-mode-tag" :type="productionModeType" size="small" bordered>
-            {{ productionModeName }}
-          </n-tag>
+        <template #mode-extra>
           <n-tag data-testid="fuji-operation-tag" type="info" size="small" bordered>
             {{ operationModeName }}
           </n-tag>
-
+        </template>
+        <template #actions>
           <template v-if="isUnloadMode">
             <n-button
               data-testid="fuji-exit-unload-mode-btn"

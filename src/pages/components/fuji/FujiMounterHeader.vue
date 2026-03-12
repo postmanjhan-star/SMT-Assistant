@@ -24,9 +24,15 @@ defineEmits<{
     <template #title>
       <div class="page-title">
         <span>{{ mounterIdno }}</span>
-        <n-tag :type="isTestingMode ? 'warning' : 'success'" size="small" bordered>
+        <n-tag
+          data-testid="fuji-mode-tag"
+          :type="isTestingMode ? 'warning' : 'success'"
+          size="small"
+          bordered
+        >
           {{ isTestingMode ? MODE_NAME_TESTING : MODE_NAME_NORMAL }}
         </n-tag>
+        <slot name="mode-extra" />
       </div>
     </template>
     <template #default>
