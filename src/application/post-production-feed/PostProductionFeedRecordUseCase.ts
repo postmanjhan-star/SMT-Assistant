@@ -95,7 +95,7 @@ export async function uploadUnfeedRecord(input: UnfeedRecordInput) {
         feedMaterialPackType: null,
         unfeedMaterialPackType: input.unfeedMaterialPackType ?? "NORMAL_UNFEED",
         unfeedReason: input.unfeedReason ?? null,
-        checkPackCodeMatch: null,
+        checkPackCodeMatch: "true",
         operatorId: input.operatorId ?? "",
     })
 }

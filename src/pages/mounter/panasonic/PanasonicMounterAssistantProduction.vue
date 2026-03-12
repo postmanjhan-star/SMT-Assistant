@@ -94,6 +94,7 @@ const {
   submitUnload,
   submitForceUnloadBySlot,
   findUniqueUnloadSlotByPackCode,
+  validateUnloadMaterialPackCode,
   validateReplacementMaterialForSlot,
   submitReplace,
   rollShortageFormRef,
@@ -336,6 +337,13 @@ async function handleBeforeSlotSubmit(raw: string) {
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
+  const isValidPackCode = await validateUnloadMaterialPackCode(materialPackCode)
+  if (!isValidPackCode) {
+    unloadMaterialValue.value = ""
+    focusUnloadMaterialInput()
+    return
+  }
+
   const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
   if (!resolved.ok) {
     ui.error(resolved.error)

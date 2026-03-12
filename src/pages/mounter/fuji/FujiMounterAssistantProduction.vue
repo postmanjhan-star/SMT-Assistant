@@ -56,6 +56,7 @@ const {
   submitUnload,
   submitForceUnloadBySlot,
   findUniqueUnloadSlotByPackCode,
+  validateUnloadMaterialPackCode,
   validateReplacementMaterialForSlot,
   submitReplace,
   enterUnloadMode,
@@ -288,6 +289,13 @@ async function onMainSlotSubmit() {
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
+  const isValidPackCode = await validateUnloadMaterialPackCode(materialPackCode)
+  if (!isValidPackCode) {
+    unloadMaterialValue.value = ""
+    focusUnloadMaterialInput()
+    return
+  }
+
   const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
   if (!resolved.ok) {
     showError(resolved.error)

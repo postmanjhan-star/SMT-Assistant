@@ -74,7 +74,7 @@ export class PostProductionRecordUploader {
       feedMaterialPackType: null,
       unfeedMaterialPackType: 'NORMAL_UNFEED',
       unfeedReason: params.unfeedReason ?? null,
-      checkPackCodeMatch: null,
+      checkPackCodeMatch: 'true',
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })

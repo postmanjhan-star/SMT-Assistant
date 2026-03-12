@@ -479,6 +479,24 @@ export function usePanasonicProductionWorkflow(
     }
   }
 
+  const validateUnloadMaterialPackCode = async (
+    materialPackCode: string
+  ): Promise<boolean> => {
+    const trimmed = materialPackCode.trim()
+    if (!trimmed) {
+      ui.error("請先輸入物料條碼")
+      return false
+    }
+
+    try {
+      await recordUploader.fetchMaterialInventory(trimmed)
+      return true
+    } catch (error) {
+      ui.error(resolveMaterialLookupError(error))
+      return false
+    }
+  }
+
   const submitReplace = async (params: {
     materialPackCode: string
     slotIdno: string
@@ -716,6 +734,7 @@ export function usePanasonicProductionWorkflow(
     submitUnload,
     submitForceUnloadBySlot,
     findUniqueUnloadSlotByPackCode,
+    validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
     submitReplace,
     rollShortageFormRef,

@@ -53,6 +53,7 @@ export type FujiProductionRowModel = {
   remark?: string
   appendedMaterialInventoryIdno?: string
   operationTime?: string | null
+  firstAppendTime?: string | null
   inspectTime?: string | null
   inspectMaterialPackCode?: string | null
   inspectCount?: number | null

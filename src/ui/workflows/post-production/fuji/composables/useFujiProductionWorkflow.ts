@@ -383,7 +383,7 @@ export function useFujiProductionWorkflow() {
           feed_material_pack_type: null,
           unfeed_material_pack_type: "NORMAL_UNFEED",
           unfeed_reason: params.unfeedReason ?? "MATERIAL_FINISHED",
-          check_pack_code_match: null,
+          check_pack_code_match: "true",
         } as any,
       })
 
@@ -555,6 +555,26 @@ export function useFujiProductionWorkflow() {
         showError(`料號不符：站位 ${slotIdno} 應為 ${expectedMaterialId}`)
         return false
       }
+      return true
+    } catch (error) {
+      showError(resolveMaterialLookupError(error))
+      return false
+    }
+  }
+
+  async function validateUnloadMaterialPackCode(
+    materialPackCode: string
+  ): Promise<boolean> {
+    const trimmed = materialPackCode.trim()
+    if (!trimmed) {
+      showError("請先輸入物料條碼")
+      return false
+    }
+
+    try {
+      await SmtService.getMaterialInventoryForSmt({
+        materialInventoryIdno: trimmed,
+      })
       return true
     } catch (error) {
       showError(resolveMaterialLookupError(error))
@@ -916,6 +936,7 @@ export function useFujiProductionWorkflow() {
     submitUnload,
     submitForceUnloadBySlot,
     findUniqueUnloadSlotByPackCode,
+    validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
     submitReplace,
     enterUnloadMode,
