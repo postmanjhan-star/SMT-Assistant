@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { NForm, NFormItem, NInput, InputInst } from 'naive-ui'
 
 const props = defineProps<{
@@ -10,6 +10,7 @@ const props = defineProps<{
     inputTestId?: string
     parseSlotIdno?: (raw: string) => { slot: string; subSlot: string } | null
     beforeSubmit?: (raw: string) => boolean | Promise<boolean>
+    modelValue?: string
 }>()
 
 const emit = defineEmits<{
@@ -20,11 +21,23 @@ const emit = defineEmits<{
     }): void
     (e: 'done'): void
     (e: 'error', msg: string): void
+    (e: 'update:modelValue', value: string): void
 }>()
 
 const slotIdnoInput = ref<InputInst | null>(null)
 const formValue = ref({
     slotIdno: ''
+})
+
+const inputValue = computed({
+    get: () => (props.modelValue !== undefined ? props.modelValue : formValue.value.slotIdno),
+    set: (value: string) => {
+        if (props.modelValue !== undefined) {
+            emit('update:modelValue', value)
+            return
+        }
+        formValue.value.slotIdno = value
+    }
 })
 
 watch(
@@ -38,7 +51,7 @@ watch(
         }
 
         if (prev) {
-            formValue.value.slotIdno = ''
+            inputValue.value = ''
         }
     }
 )
@@ -46,7 +59,7 @@ watch(
 watch(
     () => props.resetKey,
     () => {
-        formValue.value.slotIdno = ''
+        inputValue.value = ''
     }
 )
 
@@ -67,14 +80,14 @@ function clearPanasonicMaterialInputFallback() {
 }
 
 async function onSubmit() {
-    const raw = formValue.value.slotIdno.trim()
+    const raw = inputValue.value.trim()
     if (!raw) {
         emit('error', '請輸入槽位')
         return
     }
 
     // Non-empty Enter should clear slot input immediately.
-    formValue.value.slotIdno = ''
+    inputValue.value = ''
     clearPanasonicMaterialInputFallback()
 
     if (props.beforeSubmit) {
@@ -121,7 +134,7 @@ function focus() {
 }
 
 function clear() {
-    formValue.value.slotIdno = ''
+    inputValue.value = ''
 }
 
 defineExpose({ focus, clear })
@@ -132,7 +145,7 @@ defineExpose({ focus, clear })
         <n-form-item label="打件機料件槽位">
             <n-input
                 ref="slotIdnoInput"
-                v-model:value="formValue.slotIdno"
+                v-model:value="inputValue"
                 :disabled="props.disabled"
                 :data-testid="props.inputTestId"
             />

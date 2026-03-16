@@ -2,8 +2,9 @@
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
+import type { GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
-import { ref } from "vue"
+import { ref, computed, watch, nextTick } from "vue"
 import { useMeta } from "vue-meta"
 
 import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
@@ -28,6 +29,9 @@ import {
   PANASONIC_MODE_NAME_NORMAL,
   PANASONIC_MODE_NAME_TESTING,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
+import { SmtService } from "@/client"
+import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
+import { appendMaterialCode, removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
 
@@ -37,9 +41,24 @@ type StartProductionButtonHandle = {
 
 const OPERATION_MODE_NAME = "📥上料接料"
 
+const MATERIAL_UNLOAD_TRIGGER = "S5555"
+const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
+const MATERIAL_UNLOAD_MODE_NAME = "🔄換料卸除"
+const MATERIAL_FORCE_UNLOAD_MODE_NAME = "⏏️單站卸除"
+const MATERIAL_FEED_MODE_NAME = "📥上料接料"
+
 const slotIdnoInput = ref<InputComponentHandle | null>(null)
 const materialInventoryInput = ref<InputComponentHandle | null>(null)
 const startProductionBtnRef = ref<StartProductionButtonHandle | null>(null)
+const materialInputValue = ref("")
+const slotInputValue = ref("")
+const cacheEnabled = ref(true)
+const hydratedKey = ref<string | null>(null)
+const readyToPersist = ref(false)
+const gridApi = ref<GridApi | null>(null)
+const pendingGridSync = ref(false)
+const unloadMaterialInput = ref<HTMLInputElement | null>(null)
+const unloadSlotInput = ref<HTMLInputElement | null>(null)
 
 const materialInventoryResult = ref<SlotInputResult | null>(null)
 
@@ -97,6 +116,287 @@ const {
 const gridOptions = createProductionGridOptions(rowData)
 const rollShortageBindings = { formRef: rollShortageFormRef }
 
+type UnloadModeType = "pack_auto_slot" | "force_single_slot"
+type UnloadReplacePhase =
+  | "unload_scan"
+  | "force_unload_slot_scan"
+  | "replace_material_scan"
+  | "replace_slot_scan"
+
+type PanasonicUnloadRecord = {
+  slotIdno: string
+  subSlotIdno?: string | null
+  materialPackCode: string
+  unfeedReason?: string | null
+  operationTime: string
+}
+
+type PanasonicCacheRow = {
+  id?: number
+  slotIdno?: string
+  subSlotIdno?: string | null
+  correct?: unknown
+  operatorIdno?: string | null
+  materialInventoryIdno?: string | null
+  appendedMaterialInventoryIdno?: string | null
+  firstAppendTime?: string | null
+  remark?: string
+}
+
+type PanasonicCachePayload = {
+  version: 1
+  rows: PanasonicCacheRow[]
+  unloadRecords?: PanasonicUnloadRecord[]
+  materialInventoryResult?: {
+    success: boolean
+    materialInventory?: { idno: string; remark?: string } | null
+    matchedRows?: { slotIdno: string; subSlotIdno?: string | null }[] | null
+  } | null
+  inputs?: {
+    material?: string
+    slot?: string
+  }
+}
+
+const isUnloadMode = ref(false)
+const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
+const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
+const unloadMaterialValue = ref("")
+const unloadSlotValue = ref("")
+const resolvedUnloadSlotIdno = ref("")
+const replacementMaterialPackCode = ref("")
+const replacementCorrectState = ref<"true" | "warning" | null>(null)
+const pendingUnloadRecords = ref<PanasonicUnloadRecord[]>([])
+
+const operationModeName = computed(() => {
+  if (isUnloadMode.value) {
+    return unloadModeType.value === "force_single_slot"
+      ? MATERIAL_FORCE_UNLOAD_MODE_NAME
+      : MATERIAL_UNLOAD_MODE_NAME
+  }
+  return MATERIAL_FEED_MODE_NAME
+})
+
+const isUnloadScanPhase = computed(() => unloadReplacePhase.value === "unload_scan")
+const isForceUnloadSlotPhase = computed(
+  () => unloadReplacePhase.value === "force_unload_slot_scan"
+)
+const isReplaceMaterialPhase = computed(
+  () => unloadReplacePhase.value === "replace_material_scan"
+)
+const isReplaceSlotPhase = computed(() => unloadReplacePhase.value === "replace_slot_scan")
+
+const unloadMaterialLabel = computed(() => {
+  if (isUnloadScanPhase.value) return "卸除捲號（自動定位）"
+  if (isReplaceMaterialPhase.value) return "更換捲號"
+  return "更換捲號（待掃站位）"
+})
+
+const unloadMaterialPlaceholder = computed(() => {
+  if (isUnloadScanPhase.value) return "請掃描要卸除的捲號"
+  if (isForceUnloadSlotPhase.value) return "請先掃描站位進行強制卸除"
+  if (isReplaceMaterialPhase.value) return "請掃描要更換的捲號"
+  return replacementMaterialPackCode.value
+})
+
+const hasUnloadMaterial = computed(() => {
+  if (isReplaceSlotPhase.value) return replacementMaterialPackCode.value.trim().length > 0
+  return unloadMaterialValue.value.trim().length > 0
+})
+
+const isUnloadMaterialInputDisabled = computed(
+  () => isReplaceSlotPhase.value || isForceUnloadSlotPhase.value
+)
+
+const isUnloadSlotInputDisabled = computed(() => {
+  if (isForceUnloadSlotPhase.value) return false
+  if (isReplaceSlotPhase.value) return !hasUnloadMaterial.value
+  return true
+})
+
+const unloadSlotLabel = computed(() =>
+  isForceUnloadSlotPhase.value ? "卸除站位" : "站位編號"
+)
+
+const unloadSlotPlaceholder = computed(() => {
+  if (isForceUnloadSlotPhase.value) return "請掃描要卸除的站位"
+  if (isReplaceSlotPhase.value) return `請掃描原卸料站位 ${resolvedUnloadSlotIdno.value || ""}`
+  return "請先掃描更換捲號"
+})
+
+const storageKey = computed(() => {
+  if (typeof window === "undefined") return ""
+  const mode = isTestingMode ? "testing" : "normal"
+  return [
+    "smt:panasonic:preproduction",
+    workOrderIdno.value ?? "",
+    productIdno.value ?? "",
+    mounterIdno.value ?? "",
+    machineSideQuery.value ?? "",
+    workSheetSideQuery.value ?? "",
+    mode,
+  ].join("|")
+})
+
+function readCache(key: string): PanasonicCachePayload | null {
+  if (typeof window === "undefined") return null
+  if (!key) return null
+  const raw = localStorage.getItem(key)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as PanasonicCachePayload
+  } catch {
+    return null
+  }
+}
+
+function writeCache() {
+  if (typeof window === "undefined") return
+  if (!cacheEnabled.value) return
+  if (!storageKey.value) return
+  const cachedMaterialResult = materialInventoryResult.value
+    ? {
+        success: materialInventoryResult.value.success,
+        materialInventory: materialInventoryResult.value.materialInventory
+          ? {
+              idno: materialInventoryResult.value.materialInventory.idno,
+              remark: materialInventoryResult.value.materialInventory.remark,
+            }
+          : null,
+        matchedRows: materialInventoryResult.value.matchedRows ?? null,
+      }
+    : null
+
+  const payload: PanasonicCachePayload = {
+    version: 1,
+    rows: (rowData.value ?? []).map((row: any) => ({
+      id: row.id,
+      slotIdno: row.slotIdno,
+      subSlotIdno: row.subSlotIdno ?? null,
+      correct: row.correct ?? null,
+      operatorIdno: row.operatorIdno ?? null,
+      materialInventoryIdno: row.materialInventoryIdno ?? null,
+      appendedMaterialInventoryIdno: row.appendedMaterialInventoryIdno ?? null,
+      firstAppendTime: row.firstAppendTime ?? null,
+      remark: row.remark ?? "",
+    })),
+    unloadRecords: pendingUnloadRecords.value,
+    materialInventoryResult: cachedMaterialResult,
+    inputs: {
+      material: materialInputValue.value,
+      slot: slotInputValue.value,
+    },
+  }
+  try {
+    localStorage.setItem(storageKey.value, JSON.stringify(payload))
+  } catch {
+    return
+  }
+}
+
+function clearCache() {
+  if (typeof window === "undefined") return
+  if (!storageKey.value) return
+  localStorage.removeItem(storageKey.value)
+}
+
+function persistNow() {
+  if (!readyToPersist.value) return
+  if (!cacheEnabled.value) return
+  writeCache()
+}
+
+function hydrateFromCache(key: string) {
+  const cached = readCache(key)
+  if (!cached) {
+    hydratedKey.value = key
+    return
+  }
+
+  const cachedById = new Map<number, PanasonicCacheRow>()
+  const cachedBySlot = new Map<string, PanasonicCacheRow>()
+  for (const row of cached.rows ?? []) {
+    if (typeof row.id === "number") cachedById.set(row.id, row)
+    if (row.slotIdno != null) {
+      const key = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+      cachedBySlot.set(key, row)
+    }
+  }
+
+  const nextRows = (rowData.value ?? []).map((row: any) => {
+    const rowKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+    const cachedRow = cachedById.get(row.id) ?? cachedBySlot.get(rowKey)
+    if (!cachedRow) return row
+    const next = { ...row }
+    if ("correct" in cachedRow) next.correct = cachedRow.correct ?? null
+    if ("operatorIdno" in cachedRow) next.operatorIdno = cachedRow.operatorIdno ?? null
+    if ("materialInventoryIdno" in cachedRow)
+      next.materialInventoryIdno = cachedRow.materialInventoryIdno ?? null
+    if ("appendedMaterialInventoryIdno" in cachedRow)
+      next.appendedMaterialInventoryIdno =
+        cachedRow.appendedMaterialInventoryIdno ?? ""
+    if ("firstAppendTime" in cachedRow)
+      next.firstAppendTime = cachedRow.firstAppendTime ?? null
+    if ("remark" in cachedRow) next.remark = cachedRow.remark ?? ""
+    return next
+  })
+
+  rowData.value = nextRows
+  syncGridRows(nextRows)
+
+  if ("materialInventoryResult" in cached) {
+    materialInventoryResult.value = (cached.materialInventoryResult ?? null) as
+      | SlotInputResult
+      | null
+  }
+
+  if (cached.inputs) {
+    materialInputValue.value = cached.inputs.material ?? ""
+    slotInputValue.value = cached.inputs.slot ?? ""
+  }
+
+  if (cached.unloadRecords) {
+    pendingUnloadRecords.value = cached.unloadRecords
+  }
+
+  hydratedKey.value = key
+}
+
+watch(
+  [storageKey, () => rowData.value.length],
+  ([key, len]) => {
+    if (!key) return
+    if (len <= 0) return
+    if (hydratedKey.value === key) return
+    hydrateFromCache(key)
+    readyToPersist.value = true
+  },
+  { immediate: true }
+)
+
+watch(
+  () => productionStarted.value,
+  (started) => {
+    if (!started) return
+    cacheEnabled.value = false
+    clearCache()
+  }
+)
+
+watch(
+  [
+    () => rowData.value,
+    materialInventoryResult,
+    materialInputValue,
+    slotInputValue,
+    pendingUnloadRecords,
+  ],
+  () => {
+    persistNow()
+  },
+  { deep: true }
+)
+
 function handleMaterialMatched(payload: {
   materialInventory: MaterialMatchedPayload["materialInventory"]
   matchedRows: unknown[]
@@ -106,6 +406,7 @@ function handleMaterialMatched(payload: {
     materialInventory: payload.materialInventory,
     matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
   })
+  persistNow()
 }
 
 async function onSlotSubmit(payload: {
@@ -117,7 +418,490 @@ async function onSlotSubmit(payload: {
     return await handleSlotSubmitWithPolicy(payload)
   } finally {
     resetInputsAfterSlotSubmit()
+    persistNow()
   }
+}
+
+async function onSubmitShortageWithPersist() {
+  await onSubmitShortage()
+  persistNow()
+}
+
+function parseAppendedCodes(value: string | null | undefined): string[] {
+  const raw = String(value ?? "").trim()
+  if (!raw) return []
+  return raw
+    .split(",")
+    .map((code) => code.trim())
+    .filter((code) => code.length > 0)
+}
+
+function toRowSlotIdno(row: PanasonicCacheRow): string {
+  const slot = String(row.slotIdno ?? "").trim()
+  const subSlot = String(row.subSlotIdno ?? "").trim()
+  return subSlot ? `${slot}-${subSlot}` : slot
+}
+
+function toCanonicalPanasonicSlot(raw: string): string | null {
+  const parsed = parsePanasonicSlotIdno(raw)
+  if (!parsed) return null
+  const slot = String(parsed.slot ?? "").trim()
+  const subSlot = String(parsed.subSlot ?? "").trim().toUpperCase()
+  if (!slot) return null
+  return subSlot ? `${slot}-${subSlot}` : slot
+}
+
+function updateRowInGrid(row: PanasonicCacheRow) {
+  try {
+    gridApi.value?.applyTransaction?.({ update: [row as any] })
+  } catch {
+    // Grid might not be ready
+  }
+}
+
+function findRowBySlotIdno(slotIdno: string) {
+  const parsed = parsePanasonicSlotIdno(slotIdno)
+  if (!parsed) return null
+  return (rowData.value ?? []).find(
+    (row: any) =>
+      String(row.slotIdno ?? "").trim() === String(parsed.slot ?? "").trim() &&
+      String(row.subSlotIdno ?? "").trim() === String(parsed.subSlot ?? "").trim()
+  )
+}
+
+function findUniqueUnloadSlotByPackCode(materialPackCode: string) {
+  const targetPackCode = materialPackCode.trim()
+  if (!targetPackCode) {
+    return {
+      ok: false as const,
+      error: "請先輸入物料條碼",
+    }
+  }
+
+  const matchedRows = (rowData.value ?? []).filter((row: any) => {
+    const inMain = String(row.materialInventoryIdno ?? "").trim() === targetPackCode
+    const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(
+      targetPackCode
+    )
+    return inMain || inAppended
+  })
+
+  if (matchedRows.length === 0) {
+    return {
+      ok: false as const,
+      error: `找不到料號 ${targetPackCode} 對應的站位`,
+    }
+  }
+
+  if (matchedRows.length > 1) {
+    const slots = matchedRows.map((row: any) => toRowSlotIdno(row)).join(", ")
+    return {
+      ok: false as const,
+      error: `料號 ${targetPackCode} 對應多個站位：${slots}`,
+    }
+  }
+
+  return {
+    ok: true as const,
+    row: matchedRows[0],
+    slotIdno: toRowSlotIdno(matchedRows[0]),
+  }
+}
+
+async function validateUnloadMaterialPackCode(materialPackCode: string): Promise<boolean> {
+  const trimmed = materialPackCode.trim()
+  if (!trimmed) {
+    showError("請先輸入物料條碼")
+    return false
+  }
+
+  if (isTestingMode) return true
+
+  try {
+    await SmtService.getMaterialInventoryForSmt({
+      materialInventoryIdno: trimmed,
+    })
+    return true
+  } catch (error) {
+    showError(resolveMaterialLookupError(error))
+    return false
+  }
+}
+
+async function resolveReplacementCorrectState(params: {
+  materialPackCode: string
+  slotIdno: string
+}): Promise<"true" | "warning" | null> {
+  const materialPackCode = params.materialPackCode.trim()
+  const slotIdno = params.slotIdno.trim()
+  if (!materialPackCode) {
+    showError("請先輸入物料條碼")
+    return null
+  }
+
+  const row = findRowBySlotIdno(slotIdno)
+  if (!row) {
+    showError(`找不到槽位 ${slotIdno}`)
+    return null
+  }
+
+  if (isTestingMode) {
+    return "warning"
+  }
+
+  try {
+    const materialInventory = await SmtService.getMaterialInventoryForSmt({
+      materialInventoryIdno: materialPackCode,
+    })
+    const scannedMaterialId = String(materialInventory.material_idno ?? "").trim()
+    const expectedMaterialId = String(row.materialIdno ?? "").trim()
+    if (!scannedMaterialId || scannedMaterialId !== expectedMaterialId) {
+      showError(`料號不符：站位 ${slotIdno} 應為 ${expectedMaterialId}`)
+      return null
+    }
+    return "true"
+  } catch (error) {
+    showError(resolveMaterialLookupError(error))
+    return null
+  }
+}
+
+function resetUnloadFlowState(modeType: UnloadModeType = unloadModeType.value) {
+  unloadModeType.value = modeType
+  unloadReplacePhase.value =
+    modeType === "force_single_slot" ? "force_unload_slot_scan" : "unload_scan"
+  unloadMaterialValue.value = ""
+  unloadSlotValue.value = ""
+  resolvedUnloadSlotIdno.value = ""
+  replacementMaterialPackCode.value = ""
+  replacementCorrectState.value = null
+}
+
+function focusUnloadMaterialInput() {
+  nextTick(() => {
+    unloadMaterialInput.value?.focus()
+  })
+}
+
+function focusUnloadSlotInput() {
+  nextTick(() => {
+    unloadSlotInput.value?.focus()
+  })
+}
+
+function focusMaterialInput() {
+  nextTick(() => {
+    materialInventoryInput.value?.focus?.()
+  })
+}
+
+function clearNormalScanState() {
+  materialInventoryResult.value = null
+  inputs.bumpResetKeys()
+  materialInventoryInput.value?.clear?.()
+  slotIdnoInput.value?.clear?.()
+}
+
+function enterUnloadMode(modeType: UnloadModeType) {
+  isUnloadMode.value = true
+  resetUnloadFlowState(modeType)
+  clearNormalScanState()
+
+  if (modeType === "force_single_slot") {
+    focusUnloadSlotInput()
+    return
+  }
+
+  focusUnloadMaterialInput()
+}
+
+function exitUnloadMode() {
+  isUnloadMode.value = false
+  resetUnloadFlowState("pack_auto_slot")
+  clearNormalScanState()
+  focusMaterialInput()
+}
+
+function handleModeTriggerFromNormalInput(code: string): boolean {
+  if (code === MATERIAL_UNLOAD_TRIGGER) {
+    enterUnloadMode("pack_auto_slot")
+    return true
+  }
+
+  if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    enterUnloadMode("force_single_slot")
+    return true
+  }
+
+  return false
+}
+
+function handleModeTriggerFromUnloadInput(code: string): boolean {
+  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    exitUnloadMode()
+    return true
+  }
+
+  return false
+}
+
+async function handleBeforeMaterialScan(barcode: string) {
+  const code = barcode.trim().toUpperCase()
+  return !handleModeTriggerFromNormalInput(code)
+}
+
+async function handleBeforeSlotSubmit(raw: string) {
+  const code = raw.trim().toUpperCase()
+  return !handleModeTriggerFromNormalInput(code)
+}
+
+function pushUnloadRecord(record: PanasonicUnloadRecord) {
+  pendingUnloadRecords.value = [...pendingUnloadRecords.value, record]
+  persistNow()
+}
+
+function applyUnloadToRow(row: any, materialPackCode: string) {
+  const inMain = String(row.materialInventoryIdno ?? "").trim() === materialPackCode
+  const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(
+    materialPackCode
+  )
+
+  if (inMain) {
+    row.materialInventoryIdno = ""
+    row.correct = null
+  }
+
+  if (inAppended) {
+    row.appendedMaterialInventoryIdno = removeMaterialCode(
+      row.appendedMaterialInventoryIdno,
+      materialPackCode
+    )
+  }
+
+  updateRowInGrid(row)
+}
+
+async function handleUnloadMaterialSubmit(materialPackCode: string) {
+  const isValidPackCode = await validateUnloadMaterialPackCode(materialPackCode)
+  if (!isValidPackCode) {
+    unloadMaterialValue.value = ""
+    focusUnloadMaterialInput()
+    return
+  }
+
+  const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
+  if (!resolved.ok || !resolved.row) {
+    showError(resolved.error ?? "找不到對應槽位")
+    unloadMaterialValue.value = ""
+    focusUnloadMaterialInput()
+    return
+  }
+
+  const operationTime = new Date().toISOString()
+  pushUnloadRecord({
+    slotIdno: resolved.row.slotIdno,
+    subSlotIdno: resolved.row.subSlotIdno ?? null,
+    materialPackCode,
+    unfeedReason: "MATERIAL_FINISHED",
+    operationTime,
+  })
+
+  applyUnloadToRow(resolved.row, materialPackCode)
+
+  unloadMaterialValue.value = ""
+  resolvedUnloadSlotIdno.value = resolved.slotIdno ?? ""
+  unloadReplacePhase.value = "replace_material_scan"
+  focusUnloadMaterialInput()
+}
+
+async function handleForceUnloadSlotSubmit(slotIdno: string) {
+  const row = findRowBySlotIdno(slotIdno)
+  if (!row) {
+    showError(`找不到槽位 ${slotIdno}`)
+    unloadSlotValue.value = ""
+    focusUnloadSlotInput()
+    return
+  }
+
+  const appendedCodes = parseAppendedCodes(row.appendedMaterialInventoryIdno)
+  const preferredPackCode = appendedCodes[appendedCodes.length - 1]
+  const mainPackCode = String(row.materialInventoryIdno ?? "").trim()
+  const materialPackCode = String(preferredPackCode ?? mainPackCode).trim()
+
+  if (!materialPackCode) {
+    showError(`槽位 ${slotIdno} 無可卸除料號`)
+    unloadSlotValue.value = ""
+    focusUnloadSlotInput()
+    return
+  }
+
+  const operationTime = new Date().toISOString()
+  pushUnloadRecord({
+    slotIdno: row.slotIdno,
+    subSlotIdno: row.subSlotIdno ?? null,
+    materialPackCode,
+    unfeedReason: "WRONG_MATERIAL",
+    operationTime,
+  })
+
+  applyUnloadToRow(row, materialPackCode)
+
+  unloadSlotValue.value = ""
+  resolvedUnloadSlotIdno.value = toRowSlotIdno(row)
+  unloadReplacePhase.value = "replace_material_scan"
+  focusUnloadMaterialInput()
+}
+
+function resetToInitialUnloadPhase() {
+  unloadReplacePhase.value =
+    unloadModeType.value === "force_single_slot"
+      ? "force_unload_slot_scan"
+      : "unload_scan"
+}
+
+async function handleReplacementMaterialSubmit(materialPackCode: string) {
+  const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
+  if (!targetSlotIdno) {
+    showError("找不到卸料站位，請重新掃描")
+    resetToInitialUnloadPhase()
+    unloadMaterialValue.value = ""
+    if (isForceUnloadSlotPhase.value) {
+      focusUnloadSlotInput()
+    } else {
+      focusUnloadMaterialInput()
+    }
+    return
+  }
+
+  const correctState = await resolveReplacementCorrectState({
+    materialPackCode,
+    slotIdno: targetSlotIdno,
+  })
+
+  unloadMaterialValue.value = ""
+  if (!correctState) {
+    focusUnloadMaterialInput()
+    return
+  }
+
+  replacementMaterialPackCode.value = materialPackCode
+  replacementCorrectState.value = correctState
+  unloadReplacePhase.value = "replace_slot_scan"
+  unloadSlotValue.value = ""
+  focusUnloadSlotInput()
+}
+
+function handleUnloadMaterialEnter() {
+  const material = unloadMaterialValue.value.trim()
+  unloadMaterialValue.value = material
+  if (!material) return
+
+  if (handleModeTriggerFromUnloadInput(material.toUpperCase())) {
+    return
+  }
+
+  if (isUnloadScanPhase.value) {
+    void handleUnloadMaterialSubmit(material)
+    return
+  }
+
+  if (isReplaceMaterialPhase.value) {
+    void handleReplacementMaterialSubmit(material)
+  }
+}
+
+async function handleUnloadSlotSubmit() {
+  if (!isUnloadMode.value) return
+
+  const slotIdno = unloadSlotValue.value.trim()
+  const slotCommand = slotIdno.toUpperCase()
+  const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
+  const replacementPackCode = replacementMaterialPackCode.value.trim()
+  const correctState = replacementCorrectState.value
+
+  if (!slotIdno) {
+    showError("請輸入站位")
+    focusUnloadSlotInput()
+    return
+  }
+
+  if (handleModeTriggerFromUnloadInput(slotCommand)) {
+    return
+  }
+
+  if (isForceUnloadSlotPhase.value) {
+    void handleForceUnloadSlotSubmit(slotIdno)
+    return
+  }
+
+  if (!isReplaceSlotPhase.value) {
+    focusUnloadSlotInput()
+    return
+  }
+
+  const normalizedInput = toCanonicalPanasonicSlot(slotIdno)
+  const normalizedTarget = toCanonicalPanasonicSlot(targetSlotIdno)
+  if (!normalizedInput || !normalizedTarget || normalizedInput !== normalizedTarget) {
+    showError(`請掃描原卸料站位 ${targetSlotIdno}`)
+    unloadSlotValue.value = ""
+    focusUnloadSlotInput()
+    return
+  }
+
+  if (!replacementPackCode || !correctState) {
+    showError("找不到更換捲號，請重新掃描")
+    unloadReplacePhase.value = "replace_material_scan"
+    focusUnloadMaterialInput()
+    return
+  }
+
+  const row = findRowBySlotIdno(targetSlotIdno)
+  if (!row) {
+    showError(`找不到槽位 ${targetSlotIdno}`)
+    resetToInitialUnloadPhase()
+    focusUnloadMaterialInput()
+    return
+  }
+
+  row.materialInventoryIdno = replacementPackCode
+  row.appendedMaterialInventoryIdno = appendMaterialCode(
+    row.appendedMaterialInventoryIdno,
+    replacementPackCode
+  )
+  row.correct = correctState
+  row.operatorIdno = currentUsername.value || null
+  row.firstAppendTime = row.firstAppendTime ?? new Date().toISOString()
+  if (correctState === "warning") {
+    row.remark = "[測試模式綁定]"
+  }
+
+  updateRowInGrid(row)
+
+  unloadSlotValue.value = ""
+  exitUnloadMode()
+}
+
+function syncGridRows(rows: unknown[]) {
+  if (!gridApi.value) {
+    pendingGridSync.value = true
+    return
+  }
+  gridApi.value.setRowData(rows as any)
+}
+
+function onGridReadyWithCache(e: GridReadyEvent) {
+  gridApi.value = e.api
+  onGridReady(e)
+  if (pendingGridSync.value) {
+    pendingGridSync.value = false
+    syncGridRows(rowData.value)
+  }
+}
+
+function onUnloadUploaded(ok: boolean) {
+  if (!ok) return
+  pendingUnloadRecords.value = []
+  persistNow()
 }
 </script>
 
@@ -130,7 +914,7 @@ async function onSlotSubmit(payload: {
     :form-ref="rollShortageBindings.formRef"
     @update:show="onRollShortageModalUpdate"
     @cancel="closeRollShortage"
-    @submit="onSubmitShortage"
+    @submit="onSubmitShortageWithPersist"
   />
 
   <MaterialQueryModal v-model:show="showMaterialQueryModal" :uuid="productionUuid" @error="showError" />
@@ -145,7 +929,7 @@ async function onSlotSubmit(payload: {
               {{ isTestingMode ? PANASONIC_MODE_NAME_TESTING : PANASONIC_MODE_NAME_NORMAL }}
             </n-tag>
             <n-tag type="info" size="small" bordered>
-              {{ OPERATION_MODE_NAME }}
+              {{ operationModeName }}
             </n-tag>
           </div>
         </template>
@@ -192,6 +976,7 @@ async function onSlotSubmit(payload: {
     <template #inputs>
       <n-gi>
         <MaterialInventoryBarcodeInput
+          v-model="materialInputValue"
           :is-testing-mode="isTestingMode"
           input-test-id="panasonic-main-material-input"
           ref="materialInventoryInput"
@@ -204,6 +989,7 @@ async function onSlotSubmit(payload: {
 
       <n-gi>
         <SlotIdnoInput
+          v-model="slotInputValue"
           :is-testing-mode="isTestingMode"
           :has-material="inputs.hasMaterial.value"
           :parse-slot-idno="parsePanasonicSlotIdno"
@@ -222,7 +1008,7 @@ async function onSlotSubmit(payload: {
       class="ag-theme-balham-dark grid-content"
       :rowData="rowData"
       :gridOptions="gridOptions"
-      @grid-ready="onGridReady"
+      @grid-ready="onGridReadyWithCache"
     />
   </PanasonicMounterLayout>
 </template>

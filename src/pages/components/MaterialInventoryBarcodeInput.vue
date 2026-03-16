@@ -31,6 +31,7 @@ const props = defineProps<{
     allowNoMatchInTesting?: boolean
     beforeScan?: (barcode: string) => boolean | Promise<boolean>
     scan?: (barcode: string) => Promise<ScanResultLike<SmtMaterialInventoryEx, MatchedRow>>
+    modelValue?: string
 }>()
 
 watch(
@@ -43,6 +44,7 @@ watch(
 const emit = defineEmits<{
     (e: 'matched', payload: MatchedPayload): void
     (e: 'error', msg: string): void
+    (e: 'update:modelValue', value: string): void
 }>()
 
 /* ================= state ================= */
@@ -52,6 +54,20 @@ const materialInventoryIdnoInput = ref<InputInst | null>(null)
 
 const formValue = ref({
     materialInventoryIdno: ''
+})
+
+const inputValue = computed({
+    get: () =>
+        props.modelValue !== undefined
+            ? props.modelValue
+            : formValue.value.materialInventoryIdno,
+    set: (value: string) => {
+        if (props.modelValue !== undefined) {
+            emit('update:modelValue', value)
+            return
+        }
+        formValue.value.materialInventoryIdno = value
+    },
 })
 const PANASONIC_SLOT_SUBMITTED_EVENT = 'panasonic-slot-submitted'
 
@@ -102,7 +118,7 @@ const scanUseCase = computed(() => {
 })
 
 async function onSubmit() {
-    const idno = formValue.value.materialInventoryIdno.trim()
+    const idno = inputValue.value.trim()
 
     if (props.beforeScan) {
         const shouldContinue = await props.beforeScan(idno)
@@ -176,7 +192,7 @@ async function onSubmit() {
 }
 
 function reset() {
-    formValue.value.materialInventoryIdno = ''
+    inputValue.value = ''
     materialInventoryIdnoInput.value?.focus()
 }
 
@@ -185,7 +201,7 @@ function focus() {
 }
 
 function clear() {
-    formValue.value.materialInventoryIdno = ''
+    inputValue.value = ''
 }
 
 function handlePanasonicSlotSubmitted() {
@@ -208,7 +224,7 @@ defineExpose({ focus, clear })
 <template>
     <n-form size="large" :model="formValue" @submit.prevent="onSubmit">
         <n-form-item label="物料單包條碼">
-        <n-input ref="materialInventoryIdnoInput" autofocus v-model:value="formValue.materialInventoryIdno"
+        <n-input ref="materialInventoryIdnoInput" autofocus v-model:value="inputValue"
             :disabled="props.disabled" :data-testid="props.inputTestId" />
         </n-form-item>
     </n-form>
