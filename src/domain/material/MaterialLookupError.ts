@@ -28,6 +28,7 @@ export function resolveMaterialLookupError(
         404: "查無此條碼",
         500: "系統錯誤",
         502: ERP_CONNECTION_ERROR_MESSAGE,
+        503: ERP_CONNECTION_ERROR_MESSAGE,
         504: ERP_TIMEOUT_MESSAGE,
       }[error.status] ?? "未知錯誤"
     )

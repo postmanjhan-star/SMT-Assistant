@@ -4,6 +4,7 @@ import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
 import { computed, nextTick, ref } from "vue"
+import { useRoute } from "vue-router"
 import { storeToRefs } from "pinia"
 import { useMeta } from "vue-meta"
 
@@ -28,8 +29,14 @@ import {
   PANASONIC_MODE_NAME_TESTING,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import type { InputComponentHandle, MaterialMatchedPayload } from "./types/production"
+import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
+
+const route = useRoute()
+const mockScan = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
+  ? createMockScan()
+  : undefined
 
 const MATERIAL_UNLOAD_TRIGGER = "S5555"
 const MATERIAL_EXIT_TRIGGER = "S5566"
@@ -616,6 +623,7 @@ function onRollShortageModalUpdate(value: boolean) {
             @matched="handleMaterialMatched"
             :before-scan="handleBeforeMaterialScan"
             :reset-key="inputs.resetKey.value"
+            :scan="mockScan"
             ref="materialInventoryInput"
             @error="handleMaterialScanError"
           />

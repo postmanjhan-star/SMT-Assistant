@@ -14,6 +14,7 @@ import FujiMounterLayout from "@/pages/components/fuji/FujiMounterLayout.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
 import { parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiDetailPage } from "@/ui/workflows/preproduction/fuji/composables/useFujiDetailPage"
+import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 
 useMeta({ title: "Fuji Mounter Assistant" })
 
@@ -43,6 +44,10 @@ type FujiCachePayload = {
 }
 
 const route = useRoute()
+const effectiveScan = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
+  ? createMockScan()
+  : undefined
+
 const slotIdnoInput = ref<{ focus: () => void } | null>(null)
 const materialInputValue = ref("")
 const slotInputValue = ref("")
@@ -304,7 +309,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
           :is-testing-mode="isTestingMode"
           :get-material-matched-rows="getMaterialMatchedRows"
           :reset-key="materialResetKey"
-          :scan="scanMaterial"
+          :scan="effectiveScan ?? scanMaterial"
           :allow-no-match-in-testing="true"
           @matched="onMaterialMatched"
           @error="onMaterialError"

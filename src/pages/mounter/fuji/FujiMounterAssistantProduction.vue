@@ -4,7 +4,11 @@ import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import { NButton, NForm, NFormItem, NGi, NInput, NTag } from "naive-ui"
 import { computed, nextTick, ref, watch } from "vue"
+import { useRoute } from "vue-router"
 import { useMeta } from "vue-meta"
+import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
+import { decideMaterialScanAction } from "@/domain/material/MaterialScanDecision"
+import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 
 import MaterialQueryModal from "@/pages/mounter/fuji/components/MaterialQueryModal.vue"
 import FujiMounterLayout from "@/pages/components/fuji/FujiMounterLayout.vue"
@@ -14,6 +18,11 @@ import { useFujiProductionPage } from "@/ui/workflows/post-production/fuji/compo
 import { createFujiProductionGridOptions } from "@/ui/workflows/post-production/fuji/createFujiProductionGridOptions"
 
 useMeta({ title: "Fuji Mounter Production" })
+
+const route = useRoute()
+const mockScan = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
+  ? createMockScan()
+  : null
 
 const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
 const MATERIAL_EXIT_TRIGGER = "S5566"
@@ -253,6 +262,21 @@ async function onMainMaterialSubmit() {
   if (barcode === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
     materialFormValue.value.materialInventoryIdno = ""
     exitIpqcMode()
+    return
+  }
+
+  if (mockScan) {
+    const result = await mockScan(barcode)
+    const decision = decideMaterialScanAction(result, {
+      isTestingMode: isTestingMode.value,
+      allowNoMatchInTesting: true,
+    })
+    if (decision.action === 'error') {
+      showError(resolveMaterialLookupError(decision.error))
+      materialFormValue.value.materialInventoryIdno = ""
+      return
+    }
+    slotInputRef.value?.focus()
     return
   }
 
