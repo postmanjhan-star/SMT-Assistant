@@ -2,7 +2,7 @@
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
-import type { GridApi, GridReadyEvent } from "ag-grid-community"
+import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
 import { ref, computed, watch, nextTick } from "vue"
 import { useMeta } from "vue-meta"
@@ -48,10 +48,9 @@ import {
 useMeta({ title: "Panasonic Mounter Assistant" })
 
 const route = useRoute()
-const mockScan =
+const isMockMode =
   import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === "1")
-    ? createMockScan()
-    : undefined
+const mockScan = isMockMode ? createMockScan() : undefined
 
 type StartProductionButtonHandle = {
   submit: (rows?: unknown[]) => Promise<void> | void
@@ -66,6 +65,7 @@ const cacheEnabled = ref(true)
 const hydratedKey = ref<string | null>(null)
 const readyToPersist = ref(false)
 const gridApi = ref<GridApi | null>(null)
+const columnApi = ref<ColumnApi | null>(null)
 const pendingGridSync = ref(false)
 const unloadMaterialInput = ref<HTMLInputElement | null>(null)
 const unloadSlotInput = ref<HTMLInputElement | null>(null)
@@ -121,6 +121,7 @@ const {
   autoUploadRows: (rows) => {
     startProductionBtnRef.value?.submit(rows)
   },
+  isMockMode,
 })
 
 const { rowData: materialQueryRawData, load: loadMaterialQuery } = usePanasonicMaterialQueryState(productionUuid)
@@ -456,7 +457,7 @@ async function onSlotSubmit(payload: {
         (r.subSlotIdno ?? "") === (payload.subSlot ?? "")
     )
     let correctState: "true" | "warning"
-    if (isMatched) {
+    if (isMatched || (isMockMode && !isTestingMode)) {
       correctState = "true"
     } else if (isTestingMode) {
       correctState = "warning"
@@ -591,7 +592,7 @@ async function validateUnloadMaterialPackCode(materialPackCode: string): Promise
     return false
   }
 
-  if (isTestingMode) return true
+  if (isTestingMode || isMockMode) return true
 
   try {
     await SmtService.getMaterialInventoryForSmt({
@@ -621,9 +622,8 @@ async function resolveReplacementCorrectState(params: {
     return null
   }
 
-  if (isTestingMode) {
-    return "warning"
-  }
+  if (isMockMode && !isTestingMode) return "true"
+  if (isTestingMode) return "warning"
 
   try {
     const materialInventory = await SmtService.getMaterialInventoryForSmt({
@@ -767,7 +767,7 @@ function applyUnloadToRow(row: any, materialPackCode: string) {
 
   if (inMain) {
     row.materialInventoryIdno = ""
-    row.correct = null
+    row.correct = "unloaded"
   }
 
   if (inAppended) {
@@ -963,10 +963,6 @@ async function handleUnloadSlotSubmit() {
   }
 
   row.materialInventoryIdno = replacementPackCode
-  row.appendedMaterialInventoryIdno = appendMaterialCode(
-    row.appendedMaterialInventoryIdno,
-    replacementPackCode
-  )
   row.correct = correctState
   row.operatorIdno = currentUsername.value || null
   row.firstAppendTime = row.firstAppendTime ?? new Date().toISOString()
@@ -975,6 +971,18 @@ async function handleUnloadSlotSubmit() {
   }
 
   updateRowInGrid(row)
+
+  pendingSpliceRecords.value = [
+    ...pendingSpliceRecords.value,
+    {
+      slotIdno: row.slotIdno,
+      subSlotIdno: row.subSlotIdno ?? null,
+      materialPackCode: replacementPackCode,
+      correctState,
+      operationTime: new Date().toISOString(),
+    },
+  ]
+  persistNow()
 
   unloadSlotValue.value = ""
   exitUnloadMode()
@@ -988,14 +996,25 @@ function syncGridRows(rows: unknown[]) {
   gridApi.value.setRowData(rows as any)
 }
 
+function setAppendedColumnVisible(visible: boolean) {
+  columnApi.value?.setColumnVisible("appendedMaterialInventoryIdno", visible)
+}
+
 function onGridReadyWithCache(e: GridReadyEvent) {
   gridApi.value = e.api
+  columnApi.value = e.columnApi
   onGridReady(e)
   if (pendingGridSync.value) {
     pendingGridSync.value = false
     syncGridRows(rowData.value)
   }
+  setAppendedColumnVisible(productionStarted.value)
 }
+
+watch(
+  () => productionStarted.value,
+  (started) => setAppendedColumnVisible(started)
+)
 
 function onUnloadUploaded(ok: boolean) {
   if (!ok) return

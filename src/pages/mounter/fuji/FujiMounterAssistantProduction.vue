@@ -30,9 +30,8 @@ import {
 useMeta({ title: "Fuji Mounter Production" })
 
 const route = useRoute()
-const mockScan = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
-  ? createMockScan()
-  : null
+const isMockMode = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
+const mockScan = isMockMode ? createMockScan() : null
 
 type UnloadModeType = "pack_auto_slot" | "force_single_slot"
 type UnloadReplacePhase =
@@ -315,7 +314,7 @@ async function onMainSlotSubmit() {
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
-  const isValidPackCode = await validateUnloadMaterialPackCode(materialPackCode)
+  const isValidPackCode = isMockMode || await validateUnloadMaterialPackCode(materialPackCode)
   if (!isValidPackCode) {
     unloadMaterialValue.value = ""
     focusUnloadMaterialInput()
@@ -380,7 +379,7 @@ async function handleReplacementMaterialSubmit(materialPackCode: string) {
     return
   }
 
-  const canReplace = await validateReplacementMaterialForSlot({
+  const canReplace = isMockMode || await validateReplacementMaterialForSlot({
     materialPackCode,
     slotIdno: targetSlotIdno,
   })

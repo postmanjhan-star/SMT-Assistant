@@ -45,9 +45,8 @@ import {
 useMeta({ title: "Panasonic Mounter Assistant" })
 
 const route = useRoute()
-const mockScan = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
-  ? createMockScan()
-  : undefined
+const isMockMode = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
+const mockScan = isMockMode ? createMockScan() : undefined
 
 type UnloadModeType = "pack_auto_slot" | "force_single_slot"
 type UnloadReplacePhase =
@@ -349,7 +348,7 @@ async function handleBeforeSlotSubmit(raw: string) {
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
-  const isValidPackCode = await validateUnloadMaterialPackCode(materialPackCode)
+  const isValidPackCode = isMockMode || await validateUnloadMaterialPackCode(materialPackCode)
   if (!isValidPackCode) {
     unloadMaterialValue.value = ""
     focusUnloadMaterialInput()
@@ -412,7 +411,7 @@ async function handleReplacementMaterialSubmit(materialPackCode: string) {
     return
   }
 
-  const canReplace = await validateReplacementMaterialForSlot({
+  const canReplace = isMockMode || await validateReplacementMaterialForSlot({
     materialPackCode,
     slotIdno: targetSlotIdno,
   })

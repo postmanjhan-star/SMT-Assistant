@@ -37,6 +37,7 @@ export type PanasonicDetailPageOptions = {
   getSlotInputResult: () => SlotInputResult | null
   autoUploadRows?: (rows: unknown[]) => void
   deps?: Partial<PreproductionPanasonicDeps>
+  isMockMode?: boolean
 }
 
 function toRollShortageErrorMessage(error: SubmitRollShortageError): string | null {
@@ -133,6 +134,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     unknown
   >({
     isTestingMode,
+    isMockMode: options.isMockMode,
     getResult: options.getSlotInputResult,
     autoUpload: (rows) => {
       options.autoUploadRows?.(rows)

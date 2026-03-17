@@ -5,6 +5,7 @@ import { PanasonicSlotSubmitFlow } from '@/application/slot-submit/PanasonicSlot
 
 export type PanasonicSlotFlowOptions<TResult = unknown, TRow = unknown> = {
   isTestingMode: boolean
+  isMockMode?: boolean
   getResult?: () => TResult
   autoUpload?: (rows: TRow[]) => void
   onResetInputs?: () => void
@@ -31,6 +32,7 @@ export function usePanasonicSlotFlow<TResult = unknown, TRow = unknown>(
   const flow = new PanasonicSlotSubmitFlow({
     store,
     isTestingMode: options.isTestingMode,
+    isMockMode: options.isMockMode,
     getResult: options.getResult,
     onAfterSuccess: () => {
       if (!store.isTestingMode) scheduleCheck()

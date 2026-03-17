@@ -13,6 +13,7 @@ export function createFujiPreproductionGridOptions(): GridOptions<FujiMounterRow
           MATCHED_MATERIAL_PACK: "✅",
           UNMATCHED_MATERIAL_PACK: "❌",
           TESTING_MATERIAL_PACK: "⚠️",
+          UNLOADED: "⛔",
         },
       },
       { field: "mounterIdno", headerName: "機台", flex: 1, minWidth: 90 },

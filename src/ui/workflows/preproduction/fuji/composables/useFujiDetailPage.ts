@@ -21,6 +21,7 @@ export type FujiDetailPageOptions = {
   getPendingUnloadRecords?: () => FujiUnloadRecord[]
   onUnloadUploaded?: (ok: boolean) => void
   getPendingSpliceRecords?: () => FujiSpliceRecord[]
+  isMockMode?: boolean
 }
 
 export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
@@ -51,6 +52,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
   const slotFlow = useFujiPreproductionSlotFlow({
     rowData,
     isTestingMode,
+    isMockMode: options.isMockMode,
     gridAdapter,
     focusSlotInput: options.focusSlotInput,
     onAfterSuccess: lifecycle.checkAndStartProduction,

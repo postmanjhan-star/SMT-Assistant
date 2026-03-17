@@ -84,7 +84,7 @@ export const decideScanError = <TMaterial, TRow = SlotCandidate>(input: {
     barcode: string
     createVirtualMaterial: (barcode: string) => TMaterial
 }): ScanResult<TMaterial, TRow> => {
-    if (input.isTestingMode && input.errorKind === 'not_found') {
+    if (input.isTestingMode && (input.errorKind === 'not_found' || input.errorKind === 'api_error')) {
         return {
             status: 'virtual_success',
             data: {

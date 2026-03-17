@@ -20,7 +20,7 @@ export function createProductionGridOptions(
                 headerName: '',
                 flex: 1,
                 minWidth: 60,
-                refData: { true: '✅', false: '❌', warning: '⚠️' },
+                refData: { true: '✅', false: '❌', warning: '⚠️', unloaded: '⛔' },
             },
             {
                 field: 'slotIdno',

@@ -68,10 +68,8 @@ type FujiCachePayload = {
 }
 
 const route = useRoute()
-const effectiveScan =
-  import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === "1")
-    ? createMockScan()
-    : undefined
+const isMockMode = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === "1")
+const effectiveScan = isMockMode ? createMockScan() : undefined
 
 const slotIdnoInput = ref<{ focus: () => void } | null>(null)
 const materialInventoryInput = ref<{ focus?: () => void; clear?: () => void } | null>(null)
@@ -130,6 +128,7 @@ const {
     }
   },
   getPendingSpliceRecords: () => pendingSpliceRecords.value,
+  isMockMode,
 })
 
 // ─── Computed ────────────────────────────────────────────────────────────────
@@ -403,7 +402,7 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
     const expectedMaterialId = String(targetRow.materialIdno ?? "").trim()
 
     let correctState: CheckMaterialMatchEnum
-    if (scannedMaterialId && scannedMaterialId === expectedMaterialId) {
+    if ((scannedMaterialId && scannedMaterialId === expectedMaterialId) || (isMockMode && !isTestingMode.value)) {
       correctState = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
     } else if (isTestingMode.value) {
       correctState = CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
@@ -523,7 +522,7 @@ async function validateUnloadMaterialPackCode(materialPackCode: string): Promise
     return false
   }
 
-  if (isTestingMode.value) return true
+  if (isTestingMode.value || isMockMode) return true
 
   try {
     await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: trimmed })
@@ -553,6 +552,7 @@ async function resolveReplacementCorrectState(params: {
     return null
   }
 
+  if (isMockMode && !isTestingMode.value) return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
   if (isTestingMode.value) return CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
 
   try {
@@ -677,7 +677,7 @@ function pushUnloadRecord(record: FujiUnloadRecord) {
 function applyUnloadToRow(row: any, materialPackCode: string) {
   if (String(row.materialInventoryIdno ?? "").trim() === materialPackCode) {
     row.materialInventoryIdno = ""
-    row.correct = null
+    row.correct = "UNLOADED"
   }
   updateRowInGrid(row)
 }
@@ -860,6 +860,17 @@ async function handleUnloadSlotSubmit() {
     row.remark = "[測試模式綁定]"
   }
   updateRowInGrid(row)
+
+  pendingSpliceRecords.value = [
+    ...pendingSpliceRecords.value,
+    {
+      slot: target.slot,
+      stage: target.stage,
+      materialPackCode: replacementPackCode,
+      correctState,
+      operationTime: new Date().toISOString(),
+    },
+  ]
   persistNow()
 
   unloadSlotValue.value = ""

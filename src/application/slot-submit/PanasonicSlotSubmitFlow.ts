@@ -1,5 +1,6 @@
 ﻿import { NormalModeStrategy } from '@/application/slot-submit/NormalModeStrategy'
 import { TestingModeStrategy } from '@/application/slot-submit/TestingModeStrategy'
+import { MockNormalModeStrategy } from '@/application/slot-submit/MockNormalModeStrategy'
 import type { SlotSubmitStrategy } from '@/application/slot-submit/SlotSubmitStrategy'
 import type { SlotSubmitPayload } from '@/application/slot-submit/SlotSubmissionRunner'
 import type { SlotSubmitStore } from '@/stores/slotSubmitStore'
@@ -7,6 +8,7 @@ import type { SlotSubmitStore } from '@/stores/slotSubmitStore'
 export type PanasonicSlotSubmitFlowDeps = {
   store: SlotSubmitStore
   isTestingMode: boolean
+  isMockMode?: boolean
   getResult?: () => any
   onAfterSuccess?: () => void | Promise<void>
 }
@@ -27,6 +29,9 @@ export class PanasonicSlotSubmitFlow {
       this.deps.store.deps ??
       {}
     const deps = { ...storeDeps, store: this.deps.store }
+    if (this.deps.isMockMode && !this.deps.isTestingMode) {
+      return new MockNormalModeStrategy(deps)
+    }
     return this.deps.isTestingMode
       ? new TestingModeStrategy(deps)
       : new NormalModeStrategy(deps)

@@ -1,7 +1,7 @@
 ﻿import type { SmtMaterialInventory } from "@/client"
 import type { SlotCandidate } from "@/domain/slot/SlotBindingRules"
 
-export type CorrectState = "true" | "false" | "warning"
+export type CorrectState = "true" | "false" | "warning" | "unloaded"
 
 export type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 

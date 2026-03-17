@@ -4,6 +4,7 @@ import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { SlotSubmissionRunner } from "@/application/slot-submit/SlotSubmissionRunner"
 import { NormalModeStrategy } from "@/application/slot-submit/NormalModeStrategy"
 import { TestingModeStrategy } from "@/application/slot-submit/TestingModeStrategy"
+import { MockNormalModeStrategy } from "@/application/slot-submit/MockNormalModeStrategy"
 import type { SlotSubmitStoreLike } from "@/application/slot-submit/SlotSubmitDeps"
 import { SimpleBarcodeValidator } from "@/domain/material/BarcodeValidator"
 import { BarcodeScanUseCase } from "@/application/barcode-scan/BarcodeScanUseCase"
@@ -16,6 +17,7 @@ import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/comp
 export type UseFujiPreproductionSlotFlowOptions = {
   rowData: Ref<FujiMounterRowModel[]>
   isTestingMode: Ref<boolean>
+  isMockMode?: boolean
   gridAdapter: ShallowRef<FujiMounterGridAdapter<FujiMounterRowModel> | null>
   focusSlotInput?: () => void
   onAfterSuccess?: () => void | Promise<void>
@@ -140,11 +142,14 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
     },
   }
 
-  const slotSubmitStrategy = computed(() =>
-    options.isTestingMode.value
+  const slotSubmitStrategy = computed(() => {
+    if (options.isMockMode && !options.isTestingMode.value) {
+      return new MockNormalModeStrategy({ store: slotSubmitStore })
+    }
+    return options.isTestingMode.value
       ? new TestingModeStrategy({ store: slotSubmitStore })
       : new NormalModeStrategy({ store: slotSubmitStore })
-  )
+  })
 
   const { handleSlotSubmit } = SlotSubmissionRunner({
     submit: async (payload) => {

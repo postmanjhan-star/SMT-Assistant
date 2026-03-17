@@ -17,7 +17,7 @@ import {
 import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
 import { StartProductionStatsUseCase } from '@/application/preproduction/StartProductionStatsUseCase'
 
-type CorrectState = 'true' | 'false' | 'warning'
+type CorrectState = 'true' | 'false' | 'warning' | 'unloaded'
 
 type PanasonicUnloadRecord = {
     slotIdno: string
@@ -175,6 +175,7 @@ const startStatsUseCase = new StartProductionStatsUseCase<RowModel, PanasonicUnl
 function onProduction() {
     const invalid = props.rowData.filter(r => {
         if (r.correct === 'false') return true
+        if (r.correct === 'unloaded') return true
         if (!props.isTestingMode && r.correct == null) return true
         return false
     })
