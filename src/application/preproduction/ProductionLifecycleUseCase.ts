@@ -1,6 +1,8 @@
 export type ProductionLifecycleDeps = {
     start: (uuid: string) => void
     stop: () => Promise<void>
+    buildProductionPath: (uuid: string) => string
+    extraQueryParamsToRemove?: string[]
 }
 
 export type ProductionStartedIntent = {
@@ -17,19 +19,24 @@ export class ProductionLifecycleUseCase {
         currentQuery: Record<string, any>
     }): ProductionStartedIntent {
         this.deps.start(input.uuid)
+        const replaceQuery: Record<string, any> = { ...input.currentQuery, uuid: input.uuid }
+        for (const key of this.deps.extraQueryParamsToRemove ?? []) {
+            delete replaceQuery[key]
+        }
+
         const pushQuery = { ...input.currentQuery }
         delete pushQuery.uuid
+        for (const key of this.deps.extraQueryParamsToRemove ?? []) {
+            delete pushQuery[key]
+        }
 
         return {
             replace: {
                 path: input.currentPath,
-                query: {
-                    ...input.currentQuery,
-                    uuid: input.uuid,
-                },
+                query: replaceQuery,
             },
             push: {
-                path: `/smt/panasonic-mounter-production/${input.uuid}`,
+                path: this.deps.buildProductionPath(input.uuid),
                 query: pushQuery,
             },
         }

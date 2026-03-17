@@ -111,6 +111,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
   const productionLifecycleUseCase = deps.createProductionLifecycleUseCase({
     start: startProduction,
     stop: stopProduction,
+    buildProductionPath: (uuid) => `/smt/panasonic-mounter-production/${uuid}`,
   })
 
   const {
