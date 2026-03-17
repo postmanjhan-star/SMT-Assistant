@@ -5,31 +5,31 @@
 export const $EmployeeAccountUpdate = {
     properties: {
         full_name: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+            }, {
+                type: 'null',
+            }],
+        },
         password: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+            }, {
+                type: 'null',
+            }],
+        },
         roles: {
-    type: 'any-of',
-    contains: [{
-    type: 'array',
-    contains: {
-    type: 'string',
-},
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'array',
+                contains: {
+                    type: 'string',
+                },
+            }, {
+                type: 'null',
+            }],
+        },
     },
 } as const;

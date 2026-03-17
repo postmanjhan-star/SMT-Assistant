@@ -13,3 +13,4 @@ export type SeastoneSmartRackReadWithoutChildren = {
     eth_mac: string;
     dev_id: string;
 };
+

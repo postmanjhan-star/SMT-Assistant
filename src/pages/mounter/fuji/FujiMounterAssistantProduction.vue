@@ -500,7 +500,12 @@ async function handleUnloadSlotSubmit() {
               size="small"
               @click="handleExitUnloadMode"
             >
-              退出換料模式
+              {{ unloadModeType === 'force_single_slot' ? '退出⏏️單站卸除' : '退出🔄換料卸除' }}
+            </n-button>
+          </template>
+          <template v-else-if="isIpqcMode">
+            <n-button type="warning" size="small" @click="exitIpqcMode">
+              退出🔍IPQC覆檢
             </n-button>
           </template>
           <template v-else>
@@ -623,7 +628,11 @@ async function handleUnloadSlotSubmit() {
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   font-family: monospace;
+  background-color: #ffffff;
+  color: #333333;
   transition: border-color 0.3s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .material-input:focus,

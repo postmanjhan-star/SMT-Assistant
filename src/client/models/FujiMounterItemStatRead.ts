@@ -24,3 +24,4 @@ export type FujiMounterItemStatRead = {
     material_idno: (string | null);
     produce_mode: (ProduceTypeEnum | null);
 };
+

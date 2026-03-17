@@ -12,3 +12,4 @@ export type SeastoneSmartRackUpdate = {
     eth_mac: string;
     dev_id: string;
 };
+

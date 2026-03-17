@@ -15,3 +15,4 @@ export type STReceivePack = {
     vendor_idno: string;
     receive_date: string;
 };
+

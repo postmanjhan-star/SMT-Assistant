@@ -13,3 +13,4 @@ export type MaterialInventoryBalancesRead = {
     l2_storage_idno: string;
     quantity: string;
 };
+

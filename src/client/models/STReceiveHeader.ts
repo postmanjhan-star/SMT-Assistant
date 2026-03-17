@@ -14,3 +14,4 @@ export type STReceiveHeader = {
     qualify_qty: number;
     st_mbr_idno: string;
 };
+

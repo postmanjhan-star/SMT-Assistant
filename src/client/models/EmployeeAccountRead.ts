@@ -9,3 +9,4 @@ export type EmployeeAccountRead = {
     idno: string;
     roles: Array<string>;
 };
+

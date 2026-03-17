@@ -5,17 +5,17 @@
 export const $Body_upload_mounter_file = {
     properties: {
         file: {
-    type: 'binary',
-    isRequired: true,
-    format: 'binary',
-},
+            type: 'binary',
+            isRequired: true,
+            format: 'binary',
+        },
         product_ver: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+            }, {
+                type: 'null',
+            }],
+        },
     },
 } as const;

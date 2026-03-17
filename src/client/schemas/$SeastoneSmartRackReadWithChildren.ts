@@ -5,61 +5,61 @@
 export const $SeastoneSmartRackReadWithChildren = {
     properties: {
         id: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         server_address: {
-    type: 'string',
-    isRequired: true,
-    format: 'uri',
-    maxLength: 2083,
-    minLength: 1,
-},
+            type: 'string',
+            isRequired: true,
+            format: 'uri',
+            maxLength: 2083,
+            minLength: 1,
+        },
         rack_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         wifi_ip: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-    format: 'ipvanyaddress',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+                format: 'ipvanyaddress',
+            }, {
+                type: 'null',
+            }],
+        },
         wifi_mac: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         eth_ip: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-    format: 'ipvanyaddress',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+                format: 'ipvanyaddress',
+            }, {
+                type: 'null',
+            }],
+        },
         eth_mac: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         dev_id: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         seastone_smart_rack_cells: {
-    type: 'any-of',
-    contains: [{
-    type: 'array',
-    contains: {
-        type: 'SeastoneSmartRackCellRead',
-    },
-}, {
-    type: 'null',
-}],
-    isRequired: true,
-},
+            type: 'any-of',
+            contains: [{
+                type: 'array',
+                contains: {
+                    type: 'SeastoneSmartRackCellRead',
+                },
+            }, {
+                type: 'null',
+            }],
+            isRequired: true,
+        },
     },
 } as const;

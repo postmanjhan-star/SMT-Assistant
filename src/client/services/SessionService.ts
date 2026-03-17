@@ -17,10 +17,10 @@ export class SessionService {
      * @throws ApiError
      */
     public static loginForAccessToken({
-formData,
-}: {
-formData: Body_login_for_access_token,
-}): CancelablePromise<Token> {
+        formData,
+    }: {
+        formData: Body_login_for_access_token,
+    }): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/session/login',
@@ -35,16 +35,16 @@ formData: Body_login_for_access_token,
     /**
      * Refresh Tokens
      * Canonical refresh endpoint.
- *
- * Requires refresh token in `x-refresh-token` header.
+     *
+     * Requires refresh token in `x-refresh-token` header.
      * @returns Token Successful Response
      * @throws ApiError
      */
     public static refreshTokens({
-xRefreshToken,
-}: {
-xRefreshToken: string,
-}): CancelablePromise<Token> {
+        xRefreshToken,
+    }: {
+        xRefreshToken: string,
+    }): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/session/refresh',
@@ -61,18 +61,18 @@ xRefreshToken: string,
      * @deprecated
      * Refresh Tokens Legacy
      * Legacy refresh endpoint.
- *
- * Accepts refresh token from either `x-refresh-token` header or `refresh_token` cookie.
+     *
+     * Accepts refresh token from either `x-refresh-token` header or `refresh_token` cookie.
      * @returns Token Successful Response
      * @throws ApiError
      */
     public static refreshTokensLegacy({
-xRefreshToken,
-refreshToken,
-}: {
-xRefreshToken?: (string | null),
-refreshToken?: (string | null),
-}): CancelablePromise<Token> {
+        xRefreshToken,
+        refreshToken,
+    }: {
+        xRefreshToken?: (string | null),
+        refreshToken?: (string | null),
+    }): CancelablePromise<Token> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/session/refresh',

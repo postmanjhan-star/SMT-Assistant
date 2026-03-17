@@ -16,3 +16,4 @@ export type ProductRead = {
     qty_per_pack: string;
     expiry_days: number;
 };
+

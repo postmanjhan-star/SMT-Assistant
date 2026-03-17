@@ -30,10 +30,10 @@ export class ReceivesService {
      * @throws ApiError
      */
     public static createReceive({
-requestBody,
-}: {
-requestBody: ReceiveCreate,
-}): CancelablePromise<ReceiveRead> {
+        requestBody,
+    }: {
+        requestBody: ReceiveCreate,
+    }): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/receives/',
@@ -52,13 +52,13 @@ requestBody: ReceiveCreate,
      * @throws ApiError
      */
     public static getReceive({
-receiveIdno,
-}: {
-/**
- * Accept `RCV20220729001` and `RAN42204` two types of receving idno.
- */
-receiveIdno: string,
-}): CancelablePromise<ReceiveRead> {
+        receiveIdno,
+    }: {
+        /**
+         * Accept `RCV20220729001` and `RAN42204` two types of receving idno.
+         */
+        receiveIdno: string,
+    }): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/{receive_idno}',
@@ -77,12 +77,12 @@ receiveIdno: string,
      * @throws ApiError
      */
     public static updateReceive({
-receiveIdno,
-memo,
-}: {
-receiveIdno: string,
-memo?: (string | null),
-}): CancelablePromise<ReceiveRead> {
+        receiveIdno,
+        memo,
+    }: {
+        receiveIdno: string,
+        memo?: (string | null),
+    }): CancelablePromise<ReceiveRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/receives/{receive_idno}',
@@ -104,10 +104,10 @@ memo?: (string | null),
      * @throws ApiError
      */
     public static getReceivesByStMbrIdno({
-stMbrIdno,
-}: {
-stMbrIdno: string,
-}): CancelablePromise<Array<ReceiveRead>> {
+        stMbrIdno,
+    }: {
+        stMbrIdno: string,
+    }): CancelablePromise<Array<ReceiveRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/mbr/{st_mbr_idno}',
@@ -127,14 +127,14 @@ stMbrIdno: string,
      * @throws ApiError
      */
     public static getReceiveItemLabels({
-receiveIdno,
-receiveItemId,
-printer = 'weasyprint',
-}: {
-receiveIdno: string,
-receiveItemId: number,
-printer?: Printer,
-}): CancelablePromise<any> {
+        receiveIdno,
+        receiveItemId,
+        printer = 'weasyprint',
+    }: {
+        receiveIdno: string,
+        receiveItemId: number,
+        printer?: Printer,
+    }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/receives/{receive_idno}/{receive_item_id}/labels',

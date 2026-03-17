@@ -5,9 +5,9 @@
 export const $Body_batch_create_employee_accounts_from_csv = {
     properties: {
         file: {
-    type: 'binary',
-    isRequired: true,
-    format: 'binary',
-},
+            type: 'binary',
+            isRequired: true,
+            format: 'binary',
+        },
     },
 } as const;

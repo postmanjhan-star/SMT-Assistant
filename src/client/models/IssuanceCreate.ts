@@ -13,3 +13,4 @@ export type IssuanceCreate = {
     st_erp_production_department?: (string | null);
     st_erp_production_line?: (string | null);
 };
+

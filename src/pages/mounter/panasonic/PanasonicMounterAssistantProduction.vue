@@ -582,7 +582,12 @@ function onRollShortageModalUpdate(value: boolean) {
                   size="small"
                   @click="exitUnloadMode"
                 >
-                  退出換料模式
+                  {{ unloadModeType === 'force_single_slot' ? '退出⏏️單站卸除' : '退出🔄換料卸除' }}
+                </n-button>
+              </template>
+              <template v-else-if="isIpqcMode">
+                <n-button type="warning" size="small" @click="exitIpqcMode">
+                  退出🔍IPQC覆檢
                 </n-button>
               </template>
               <template v-else>

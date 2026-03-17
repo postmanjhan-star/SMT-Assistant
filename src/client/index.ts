@@ -16,6 +16,7 @@ export type { Body_upload_material_batch_file } from './models/Body_upload_mater
 export type { Body_upload_mounter_file } from './models/Body_upload_mounter_file';
 export type { Body_upload_panasonic_mounter_csv } from './models/Body_upload_panasonic_mounter_csv';
 export { CheckMaterialMatchEnum } from './models/CheckMaterialMatchEnum';
+export type { DepartmentOption } from './models/DepartmentOption';
 export type { EmployeeAccountCreate } from './models/EmployeeAccountCreate';
 export type { EmployeeAccountRead } from './models/EmployeeAccountRead';
 export type { EmployeeAccountUpdate } from './models/EmployeeAccountUpdate';
@@ -85,6 +86,7 @@ export type { ReceiveItemCreate } from './models/ReceiveItemCreate';
 export type { ReceiveItemRead } from './models/ReceiveItemRead';
 export type { ReceiveRead } from './models/ReceiveRead';
 export { ReceiveTypeEnum } from './models/ReceiveTypeEnum';
+export type { RoleOption } from './models/RoleOption';
 export type { SeastoneSmartRackCellCreateWithoutRackId } from './models/SeastoneSmartRackCellCreateWithoutRackId';
 export type { SeastoneSmartRackCellRead } from './models/SeastoneSmartRackCellRead';
 export type { SeastoneSmartRackCreate } from './models/SeastoneSmartRackCreate';
@@ -122,6 +124,7 @@ export { $Body_upload_material_batch_file } from './schemas/$Body_upload_materia
 export { $Body_upload_mounter_file } from './schemas/$Body_upload_mounter_file';
 export { $Body_upload_panasonic_mounter_csv } from './schemas/$Body_upload_panasonic_mounter_csv';
 export { $CheckMaterialMatchEnum } from './schemas/$CheckMaterialMatchEnum';
+export { $DepartmentOption } from './schemas/$DepartmentOption';
 export { $EmployeeAccountCreate } from './schemas/$EmployeeAccountCreate';
 export { $EmployeeAccountRead } from './schemas/$EmployeeAccountRead';
 export { $EmployeeAccountUpdate } from './schemas/$EmployeeAccountUpdate';
@@ -191,6 +194,7 @@ export { $ReceiveItemCreate } from './schemas/$ReceiveItemCreate';
 export { $ReceiveItemRead } from './schemas/$ReceiveItemRead';
 export { $ReceiveRead } from './schemas/$ReceiveRead';
 export { $ReceiveTypeEnum } from './schemas/$ReceiveTypeEnum';
+export { $RoleOption } from './schemas/$RoleOption';
 export { $SeastoneSmartRackCellCreateWithoutRackId } from './schemas/$SeastoneSmartRackCellCreateWithoutRackId';
 export { $SeastoneSmartRackCellRead } from './schemas/$SeastoneSmartRackCellRead';
 export { $SeastoneSmartRackCreate } from './schemas/$SeastoneSmartRackCreate';
@@ -220,12 +224,14 @@ export { $WorkflowSummaryMounterRead } from './schemas/$WorkflowSummaryMounterRe
 export { $WorkflowSummaryRead } from './schemas/$WorkflowSummaryRead';
 
 export { AccountsService } from './services/AccountsService';
+export { DepartmentsService } from './services/DepartmentsService';
 export { EpicorService } from './services/EpicorService';
 export { IssuancesService } from './services/IssuancesService';
 export { MaterialInventoriesService } from './services/MaterialInventoriesService';
 export { MaterialsService } from './services/MaterialsService';
 export { MeService } from './services/MeService';
 export { ReceivesService } from './services/ReceivesService';
+export { RolesService } from './services/RolesService';
 export { SeastoneService } from './services/SeastoneService';
 export { SessionService } from './services/SessionService';
 export { SmtService } from './services/SmtService';

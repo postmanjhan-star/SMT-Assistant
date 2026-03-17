@@ -21,3 +21,4 @@ export type IssuanceItemRead = {
     retain_qty?: string;
     picked: boolean;
 };
+

@@ -5,8 +5,8 @@
 export const $IssuanceUpdate = {
     properties: {
         memo: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
     },
 } as const;

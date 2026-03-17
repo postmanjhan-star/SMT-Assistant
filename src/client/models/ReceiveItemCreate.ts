@@ -9,3 +9,4 @@ export type ReceiveItemCreate = {
     qualify_qty: (number | string);
     st_barcodes?: Array<string>;
 };
+

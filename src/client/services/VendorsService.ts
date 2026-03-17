@@ -30,10 +30,10 @@ export class VendorsService {
      * @throws ApiError
      */
     public static createVendor({
-requestBody,
-}: {
-requestBody: VendorCreate,
-}): CancelablePromise<VendorRead> {
+        requestBody,
+    }: {
+        requestBody: VendorCreate,
+    }): CancelablePromise<VendorRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/vendors/',
@@ -51,10 +51,10 @@ requestBody: VendorCreate,
      * @throws ApiError
      */
     public static getVendor({
-idno,
-}: {
-idno: string,
-}): CancelablePromise<VendorRead> {
+        idno,
+    }: {
+        idno: string,
+    }): CancelablePromise<VendorRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/vendors/{idno}',
@@ -73,12 +73,12 @@ idno: string,
      * @throws ApiError
      */
     public static updateVendor({
-id,
-requestBody,
-}: {
-id: number,
-requestBody: VendorUpdate,
-}): CancelablePromise<VendorRead> {
+        id,
+        requestBody,
+    }: {
+        id: number,
+        requestBody: VendorUpdate,
+    }): CancelablePromise<VendorRead> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/vendors/{id}',

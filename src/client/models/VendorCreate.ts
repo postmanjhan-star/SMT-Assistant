@@ -8,3 +8,4 @@ export type VendorCreate = {
     name: string;
     tax_idno: (string | null);
 };
+

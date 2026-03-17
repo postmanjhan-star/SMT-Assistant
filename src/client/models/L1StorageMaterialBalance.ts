@@ -12,3 +12,4 @@ export type L1StorageMaterialBalance = {
     material_idno: string;
     balance: string;
 };
+

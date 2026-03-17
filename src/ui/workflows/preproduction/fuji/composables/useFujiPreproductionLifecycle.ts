@@ -5,14 +5,33 @@ import {
   CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
   MaterialOperationTypeEnum,
+  UnfeedMaterialTypeEnum,
   ProduceTypeEnum,
+  SmtService,
   type BoardSideEnum,
   type FujiMounterItemStatCreate,
+  type UnfeedReasonEnum,
 } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { startFujiProduction } from "@/application/fuji/production/StartFujiProduction"
 import { stopFujiProduction } from "@/application/fuji/production/StopFujiProduction"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
+
+export type FujiUnloadRecord = {
+  slot: number
+  stage: string
+  materialPackCode: string
+  unfeedReason?: string | null
+  operationTime: string
+}
+
+export type FujiSpliceRecord = {
+  slot: number
+  stage: string
+  materialPackCode: string
+  correctState: CheckMaterialMatchEnum
+  operationTime: string
+}
 
 export type UseFujiPreproductionLifecycleOptions = {
   rowData: Ref<FujiMounterRowModel[]>
@@ -20,6 +39,9 @@ export type UseFujiPreproductionLifecycleOptions = {
   productIdno: Ref<string>
   boardSide: Ref<BoardSideEnum>
   isTestingMode: Ref<boolean>
+  getPendingUnloadRecords?: () => FujiUnloadRecord[]
+  onUnloadUploaded?: (ok: boolean) => void
+  getPendingSpliceRecords?: () => FujiSpliceRecord[]
 }
 
 type FujiStartStatPayload = FujiMounterItemStatCreate & {
@@ -62,13 +84,81 @@ export function useFujiPreproductionLifecycle(
 
       const response = await startFujiProduction(payload)
 
-      if (response && response.length > 0 && response[0].uuid) {
-        showSuccess("開始生產，資料已上傳")
-        handleProductionStarted(response[0].uuid)
+      if (!response || response.length === 0 || !response[0].uuid) {
+        showError("開始生產失敗，後端未回傳生產ID")
         return
       }
 
-      showError("開始生產失敗，後端未回傳生產ID")
+      const statMap = new Map<string, (typeof response)[0]>()
+      response.forEach((stat) => {
+        const key = `${stat.slot_idno}-${stat.sub_slot_idno}`
+        statMap.set(key, stat)
+      })
+
+      const unloadRecords = options.getPendingUnloadRecords?.() ?? []
+      if (unloadRecords.length > 0) {
+        const uploads = unloadRecords
+          .map((record) => {
+            const key = `${record.slot}-${record.stage}`
+            const stat = statMap.get(key)
+            if (!stat) return null
+            return SmtService.addFujiMounterItemStatRoll({
+              requestBody: {
+                stat_item_id: stat.id,
+                operator_id: null,
+                operation_time: record.operationTime,
+                slot_idno: String(record.slot),
+                sub_slot_idno: record.stage,
+                material_pack_code: record.materialPackCode,
+                operation_type: MaterialOperationTypeEnum.UNFEED,
+                unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
+                unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
+                check_pack_code_match: null,
+              },
+            })
+          })
+          .filter(Boolean)
+
+        try {
+          await Promise.all(uploads)
+          options.onUnloadUploaded?.(true)
+        } catch {
+          options.onUnloadUploaded?.(false)
+        }
+      }
+
+      const spliceRecords = options.getPendingSpliceRecords?.() ?? []
+      if (spliceRecords.length > 0) {
+        const spliceUploads = spliceRecords
+          .map((record) => {
+            const key = `${record.slot}-${record.stage}`
+            const stat = statMap.get(key)
+            if (!stat) return null
+            return SmtService.addFujiMounterItemStatRoll({
+              requestBody: {
+                stat_item_id: stat.id,
+                operator_id: null,
+                operation_time: record.operationTime,
+                slot_idno: String(record.slot),
+                sub_slot_idno: record.stage,
+                material_pack_code: record.materialPackCode,
+                operation_type: MaterialOperationTypeEnum.FEED,
+                feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+                check_pack_code_match: record.correctState,
+                unfeed_reason: null,
+              },
+            })
+          })
+          .filter(Boolean)
+        try {
+          await Promise.all(spliceUploads)
+        } catch {
+          // non-fatal; production already started
+        }
+      }
+
+      showSuccess("開始生產，資料已上傳")
+      handleProductionStarted(response[0].uuid)
     } catch (error) {
       console.error("upload failed: ", error)
       showError("資料上傳失敗")

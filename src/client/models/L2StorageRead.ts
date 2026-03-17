@@ -11,3 +11,4 @@ export type L2StorageRead = {
     name: string;
     seastone_smart_rack_cell?: (SeastoneSmartRackCellRead | null);
 };
+

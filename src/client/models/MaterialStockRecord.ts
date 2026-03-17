@@ -10,3 +10,4 @@ export type MaterialStockRecord = {
     delta_qty: string;
     cause: InventoryChangeCauseEnum;
 };
+

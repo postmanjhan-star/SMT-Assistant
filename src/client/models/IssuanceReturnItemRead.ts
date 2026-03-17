@@ -13,3 +13,4 @@ export type IssuanceReturnItemRead = {
     to_l2_storage_id: number;
     quantity: string;
 };
+

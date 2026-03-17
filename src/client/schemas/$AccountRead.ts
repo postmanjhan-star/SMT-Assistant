@@ -5,8 +5,8 @@
 export const $AccountRead = {
     properties: {
         username: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
     },
 } as const;

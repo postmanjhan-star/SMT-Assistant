@@ -14,3 +14,4 @@ export type RawMaterialUpdate = {
     qty_per_pack: (number | string);
     expiry_days: number;
 };
+

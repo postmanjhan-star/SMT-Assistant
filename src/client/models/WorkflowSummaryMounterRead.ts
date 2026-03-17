@@ -11,3 +11,4 @@ export type WorkflowSummaryMounterRead = {
     machine_idno: string;
     produce_mode: ProduceTypeEnum;
 };
+

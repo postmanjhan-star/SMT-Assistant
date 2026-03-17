@@ -15,3 +15,4 @@ export type ProductCreate = {
     qty_per_pack?: (number | string);
     expiry_days?: number;
 };
+

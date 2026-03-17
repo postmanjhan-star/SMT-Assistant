@@ -16,3 +16,4 @@ export type RawMaterialRead = {
     qty_per_pack: string;
     expiry_days: number;
 };
+

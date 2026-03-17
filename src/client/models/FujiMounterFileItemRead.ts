@@ -17,3 +17,4 @@ export type FujiMounterFileItemRead = {
     status: string;
     tray_direction: number;
 };
+

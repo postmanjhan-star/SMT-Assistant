@@ -14,3 +14,4 @@ export type ReceiveCreate = {
     st_mbr_idno: (string | null);
     receive_items: Array<ReceiveItemCreate>;
 };
+

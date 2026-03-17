@@ -16,12 +16,12 @@ export class WorkflowService {
      * @throws ApiError
      */
     public static getSummariesOfWorkflows({
-skip,
-limit,
-}: {
-skip?: (number | null),
-limit?: (number | null),
-}): CancelablePromise<Array<WorkflowSummaryRead>> {
+        skip,
+        limit,
+    }: {
+        skip?: (number | null),
+        limit?: (number | null),
+    }): CancelablePromise<Array<WorkflowSummaryRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/workflow/summaries',
@@ -41,10 +41,10 @@ limit?: (number | null),
      * @throws ApiError
      */
     public static getTheWorkflowInstanceTaskTreeByUuid({
-uuid,
-}: {
-uuid: string,
-}): CancelablePromise<any> {
+        uuid,
+    }: {
+        uuid: string,
+    }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/workflow/workflow-instance/{uuid}/task-tree',
@@ -63,10 +63,10 @@ uuid: string,
      * @throws ApiError
      */
     public static getTheWorkflowInstanceTasksByUuid({
-uuid,
-}: {
-uuid: string,
-}): CancelablePromise<any> {
+        uuid,
+    }: {
+        uuid: string,
+    }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/workflow/workflow-instance/{uuid}/tasks',
@@ -85,10 +85,10 @@ uuid: string,
      * @throws ApiError
      */
     public static getTheWorkflowInstanceByUuid({
-uuid,
-}: {
-uuid: string,
-}): CancelablePromise<any> {
+        uuid,
+    }: {
+        uuid: string,
+    }): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/workflow/workflow-instance/{uuid}',

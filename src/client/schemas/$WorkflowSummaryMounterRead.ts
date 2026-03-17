@@ -5,20 +5,20 @@
 export const $WorkflowSummaryMounterRead = {
     properties: {
         work_order_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         product_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         machine_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         produce_mode: {
-    type: 'ProduceTypeEnum',
-    isRequired: true,
-},
+            type: 'ProduceTypeEnum',
+            isRequired: true,
+        },
     },
 } as const;

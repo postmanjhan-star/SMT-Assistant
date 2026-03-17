@@ -1,5 +1,5 @@
 /** 設為 true 可在不加 URL 參數的情況下直接啟用 mock scan（僅 DEV build 有效） */
-export const MOCK_SCAN_ENABLED = false
+export const MOCK_SCAN_ENABLED = true
 
 import { ApiError } from '@/client'
 import type { ApiRequestOptions } from '@/client/core/ApiRequestOptions'

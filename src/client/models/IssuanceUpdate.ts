@@ -6,3 +6,4 @@
 export type IssuanceUpdate = {
     memo: string;
 };
+

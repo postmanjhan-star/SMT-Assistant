@@ -10,3 +10,4 @@ export type SmtMaterialInventory = {
     material_idno: string;
     material_name: string;
 };
+

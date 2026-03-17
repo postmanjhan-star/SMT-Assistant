@@ -5,22 +5,22 @@
 export const $VendorCreate = {
     properties: {
         idno: {
-    type: 'string',
-    isRequired: true,
-    minLength: 1,
-},
+            type: 'string',
+            isRequired: true,
+            minLength: 1,
+        },
         name: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         tax_idno: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
-    isRequired: true,
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+            }, {
+                type: 'null',
+            }],
+            isRequired: true,
+        },
     },
 } as const;

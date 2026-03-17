@@ -18,3 +18,4 @@ export type EpicorReceiveDetail = {
     NumLabels: number;
     ReceivedQty: number;
 };
+

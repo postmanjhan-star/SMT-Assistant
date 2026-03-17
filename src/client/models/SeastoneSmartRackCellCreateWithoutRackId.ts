@@ -7,3 +7,4 @@ export type SeastoneSmartRackCellCreateWithoutRackId = {
     cell_idno: string;
     side: number;
 };
+

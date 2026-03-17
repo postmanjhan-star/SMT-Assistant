@@ -37,10 +37,10 @@ export class IssuancesService {
      * @throws ApiError
      */
     public static getIssuance({
-issuanceIdno,
-}: {
-issuanceIdno: string,
-}): CancelablePromise<IssuanceRead> {
+        issuanceIdno,
+    }: {
+        issuanceIdno: string,
+    }): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/issuances/{issuance_idno}',
@@ -59,12 +59,12 @@ issuanceIdno: string,
      * @throws ApiError
      */
     public static updateIssuance({
-issuanceIdno,
-requestBody,
-}: {
-issuanceIdno: string,
-requestBody: IssuanceUpdate,
-}): CancelablePromise<IssuanceRead> {
+        issuanceIdno,
+        requestBody,
+    }: {
+        issuanceIdno: string,
+        requestBody: IssuanceUpdate,
+    }): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/issuances/{issuance_idno}',
@@ -85,10 +85,10 @@ requestBody: IssuanceUpdate,
      * @throws ApiError
      */
     public static createIssuance({
-requestBody,
-}: {
-requestBody: IssuanceCreate,
-}): CancelablePromise<IssuanceRead> {
+        requestBody,
+    }: {
+        requestBody: IssuanceCreate,
+    }): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/create',
@@ -107,12 +107,12 @@ requestBody: IssuanceCreate,
      * @throws ApiError
      */
     public static createIssuanceItems({
-issuanceIdno,
-requestBody,
-}: {
-issuanceIdno: string,
-requestBody: Array<IssuanceItemCreate>,
-}): CancelablePromise<Array<IssuanceItemRead>> {
+        issuanceIdno,
+        requestBody,
+    }: {
+        issuanceIdno: string,
+        requestBody: Array<IssuanceItemCreate>,
+    }): CancelablePromise<Array<IssuanceItemRead>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/create_items',
@@ -134,12 +134,12 @@ requestBody: Array<IssuanceItemCreate>,
      * @throws ApiError
      */
     public static addIssuanceItem({
-issuanceIdno,
-requestBody,
-}: {
-issuanceIdno: string,
-requestBody: IssuanceItemCreate,
-}): CancelablePromise<IssuanceItemRead> {
+        issuanceIdno,
+        requestBody,
+    }: {
+        issuanceIdno: string,
+        requestBody: IssuanceItemCreate,
+    }): CancelablePromise<IssuanceItemRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/add_item',
@@ -160,12 +160,12 @@ requestBody: IssuanceItemCreate,
      * @throws ApiError
      */
     public static removeItem({
-issuanceItemId,
-issuanceIdno,
-}: {
-issuanceItemId: number,
-issuanceIdno: string,
-}): CancelablePromise<boolean> {
+        issuanceItemId,
+        issuanceIdno,
+    }: {
+        issuanceItemId: number,
+        issuanceIdno: string,
+    }): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/issuances/{issuance_idno}/{issuance_item_id}',
@@ -185,14 +185,14 @@ issuanceIdno: string,
      * @throws ApiError
      */
     public static updateIssuanceItem({
-issuanceItemId,
-issuanceIdno,
-requestBody,
-}: {
-issuanceItemId: number,
-issuanceIdno: string,
-requestBody: IssuanceItemUpdate,
-}): CancelablePromise<IssuanceItemRead> {
+        issuanceItemId,
+        issuanceIdno,
+        requestBody,
+    }: {
+        issuanceItemId: number,
+        issuanceIdno: string,
+        requestBody: IssuanceItemUpdate,
+    }): CancelablePromise<IssuanceItemRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/{issuance_item_id}',
@@ -215,12 +215,12 @@ requestBody: IssuanceItemUpdate,
      * @throws ApiError
      */
     public static pickMaterialInventory({
-materialInventoryIdno,
-issuanceIdno,
-}: {
-materialInventoryIdno: string,
-issuanceIdno: string,
-}): CancelablePromise<boolean> {
+        materialInventoryIdno,
+        issuanceIdno,
+    }: {
+        materialInventoryIdno: string,
+        issuanceIdno: string,
+    }): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/pick_material_inventory/{material_inventory_idno}',
@@ -240,10 +240,10 @@ issuanceIdno: string,
      * @throws ApiError
      */
     public static pickIssuance({
-issuanceIdno,
-}: {
-issuanceIdno: string,
-}): CancelablePromise<IssuanceRead> {
+        issuanceIdno,
+    }: {
+        issuanceIdno: string,
+    }): CancelablePromise<IssuanceRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/pick_issuance',
@@ -262,10 +262,10 @@ issuanceIdno: string,
      * @throws ApiError
      */
     public static getMaterialIssuableBalance({
-materialIdno,
-}: {
-materialIdno: string,
-}): CancelablePromise<string> {
+        materialIdno,
+    }: {
+        materialIdno: string,
+    }): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/issuances/issuable_balance/{material_idno}',
@@ -284,10 +284,10 @@ materialIdno: string,
      * @throws ApiError
      */
     public static getIssuableMaterialInventories({
-materialIdno,
-}: {
-materialIdno: string,
-}): CancelablePromise<Array<MaterialInventoryRead>> {
+        materialIdno,
+    }: {
+        materialIdno: string,
+    }): CancelablePromise<Array<MaterialInventoryRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/issuances/issuable_material_inventories/{material_idno}',
@@ -307,12 +307,12 @@ materialIdno: string,
      * @throws ApiError
      */
     public static lightUpIssuanceSmartRackCells({
-issuanceIdno,
-ledColor = 4,
-}: {
-issuanceIdno: string,
-ledColor?: LedColorEnum,
-}): CancelablePromise<boolean> {
+        issuanceIdno,
+        ledColor = 4,
+    }: {
+        issuanceIdno: string,
+        ledColor?: LedColorEnum,
+    }): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuances/{issuance_idno}/light-up',
@@ -346,10 +346,10 @@ ledColor?: LedColorEnum,
      * @throws ApiError
      */
     public static createIssuanceReturn({
-requestBody,
-}: {
-requestBody: IssuanceReturnCreate,
-}): CancelablePromise<IssuanceReturnRead> {
+        requestBody,
+    }: {
+        requestBody: IssuanceReturnCreate,
+    }): CancelablePromise<IssuanceReturnRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/issuance_returns/',

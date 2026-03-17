@@ -8,12 +8,19 @@ import {
 import { FujiMounterGridAdapter } from "@/ui/workflows/preproduction/fuji/FujiMounterGridAdapter"
 import { createFujiPreproductionGridOptions } from "@/ui/workflows/preproduction/fuji/createFujiPreproductionGridOptions"
 import { useFujiPreproductionData } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionData"
-import { useFujiPreproductionLifecycle } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
+import {
+  useFujiPreproductionLifecycle,
+  type FujiUnloadRecord,
+  type FujiSpliceRecord,
+} from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
 import { useFujiPreproductionSlotFlow } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionSlotFlow"
 import { useAuthStore } from "@/stores/authStore"
 
 export type FujiDetailPageOptions = {
   focusSlotInput?: () => void
+  getPendingUnloadRecords?: () => FujiUnloadRecord[]
+  onUnloadUploaded?: (ok: boolean) => void
+  getPendingSpliceRecords?: () => FujiSpliceRecord[]
 }
 
 export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
@@ -36,6 +43,9 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     productIdno,
     boardSide,
     isTestingMode,
+    getPendingUnloadRecords: options.getPendingUnloadRecords,
+    onUnloadUploaded: options.onUnloadUploaded,
+    getPendingSpliceRecords: options.getPendingSpliceRecords,
   })
 
   const gridAdapter = shallowRef<FujiMounterGridAdapter<FujiMounterRowModel> | null>(null)
@@ -79,6 +89,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     scanMaterial: slotFlow.scanMaterial,
     handleMaterialMatched: slotFlow.handleMaterialMatched,
     handleMaterialError: slotFlow.handleMaterialError,
+    resetMaterialState: slotFlow.resetMaterialState,
     handleSlotSubmit: slotFlow.handleSlotSubmit,
     showError: slotFlow.showError,
   }

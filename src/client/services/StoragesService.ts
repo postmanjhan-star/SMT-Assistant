@@ -35,10 +35,10 @@ export class StoragesService {
      * @throws ApiError
      */
     public static createStorage({
-requestBody,
-}: {
-requestBody: StorageCreate,
-}): CancelablePromise<StorageRead> {
+        requestBody,
+    }: {
+        requestBody: StorageCreate,
+    }): CancelablePromise<StorageRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/storages/',
@@ -56,10 +56,10 @@ requestBody: StorageCreate,
      * @throws ApiError
      */
     public static getStorage({
-l1Id,
-}: {
-l1Id: number,
-}): CancelablePromise<StorageRead> {
+        l1Id,
+    }: {
+        l1Id: number,
+    }): CancelablePromise<StorageRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/storages/{l1_id}',
@@ -78,12 +78,12 @@ l1Id: number,
      * @throws ApiError
      */
     public static updateL1Storage({
-l1Id,
-requestBody,
-}: {
-l1Id: number,
-requestBody: L1StorageUpdate,
-}): CancelablePromise<StorageRead> {
+        l1Id,
+        requestBody,
+    }: {
+        l1Id: number,
+        requestBody: L1StorageUpdate,
+    }): CancelablePromise<StorageRead> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/storages/{l1_id}',
@@ -104,14 +104,14 @@ requestBody: L1StorageUpdate,
      * @throws ApiError
      */
     public static updateL2Storage({
-l1Id,
-l2Id,
-requestBody,
-}: {
-l1Id: number,
-l2Id: number,
-requestBody: L2StorageUpdate,
-}): CancelablePromise<L2StorageRead> {
+        l1Id,
+        l2Id,
+        requestBody,
+    }: {
+        l1Id: number,
+        l2Id: number,
+        requestBody: L2StorageUpdate,
+    }): CancelablePromise<L2StorageRead> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/storages/{l1_id}/{l2_id}',
@@ -133,12 +133,12 @@ requestBody: L2StorageUpdate,
      * @throws ApiError
      */
     public static createL2Storage({
-l1Id,
-requestBody,
-}: {
-l1Id: number,
-requestBody: L2StorageCreate,
-}): CancelablePromise<L2StorageRead> {
+        l1Id,
+        requestBody,
+    }: {
+        l1Id: number,
+        requestBody: L2StorageCreate,
+    }): CancelablePromise<L2StorageRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/storages/{l1_id}/create-l2-storage',
@@ -159,10 +159,10 @@ requestBody: L2StorageCreate,
      * @throws ApiError
      */
     public static getStorageMaterialsBalance({
-l1Id,
-}: {
-l1Id: number,
-}): CancelablePromise<Array<L1StorageMaterialBalance>> {
+        l1Id,
+    }: {
+        l1Id: number,
+    }): CancelablePromise<Array<L1StorageMaterialBalance>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/storages/{l1_id}/materials',
@@ -181,10 +181,10 @@ l1Id: number,
      * @throws ApiError
      */
     public static batchMoveL2Storages({
-requestBody,
-}: {
-requestBody: L2StorageBatchMove,
-}): CancelablePromise<boolean> {
+        requestBody,
+    }: {
+        requestBody: L2StorageBatchMove,
+    }): CancelablePromise<boolean> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/storages/batch-move-l2-storage',

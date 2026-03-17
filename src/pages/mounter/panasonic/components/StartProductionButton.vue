@@ -13,11 +13,30 @@ import {
     MachineSideEnum,
     FeedMaterialTypeEnum,
     MaterialOperationTypeEnum,
-    SmtMaterialInventory
+    UnfeedMaterialTypeEnum,
+    UnfeedReasonEnum,
+    SmtMaterialInventory,
+    SmtService,
 } from '@/client';
 import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
 
 type CorrectState = 'true' | 'false' | 'warning'
+
+type PanasonicUnloadRecord = {
+    slotIdno: string
+    subSlotIdno?: string | null
+    materialPackCode: string
+    unfeedReason?: string | null
+    operationTime: string
+}
+
+type PanasonicSpliceRecord = {
+    slotIdno: string
+    subSlotIdno?: string | null
+    materialPackCode: string
+    correctState: 'true' | 'warning'
+    operationTime: string
+}
 
 type RowModel = {
     correct: CorrectState | null,
@@ -44,10 +63,18 @@ const props = defineProps({
     productIdno: String,
     mounterIdno: String,
     machineSideQuery: String,
-    workSheetSideQuery: String
+    workSheetSideQuery: String,
+    pendingUnloadRecords: {
+        type: Array as () => PanasonicUnloadRecord[],
+        default: () => [],
+    },
+    pendingSpliceRecords: {
+        type: Array as () => PanasonicSpliceRecord[],
+        default: () => [],
+    },
 })
 
-const emit = defineEmits(['started', 'error'])
+const emit = defineEmits(['started', 'error', 'unload-uploaded'])
 
 
 const productionStatUuid = ref()
@@ -147,6 +174,67 @@ async function startProductionUpload(rows?: RowModel[]) {
             const key = makeSlotKey(stat.slot_idno, stat.sub_slot_idno)
             statMap.set(key, stat)
         })
+
+        const unloadRecords = props.pendingUnloadRecords ?? []
+        if (unloadRecords.length > 0) {
+            const uploads = unloadRecords
+                .map((record) => {
+                    const key = makeSlotKey(record.slotIdno, record.subSlotIdno)
+                    const stat = statMap.get(key)
+                    if (!stat) return null
+                    return SmtService.addPanasonicMounterItemStatRoll({
+                        requestBody: {
+                            stat_item_id: stat.id,
+                            operator_id: null,
+                            operation_time: record.operationTime,
+                            slot_idno: record.slotIdno,
+                            sub_slot_idno: record.subSlotIdno ?? null,
+                            material_pack_code: record.materialPackCode,
+                            operation_type: MaterialOperationTypeEnum.UNFEED,
+                            unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
+                            unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
+                            check_pack_code_match: null,
+                        },
+                    })
+                })
+                .filter(Boolean)
+            try {
+                await Promise.all(uploads)
+                emit('unload-uploaded', true)
+            } catch {
+                emit('unload-uploaded', false)
+            }
+        }
+
+        const spliceRecords = props.pendingSpliceRecords ?? []
+        if (spliceRecords.length > 0) {
+            const spliceUploads = spliceRecords
+                .map((record) => {
+                    const key = makeSlotKey(record.slotIdno, record.subSlotIdno)
+                    const stat = statMap.get(key)
+                    if (!stat) return null
+                    return SmtService.addPanasonicMounterItemStatRoll({
+                        requestBody: {
+                            stat_item_id: stat.id,
+                            operator_id: null,
+                            operation_time: record.operationTime,
+                            slot_idno: record.slotIdno,
+                            sub_slot_idno: record.subSlotIdno ?? null,
+                            material_pack_code: record.materialPackCode,
+                            operation_type: MaterialOperationTypeEnum.FEED,
+                            feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+                            check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
+                            unfeed_reason: null,
+                        },
+                    })
+                })
+                .filter(Boolean)
+            try {
+                await Promise.all(spliceUploads)
+            } catch {
+                // non-fatal; production already started
+            }
+        }
 
         emit('started', productionStatUuid.value)
 

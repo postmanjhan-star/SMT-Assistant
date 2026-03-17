@@ -14,3 +14,4 @@ export type STPart = {
     maker_part_idno: string;
     part_type: number;
 };
+

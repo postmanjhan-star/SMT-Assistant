@@ -16,3 +16,4 @@ export type InProcessMaterialRead = {
     qty_per_pack: string;
     expiry_days: number;
 };
+

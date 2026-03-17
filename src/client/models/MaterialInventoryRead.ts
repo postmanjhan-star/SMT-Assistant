@@ -20,3 +20,4 @@ export type MaterialInventoryRead = {
     date_of_expiry: string;
     st_barcode: (string | null);
 };
+

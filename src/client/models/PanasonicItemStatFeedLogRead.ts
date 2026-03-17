@@ -33,3 +33,4 @@ export type PanasonicItemStatFeedLogRead = {
     produce_mode: ProduceTypeEnum;
     check_pack_code_match: (CheckMaterialMatchEnum | null);
 };
+

@@ -23,3 +23,4 @@ export type IssuanceRead = {
     st_erp_production_department?: (string | null);
     st_erp_production_line?: (string | null);
 };
+

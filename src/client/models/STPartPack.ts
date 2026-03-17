@@ -14,3 +14,4 @@ export type STPartPack = {
     vendor_idno: string;
     manufacturing_date: (string | null);
 };
+

@@ -12,3 +12,4 @@ export type StorageCreate = {
     type?: StorageTypeEnum;
     l2_storages: Array<L2StorageCreate>;
 };
+

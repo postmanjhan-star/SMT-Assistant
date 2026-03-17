@@ -22,12 +22,12 @@ export class MaterialInventoriesService {
      * @throws ApiError
      */
     public static getMaterialInventoriesLabel({
-materialInventoryIdnos,
-printer = 'weasyprint',
-}: {
-materialInventoryIdnos: Array<string>,
-printer?: Printer,
-}): CancelablePromise<any | Blob> {
+        materialInventoryIdnos,
+        printer = 'weasyprint',
+    }: {
+        materialInventoryIdnos: Array<string>,
+        printer?: Printer,
+    }): CancelablePromise<any | Blob> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/labels',
@@ -47,13 +47,13 @@ printer?: Printer,
      * @throws ApiError
      */
     public static getMaterialInventory({
-materialInventoryIdno,
-}: {
-/**
- * Accept `MINV20220729001` and `A3628191` types.
- */
-materialInventoryIdno: string,
-}): CancelablePromise<MaterialInventoryRead> {
+        materialInventoryIdno,
+    }: {
+        /**
+         * Accept `MINV20220729001` and `A3628191` types.
+         */
+        materialInventoryIdno: string,
+    }): CancelablePromise<MaterialInventoryRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/{material_inventory_idno}',
@@ -72,12 +72,12 @@ materialInventoryIdno: string,
      * @throws ApiError
      */
     public static getMaterialInventoryInStockBalance({
-materialInventoryId,
-onlyIssuable = false,
-}: {
-materialInventoryId: number,
-onlyIssuable?: boolean,
-}): CancelablePromise<string> {
+        materialInventoryId,
+        onlyIssuable = false,
+    }: {
+        materialInventoryId: number,
+        onlyIssuable?: boolean,
+    }): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/{material_inventory_id}/balance/in-stock',
@@ -99,10 +99,10 @@ onlyIssuable?: boolean,
      * @throws ApiError
      */
     public static getMaterialInventoryBalances({
-materialInventoryIdno,
-}: {
-materialInventoryIdno: string,
-}): CancelablePromise<Array<MaterialInventoryBalancesRead>> {
+        materialInventoryIdno,
+    }: {
+        materialInventoryIdno: string,
+    }): CancelablePromise<Array<MaterialInventoryBalancesRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/material_inventories/{material_inventory_idno}/balances',
@@ -121,18 +121,18 @@ materialInventoryIdno: string,
      * @throws ApiError
      */
     public static transferMaterialInventory({
-materialInventoryId,
-fromL2StorageId,
-cause,
-requestBody,
-checkSourceBalance = false,
-}: {
-materialInventoryId: number,
-fromL2StorageId: number,
-cause: InventoryChangeCauseEnum,
-requestBody: Array<MaterialInventoryTransferCreate>,
-checkSourceBalance?: boolean,
-}): CancelablePromise<Array<MaterialInventoryRecordRead>> {
+        materialInventoryId,
+        fromL2StorageId,
+        cause,
+        requestBody,
+        checkSourceBalance = false,
+    }: {
+        materialInventoryId: number,
+        fromL2StorageId: number,
+        cause: InventoryChangeCauseEnum,
+        requestBody: Array<MaterialInventoryTransferCreate>,
+        checkSourceBalance?: boolean,
+    }): CancelablePromise<Array<MaterialInventoryRecordRead>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/material_inventories/{material_inventory_id}/transfer',
@@ -158,18 +158,18 @@ checkSourceBalance?: boolean,
      * @throws ApiError
      */
     public static transferMaterialInventory1({
-stBarcode,
-fromL2StorageId,
-cause,
-requestBody,
-checkSourceBalance = false,
-}: {
-stBarcode: string,
-fromL2StorageId: number,
-cause: InventoryChangeCauseEnum,
-requestBody: Array<MaterialInventoryTransferCreate>,
-checkSourceBalance?: boolean,
-}): CancelablePromise<Array<MaterialInventoryRecordRead>> {
+        stBarcode,
+        fromL2StorageId,
+        cause,
+        requestBody,
+        checkSourceBalance = false,
+    }: {
+        stBarcode: string,
+        fromL2StorageId: number,
+        cause: InventoryChangeCauseEnum,
+        requestBody: Array<MaterialInventoryTransferCreate>,
+        checkSourceBalance?: boolean,
+    }): CancelablePromise<Array<MaterialInventoryRecordRead>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/material_inventories/{st_barcode}/transfer',
@@ -195,12 +195,12 @@ checkSourceBalance?: boolean,
      * @throws ApiError
      */
     public static splitMaterialInventory({
-materialInventoryIdno,
-childQuantity,
-}: {
-materialInventoryIdno: string,
-childQuantity: number,
-}): CancelablePromise<MaterialInventoryRead> {
+        materialInventoryIdno,
+        childQuantity,
+    }: {
+        materialInventoryIdno: string,
+        childQuantity: number,
+    }): CancelablePromise<MaterialInventoryRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/material_inventories/{material_inventory_idno}/split',

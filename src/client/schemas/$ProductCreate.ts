@@ -5,44 +5,44 @@
 export const $ProductCreate = {
     properties: {
         idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         material_type: {
-    type: 'MaterialTypeEnum',
-},
+            type: 'MaterialTypeEnum',
+        },
         name: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
-    isRequired: true,
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+            }, {
+                type: 'null',
+            }],
+            isRequired: true,
+        },
         description: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
-    isRequired: true,
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+            }, {
+                type: 'null',
+            }],
+            isRequired: true,
+        },
         unit: {
-    type: 'UnitEnum',
-    isRequired: true,
-},
+            type: 'UnitEnum',
+            isRequired: true,
+        },
         qty_per_pack: {
-    type: 'any-of',
-    contains: [{
-    type: 'number',
-}, {
-    type: 'string',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'number',
+            }, {
+                type: 'string',
+            }],
+        },
         expiry_days: {
-    type: 'number',
-},
+            type: 'number',
+        },
     },
 } as const;

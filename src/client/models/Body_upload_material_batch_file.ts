@@ -6,3 +6,4 @@
 export type Body_upload_material_batch_file = {
     file: Blob;
 };
+

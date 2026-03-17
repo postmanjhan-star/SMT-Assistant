@@ -20,12 +20,12 @@ export class AccountsService {
      * @throws ApiError
      */
     public static getRecentAccounts({
-offset,
-limit = 20,
-}: {
-offset?: number,
-limit?: number,
-}): CancelablePromise<Array<AccountRead>> {
+        offset,
+        limit = 20,
+    }: {
+        offset?: number,
+        limit?: number,
+    }): CancelablePromise<Array<AccountRead>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/accounts/',
@@ -45,10 +45,10 @@ limit?: number,
      * @throws ApiError
      */
     public static createEmployeeAccount({
-requestBody,
-}: {
-requestBody: EmployeeAccountCreate,
-}): CancelablePromise<AccountRead> {
+        requestBody,
+    }: {
+        requestBody: EmployeeAccountCreate,
+    }): CancelablePromise<AccountRead> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/',
@@ -66,10 +66,10 @@ requestBody: EmployeeAccountCreate,
      * @throws ApiError
      */
     public static batchCreateEmployeeAccounts({
-requestBody,
-}: {
-requestBody: Array<EmployeeAccountCreate>,
-}): CancelablePromise<Array<AccountRead>> {
+        requestBody,
+    }: {
+        requestBody: Array<EmployeeAccountCreate>,
+    }): CancelablePromise<Array<AccountRead>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/batch',
@@ -83,14 +83,23 @@ requestBody: Array<EmployeeAccountCreate>,
 
     /**
      * Batch Create Employee Accounts From Csv
+     * Import employees/accounts from a UTF-8 CSV.
+     *
+     * Required header order:
+     * username,password,role,full_name,department,idno,level
+     *
+     * Required fields: full_name, department, idno, level.
+     * If role is empty, it defaults to Operator.
+     * Example row:
+     * EMP001,ChangeMe123,Operator,Employee One,Production,E001,1
      * @returns AccountRead Successful Response
      * @throws ApiError
      */
     public static batchCreateEmployeeAccountsFromCsv({
-formData,
-}: {
-formData: Body_batch_create_employee_accounts_from_csv,
-}): CancelablePromise<Array<AccountRead>> {
+        formData,
+    }: {
+        formData: Body_batch_create_employee_accounts_from_csv,
+    }): CancelablePromise<Array<AccountRead>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/batch/csv',
@@ -103,15 +112,34 @@ formData: Body_batch_create_employee_accounts_from_csv,
     }
 
     /**
+     * Get Employee Accounts Csv Template
+     * Download the employee CSV template (UTF-8 with BOM).
+     *
+     * Header order:
+     * username,password,role,full_name,department,idno,level
+     *
+     * Example row:
+     * EMP001,ChangeMe123,Operator,Employee One,Production,E001,1
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getEmployeeAccountsCsvTemplate(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/accounts/batch/csv/template',
+        });
+    }
+
+    /**
      * Get Account Employee Information
      * @returns EmployeeAccountRead Successful Response
      * @throws ApiError
      */
     public static getAccountEmployeeInformation({
-idno,
-}: {
-idno: string,
-}): CancelablePromise<EmployeeAccountRead> {
+        idno,
+    }: {
+        idno: string,
+    }): CancelablePromise<EmployeeAccountRead> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/accounts/{idno}',
@@ -130,12 +158,12 @@ idno: string,
      * @throws ApiError
      */
     public static updateAccountEmployee({
-idno,
-requestBody,
-}: {
-idno: string,
-requestBody: EmployeeAccountUpdate,
-}): CancelablePromise<EmployeeAccountRead> {
+        idno,
+        requestBody,
+    }: {
+        idno: string,
+        requestBody: EmployeeAccountUpdate,
+    }): CancelablePromise<EmployeeAccountRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/accounts/{idno}',

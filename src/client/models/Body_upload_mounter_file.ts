@@ -7,3 +7,4 @@ export type Body_upload_mounter_file = {
     file: Blob;
     product_ver?: (string | null);
 };
+

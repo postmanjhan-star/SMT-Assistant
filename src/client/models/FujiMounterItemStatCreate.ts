@@ -33,3 +33,4 @@ export type FujiMounterItemStatCreate = {
     unfeed_reason?: (UnfeedReasonEnum | null);
     check_pack_code_match: (CheckMaterialMatchEnum | null);
 };
+

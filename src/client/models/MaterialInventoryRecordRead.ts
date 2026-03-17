@@ -16,3 +16,4 @@ export type MaterialInventoryRecordRead = {
     cause: InventoryChangeCauseEnum;
     issuance_item_id: (number | null);
 };
+

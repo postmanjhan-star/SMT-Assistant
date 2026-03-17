@@ -12,3 +12,4 @@ export type STWorkOrderItem = {
     shortage_quantity: number;
     production_position: string;
 };
+

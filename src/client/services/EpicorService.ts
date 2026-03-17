@@ -28,12 +28,12 @@ export class EpicorService {
      * @throws ApiError
      */
     public static getEpicorReceive({
-vendorNum,
-packSlip,
-}: {
-vendorNum: number,
-packSlip: string,
-}): CancelablePromise<EpicorReceive> {
+        vendorNum,
+        packSlip,
+    }: {
+        vendorNum: number,
+        packSlip: string,
+    }): CancelablePromise<EpicorReceive> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/epicor/receives/{vendor_num}/{pack_slip}',

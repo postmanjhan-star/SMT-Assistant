@@ -24,3 +24,4 @@ export type ReceiveRead = {
     receive_type: ReceiveTypeEnum;
     putaway_verification: boolean;
 };
+

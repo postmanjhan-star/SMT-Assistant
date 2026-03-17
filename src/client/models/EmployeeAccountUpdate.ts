@@ -8,3 +8,4 @@ export type EmployeeAccountUpdate = {
     password?: (string | null);
     roles?: (Array<string> | null);
 };
+

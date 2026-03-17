@@ -17,3 +17,4 @@ export type WorkflowSummaryRead = {
     mounter_type?: (MounterTypeEnum | null);
     mounter?: (WorkflowSummaryMounterRead | null);
 };
+

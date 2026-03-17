@@ -14,3 +14,4 @@ export type EpicorReceive = {
     VendorNumName: string;
     ReceiveDetails: (Array<EpicorReceiveDetail> | null);
 };
+

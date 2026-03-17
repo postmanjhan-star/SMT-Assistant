@@ -7,3 +7,4 @@ export type Body_upload_panasonic_mounter_csv = {
     file: Blob;
     product_ver: string;
 };
+

@@ -13,3 +13,4 @@ export type ReceiveItemRead = {
     purchase_idno: (string | null);
     st_receive_idno: (string | null);
 };
+

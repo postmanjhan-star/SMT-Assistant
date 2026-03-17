@@ -7,3 +7,4 @@ export type PanasonicMounterMaterialPackCreate = {
     panasonic_mounter_item_id: number;
     real_num: string;
 };
+

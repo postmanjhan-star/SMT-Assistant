@@ -13,3 +13,4 @@ export type FujiMounterFileReadLegacy = {
     board_side: string;
     fuji_mounter_file_items: Array<FujiMounterFileItemReadLegacy>;
 };
+

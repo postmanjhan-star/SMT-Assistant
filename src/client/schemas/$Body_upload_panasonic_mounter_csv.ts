@@ -5,13 +5,13 @@
 export const $Body_upload_panasonic_mounter_csv = {
     properties: {
         file: {
-    type: 'binary',
-    isRequired: true,
-    format: 'binary',
-},
+            type: 'binary',
+            isRequired: true,
+            format: 'binary',
+        },
         product_ver: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
     },
 } as const;

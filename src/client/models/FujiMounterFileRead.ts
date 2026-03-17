@@ -16,3 +16,4 @@ export type FujiMounterFileRead = {
     board_side: string;
     fuji_mounter_file_items: Array<FujiMounterFileItemRead>;
 };
+

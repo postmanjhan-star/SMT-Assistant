@@ -6,6 +6,7 @@ import type { GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
 import { ref, computed, watch, nextTick } from "vue"
 import { useMeta } from "vue-meta"
+import { useRoute } from "vue-router"
 
 import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
 import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
@@ -29,22 +30,29 @@ import {
   PANASONIC_MODE_NAME_NORMAL,
   PANASONIC_MODE_NAME_TESTING,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
+import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { SmtService } from "@/client"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { appendMaterialCode, removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
 
+const route = useRoute()
+const mockScan =
+  import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === "1")
+    ? createMockScan()
+    : undefined
+
 type StartProductionButtonHandle = {
   submit: (rows?: unknown[]) => Promise<void> | void
 }
 
-const OPERATION_MODE_NAME = "📥上料接料"
-
 const MATERIAL_UNLOAD_TRIGGER = "S5555"
 const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
+const MATERIAL_IPQC_TRIGGER = "S5588"
 const MATERIAL_UNLOAD_MODE_NAME = "🔄換料卸除"
 const MATERIAL_FORCE_UNLOAD_MODE_NAME = "⏏️單站卸除"
+const MATERIAL_IPQC_MODE_NAME = "🔍IPQC覆檢"
 const MATERIAL_FEED_MODE_NAME = "📥上料接料"
 
 const slotIdnoInput = ref<InputComponentHandle | null>(null)
@@ -131,6 +139,14 @@ type PanasonicUnloadRecord = {
   operationTime: string
 }
 
+type PanasonicSpliceRecord = {
+  slotIdno: string
+  subSlotIdno?: string | null
+  materialPackCode: string
+  correctState: "true" | "warning"
+  operationTime: string
+}
+
 type PanasonicCacheRow = {
   id?: number
   slotIdno?: string
@@ -147,6 +163,7 @@ type PanasonicCachePayload = {
   version: 1
   rows: PanasonicCacheRow[]
   unloadRecords?: PanasonicUnloadRecord[]
+  spliceRecords?: PanasonicSpliceRecord[]
   materialInventoryResult?: {
     success: boolean
     materialInventory?: { idno: string; remark?: string } | null
@@ -159,6 +176,7 @@ type PanasonicCachePayload = {
 }
 
 const isUnloadMode = ref(false)
+const isIpqcMode = ref(false)
 const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
 const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
 const unloadMaterialValue = ref("")
@@ -167,6 +185,7 @@ const resolvedUnloadSlotIdno = ref("")
 const replacementMaterialPackCode = ref("")
 const replacementCorrectState = ref<"true" | "warning" | null>(null)
 const pendingUnloadRecords = ref<PanasonicUnloadRecord[]>([])
+const pendingSpliceRecords = ref<PanasonicSpliceRecord[]>([])
 
 const operationModeName = computed(() => {
   if (isUnloadMode.value) {
@@ -174,6 +193,7 @@ const operationModeName = computed(() => {
       ? MATERIAL_FORCE_UNLOAD_MODE_NAME
       : MATERIAL_UNLOAD_MODE_NAME
   }
+  if (isIpqcMode.value) return MATERIAL_IPQC_MODE_NAME
   return MATERIAL_FEED_MODE_NAME
 })
 
@@ -281,6 +301,7 @@ function writeCache() {
       remark: row.remark ?? "",
     })),
     unloadRecords: pendingUnloadRecords.value,
+    spliceRecords: pendingSpliceRecords.value,
     materialInventoryResult: cachedMaterialResult,
     inputs: {
       material: materialInputValue.value,
@@ -359,6 +380,10 @@ function hydrateFromCache(key: string) {
     pendingUnloadRecords.value = cached.unloadRecords
   }
 
+  if (cached.spliceRecords) {
+    pendingSpliceRecords.value = cached.spliceRecords
+  }
+
   hydratedKey.value = key
 }
 
@@ -390,6 +415,7 @@ watch(
     materialInputValue,
     slotInputValue,
     pendingUnloadRecords,
+    pendingSpliceRecords,
   ],
   () => {
     persistNow()
@@ -414,6 +440,51 @@ async function onSlotSubmit(payload: {
   slot: string
   subSlot: string
 }) {
+  const targetRow = findRowBySlotIdno(payload.slotIdno)
+  const existingMaterial = String(targetRow?.materialInventoryIdno ?? "").trim()
+  const newPackCode = materialInventoryResult.value?.materialInventory?.idno?.trim()
+
+  if (targetRow && existingMaterial && newPackCode) {
+    const isMatched = materialInventoryResult.value?.matchedRows?.some(
+      (r) =>
+        r.slotIdno === payload.slot &&
+        (r.subSlotIdno ?? "") === (payload.subSlot ?? "")
+    )
+    let correctState: "true" | "warning"
+    if (isMatched) {
+      correctState = "true"
+    } else if (isTestingMode) {
+      correctState = "warning"
+    } else {
+      showError(`料號不符：無法對站位 ${payload.slotIdno} 進行接料`)
+      resetInputsAfterSlotSubmit()
+      return
+    }
+
+    targetRow.appendedMaterialInventoryIdno = appendMaterialCode(
+      targetRow.appendedMaterialInventoryIdno,
+      newPackCode
+    )
+    targetRow.operatorIdno = currentUsername.value || null
+    targetRow.firstAppendTime = targetRow.firstAppendTime ?? new Date().toISOString()
+    if (correctState === "warning") targetRow.remark = "[測試模式接料]"
+    updateRowInGrid(targetRow)
+
+    pendingSpliceRecords.value = [
+      ...pendingSpliceRecords.value,
+      {
+        slotIdno: targetRow.slotIdno,
+        subSlotIdno: targetRow.subSlotIdno ?? null,
+        materialPackCode: newPackCode,
+        correctState,
+        operationTime: new Date().toISOString(),
+      },
+    ]
+    resetInputsAfterSlotSubmit()
+    persistNow()
+    return
+  }
+
   try {
     return await handleSlotSubmitWithPolicy(payload)
   } finally {
@@ -622,14 +693,31 @@ function exitUnloadMode() {
   focusMaterialInput()
 }
 
+function enterIpqcMode() {
+  isIpqcMode.value = true
+  if (isUnloadMode.value) exitUnloadMode()
+}
+
+function exitIpqcMode() {
+  isIpqcMode.value = false
+  focusMaterialInput()
+}
+
 function handleModeTriggerFromNormalInput(code: string): boolean {
   if (code === MATERIAL_UNLOAD_TRIGGER) {
+    isIpqcMode.value = false
     enterUnloadMode("pack_auto_slot")
     return true
   }
 
   if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    isIpqcMode.value = false
     enterUnloadMode("force_single_slot")
+    return true
+  }
+
+  if (code === MATERIAL_IPQC_TRIGGER) {
+    isIpqcMode.value ? exitIpqcMode() : enterIpqcMode()
     return true
   }
 
@@ -637,6 +725,12 @@ function handleModeTriggerFromNormalInput(code: string): boolean {
 }
 
 function handleModeTriggerFromUnloadInput(code: string): boolean {
+  if (code === MATERIAL_IPQC_TRIGGER) {
+    exitUnloadMode()
+    enterIpqcMode()
+    return true
+  }
+
   if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
     exitUnloadMode()
     return true
@@ -944,29 +1038,44 @@ function onUnloadUploaded(ok: boolean) {
             />
 
             <n-space size="small">
-              <StartProductionButton
-                ref="startProductionBtnRef"
-                v-if="!productionStarted"
-                :is-testing-mode="isTestingMode"
-                :row-data="rowData"
-                :operator_id="currentUsername"
-                :work-order-idno="workOrderIdno"
-                :product-idno="productIdno"
-                :mounter-idno="mounterIdno"
-                :machine-side-query="machineSideQuery"
-                :work-sheet-side-query="workSheetSideQuery"
-                @started="handleProductionStarted"
-                @error="showError"
-              />
-              <n-button v-else type="error" size="small" @click="onStopProduction">
-                🛑 結束生產
-              </n-button>
-              <n-button type="warning" size="small" @click="onRollShortage" :disabled="!productionStarted">
-                ⚠️ 單捲不足
-              </n-button>
-              <n-button type="info" size="small" @click="onMaterialQuery" :disabled="!productionStarted">
-                🔍 接料查詢
-              </n-button>
+              <template v-if="isUnloadMode">
+                <n-button type="error" size="small" @click="exitUnloadMode">
+                  {{ unloadModeType === 'force_single_slot' ? '退出⏏️單站卸除' : '退出🔄換料卸除' }}
+                </n-button>
+              </template>
+              <template v-else-if="isIpqcMode">
+                <n-button type="warning" size="small" @click="exitIpqcMode">
+                  退出🔍IPQC覆檢
+                </n-button>
+              </template>
+              <template v-else>
+                <StartProductionButton
+                  ref="startProductionBtnRef"
+                  v-if="!productionStarted"
+                  :is-testing-mode="isTestingMode"
+                  :row-data="rowData"
+                  :operator_id="currentUsername"
+                  :work-order-idno="workOrderIdno"
+                  :product-idno="productIdno"
+                  :mounter-idno="mounterIdno"
+                  :machine-side-query="machineSideQuery"
+                  :work-sheet-side-query="workSheetSideQuery"
+                  :pending-unload-records="pendingUnloadRecords"
+                  :pending-splice-records="pendingSpliceRecords"
+                  @started="handleProductionStarted"
+                  @unload-uploaded="onUnloadUploaded"
+                  @error="showError"
+                />
+                <n-button v-else type="error" size="small" @click="onStopProduction">
+                  🛑 結束生產
+                </n-button>
+                <n-button type="warning" size="small" @click="onRollShortage" :disabled="!productionStarted">
+                  ⚠️ 單捲不足
+                </n-button>
+                <n-button type="info" size="small" @click="onMaterialQuery" :disabled="!productionStarted">
+                  🔍 接料查詢
+                </n-button>
+              </template>
             </n-space>
           </div>
         </template>
@@ -974,34 +1083,78 @@ function onUnloadUploaded(ok: boolean) {
     </template>
 
     <template #inputs>
-      <n-gi>
-        <MaterialInventoryBarcodeInput
-          v-model="materialInputValue"
-          :is-testing-mode="isTestingMode"
-          input-test-id="panasonic-main-material-input"
-          ref="materialInventoryInput"
-          :get-material-matched-rows="getMaterialMatchedRows"
-          @matched="handleMaterialMatched"
-          :reset-key="inputs.resetKey.value"
-          @error="showError"
-        />
-      </n-gi>
+      <!-- 換料模式 inputs -->
+      <template v-if="isUnloadMode">
+        <n-gi>
+          <div class="unload-mode-input">
+            <label class="input-label" for="detail-unload-material-input">
+              {{ unloadMaterialLabel }}
+            </label>
+            <input
+              id="detail-unload-material-input"
+              ref="unloadMaterialInput"
+              v-model="unloadMaterialValue"
+              type="text"
+              class="material-input"
+              :placeholder="unloadMaterialPlaceholder"
+              :disabled="isUnloadMaterialInputDisabled"
+              @keydown.enter.prevent="handleUnloadMaterialEnter"
+            />
+          </div>
+        </n-gi>
+        <n-gi>
+          <div class="unload-mode-input">
+            <label class="input-label" for="detail-unload-slot-input">
+              {{ unloadSlotLabel }}
+            </label>
+            <input
+              id="detail-unload-slot-input"
+              ref="unloadSlotInput"
+              v-model="unloadSlotValue"
+              type="text"
+              class="slot-input"
+              :placeholder="unloadSlotPlaceholder"
+              :disabled="isUnloadSlotInputDisabled"
+              @keydown.enter.prevent="handleUnloadSlotSubmit"
+            />
+          </div>
+        </n-gi>
+      </template>
 
-      <n-gi>
-        <SlotIdnoInput
-          v-model="slotInputValue"
-          :is-testing-mode="isTestingMode"
-          :has-material="inputs.hasMaterial.value"
-          :parse-slot-idno="parsePanasonicSlotIdno"
-          :reset-key="inputs.slotResetKey.value"
-          input-test-id="panasonic-main-slot-input"
-          ref="slotIdnoInput"
-          :key="inputs.slotResetKey.value"
-          @submit="onSlotSubmit"
-          @done="resetInputsAfterSlotSubmit"
-          @error="showError"
-        />
-      </n-gi>
+      <!-- 一般掃描 inputs -->
+      <template v-else>
+        <n-gi>
+          <MaterialInventoryBarcodeInput
+            v-model="materialInputValue"
+            :is-testing-mode="isTestingMode"
+            input-test-id="panasonic-main-material-input"
+            ref="materialInventoryInput"
+            :get-material-matched-rows="getMaterialMatchedRows"
+            :scan="mockScan"
+            :before-scan="handleBeforeMaterialScan"
+            @matched="handleMaterialMatched"
+            :reset-key="inputs.resetKey.value"
+            @error="showError"
+          />
+        </n-gi>
+
+        <n-gi>
+          <SlotIdnoInput
+            v-model="slotInputValue"
+            :is-testing-mode="isTestingMode"
+            :has-material="inputs.hasMaterial.value"
+            :parse-slot-idno="parsePanasonicSlotIdno"
+            :reset-key="inputs.slotResetKey.value"
+            input-test-id="panasonic-main-slot-input"
+            ref="slotIdnoInput"
+            :key="inputs.slotResetKey.value"
+            :before-submit="handleBeforeSlotSubmit"
+            @submit="onSlotSubmit"
+            @done="resetInputsAfterSlotSubmit"
+            @error="showError"
+          />
+        </n-gi>
+      </template>
     </template>
 
     <ag-grid-vue
@@ -1034,6 +1187,52 @@ function onUnloadUploaded(ok: boolean) {
 
 .grid-content {
   height: 100%;
+}
+
+.unload-mode-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  border: 2px solid #1890ff;
+}
+
+.input-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1890ff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.material-input,
+.slot-input {
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-family: monospace;
+  background-color: #ffffff;
+  color: #333333;
+  transition: border-color 0.3s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.material-input:focus,
+.slot-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.slot-input:disabled,
+.material-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  color: #bfbfbf;
 }
 </style>
 

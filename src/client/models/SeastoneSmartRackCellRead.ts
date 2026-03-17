@@ -9,3 +9,4 @@ export type SeastoneSmartRackCellRead = {
     cell_idno: string;
     side: number;
 };
+

@@ -26,3 +26,4 @@ export type PanasonicMounterItemStatRead = {
     produce_mode: (ProduceTypeEnum | null);
     feed_records?: Array<PanasonicMounterItemFeedRecordRead>;
 };
+

@@ -5,46 +5,46 @@
 export const $STPartPack = {
     properties: {
         pack_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         pack_qty: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         total_qualify_qty: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         pack_sequence_idno: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         total_pack_sequence_idno: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         part_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         unit: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         vendor_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         manufacturing_date: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-    format: 'date',
-}, {
-    type: 'null',
-}],
-    isRequired: true,
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+                format: 'date',
+            }, {
+                type: 'null',
+            }],
+            isRequired: true,
+        },
     },
 } as const;

@@ -5,12 +5,12 @@
 export const $SeastoneSmartRackCellCreateWithoutRackId = {
     properties: {
         cell_idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         side: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
     },
 } as const;

@@ -18,3 +18,4 @@ export type PanasonicMounterFileItemRead = {
     feeder_type_remark_1?: (string | null);
     feeder_type_remark_2?: (string | null);
 };
+

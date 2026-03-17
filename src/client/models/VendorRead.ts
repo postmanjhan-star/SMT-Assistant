@@ -11,3 +11,4 @@ export type VendorRead = {
     employee_id: number;
     l1_storage_id: (number | null);
 };
+

@@ -16,3 +16,4 @@ export type PanasonicMounterFileRead = {
     board_side?: (string | null);
     panasonic_mounter_file_items?: (Array<PanasonicMounterFileItemRead> | null);
 };
+

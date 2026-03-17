@@ -9,3 +9,4 @@ export type VendorUpdate = {
     name: string;
     tax_idno?: (string | null);
 };
+

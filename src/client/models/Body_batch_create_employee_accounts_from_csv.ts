@@ -6,3 +6,4 @@
 export type Body_batch_create_employee_accounts_from_csv = {
     file: Blob;
 };
+

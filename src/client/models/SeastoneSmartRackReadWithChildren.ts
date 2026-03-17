@@ -16,3 +16,4 @@ export type SeastoneSmartRackReadWithChildren = {
     dev_id: string;
     seastone_smart_rack_cells: (Array<SeastoneSmartRackCellRead> | null);
 };
+

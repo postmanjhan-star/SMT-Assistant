@@ -5,36 +5,36 @@
 export const $Token = {
     properties: {
         access_token: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         token_type: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         refresh_token: {
-    type: 'any-of',
-    contains: [{
-    type: 'string',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'string',
+            }, {
+                type: 'null',
+            }],
+        },
         expires_in: {
-    type: 'any-of',
-    contains: [{
-    type: 'number',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'number',
+            }, {
+                type: 'null',
+            }],
+        },
         refresh_expires_in: {
-    type: 'any-of',
-    contains: [{
-    type: 'number',
-}, {
-    type: 'null',
-}],
-},
+            type: 'any-of',
+            contains: [{
+                type: 'number',
+            }, {
+                type: 'null',
+            }],
+        },
     },
 } as const;

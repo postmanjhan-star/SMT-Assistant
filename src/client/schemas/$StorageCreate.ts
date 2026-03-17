@@ -5,22 +5,22 @@
 export const $StorageCreate = {
     properties: {
         idno: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         name: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
         type: {
-    type: 'StorageTypeEnum',
-},
+            type: 'StorageTypeEnum',
+        },
         l2_storages: {
-    type: 'array',
-    contains: {
-        type: 'L2StorageCreate',
-    },
-    isRequired: true,
-},
+            type: 'array',
+            contains: {
+                type: 'L2StorageCreate',
+            },
+            isRequired: true,
+        },
     },
 } as const;

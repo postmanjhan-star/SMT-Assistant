@@ -10,6 +10,7 @@ export type FujiProductionRow = {
   materialIdno: string
   operatorIdno: string | null
   materialInventoryIdno: string | null
+  appendedMaterialInventoryIdno?: string
   remark?: string
 }
 

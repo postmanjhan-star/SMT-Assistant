@@ -8,3 +8,4 @@ export type MaterialInventoryTransferCreate = {
     quantity: (number | string);
     major: boolean;
 };
+

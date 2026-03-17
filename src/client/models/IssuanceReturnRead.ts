@@ -18,3 +18,4 @@ export type IssuanceReturnRead = {
     return_quantity: string;
     issuance_return_items: (Array<IssuanceReturnItemRead> | null);
 };
+

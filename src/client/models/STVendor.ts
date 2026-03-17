@@ -8,3 +8,4 @@ export type STVendor = {
     name: string;
     tax_idno: string;
 };
+

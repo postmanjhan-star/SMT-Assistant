@@ -5,12 +5,12 @@
 export const $PanasonicMounterMaterialPackCreate = {
     properties: {
         panasonic_mounter_item_id: {
-    type: 'number',
-    isRequired: true,
-},
+            type: 'number',
+            isRequired: true,
+        },
         real_num: {
-    type: 'string',
-    isRequired: true,
-},
+            type: 'string',
+            isRequired: true,
+        },
     },
 } as const;

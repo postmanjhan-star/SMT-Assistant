@@ -6,3 +6,4 @@
 export type AccountRead = {
     username: string;
 };
+
