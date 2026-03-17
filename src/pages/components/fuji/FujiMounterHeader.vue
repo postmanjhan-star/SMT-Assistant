@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NPageHeader, NSpace, NTag } from "naive-ui"
-import FujiMounterInfoBar from "@/pages/components/fuji/FujiMounterInfoBar.vue"
+import MounterInfoBar from "@/pages/components/shared/MounterInfoBar.vue"
 
 const MODE_NAME_TESTING = "🧪 試產生產模式"
 const MODE_NAME_NORMAL = "✅ 正式生產模式"
@@ -37,7 +37,7 @@ defineEmits<{
     </template>
     <template #default>
       <div class="page-toolbar">
-        <FujiMounterInfoBar
+        <MounterInfoBar
           :work-order="workOrderIdno"
           :product="productIdno"
           :board-side="boardSide"

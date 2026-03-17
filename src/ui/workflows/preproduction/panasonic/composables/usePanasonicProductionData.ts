@@ -10,14 +10,7 @@ import {
   type PanasonicBoardSide,
   type PanasonicMachineSide,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
-
-function normalizeRouteValue(value: unknown): string {
-  if (Array.isArray(value)) {
-    return String(value[0] ?? "").trim()
-  }
-
-  return String(value ?? "").trim()
-}
+import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 
 function toBoardSide(value: unknown): PanasonicBoardSide | null {
   const normalized = normalizeRouteValue(value)

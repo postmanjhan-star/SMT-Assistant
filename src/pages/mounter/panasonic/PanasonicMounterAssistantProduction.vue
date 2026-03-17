@@ -8,13 +8,14 @@ import { useRoute } from "vue-router"
 import { storeToRefs } from "pinia"
 import { useMeta } from "vue-meta"
 
-import MaterialQueryModal from "./components/MaterialQueryModal.vue"
+import MounterMaterialQueryModal, { type MaterialQueryRowModel } from "@/pages/components/shared/MounterMaterialQueryModal.vue"
+import { usePanasonicMaterialQueryState } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicMaterialQueryState"
 import StopProductionButton from "./components/StopProductionButton.vue"
 import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
 import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
 import PanasonicRollShortageModal from "@/pages/components/panasonic/PanasonicRollShortageModal.vue"
-import PanasonicMounterLayout from "@/pages/components/panasonic/PanasonicMounterLayout.vue"
-import PanasonicMounterInfoBar from "@/pages/components/panasonic/PanasonicMounterInfoBar.vue"
+import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
+import MounterInfoBar from "@/pages/components/shared/MounterInfoBar.vue"
 import {
   usePostProductionFeedStore,
   type PostProductionMaterialResult,
@@ -30,6 +31,16 @@ import {
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import type { InputComponentHandle, MaterialMatchedPayload } from "./types/production"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
+import {
+  MATERIAL_UNLOAD_TRIGGER,
+  MATERIAL_EXIT_TRIGGER,
+  MATERIAL_FORCE_UNLOAD_TRIGGER,
+  MATERIAL_IPQC_TRIGGER,
+  MATERIAL_UNLOAD_MODE_NAME,
+  MATERIAL_FORCE_UNLOAD_MODE_NAME,
+  MATERIAL_FEED_MODE_NAME,
+  MATERIAL_IPQC_MODE_NAME,
+} from "@/domain/mounter/operationModes"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
 
@@ -37,15 +48,6 @@ const route = useRoute()
 const mockScan = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
   ? createMockScan()
   : undefined
-
-const MATERIAL_UNLOAD_TRIGGER = "S5555"
-const MATERIAL_EXIT_TRIGGER = "S5566"
-const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
-const MATERIAL_IPQC_TRIGGER = "S5588"
-const MATERIAL_UNLOAD_MODE_NAME = "🔄換料卸除"
-const MATERIAL_FORCE_UNLOAD_MODE_NAME = "⏏️單站卸除"
-const MATERIAL_FEED_MODE_NAME = "📥上料接料"
-const MATERIAL_IPQC_MODE_NAME = "🔍IPQC覆檢"
 
 type UnloadModeType = "pack_auto_slot" | "force_single_slot"
 type UnloadReplacePhase =
@@ -120,6 +122,9 @@ const {
 } = usePanasonicProductionPage({
   onResetInputs: resetInputsAfterSlotSubmit,
 })
+
+const { rowData: materialQueryRawData, load: loadMaterialQuery } = usePanasonicMaterialQueryState(productionUuid)
+const materialQueryRows = computed(() => materialQueryRawData.value as MaterialQueryRowModel[])
 
 const gridOptions = createPanasonicProductionGrid()
 const rollShortageBindings = { formRef: rollShortageFormRef }
@@ -547,9 +552,14 @@ function onRollShortageModalUpdate(value: boolean) {
     @submit="onSubmitShortage"
   />
 
-  <MaterialQueryModal v-model:show="showMaterialQueryModal" :uuid="productionUuid" @error="ui.error" />
+  <MounterMaterialQueryModal
+    v-model:show="showMaterialQueryModal"
+    :row-data="materialQueryRows"
+    closable
+    @load="loadMaterialQuery"
+  />
 
-  <PanasonicMounterLayout>
+  <MounterLayout grid-cols="2 s:2" sticky-top="0" bg-color="var(--table-color)">
     <template #header>
       <n-page-header @back="onClickBackArrow" class="page-header">
         <template #title>
@@ -566,7 +576,7 @@ function onRollShortageModalUpdate(value: boolean) {
 
         <template #default>
           <div class="page-toolbar">
-            <PanasonicMounterInfoBar
+            <MounterInfoBar
               :work-order="workOrderIdno"
               :product="productIdno"
               :board-side="boardSide ?? ''"
@@ -694,7 +704,7 @@ function onRollShortageModalUpdate(value: boolean) {
       :gridOptions="gridOptions"
       @grid-ready="onGridReady"
     />
-  </PanasonicMounterLayout>
+  </MounterLayout>
 </template>
 
 <style scoped>

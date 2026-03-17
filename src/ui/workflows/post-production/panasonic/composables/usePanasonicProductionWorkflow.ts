@@ -17,7 +17,7 @@ import { usePanasonicProductionState } from "@/ui/workflows/post-production/pana
 import { usePostProductionFeedFlow } from "@/ui/shared/composables/usePostProductionFeedFlow"
 import { useRollShortageForm } from "@/ui/shared/composables/useRollShortageForm"
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore"
-import { useAuthStore } from "@/stores/authStore"
+import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData"
 import {
   appendMaterialCode,
@@ -46,13 +46,7 @@ export function usePanasonicProductionWorkflow(
   const dialog = useDialog()
   const ui = useUiNotifier()
   const deps = createPostproductionPanasonicDeps(options.deps)
-  const authStore = useAuthStore()
-  const currentUsername = computed(
-    () =>
-      authStore.authState.OAuth2PasswordBearer?.username ??
-      authStore.authState.HTTPBasic?.value?.username ??
-      ""
-  )
+  const { currentUsername } = useCurrentUsername()
 
   const normalizeRoute = (val: unknown) => String(val ?? "").trim()
 

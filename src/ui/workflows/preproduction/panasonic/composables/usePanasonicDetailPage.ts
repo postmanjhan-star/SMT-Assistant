@@ -1,7 +1,8 @@
 ﻿import { computed, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useDialog } from "naive-ui"
-import { useAuthStore } from "@/stores/authStore"
+import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
+import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { useSlotResultNotifier } from "@/ui/shared/composables/useSlotResultNotifier"
 import { useProductionState } from "@/ui/workflows/preproduction/panasonic/composables/useProductionState"
@@ -36,11 +37,6 @@ export type PanasonicDetailPageOptions = {
   getSlotInputResult: () => SlotInputResult | null
   autoUploadRows?: (rows: unknown[]) => void
   deps?: Partial<PreproductionPanasonicDeps>
-}
-
-function normalizeRouteValue(val: unknown): string {
-  if (Array.isArray(val)) return String(val[0] ?? "").trim()
-  return String(val ?? "").trim()
 }
 
 function toRollShortageErrorMessage(error: SubmitRollShortageError): string | null {
@@ -80,13 +76,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
   const dialog = useDialog()
   const deps = createPreproductionPanasonicDeps(options.deps)
 
-  const authStore = useAuthStore()
-  const currentUsername = computed(
-    () =>
-      authStore.authState.OAuth2PasswordBearer?.username ??
-      authStore.authState.HTTPBasic?.value?.username ??
-      ""
-  )
+  const { currentUsername } = useCurrentUsername()
 
   const ui = useUiNotifier()
   useSlotResultNotifier(ui)

@@ -10,7 +10,7 @@ import { useRoute } from "vue-router"
 
 import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
 import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
-import FujiMounterLayout from "@/pages/components/fuji/FujiMounterLayout.vue"
+import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
 import { parseFujiSlotIdno, parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiDetailPage } from "@/ui/workflows/preproduction/fuji/composables/useFujiDetailPage"
@@ -20,16 +20,17 @@ import { CheckMaterialMatchEnum, SmtService } from "@/client"
 import { appendMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import type { FujiSpliceRecord } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
+import {
+  MATERIAL_UNLOAD_TRIGGER,
+  MATERIAL_FORCE_UNLOAD_TRIGGER,
+  MATERIAL_IPQC_TRIGGER,
+  MATERIAL_UNLOAD_MODE_NAME,
+  MATERIAL_FORCE_UNLOAD_MODE_NAME,
+  MATERIAL_IPQC_MODE_NAME,
+  MATERIAL_FEED_MODE_NAME,
+} from "@/domain/mounter/operationModes"
 
 useMeta({ title: "Fuji Mounter Assistant" })
-
-const MATERIAL_UNLOAD_TRIGGER = "S5555"
-const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
-const MATERIAL_IPQC_TRIGGER = "S5588"
-const MATERIAL_UNLOAD_MODE_NAME = "🔄換料卸除"
-const MATERIAL_FORCE_UNLOAD_MODE_NAME = "⏏️單站卸除"
-const MATERIAL_IPQC_MODE_NAME = "🔍IPQC覆檢"
-const MATERIAL_FEED_MODE_NAME = "📥上料接料"
 
 type UnloadModeType = "pack_auto_slot" | "force_single_slot"
 type UnloadReplacePhase =
@@ -867,7 +868,7 @@ async function handleUnloadSlotSubmit() {
 </script>
 
 <template>
-  <FujiMounterLayout>
+  <MounterLayout>
     <template #header>
       <FujiMounterHeader
         :mounter-idno="mounterIdno"
@@ -983,7 +984,7 @@ async function handleUnloadSlotSubmit() {
       :gridOptions="gridOptions"
       @grid-ready="onGridReadyWithCache"
     />
-  </FujiMounterLayout>
+  </MounterLayout>
 </template>
 
 <style scoped>

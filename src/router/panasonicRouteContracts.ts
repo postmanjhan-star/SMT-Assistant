@@ -7,6 +7,7 @@ import {
   type PanasonicBoardSide,
   type PanasonicMachineSide,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
+import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 
 export type PanasonicDetailRouteContract = {
   mounterIdno: string
@@ -25,14 +26,6 @@ export type PanasonicProductionRouteContract = {
   workSheetSide?: PanasonicBoardSide
   testingMode?: "1"
   testingProductIdno?: string
-}
-
-function normalizeRouteValue(value: unknown): string {
-  if (Array.isArray(value)) {
-    return String(value[0] ?? "").trim()
-  }
-
-  return String(value ?? "").trim()
 }
 
 function isRouteValueTrimmed(value: unknown): boolean {

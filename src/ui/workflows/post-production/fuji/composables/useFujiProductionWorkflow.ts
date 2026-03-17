@@ -1,4 +1,4 @@
-﻿import { computed, onMounted, ref } from "vue"
+﻿import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type GridApi, type GridReadyEvent } from "ag-grid-community"
 import { useDialog, type InputInst } from "naive-ui"
@@ -16,7 +16,9 @@ import {
   type SmtMaterialInventory,
 } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
-import { useAuthStore } from "@/stores/authStore"
+import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
+import { MATERIAL_UNLOAD_TRIGGER } from "@/domain/mounter/operationModes"
+import { useFujiMaterialQueryState } from "@/ui/workflows/post-production/fuji/composables/useFujiMaterialQueryState"
 import {
   appendMaterialCode,
   findLoadedSlotByPack,
@@ -35,8 +37,6 @@ import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupErro
 
 const MODE_NAME_TESTING = "🧪 試產生產模式"
 const MODE_NAME_NORMAL = "✅ 正式生產模式"
-const MATERIAL_UNLOAD_TRIGGER = "S5555"
-const MATERIAL_UNLOAD_MODE_NAME = "🔄換料卸除"
 
 function normalizeStageLabel(stage: unknown): string {
   if (stage == null) return ""
@@ -76,13 +76,7 @@ export function useFujiProductionWorkflow() {
   const router = useRouter()
   const dialog = useDialog()
   const { success: showSuccess, warn: showWarn, error: showError, info } = useUiNotifier()
-  const authStore = useAuthStore()
-  const currentUsername = computed(
-    () =>
-      authStore.authState.OAuth2PasswordBearer?.username ??
-      authStore.authState.HTTPBasic?.value?.username ??
-      ""
-  )
+  const { currentUsername } = useCurrentUsername()
 
   const workOrderIdno = ref("")
   const productIdno = ref("")
@@ -863,6 +857,8 @@ export function useFujiProductionWorkflow() {
     })
   }
 
+  const { rowData: materialQueryRowData, load: fetchMaterialQueryLogs } = useFujiMaterialQueryState(productionUuid)
+
   function onMaterialQuery() {
     showMaterialQueryModal.value = true
   }
@@ -910,8 +906,6 @@ export function useFujiProductionWorkflow() {
   return {
     MODE_NAME_TESTING,
     MODE_NAME_NORMAL,
-    MATERIAL_UNLOAD_TRIGGER,
-    MATERIAL_UNLOAD_MODE_NAME,
     workOrderIdno,
     productIdno,
     mounterIdno,
@@ -929,6 +923,8 @@ export function useFujiProductionWorkflow() {
     unloadMaterialValue,
     unloadSlotValue,
     showMaterialQueryModal,
+    materialQueryRowData,
+    fetchMaterialQueryLogs,
     onGridReady,
     onClickBackArrow,
     onSubmitMaterialInventoryForm,

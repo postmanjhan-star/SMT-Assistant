@@ -3,11 +3,7 @@ import { useRoute, useRouter } from "vue-router"
 import { ApiError, type BoardSideEnum, type FujiMounterFileRead } from "@/client"
 import { loadFujiProductionSlots } from "@/application/preproduction/FujiProductionLoadUseCase"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
-
-function normalizeRouteValue(value: unknown): string {
-  if (Array.isArray(value)) return String(value[0] ?? "").trim()
-  return String(value ?? "").trim()
-}
+import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 
 export type UseFujiPreproductionDataOptions = {
   setFromApi: (rows: FujiMounterFileRead[]) => void

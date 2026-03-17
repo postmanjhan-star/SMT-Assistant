@@ -10,12 +10,22 @@ import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { decideMaterialScanAction } from "@/domain/material/MaterialScanDecision"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 
-import MaterialQueryModal from "@/pages/mounter/fuji/components/MaterialQueryModal.vue"
-import FujiMounterLayout from "@/pages/components/fuji/FujiMounterLayout.vue"
+import MounterMaterialQueryModal from "@/pages/components/shared/MounterMaterialQueryModal.vue"
+import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
 import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
 import { useFujiProductionPage } from "@/ui/workflows/post-production/fuji/composables/useFujiProductionPage"
 import { createFujiProductionGridOptions } from "@/ui/workflows/post-production/fuji/createFujiProductionGridOptions"
+import {
+  MATERIAL_UNLOAD_TRIGGER,
+  MATERIAL_FORCE_UNLOAD_TRIGGER,
+  MATERIAL_EXIT_TRIGGER,
+  MATERIAL_IPQC_TRIGGER,
+  MATERIAL_UNLOAD_MODE_NAME,
+  MATERIAL_FORCE_UNLOAD_MODE_NAME,
+  MATERIAL_FEED_MODE_NAME,
+  MATERIAL_IPQC_MODE_NAME,
+} from "@/domain/mounter/operationModes"
 
 useMeta({ title: "Fuji Mounter Production" })
 
@@ -23,13 +33,6 @@ const route = useRoute()
 const mockScan = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
   ? createMockScan()
   : null
-
-const MATERIAL_FORCE_UNLOAD_TRIGGER = "S5577"
-const MATERIAL_EXIT_TRIGGER = "S5566"
-const MATERIAL_IPQC_TRIGGER = "S5588"
-const MATERIAL_FORCE_UNLOAD_MODE_NAME = "⏏️單站卸除"
-const MATERIAL_FEED_MODE_NAME = "📥上料接料"
-const MATERIAL_IPQC_MODE_NAME = "🔍IPQC覆檢"
 
 type UnloadModeType = "pack_auto_slot" | "force_single_slot"
 type UnloadReplacePhase =
@@ -39,15 +42,12 @@ type UnloadReplacePhase =
   | "replace_slot_scan"
 
 const {
-  MATERIAL_UNLOAD_TRIGGER,
-  MATERIAL_UNLOAD_MODE_NAME,
   workOrderIdno,
   productIdno,
   mounterIdno,
   boardSide,
   isTestingMode,
   currentUsername,
-  productionUuid,
   productionStarted,
   rowData,
   materialFormValue,
@@ -58,6 +58,8 @@ const {
   unloadMaterialValue,
   unloadSlotValue,
   showMaterialQueryModal,
+  materialQueryRowData,
+  fetchMaterialQueryLogs,
   onGridReady,
   onClickBackArrow,
   onSubmitMaterialInventoryForm,
@@ -474,9 +476,14 @@ async function handleUnloadSlotSubmit() {
 </script>
 
 <template>
-  <MaterialQueryModal v-model:show="showMaterialQueryModal" :uuid="productionUuid" @error="showError" />
+  <MounterMaterialQueryModal
+    v-model:show="showMaterialQueryModal"
+    :row-data="materialQueryRowData"
+    title="接料查詢 (Fuji)"
+    @load="fetchMaterialQueryLogs"
+  />
 
-  <FujiMounterLayout :sticky-inputs="false">
+  <MounterLayout :sticky-inputs="false">
     <template #header>
       <FujiMounterHeader
         :mounter-idno="mounterIdno"
@@ -599,7 +606,7 @@ async function handleUnloadSlotSubmit() {
       :gridOptions="gridOptions"
       @grid-ready="onGridReady"
     />
-  </FujiMounterLayout>
+  </MounterLayout>
 </template>
 
 <style scoped>
