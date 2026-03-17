@@ -1,11 +1,11 @@
 import type {
     GridOptions,
     GetRowIdParams,
-    RowNode,
     CellValueChangedEvent,
 } from 'ag-grid-community'
 import type { ProductionRowModel } from '@/pages/mounter/panasonic/types/production'
 import { useDateFormatter } from '@/ui/shared/composables/useDateFormatter'
+import { createPanasonicBaseGridOptions } from '@/ui/shared/grid/createBaseGridOptions'
 
 export function createProductionGridOptions(
     rowDataRef: { value: ProductionRowModel[] }
@@ -13,6 +13,7 @@ export function createProductionGridOptions(
     const { format } = useDateFormatter()
 
     return {
+        ...createPanasonicBaseGridOptions(),
         columnDefs: [
             {
                 field: 'correct',
@@ -74,36 +75,8 @@ export function createProductionGridOptions(
             },
             { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
         ],
-        defaultColDef: {
-            editable: false,
-            filter: true,
-            sortable: true,
-            resizable: true,
-        },
-        suppressMovableColumns: false,
-        suppressColumnMoveAnimation: true,
-        stopEditingWhenCellsLoseFocus: true,
-        enterNavigatesVerticallyAfterEdit: true,
-        undoRedoCellEditing: true,
-        rowBuffer: 100,
-        valueCache: true,
-        debug: false,
-        pagination: false,
-        enableCellChangeFlash: true,
-        suppressColumnVirtualisation: true,
-        suppressRowVirtualisation: false,
-        domLayout: 'normal',
-        getBusinessKeyForNode: (node: RowNode<ProductionRowModel>) =>
-            `${node.data.slotIdno}-${node.data.subSlotIdno}`,
-        rowModelType: 'clientSide',
         getRowId: (params: GetRowIdParams<ProductionRowModel>) =>
             `${params.data.slotIdno}-${params.data.subSlotIdno ?? ''}`,
-        debounceVerticalScrollbar: false,
-        enableCellTextSelection: true,
-        rowSelection: 'multiple',
-        suppressCellFocus: true,
-        suppressRowTransform: true,
-        enableBrowserTooltips: false,
         onCellValueChanged: (event: CellValueChangedEvent<ProductionRowModel>) => {
             const idx = rowDataRef.value.findIndex(
                 r =>

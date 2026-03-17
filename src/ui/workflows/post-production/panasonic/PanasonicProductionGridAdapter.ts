@@ -1,11 +1,13 @@
 ﻿import type { GridOptions, GetRowIdParams, RowNode } from 'ag-grid-community'
 import type { ProductionRowModel } from '@/domain/production/buildPanasonicRowData'
 import { useDateFormatter } from '@/ui/shared/composables/useDateFormatter'
+import { createPanasonicBaseGridOptions } from '@/ui/shared/grid/createBaseGridOptions'
 
 export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel> {
   const { format } = useDateFormatter()
 
   return {
+    ...createPanasonicBaseGridOptions(),
     columnDefs: [
       {
         field: 'correct',
@@ -74,42 +76,11 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
       { field: 'total', headerName: '總數', flex: 3, minWidth: 120 },
       { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
     ],
-    defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
-
-    suppressMovableColumns: false,
-    suppressColumnMoveAnimation: true,
-
-    stopEditingWhenCellsLoseFocus: true,
-    enterNavigatesVerticallyAfterEdit: true,
-    undoRedoCellEditing: true,
-
-    rowBuffer: 100,
-    valueCache: true,
-    debug: false,
-
-    pagination: false,
-
-    enableCellChangeFlash: true,
-    suppressColumnVirtualisation: true,
-    suppressRowVirtualisation: false,
-    domLayout: 'normal',
     getBusinessKeyForNode: (node: RowNode<ProductionRowModel>) => {
       return `${node.data.slotIdno}-${node.data.subSlotIdno}`
     },
-
-    rowModelType: 'clientSide',
     getRowId: (params: GetRowIdParams<ProductionRowModel>) => {
       return `${params.data.slotIdno}-${params.data.subSlotIdno}`
     },
-
-    debounceVerticalScrollbar: false,
-
-    enableCellTextSelection: true,
-    rowSelection: 'multiple',
-    suppressCellFocus: true,
-
-    suppressRowTransform: true,
-
-    enableBrowserTooltips: false,
   }
 }

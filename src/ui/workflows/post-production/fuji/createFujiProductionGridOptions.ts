@@ -1,11 +1,13 @@
 ﻿import type { GetRowIdParams, GridOptions } from 'ag-grid-community'
 import { useDateFormatter } from '@/ui/shared/composables/useDateFormatter'
 import type { FujiProductionRowModel } from '@/domain/production/buildFujiProductionRowData'
+import { createBaseGridOptions } from '@/ui/shared/grid/createBaseGridOptions'
 
 export function createFujiProductionGridOptions(): GridOptions<FujiProductionRowModel> {
   const { format } = useDateFormatter()
 
   return {
+    ...createBaseGridOptions(),
     columnDefs: [
       {
         field: 'correct',
@@ -44,10 +46,6 @@ export function createFujiProductionGridOptions(): GridOptions<FujiProductionRow
       { field: 'appendedMaterialInventoryIdno', headerName: '接料捲號', flex: 5, minWidth: 180 },
       { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
     ],
-    defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
-    enableCellChangeFlash: true,
-    rowSelection: 'multiple',
-    suppressCellFocus: true,
     getRowId: (params: GetRowIdParams<FujiProductionRowModel>) =>
       `${params.data.mounterIdno}-${params.data.stage}-${params.data.slot}`,
   }

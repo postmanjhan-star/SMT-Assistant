@@ -1,8 +1,10 @@
 import type { GetRowIdParams, GridOptions } from "ag-grid-community"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
+import { createBaseGridOptions } from "@/ui/shared/grid/createBaseGridOptions"
 
 export function createFujiPreproductionGridOptions(): GridOptions<FujiMounterRowModel> {
   return {
+    ...createBaseGridOptions(),
     columnDefs: [
       {
         field: "correct",
@@ -25,10 +27,6 @@ export function createFujiPreproductionGridOptions(): GridOptions<FujiMounterRow
       { field: "materialInventoryIdno", headerName: "物料條碼", flex: 5, minWidth: 180 },
       { field: "remark", headerName: "備註", flex: 3, minWidth: 120 },
     ],
-    defaultColDef: { editable: false, filter: true, sortable: true, resizable: true },
-    enableCellChangeFlash: true,
-    rowSelection: "multiple",
-    suppressCellFocus: true,
     getRowId: (params: GetRowIdParams<FujiMounterRowModel>) =>
       `${params.data.mounterIdno}-${params.data.stage}-${params.data.slot}`,
   }
