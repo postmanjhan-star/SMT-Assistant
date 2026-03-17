@@ -356,7 +356,7 @@ async function handleUnloadMaterialSubmit(materialPackCode: string) {
   }
 
   const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
-  if (!resolved.ok) {
+  if (resolved.ok === false) {
     ui.error(resolved.error)
     unloadMaterialValue.value = ""
     focusUnloadMaterialInput()
