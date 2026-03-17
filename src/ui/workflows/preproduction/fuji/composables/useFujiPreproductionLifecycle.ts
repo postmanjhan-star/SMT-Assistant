@@ -15,6 +15,8 @@ import {
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { startFujiProduction } from "@/application/fuji/production/StartFujiProduction"
 import { stopFujiProduction } from "@/application/fuji/production/StopFujiProduction"
+import { ProductionLifecycleUseCase } from "@/application/preproduction/ProductionLifecycleUseCase"
+import { StartProductionStatsUseCase } from "@/application/preproduction/StartProductionStatsUseCase"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 
 export type FujiUnloadRecord = {
@@ -60,9 +62,24 @@ export function useFujiPreproductionLifecycle(
   const productionUuid = ref("")
   const productionStarted = ref(false)
 
-  async function startProductionUpload() {
-    try {
-      const payload: FujiStartStatPayload[] = options.rowData.value.map((row) => ({
+  const lifecycleUseCase = new ProductionLifecycleUseCase({
+    start: (uuid) => {
+      productionStarted.value = true
+      productionUuid.value = uuid
+    },
+    stop: async () => stopFujiProduction(productionUuid.value),
+    buildProductionPath: (uuid) => `/smt/fuji-mounter-production/${uuid}`,
+    extraQueryParamsToRemove: ["testing_mode", "testing_product_idno"],
+  })
+
+  const startStatsUseCase = new StartProductionStatsUseCase<
+    FujiMounterRowModel,
+    FujiUnloadRecord,
+    FujiSpliceRecord
+  >({
+    startProduction: async (rows) => {
+      const now = new Date().toISOString()
+      const payload: FujiStartStatPayload[] = rows.map((row) => ({
         work_order_no: options.workOrderIdno.value,
         product_idno: options.productIdno.value,
         machine_idno: row.mounterIdno,
@@ -78,90 +95,69 @@ export function useFujiPreproductionLifecycle(
           : ProduceTypeEnum.NORMAL_PRODUCE_MODE,
         check_pack_code_match: row.correct,
         operator_id: null,
-        operation_time: new Date().toISOString(),
-        production_start: new Date().toISOString(),
+        operation_time: now,
+        production_start: now,
       }))
-
       const response = await startFujiProduction(payload)
-
-      if (!response || response.length === 0 || !response[0].uuid) {
-        showError("開始生產失敗，後端未回傳生產ID")
-        return
-      }
-
-      const statMap = new Map<string, (typeof response)[0]>()
-      response.forEach((stat) => {
-        const key = `${stat.slot_idno}-${stat.sub_slot_idno}`
-        statMap.set(key, stat)
+      if (!response?.length || !response[0].uuid)
+        throw new Error("開始生產失敗，後端未回傳生產ID")
+      const statItemMap = new Map<string, number>()
+      response.forEach((stat) =>
+        statItemMap.set(`${stat.slot_idno}-${stat.sub_slot_idno}`, stat.id)
+      )
+      return { productionUuid: response[0].uuid, statItemMap }
+    },
+    uploadUnload: async (record, statItemMap) => {
+      const id = statItemMap.get(`${record.slot}-${record.stage}`)
+      if (id === undefined) return
+      await SmtService.addFujiMounterItemStatRoll({
+        requestBody: {
+          stat_item_id: id,
+          operator_id: null,
+          operation_time: record.operationTime,
+          slot_idno: String(record.slot),
+          sub_slot_idno: record.stage,
+          material_pack_code: record.materialPackCode,
+          operation_type: MaterialOperationTypeEnum.UNFEED,
+          unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
+          unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
+          check_pack_code_match: null,
+        },
       })
+    },
+    uploadSplice: async (record, statItemMap) => {
+      const id = statItemMap.get(`${record.slot}-${record.stage}`)
+      if (id === undefined) return
+      await SmtService.addFujiMounterItemStatRoll({
+        requestBody: {
+          stat_item_id: id,
+          operator_id: null,
+          operation_time: record.operationTime,
+          slot_idno: String(record.slot),
+          sub_slot_idno: record.stage,
+          material_pack_code: record.materialPackCode,
+          operation_type: MaterialOperationTypeEnum.FEED,
+          feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+          check_pack_code_match: record.correctState,
+          unfeed_reason: null,
+        },
+      })
+    },
+  })
 
-      const unloadRecords = options.getPendingUnloadRecords?.() ?? []
-      if (unloadRecords.length > 0) {
-        const uploads = unloadRecords
-          .map((record) => {
-            const key = `${record.slot}-${record.stage}`
-            const stat = statMap.get(key)
-            if (!stat) return null
-            return SmtService.addFujiMounterItemStatRoll({
-              requestBody: {
-                stat_item_id: stat.id,
-                operator_id: null,
-                operation_time: record.operationTime,
-                slot_idno: String(record.slot),
-                sub_slot_idno: record.stage,
-                material_pack_code: record.materialPackCode,
-                operation_type: MaterialOperationTypeEnum.UNFEED,
-                unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
-                unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
-                check_pack_code_match: null,
-              },
-            })
-          })
-          .filter(Boolean)
-
-        try {
-          await Promise.all(uploads)
-          options.onUnloadUploaded?.(true)
-        } catch {
-          options.onUnloadUploaded?.(false)
-        }
-      }
-
-      const spliceRecords = options.getPendingSpliceRecords?.() ?? []
-      if (spliceRecords.length > 0) {
-        const spliceUploads = spliceRecords
-          .map((record) => {
-            const key = `${record.slot}-${record.stage}`
-            const stat = statMap.get(key)
-            if (!stat) return null
-            return SmtService.addFujiMounterItemStatRoll({
-              requestBody: {
-                stat_item_id: stat.id,
-                operator_id: null,
-                operation_time: record.operationTime,
-                slot_idno: String(record.slot),
-                sub_slot_idno: record.stage,
-                material_pack_code: record.materialPackCode,
-                operation_type: MaterialOperationTypeEnum.FEED,
-                feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-                check_pack_code_match: record.correctState,
-                unfeed_reason: null,
-              },
-            })
-          })
-          .filter(Boolean)
-        try {
-          await Promise.all(spliceUploads)
-        } catch {
-          // non-fatal; production already started
-        }
-      }
-
+  async function startProductionUpload() {
+    try {
+      const productionUuid = await startStatsUseCase.execute({
+        rowData: options.rowData.value,
+        pendingUnloadRecords: options.getPendingUnloadRecords?.() ?? [],
+        pendingSpliceRecords: options.getPendingSpliceRecords?.() ?? [],
+        onUnloadUploaded: options.onUnloadUploaded,
+      })
       showSuccess("開始生產，資料已上傳")
-      handleProductionStarted(response[0].uuid)
+      handleProductionStarted(productionUuid)
     } catch (error) {
       console.error("upload failed: ", error)
-      showError("資料上傳失敗")
+      showError(error instanceof Error ? error.message : "資料上傳失敗")
     }
   }
 
@@ -196,19 +192,13 @@ export function useFujiPreproductionLifecycle(
   }
 
   function handleProductionStarted(productionStatUuid: string) {
-    productionStarted.value = true
-    productionUuid.value = productionStatUuid
-
-    const newQuery: Record<string, any> = { ...route.query, uuid: productionStatUuid }
-    delete newQuery.testing_mode
-    delete newQuery.testing_product_idno
-
-    router.replace({
-      path: route.path,
-      query: newQuery,
+    const intent = lifecycleUseCase.handleStarted({
+      uuid: productionStatUuid,
+      currentPath: route.path,
+      currentQuery: route.query,
     })
-
-    router.push(`/smt/fuji-mounter-production/${productionStatUuid}`)
+    router.replace(intent.replace)
+    router.push(intent.push)
   }
 
   async function onStopProduction() {

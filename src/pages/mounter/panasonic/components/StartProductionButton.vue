@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useDialog } from 'naive-ui'
 import {
-    ApiError,
     CheckMaterialMatchEnum,
-    PanasonicMounterItemStatCreate,
-    PanasonicFeedRecordCreate,
-    PanasonicItemStatFeedLogRead,
+    type PanasonicMounterItemStatCreate,
+    type PanasonicMounterItemStatRead,
     ProduceTypeEnum,
     BoardSideEnum,
     MachineSideEnum,
@@ -15,10 +12,10 @@ import {
     MaterialOperationTypeEnum,
     UnfeedMaterialTypeEnum,
     UnfeedReasonEnum,
-    SmtMaterialInventory,
     SmtService,
 } from '@/client';
 import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
+import { StartProductionStatsUseCase } from '@/application/preproduction/StartProductionStatsUseCase'
 
 type CorrectState = 'true' | 'false' | 'warning'
 
@@ -79,7 +76,6 @@ const emit = defineEmits(['started', 'error', 'unload-uploaded'])
 
 const productionStatUuid = ref()
 const machineSide = ref<MachineSideEnum>()
-const statMap = new Map<string, any>()
 const dialog = useDialog()
 const loading = ref(false)
 
@@ -89,8 +85,6 @@ function makeSlotKey(slot: string, subSlot?: string | null) {
     }
     return slot
 }
-
-
 
 function convertMatch(s: CorrectState | null): CheckMaterialMatchEnum | null {
     return s as unknown as CheckMaterialMatchEnum
@@ -103,6 +97,80 @@ function convertProduceMode(s: boolean | null): ProduceTypeEnum | null {
 function convertBoardSide(s: String | null): BoardSideEnum | null {
     return s as unknown as BoardSideEnum
 }
+
+const startStatsUseCase = new StartProductionStatsUseCase<RowModel, PanasonicUnloadRecord, PanasonicSpliceRecord>({
+    startProduction: async (rows) => {
+        machineSide.value =
+            props.machineSideQuery === '1' ? MachineSideEnum.FRONT
+                : props.machineSideQuery === '2' ? MachineSideEnum.BACK
+                    : null
+        const boardSide = convertBoardSide(props.workSheetSideQuery)
+        const payload: PanasonicStartStatPayload[] = rows.map(row => ({
+            operator_id: props.operator_id ?? null,
+            operation_time: row.firstAppendTime
+                ? new Date(row.firstAppendTime).toISOString()
+                : new Date().toISOString(),
+            production_start: new Date().toISOString(),
+            work_order_no: props.workOrderIdno,
+            product_idno: props.productIdno,
+            machine_idno: props.mounterIdno,
+            machine_side: machineSide.value,
+            board_side: boardSide,
+            slot_idno: row.slotIdno,
+            sub_slot_idno: row.subSlotIdno ?? null,
+            material_idno: row.materialIdno ?? null,
+            material_pack_code: row.materialInventoryIdno ?? null,
+            feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+            operation_type: MaterialOperationTypeEnum.FEED,
+            produce_mode: convertProduceMode(props.isTestingMode ?? false),
+            check_pack_code_match: convertMatch(row.correct),
+        }))
+        const response = await startPanasonicProduction(payload)
+        if (!response?.length || !response[0].uuid) throw new Error('開始生產失敗')
+        const statItemMap = new Map<string, number>()
+        ;(response as PanasonicMounterItemStatRead[]).forEach(stat =>
+            statItemMap.set(makeSlotKey(stat.slot_idno, stat.sub_slot_idno), stat.id)
+        )
+        productionStatUuid.value = response[0].uuid
+        return { productionUuid: response[0].uuid, statItemMap }
+    },
+    uploadUnload: async (record, statItemMap) => {
+        const id = statItemMap.get(makeSlotKey(record.slotIdno, record.subSlotIdno))
+        if (id === undefined) return
+        await SmtService.addPanasonicMounterItemStatRoll({
+            requestBody: {
+                stat_item_id: id,
+                operator_id: null,
+                operation_time: record.operationTime,
+                slot_idno: record.slotIdno,
+                sub_slot_idno: record.subSlotIdno ?? null,
+                material_pack_code: record.materialPackCode,
+                operation_type: MaterialOperationTypeEnum.UNFEED,
+                unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
+                unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
+                check_pack_code_match: null,
+            },
+        })
+    },
+    uploadSplice: async (record, statItemMap) => {
+        const id = statItemMap.get(makeSlotKey(record.slotIdno, record.subSlotIdno))
+        if (id === undefined) return
+        await SmtService.addPanasonicMounterItemStatRoll({
+            requestBody: {
+                stat_item_id: id,
+                operator_id: null,
+                operation_time: record.operationTime,
+                slot_idno: record.slotIdno,
+                sub_slot_idno: record.subSlotIdno ?? null,
+                material_pack_code: record.materialPackCode,
+                operation_type: MaterialOperationTypeEnum.FEED,
+                feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+                check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
+                unfeed_reason: null,
+            },
+        })
+    },
+})
 
 function onProduction() {
     const invalid = props.rowData.filter(r => {
@@ -132,113 +200,14 @@ async function startProductionUpload(rows?: RowModel[]) {
     if (loading.value) return
     loading.value = true
     try {
-        // 判斷 boardSide / machineSide
-        const boardSide = convertBoardSide(props.workSheetSideQuery)
-
-        machineSide.value =
-            props.machineSideQuery === '1'
-                ? MachineSideEnum.FRONT
-                : props.machineSideQuery === '2'
-                    ? MachineSideEnum.BACK
-                    : null
-
-        console.log(machineSide.value)
-
-        const dataToUse = rows || props.rowData
-
-        const payload: PanasonicStartStatPayload[] = dataToUse.map(row => ({
-            operator_id: props.operator_id ?? null,
-            operation_time: row.firstAppendTime 
-                ? new Date(row.firstAppendTime).toISOString()
-                : new Date().toISOString(),
-            production_start: new Date().toISOString(),
-            work_order_no: props.workOrderIdno,
-            product_idno: props.productIdno,
-            machine_idno: props.mounterIdno,
-            machine_side: machineSide.value,
-            board_side: boardSide,
-            slot_idno: row.slotIdno,
-            sub_slot_idno: row.subSlotIdno ?? null,
-            material_idno: row.materialIdno ?? null,
-            material_pack_code: row.materialInventoryIdno ?? null,
-            feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
-            operation_type: MaterialOperationTypeEnum.FEED,
-            produce_mode: convertProduceMode(props.isTestingMode ?? false),
-            check_pack_code_match: convertMatch(row.correct)
-        }))
-
-        const response = await startPanasonicProduction(payload)
-        productionStatUuid.value = response[0].uuid
-
-        response.forEach(stat => {
-            const key = makeSlotKey(stat.slot_idno, stat.sub_slot_idno)
-            statMap.set(key, stat)
+        const productionUuid = await startStatsUseCase.execute({
+            rowData: rows || props.rowData,
+            pendingUnloadRecords: props.pendingUnloadRecords ?? [],
+            pendingSpliceRecords: props.pendingSpliceRecords ?? [],
+            onUnloadUploaded: (ok) => emit('unload-uploaded', ok),
         })
-
-        const unloadRecords = props.pendingUnloadRecords ?? []
-        if (unloadRecords.length > 0) {
-            const uploads = unloadRecords
-                .map((record) => {
-                    const key = makeSlotKey(record.slotIdno, record.subSlotIdno)
-                    const stat = statMap.get(key)
-                    if (!stat) return null
-                    return SmtService.addPanasonicMounterItemStatRoll({
-                        requestBody: {
-                            stat_item_id: stat.id,
-                            operator_id: null,
-                            operation_time: record.operationTime,
-                            slot_idno: record.slotIdno,
-                            sub_slot_idno: record.subSlotIdno ?? null,
-                            material_pack_code: record.materialPackCode,
-                            operation_type: MaterialOperationTypeEnum.UNFEED,
-                            unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
-                            unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
-                            check_pack_code_match: null,
-                        },
-                    })
-                })
-                .filter(Boolean)
-            try {
-                await Promise.all(uploads)
-                emit('unload-uploaded', true)
-            } catch {
-                emit('unload-uploaded', false)
-            }
-        }
-
-        const spliceRecords = props.pendingSpliceRecords ?? []
-        if (spliceRecords.length > 0) {
-            const spliceUploads = spliceRecords
-                .map((record) => {
-                    const key = makeSlotKey(record.slotIdno, record.subSlotIdno)
-                    const stat = statMap.get(key)
-                    if (!stat) return null
-                    return SmtService.addPanasonicMounterItemStatRoll({
-                        requestBody: {
-                            stat_item_id: stat.id,
-                            operator_id: null,
-                            operation_time: record.operationTime,
-                            slot_idno: record.slotIdno,
-                            sub_slot_idno: record.subSlotIdno ?? null,
-                            material_pack_code: record.materialPackCode,
-                            operation_type: MaterialOperationTypeEnum.FEED,
-                            feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-                            check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
-                            unfeed_reason: null,
-                        },
-                    })
-                })
-                .filter(Boolean)
-            try {
-                await Promise.all(spliceUploads)
-            } catch {
-                // non-fatal; production already started
-            }
-        }
-
-        emit('started', productionStatUuid.value)
-
-    } catch (err) {
+        emit('started', productionUuid)
+    } catch {
         emit('error', '資料上傳失敗')
     } finally {
         loading.value = false
