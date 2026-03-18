@@ -2,9 +2,7 @@ import { computed, ref, type Ref, type ShallowRef } from "vue"
 import type { SmtMaterialInventory } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { SlotSubmissionRunner } from "@/application/slot-submit/SlotSubmissionRunner"
-import { NormalModeStrategy } from "@/application/slot-submit/NormalModeStrategy"
-import { TestingModeStrategy } from "@/application/slot-submit/TestingModeStrategy"
-import { MockNormalModeStrategy } from "@/application/slot-submit/MockNormalModeStrategy"
+import { createSlotSubmitStrategy } from "@/application/slot-submit/createSlotSubmitStrategy"
 import type { SlotSubmitStoreLike } from "@/application/slot-submit/SlotSubmitDeps"
 import { SimpleBarcodeValidator } from "@/domain/material/BarcodeValidator"
 import { BarcodeScanUseCase } from "@/application/barcode-scan/BarcodeScanUseCase"
@@ -142,14 +140,11 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
     },
   }
 
-  const slotSubmitStrategy = computed(() => {
-    if (options.isMockMode && !options.isTestingMode.value) {
-      return new MockNormalModeStrategy({ store: slotSubmitStore })
-    }
-    return options.isTestingMode.value
-      ? new TestingModeStrategy({ store: slotSubmitStore })
-      : new NormalModeStrategy({ store: slotSubmitStore })
-  })
+  const slotSubmitStrategy = computed(() =>
+    createSlotSubmitStrategy(options.isTestingMode.value, options.isMockMode, {
+      store: slotSubmitStore,
+    })
+  )
 
   const { handleSlotSubmit } = SlotSubmissionRunner({
     submit: async (payload) => {
