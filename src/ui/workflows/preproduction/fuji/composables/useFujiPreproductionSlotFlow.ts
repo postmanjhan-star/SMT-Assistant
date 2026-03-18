@@ -1,14 +1,13 @@
-import { computed, ref, type Ref, type ShallowRef } from "vue"
+import { computed, ref, watch, type Ref, type ShallowRef } from "vue"
 import type { SmtMaterialInventory } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { SlotSubmissionRunner } from "@/application/slot-submit/SlotSubmissionRunner"
 import { createSlotSubmitStrategy } from "@/application/slot-submit/createSlotSubmitStrategy"
-import type { SlotSubmitStoreLike } from "@/application/slot-submit/SlotSubmitDeps"
+import { useSlotSubmitStore } from "@/stores/slotSubmitStore"
 import { SimpleBarcodeValidator } from "@/domain/material/BarcodeValidator"
 import { BarcodeScanUseCase } from "@/application/barcode-scan/BarcodeScanUseCase"
 import { ApiMaterialRepository } from "@/infra/material/ApiMaterialRepository"
 import { findAvailableMaterialRows } from "@/domain/material/FujiMaterialMatchRules"
-import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
 import type { FujiMounterGridAdapter } from "@/ui/workflows/preproduction/fuji/FujiMounterGridAdapter"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 
@@ -22,7 +21,11 @@ export type UseFujiPreproductionSlotFlowOptions = {
 }
 
 export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFlowOptions) {
-  const { success: showSuccess, warn: showWarn, error: showError } = useUiNotifier()
+  const { warn: showWarn, error: showError } = useUiNotifier()
+
+  const store = useSlotSubmitStore()
+  store.setTestingMode(options.isTestingMode.value)
+  watch(options.isTestingMode, val => store.setTestingMode(val))
 
   const materialInventory = ref<SmtMaterialInventory | null>(null)
   const materialResetKey = ref(0)
@@ -47,6 +50,14 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
     materialResetKey.value += 1
   }
 
+  watch(
+    options.gridAdapter,
+    adapter => {
+      if (adapter) store.bindDeps({ grid: adapter, resetInputs: resetMaterialState })
+    },
+    { immediate: true }
+  )
+
   function handleMaterialMatched(payload: { materialInventory: SmtMaterialInventory }) {
     materialInventory.value = payload.materialInventory
     options.focusSlotInput?.()
@@ -57,95 +68,6 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
     showError(msg)
   }
 
-  const findRowByParsedSlot = (parsed: {
-    machineIdno: string
-    stage: string
-    slot: number
-  }) =>
-    options.rowData.value.find(
-      (row) =>
-        row.mounterIdno === parsed.machineIdno &&
-        row.stage === parsed.stage &&
-        row.slot === parsed.slot
-    )
-
-  const slotSubmitStore: SlotSubmitStoreLike = {
-    setLastResult(result) {
-      if (!result) return
-      if (result.type === "success") return showSuccess(result.message)
-      if (result.type === "warn") return showWarn(result.message)
-      return showError(result.message)
-    },
-    resetInputs() {
-      resetMaterialState()
-    },
-    hasRow(rowId: string): boolean {
-      const parsed = parseFujiSlotIdno(rowId)
-      if (!parsed) return false
-      return !!findRowByParsedSlot(parsed)
-    },
-    applyMatch(
-      correctSlotIdno: string,
-      materialInfo?: { idno?: string; remark?: string } | null,
-      _input?: { slot?: string; subSlot?: string | null }
-    ): boolean {
-      const parsed = parseFujiSlotIdno(correctSlotIdno)
-      if (!parsed) return false
-      const adapter = options.gridAdapter.value
-      if (!adapter) return false
-      const row = findRowByParsedSlot(parsed)
-      if (!row) return false
-
-      adapter.clearErrorMaterialInventory(materialInfo?.idno ?? "", {
-        mounterIdno: parsed.machineIdno,
-        stage: parsed.stage,
-        slot: parsed.slot,
-      })
-      adapter.markMatched(row, materialInfo?.idno ?? "")
-      if (materialInfo?.remark) {
-        row.remark = materialInfo.remark
-      }
-
-      return true
-    },
-    applyWarningBinding(
-      slotIdno: string,
-      materialInfo?: { idno?: string } | null,
-      _remark?: string
-    ): boolean {
-      const parsed = parseFujiSlotIdno(slotIdno)
-      if (!parsed) return false
-      const adapter = options.gridAdapter.value
-      if (!adapter) return false
-      const row = findRowByParsedSlot(parsed)
-      if (!row) return false
-
-      adapter.markTesting(row, materialInfo?.idno ?? "")
-      return true
-    },
-    applyMismatch(
-      inputSlot: { slot: string; subSlot: string | null },
-      _expectedSlotIdno: string,
-      materialIdno?: string
-    ) {
-      const slotKey = `${inputSlot.slot}-${inputSlot.subSlot ?? ""}`
-      const parsed = parseFujiSlotIdno(slotKey)
-      if (!parsed) return
-      const adapter = options.gridAdapter.value
-      if (!adapter) return
-      const row = findRowByParsedSlot(parsed)
-      if (!row) return
-
-      adapter.markUnmatched(row, materialIdno ?? "")
-    },
-  }
-
-  const slotSubmitStrategy = computed(() =>
-    createSlotSubmitStrategy(options.isTestingMode.value, options.isMockMode, {
-      store: slotSubmitStore,
-    })
-  )
-
   const { handleSlotSubmit } = SlotSubmissionRunner({
     submit: async (payload) => {
       const trimmed = payload.slotIdno.trim()
@@ -155,7 +77,7 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
       }
 
       if (!payload.slot) {
-        await showError("槽位格式錯誤")
+        showError("槽位格式錯誤")
         return false
       }
 
@@ -175,7 +97,13 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
           }
         : null
 
-      return slotSubmitStrategy.value.submit({
+      const storeDeps = store.getDeps() ?? {}
+      const strategy = createSlotSubmitStrategy(
+        options.isTestingMode.value,
+        options.isMockMode,
+        { ...storeDeps, store }
+      )
+      return strategy.submit({
         result,
         slot,
         subSlot,

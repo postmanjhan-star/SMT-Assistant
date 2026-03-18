@@ -15,6 +15,8 @@ import {
 } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
 import { useFujiPreproductionSlotFlow } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionSlotFlow"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
+import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
+import { useSlotResultNotifier } from "@/ui/shared/composables/useSlotResultNotifier"
 
 export type FujiDetailPageOptions = {
   focusSlotInput?: () => void
@@ -27,6 +29,8 @@ export type FujiDetailPageOptions = {
 export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
   const router = useRouter()
   const { currentUsername } = useCurrentUsername()
+  const ui = useUiNotifier()
+  useSlotResultNotifier(ui)
   const { rows: rowData, setFromApi } = useFujiProductionState()
 
   const { workOrderIdno, productIdno, boardSide, mounterIdno, isTestingMode } =

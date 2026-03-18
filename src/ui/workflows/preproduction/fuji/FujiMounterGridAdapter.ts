@@ -1,4 +1,6 @@
 import { CheckMaterialMatchEnum } from '@/client'
+import type { SlotSubmitGridPort } from '@/application/slot-submit/SlotSubmitDeps'
+import { parseFujiSlotIdno } from '@/domain/slot/FujiSlotParser'
 
 export class FujiMounterGridAdapter<
     Row extends {
@@ -9,33 +11,27 @@ export class FujiMounterGridAdapter<
         stage?: string
         slot?: string | number
     }
-> {
+> implements SlotSubmitGridPort {
     constructor(private api: any) {}
 
-    updateRow(row: Row) {
+    private updateRow(row: Row) {
         this.api.applyTransaction({ update: [row] })
     }
 
-    markMatched(row: Row, inventoryIdno: string) {
-        row.materialInventoryIdno = inventoryIdno
-        row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-        this.updateRow(row)
-    }
-
-    markTesting(row: Row, inventoryIdno: string) {
+    private markTesting(row: Row, inventoryIdno: string) {
         row.materialInventoryIdno = inventoryIdno
         row.correct = CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
         row.remark = '[廠商測試新料]'
         this.updateRow(row)
     }
 
-    markUnmatched(row: Row, inventoryIdno: string) {
+    private markUnmatched(row: Row, inventoryIdno: string) {
         row.materialInventoryIdno = inventoryIdno
         row.correct = CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK
         this.updateRow(row)
     }
 
-    clearErrorMaterialInventory(
+    private clearErrorMaterialInventory(
         currentPackCode: string,
         keep: { mounterIdno: string; stage: string; slot: string | number }
     ) {
@@ -58,5 +54,81 @@ export class FujiMounterGridAdapter<
             if (row.remark !== undefined) row.remark = ''
             this.updateRow(row)
         })
+    }
+
+    private findRow(rowId: string): Row | undefined {
+        const parsed = parseFujiSlotIdno(rowId)
+        if (!parsed) return undefined
+        let result: Row | undefined
+        this.api.forEachNode((node: { data?: Row }) => {
+            const row = node.data
+            if (!row || result) return
+            if (
+                row.mounterIdno === parsed.machineIdno &&
+                row.stage === parsed.stage &&
+                row.slot === parsed.slot
+            ) {
+                result = row
+            }
+        })
+        return result
+    }
+
+    hasRow(rowId: string): boolean {
+        return !!this.findRow(rowId)
+    }
+
+    cleanErrorMaterialInventory(materialIdno: string, slot: string, subSlot: string | null): void {
+        const lastDash = slot.lastIndexOf('-')
+        if (lastDash < 0) return
+        const mounterIdno = slot.substring(0, lastDash)
+        const stage = slot.substring(lastDash + 1)
+        this.clearErrorMaterialInventory(materialIdno, { mounterIdno, stage, slot: subSlot ?? '' })
+    }
+
+    applyBindingSuccess(slotIdno: string, materialIdno: string, remark: string): boolean {
+        const row = this.findRow(slotIdno)
+        if (!row) return false
+        row.materialInventoryIdno = materialIdno
+        row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+        if (remark) row.remark = remark
+        this.updateRow(row)
+        return true
+    }
+
+    applyWarningBinding(slotIdno: string, materialIdno: string, _remark: string): boolean {
+        const row = this.findRow(slotIdno)
+        if (!row) return false
+        this.markTesting(row, materialIdno)
+        return true
+    }
+
+    markMismatch(slot: string, subSlot: string | null, materialIdno: string): void {
+        const slotKey = `${slot}-${subSlot ?? ''}`
+        const row = this.findRow(slotKey)
+        if (!row) return
+        this.markUnmatched(row, materialIdno)
+    }
+
+    deselectRow(slotIdno: string): boolean {
+        return !!this.findRow(slotIdno)
+    }
+
+    checkAllCorrect(): { allCorrect: boolean; invalidSlots: string[] } {
+        const invalidSlots: string[] = []
+        this.api.forEachNode((node: { data?: Row }) => {
+            const row = node.data
+            if (!row) return
+            if (row.correct !== CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK) {
+                invalidSlots.push(`${row.mounterIdno}-${row.stage}-${row.slot}`)
+            }
+        })
+        return { allCorrect: invalidSlots.length === 0, invalidSlots }
+    }
+
+    getAllRowsData<T = any>(): T[] {
+        const rows: T[] = []
+        this.api.forEachNode((node: { data?: T }) => { if (node.data) rows.push(node.data) })
+        return rows
     }
 }
