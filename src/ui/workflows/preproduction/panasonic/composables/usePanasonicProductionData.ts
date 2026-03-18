@@ -1,7 +1,8 @@
-﻿import { ref, onMounted } from "vue"
+﻿import { ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ApiError, type PanasonicMounterFileRead } from "@/client"
+import type { PanasonicMounterFileRead } from "@/client"
 import { loadPanasonicProductionSlots } from "@/application/preproduction/PanasonicProductionLoadUseCase"
+import { PanasonicProductionRowBuilder } from "@/domain/production/PanasonicProductionRowBuilder"
 import type { ProductionRowModel } from "@/pages/mounter/panasonic/types/production"
 import {
   PANASONIC_BOARD_SIDE_VALUES,
@@ -11,6 +12,7 @@ import {
   type PanasonicMachineSide,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
+import { usePreproductionLoader } from "@/ui/shared/composables/usePreproductionLoader"
 
 function toBoardSide(value: unknown): PanasonicBoardSide | null {
   const normalized = normalizeRouteValue(value)
@@ -36,12 +38,9 @@ export function usePanasonicProductionData() {
 
   const mounterData = ref<PanasonicMounterFileRead | null>(null)
   const rowData = ref<ProductionRowModel[]>([])
-  const loading = ref(false)
 
-  onMounted(async () => {
-    loading.value = true
-
-    try {
+  const { loading } = usePreproductionLoader({
+    load: async () => {
       const workOrderIdno = normalizeRouteValue(route.params.workOrderIdno)
       const mounterIdno = normalizeRouteValue(route.params.mounterIdno)
       const productIdno = normalizeRouteValue(route.query.product_idno)
@@ -65,24 +64,12 @@ export function usePanasonicProductionData() {
           : null,
       })
 
-      rowData.value = mounterData.value.panasonic_mounter_file_items.map((i) => ({
-        correct: null,
-        id: i.id,
-        slotIdno: i.slot_idno,
-        subSlotIdno: i.sub_slot_idno,
-        firstAppendTime: null,
-        materialIdno: i.smd_model_idno,
-        operatorIdno: null,
-        appendedMaterialInventoryIdno: "",
-        materialInventoryIdno: "",
-      }))
-    } catch (e) {
-      if (e instanceof ApiError && [404, 503].includes(e.status)) {
-        router.push(PANASONIC_NOT_FOUND_PATH)
-      }
-    } finally {
-      loading.value = false
-    }
+      rowData.value = PanasonicProductionRowBuilder.build(
+        mounterData.value.panasonic_mounter_file_items ?? []
+      )
+    },
+    notFoundStatuses: [404, 503],
+    onNotFound: () => router.push(PANASONIC_NOT_FOUND_PATH),
   })
 
   return {

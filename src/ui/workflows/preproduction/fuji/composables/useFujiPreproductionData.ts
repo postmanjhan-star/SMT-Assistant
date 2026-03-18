@@ -1,9 +1,10 @@
-import { onMounted, ref, type Ref } from "vue"
+import { ref, type Ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ApiError, type BoardSideEnum, type FujiMounterFileRead } from "@/client"
+import { type BoardSideEnum, type FujiMounterFileRead } from "@/client"
 import { loadFujiProductionSlots } from "@/application/preproduction/FujiProductionLoadUseCase"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
+import { usePreproductionLoader } from "@/ui/shared/composables/usePreproductionLoader"
 
 export type UseFujiPreproductionDataOptions = {
   setFromApi: (rows: FujiMounterFileRead[]) => void
@@ -30,8 +31,8 @@ export function useFujiPreproductionData(
   const mounterIdno = ref<string>(normalizeRouteValue(route.params.mounterIdno))
   const isTestingMode = ref<boolean>(route.query.testing_mode === "1")
 
-  onMounted(async () => {
-    try {
+  usePreproductionLoader({
+    load: async () => {
       const data = await loadFujiProductionSlots({
         workOrderIdno: workOrderIdno.value,
         mounterIdno: mounterIdno.value,
@@ -43,15 +44,12 @@ export function useFujiPreproductionData(
           : null,
       })
       options.setFromApi(data)
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
-        router.push("/http-status/404")
-        return
-      }
-
+    },
+    onNotFound: () => router.push("/http-status/404"),
+    onOtherError: (error) => {
       showError("讀取檔案資料失敗")
       console.error(error)
-    }
+    },
   })
 
   return {

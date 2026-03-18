@@ -1,17 +1,12 @@
 ﻿import type { CheckMaterialMatchEnum, FujiMounterFileRead } from '@/client'
+import type { BaseProductionRow } from '@/domain/production/BaseProductionRow'
 
-export type FujiProductionRow = {
+export type FujiProductionRow = BaseProductionRow & {
   correct: CheckMaterialMatchEnum | null
-  id: number
   mounterIdno: string
   boardSide: string
   stage: string
   slot: number
-  materialIdno: string
-  operatorIdno: string | null
-  materialInventoryIdno: string | null
-  appendedMaterialInventoryIdno?: string
-  remark?: string
 }
 
 const normalizeStage = (stage: string) => {
