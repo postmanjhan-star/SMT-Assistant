@@ -1,7 +1,8 @@
 ﻿import { computed, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { useDialog } from "naive-ui"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
+import { useProductionLifecycleUi } from "@/ui/shared/composables/useProductionLifecycleUi"
+
 import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { useSlotResultNotifier } from "@/ui/shared/composables/useSlotResultNotifier"
@@ -17,7 +18,6 @@ import {
   type SubmitRollShortageError,
 } from "@/application/preproduction/SubmitRollShortageUseCase"
 import { SubmitSlotUseCase } from "@/application/preproduction/SubmitSlotUseCase"
-import { ProductionLifecycleUseCase } from "@/application/preproduction/ProductionLifecycleUseCase"
 import {
   createPreproductionPanasonicDeps,
   type PreproductionPanasonicDeps,
@@ -74,7 +74,6 @@ function toRollShortageErrorMessage(error: SubmitRollShortageError): string | nu
 export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
   const route = useRoute()
   const router = useRouter()
-  const dialog = useDialog()
   const deps = createPreproductionPanasonicDeps(options.deps)
 
   const { currentUsername } = useCurrentUsername()
@@ -113,6 +112,11 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     start: startProduction,
     stop: stopProduction,
     buildProductionPath: (uuid) => `/smt/panasonic-mounter-production/${uuid}`,
+  })
+
+  const { handleProductionStarted, onStopProduction } = useProductionLifecycleUi({
+    lifecycleUseCase: productionLifecycleUseCase,
+    productionUuid,
   })
 
   const {
@@ -176,31 +180,6 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
       slotIdno: "",
       type: "",
     }
-  }
-
-  function handleProductionStarted(productionStatUuid: string) {
-    const intent = productionLifecycleUseCase.handleStarted({
-      uuid: productionStatUuid,
-      currentPath: route.path,
-      currentQuery: route.query,
-    })
-
-    router.replace(intent.replace)
-    router.push(intent.push)
-  }
-
-  async function onStopProduction() {
-    dialog.warning({
-      title: "結束生產確認",
-      content: "確定要結束生產嗎？",
-      positiveText: "確定",
-      negativeText: "取消",
-      onPositiveClick: async () => {
-        await productionLifecycleUseCase.stop()
-        return ui.success("生產已結束")
-      },
-      onNegativeClick: () => undefined,
-    })
   }
 
   async function handleSlotSubmitWithPolicy(payload: {

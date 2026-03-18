@@ -1,6 +1,7 @@
 import { ref, type Ref } from "vue"
 import { useDialog } from "naive-ui"
-import { useRoute, useRouter } from "vue-router"
+import { useRouter } from "vue-router"
+import { useProductionLifecycleUi } from "@/ui/shared/composables/useProductionLifecycleUi"
 import {
   CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
@@ -54,7 +55,6 @@ type FujiStartStatPayload = FujiMounterItemStatCreate & {
 export function useFujiPreproductionLifecycle(
   options: UseFujiPreproductionLifecycleOptions
 ) {
-  const route = useRoute()
   const router = useRouter()
   const dialog = useDialog()
   const { success: showSuccess, error: showError } = useUiNotifier()
@@ -67,9 +67,18 @@ export function useFujiPreproductionLifecycle(
       productionStarted.value = true
       productionUuid.value = uuid
     },
-    stop: async () => stopFujiProduction(productionUuid.value),
+    stop: async () => {
+      await stopFujiProduction(productionUuid.value)
+      productionStarted.value = false
+    },
     buildProductionPath: (uuid) => `/smt/fuji-mounter-production/${uuid}`,
     extraQueryParamsToRemove: ["testing_mode", "testing_product_idno"],
+  })
+
+  const { handleProductionStarted, onStopProduction } = useProductionLifecycleUi({
+    lifecycleUseCase,
+    productionUuid,
+    afterStop: () => router.push("/smt/fuji-mounter/"),
   })
 
   const startStatsUseCase = new StartProductionStatsUseCase<
@@ -191,37 +200,6 @@ export function useFujiPreproductionLifecycle(
     })
   }
 
-  function handleProductionStarted(productionStatUuid: string) {
-    const intent = lifecycleUseCase.handleStarted({
-      uuid: productionStatUuid,
-      currentPath: route.path,
-      currentQuery: route.query,
-    })
-    router.replace(intent.replace)
-    router.push(intent.push)
-  }
-
-  async function onStopProduction() {
-    if (!productionUuid.value) return showError("沒有生產ID，無法停止")
-
-    dialog.warning({
-      title: "停止生產確認",
-      content: "確定要停止生產嗎？",
-      positiveText: "確定",
-      negativeText: "取消",
-      onPositiveClick: async () => {
-        try {
-          await stopFujiProduction(productionUuid.value)
-          productionStarted.value = false
-          showSuccess("生產已結束")
-          router.push("/smt/fuji-mounter/")
-        } catch (error) {
-          showError("停止生產失敗")
-          console.error(error)
-        }
-      },
-    })
-  }
 
   return {
     productionUuid,
