@@ -1,6 +1,7 @@
 ﻿import { GridApi } from "ag-grid-community"
+import type { SlotSubmitGridPort } from '@/application/slot-submit/SlotSubmitDeps'
 
-export class SlotSubmitFeedGridAdapter {
+export class SlotSubmitFeedGridAdapter implements SlotSubmitGridPort {
     constructor(
         private api: GridApi,
         private getOperatorIdno: () => string | null | undefined = () => null

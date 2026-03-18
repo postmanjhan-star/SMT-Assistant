@@ -8,14 +8,14 @@ import { SimpleBarcodeValidator } from "@/domain/material/BarcodeValidator"
 import { BarcodeScanUseCase } from "@/application/barcode-scan/BarcodeScanUseCase"
 import { ApiMaterialRepository } from "@/infra/material/ApiMaterialRepository"
 import { findAvailableMaterialRows } from "@/domain/material/FujiMaterialMatchRules"
-import type { FujiMounterGridAdapter } from "@/ui/workflows/preproduction/fuji/FujiMounterGridAdapter"
+import type { SlotSubmitGridPort } from "@/application/slot-submit/SlotSubmitDeps"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 
 export type UseFujiPreproductionSlotFlowOptions = {
   rowData: Ref<FujiMounterRowModel[]>
   isTestingMode: Ref<boolean>
   isMockMode?: boolean
-  gridAdapter: ShallowRef<FujiMounterGridAdapter<FujiMounterRowModel> | null>
+  gridAdapter: ShallowRef<SlotSubmitGridPort | null>
   focusSlotInput?: () => void
   onAfterSuccess?: () => void | Promise<void>
 }

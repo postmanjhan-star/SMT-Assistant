@@ -1,11 +1,9 @@
 import { shallowRef } from "vue"
 import { useRouter } from "vue-router"
 import type { GridReadyEvent } from "ag-grid-community"
-import {
-  useFujiProductionState,
-  type FujiMounterRowModel,
-} from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
+import { useFujiProductionState } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 import { FujiMounterGridAdapter } from "@/ui/workflows/preproduction/fuji/FujiMounterGridAdapter"
+import type { SlotSubmitGridPort } from "@/application/slot-submit/SlotSubmitDeps"
 import { createFujiPreproductionGridOptions } from "@/ui/workflows/preproduction/fuji/createFujiPreproductionGridOptions"
 import { useFujiPreproductionData } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionData"
 import {
@@ -47,7 +45,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     getPendingSpliceRecords: options.getPendingSpliceRecords,
   })
 
-  const gridAdapter = shallowRef<FujiMounterGridAdapter<FujiMounterRowModel> | null>(null)
+  const gridAdapter = shallowRef<SlotSubmitGridPort | null>(null)
 
   function onGridReady(e: GridReadyEvent) {
     gridAdapter.value = new FujiMounterGridAdapter(e.api)
