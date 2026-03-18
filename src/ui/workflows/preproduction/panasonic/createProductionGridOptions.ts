@@ -6,6 +6,13 @@ import type {
 import type { ProductionRowModel } from '@/pages/mounter/panasonic/types/production'
 import { useDateFormatter } from '@/ui/shared/composables/useDateFormatter'
 import { createPanasonicBaseGridOptions } from '@/ui/shared/grid/createBaseGridOptions'
+import {
+    createCorrectColDef,
+    createMaterialIdnoColDef,
+    createOperatorIdnoColDef,
+    createMaterialInventoryIdnoColDef,
+    remarkColDef,
+} from '@/ui/shared/grid/mounterPreproductionColumns'
 
 export function createProductionGridOptions(
     rowDataRef: { value: ProductionRowModel[] }
@@ -15,14 +22,7 @@ export function createProductionGridOptions(
     return {
         ...createPanasonicBaseGridOptions(),
         columnDefs: [
-            {
-                field: 'correct',
-                tooltipField: 'correct',
-                headerName: '',
-                flex: 1,
-                minWidth: 60,
-                refData: { true: '✅', false: '❌', warning: '⚠️', unloaded: '⛔' },
-            },
+            createCorrectColDef({ true: '✅', false: '❌', warning: '⚠️', unloaded: '⛔' }),
             {
                 field: 'slotIdno',
                 tooltipField: 'slotIdno',
@@ -45,27 +45,9 @@ export function createProductionGridOptions(
                 minWidth: 180,
                 valueFormatter: p => format(p.value),
             },
-            {
-                field: 'operatorIdno',
-                tooltipField: 'operatorIdno',
-                headerName: '上料人員',
-                flex: 3,
-                minWidth: 120,
-            },
-            {
-                field: 'materialIdno',
-                tooltipField: 'materialIdno',
-                headerName: '料號',
-                flex: 4,
-                minWidth: 140,
-            },
-            {
-                field: 'materialInventoryIdno',
-                tooltipField: 'materialInventoryIdno',
-                headerName: '上料條碼',
-                flex: 5,
-                minWidth: 140,
-            },
+            createOperatorIdnoColDef(),
+            createMaterialIdnoColDef(),
+            createMaterialInventoryIdnoColDef(),
             {
                 field: 'appendedMaterialInventoryIdno',
                 tooltipField: 'appendedMaterialInventoryIdno',
@@ -73,7 +55,7 @@ export function createProductionGridOptions(
                 flex: 5,
                 minWidth: 140,
             },
-            { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
+            remarkColDef,
         ],
         getRowId: (params: GetRowIdParams<ProductionRowModel>) =>
             `${params.data.slotIdno}-${params.data.subSlotIdno ?? ''}`,
