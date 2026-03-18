@@ -4,6 +4,7 @@ import type { GridReadyEvent } from "ag-grid-community"
 import { useFujiProductionState } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 import { FujiMounterGridAdapter } from "@/ui/workflows/preproduction/fuji/FujiMounterGridAdapter"
 import type { SlotSubmitGridPort } from "@/application/slot-submit/SlotSubmitDeps"
+import { findAvailableMaterialRows } from "@/domain/material/FujiMaterialMatchRules"
 import { createFujiPreproductionGridOptions } from "@/ui/workflows/preproduction/fuji/createFujiPreproductionGridOptions"
 import { useFujiPreproductionData } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionData"
 import {
@@ -52,7 +53,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
   }
 
   const slotFlow = useFujiPreproductionSlotFlow({
-    rowData,
+    getMaterialMatchedRows: (id) => findAvailableMaterialRows(rowData.value, id),
     isTestingMode,
     isMockMode: options.isMockMode,
     gridAdapter,

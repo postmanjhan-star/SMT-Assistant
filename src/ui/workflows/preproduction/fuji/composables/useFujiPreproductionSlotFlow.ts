@@ -7,12 +7,11 @@ import { useSlotSubmitStore } from "@/stores/slotSubmitStore"
 import { SimpleBarcodeValidator } from "@/domain/material/BarcodeValidator"
 import { BarcodeScanUseCase } from "@/application/barcode-scan/BarcodeScanUseCase"
 import { ApiMaterialRepository } from "@/infra/material/ApiMaterialRepository"
-import { findAvailableMaterialRows } from "@/domain/material/FujiMaterialMatchRules"
 import type { SlotSubmitGridPort } from "@/application/slot-submit/SlotSubmitDeps"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 
 export type UseFujiPreproductionSlotFlowOptions = {
-  rowData: Ref<FujiMounterRowModel[]>
+  getMaterialMatchedRows: (materialIdno: string) => FujiMounterRowModel[]
   isTestingMode: Ref<boolean>
   isMockMode?: boolean
   gridAdapter: ShallowRef<SlotSubmitGridPort | null>
@@ -30,8 +29,7 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
   const materialInventory = ref<SmtMaterialInventory | null>(null)
   const materialResetKey = ref(0)
 
-  const getMaterialMatchedRows = (materialIdno: string) =>
-    findAvailableMaterialRows(options.rowData.value, materialIdno)
+  const getMaterialMatchedRows = options.getMaterialMatchedRows
 
   const materialScanUseCase = computed(
     () =>
@@ -87,8 +85,7 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
         ? {
             success: true,
             materialInventory: materialInventory.value,
-            matchedRows: findAvailableMaterialRows(
-              options.rowData.value,
+            matchedRows: getMaterialMatchedRows(
               materialInventory.value.material_idno
             ).map((row) => ({
               slotIdno: `${row.mounterIdno}-${row.stage}`,
