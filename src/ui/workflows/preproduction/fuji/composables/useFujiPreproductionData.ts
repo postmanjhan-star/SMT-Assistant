@@ -5,6 +5,7 @@ import { loadFujiProductionSlots } from "@/application/preproduction/FujiProduct
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 import { usePreproductionLoader } from "@/ui/shared/composables/usePreproductionLoader"
+import { msg } from "@/ui/shared/messageCatalog"
 
 export type UseFujiPreproductionDataOptions = {
   setFromApi: (rows: FujiMounterFileRead[]) => void
@@ -47,7 +48,7 @@ export function useFujiPreproductionData(
     },
     onNotFound: () => router.push("/http-status/404"),
     onOtherError: (error) => {
-      showError("讀取檔案資料失敗")
+      showError(msg.production.fileLoadFailed)
       console.error(error)
     },
   })

@@ -1,7 +1,7 @@
 import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type GridApi, type GridReadyEvent } from "ag-grid-community"
-import { useDialog, type InputInst } from "naive-ui"
+import { useDialog } from "naive-ui"
 import {
   ApiError,
   CheckMaterialMatchEnum,
@@ -35,9 +35,7 @@ import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupErro
 import { useUnloadReplaceFlow } from "@/ui/shared/composables/useUnloadReplaceFlow"
 import { FujiPostProductionRecordApi } from "@/infra/post-production/FujiPostProductionRecordApi"
 import { FujiPostProductionRecordUploader } from "@/application/post-production-feed/FujiPostProductionRecordUploader"
-
-const MODE_NAME_TESTING = "🧪 試產生產模式"
-const MODE_NAME_NORMAL = "✅ 正式生產模式"
+import { MODE_NAME_TESTING, MODE_NAME_NORMAL, msg } from "@/ui/shared/messageCatalog"
 
 function normalizeStageLabel(stage: unknown): string {
   if (stage == null) return ""
@@ -93,8 +91,8 @@ export function useFujiProductionWorkflow() {
 
   const materialFormValue = ref({ materialInventoryIdno: "" })
   const slotFormValue = ref({ slotIdno: "" })
-  const materialInputRef = ref<InputInst | null>(null)
-  const slotInputRef = ref<InputInst | null>(null)
+  const materialInputRef = ref<{ focus?: () => void } | null>(null)
+  const slotInputRef = ref<{ focus?: () => void } | null>(null)
   const materialInventoryFromScan = ref<SmtMaterialInventory | null>(null)
 
   const unloadMaterialValue = ref("")
@@ -548,7 +546,7 @@ export function useFujiProductionWorkflow() {
         try {
           await SmtService.updateFujiItemStatsEndTime({ uuid: productionUuid.value })
           productionStarted.value = false
-          showSuccess("生產已結束")
+          showSuccess(msg.production.stopped)
         } catch (error) {
           showError("結束生產失敗")
           console.error(error)
@@ -623,6 +621,8 @@ export function useFujiProductionWorkflow() {
     slotFormValue,
     materialInputRef,
     slotInputRef,
+    materialInventoryFromScan,
+    getMaterialMatchedRows,
     isUnloadMode,
     unloadMaterialValue,
     unloadSlotValue,

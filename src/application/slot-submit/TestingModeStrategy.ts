@@ -2,8 +2,7 @@ import { SlotSubmitContext } from "./SlotSubmitContext";
 import { SlotSubmitStrategy } from "./SlotSubmitStrategy";
 import { SlotSubmitDeps, type SlotSubmitBindingPort } from "./SlotSubmitDeps";
 import { decideSlotBinding, formatSlotIdno, TESTING_FORCE_BIND_REMARK } from "@/domain/slot/SlotBindingRules";
-
-const MODE_NAME_TESTING = '🧪 試產生產模式'
+import { MODE_NAME_TESTING } from "@/application/post-production-feed/PostProductionFeedConstants"
 
 export class TestingModeStrategy implements SlotSubmitStrategy {
     constructor(private deps: SlotSubmitDeps) {}

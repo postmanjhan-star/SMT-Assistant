@@ -9,6 +9,7 @@ import { BarcodeScanUseCase } from "@/application/barcode-scan/BarcodeScanUseCas
 import { ApiMaterialRepository } from "@/infra/material/ApiMaterialRepository"
 import type { SlotSubmitGridPort } from "@/application/slot-submit/SlotSubmitDeps"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
+import { msg as uiMsg } from "@/ui/shared/messageCatalog"
 
 export type UseFujiPreproductionSlotFlowOptions = {
   getMaterialMatchedRows: (materialIdno: string) => FujiMounterRowModel[]
@@ -70,12 +71,12 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
     submit: async (payload) => {
       const trimmed = payload.slotIdno.trim()
       if (!trimmed) {
-        await showWarn("請輸入槽位")
+        await showWarn(uiMsg.input.slotRequired)
         return false
       }
 
       if (!payload.slot) {
-        showError("槽位格式錯誤")
+        showError(uiMsg.slot.formatError)
         return false
       }
 

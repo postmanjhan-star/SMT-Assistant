@@ -2,8 +2,7 @@ import { SlotSubmitContext } from "./SlotSubmitContext";
 import { SlotSubmitStrategy } from "./SlotSubmitStrategy";
 import { SlotSubmitDeps, type SlotSubmitBindingPort } from "./SlotSubmitDeps";
 import { decideSlotBinding } from "@/domain/slot/SlotBindingRules";
-
-const MODE_NAME_NORMAL = '✅ 正式生產模式'
+import { MODE_NAME_NORMAL } from "@/application/post-production-feed/PostProductionFeedConstants"
 
 export class NormalModeStrategy implements SlotSubmitStrategy {
     constructor(private deps: SlotSubmitDeps) { }

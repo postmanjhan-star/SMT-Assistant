@@ -3,20 +3,21 @@ import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
-import { NButton, NForm, NFormItem, NGi, NInput, NTag } from "naive-ui"
+import { NButton, NGi, NTag } from "naive-ui"
 import { computed, nextTick, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { useMeta } from "vue-meta"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
-import { decideMaterialScanAction } from "@/domain/material/MaterialScanDecision"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { CheckMaterialMatchEnum, SmtService } from "@/client"
 import { isFujiStatSlotMatch } from "@/domain/production/buildFujiProductionRowData"
 
+import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
+import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
 import MounterMaterialQueryModal from "@/pages/components/shared/MounterMaterialQueryModal.vue"
 import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
-import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
+import { parseFujiSlotIdno, parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiProductionPage } from "@/ui/workflows/post-production/fuji/composables/useFujiProductionPage"
 import { createFujiProductionGridOptions } from "@/ui/workflows/post-production/fuji/createFujiProductionGridOptions"
 import {
@@ -52,10 +53,11 @@ const {
   currentUsername,
   productionStarted,
   rowData,
-  materialFormValue,
   slotFormValue,
   materialInputRef,
   slotInputRef,
+  materialInventoryFromScan,
+  getMaterialMatchedRows,
   isUnloadMode,
   unloadMaterialValue,
   unloadSlotValue,
@@ -64,7 +66,6 @@ const {
   fetchMaterialQueryLogs,
   onGridReady,
   onClickBackArrow,
-  onSubmitMaterialInventoryForm,
   onSubmitSlotForm: onSubmitSlotFormRaw,
   submitUnload,
   submitForceUnloadBySlot,
@@ -82,6 +83,8 @@ const {
   applyInspectionUpdate,
 } = useFujiProductionPage()
 
+const materialResetKey = ref(0)
+const slotResetKey = ref(0)
 const unloadMaterialInputRef = ref<HTMLInputElement | null>(null)
 const unloadSlotInputRef = ref<HTMLInputElement | null>(null)
 const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
@@ -251,8 +254,9 @@ async function validateIpqcMaterialPackCode(materialPackCode: string): Promise<b
 
 function enterIpqcMode() {
   isIpqcMode.value = true
-  materialFormValue.value.materialInventoryIdno = ""
-  slotFormValue.value.slotIdno = ""
+  materialResetKey.value++
+  slotResetKey.value++
+  materialInventoryFromScan.value = null
 
   // 儲存目前 correct 狀態，全部設為 ⛔
   const saved = new Map<string, unknown>()
@@ -423,81 +427,71 @@ watch(
   }
 )
 
-async function onMainMaterialSubmit() {
-  const barcode = materialFormValue.value.materialInventoryIdno.trim().toUpperCase()
-  if (barcode === MATERIAL_UNLOAD_TRIGGER) {
-    materialFormValue.value.materialInventoryIdno = ""
-    unloadModeType.value = "pack_auto_slot"
-    isIpqcMode.value = false
-    enterUnloadMode()
-    return
-  }
-
-  if (barcode === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-    materialFormValue.value.materialInventoryIdno = ""
-    unloadModeType.value = "force_single_slot"
-    isIpqcMode.value = false
-    enterUnloadMode()
-    return
-  }
-
-  if (barcode === MATERIAL_IPQC_TRIGGER) {
-    materialFormValue.value.materialInventoryIdno = ""
-    toggleIpqcMode()
-    return
-  }
-
-  if (barcode === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
-    materialFormValue.value.materialInventoryIdno = ""
-    exitIpqcMode()
-    return
-  }
-
-  if (mockScan) {
-    const result = await mockScan(barcode)
-    const decision = decideMaterialScanAction(result, {
-      isTestingMode: isTestingMode.value,
-      allowNoMatchInTesting: true,
-    })
-    if (decision.action === 'error') {
-      showError(resolveMaterialLookupError(decision.error))
-      materialFormValue.value.materialInventoryIdno = ""
-      return
-    }
-    slotInputRef.value?.focus()
-    return
-  }
-
-  await onSubmitMaterialInventoryForm()
-}
-
-async function onMainSlotSubmit() {
-  const code = slotFormValue.value.slotIdno.trim().toUpperCase()
+function handleBeforeMaterialScan(barcode: string): boolean {
+  const code = barcode.trim().toUpperCase()
   if (code === MATERIAL_UNLOAD_TRIGGER) {
     unloadModeType.value = "pack_auto_slot"
     isIpqcMode.value = false
     enterUnloadMode()
-    return
+    return false
   }
-
   if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
     unloadModeType.value = "force_single_slot"
     isIpqcMode.value = false
     enterUnloadMode()
-    return
+    return false
   }
-
   if (code === MATERIAL_IPQC_TRIGGER) {
     toggleIpqcMode()
-    return
+    return false
   }
-
   if (code === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
     exitIpqcMode()
-    return
+    return false
   }
+  return true
+}
 
+function onMaterialMatched(payload: { materialInventory: any }) {
+  materialInventoryFromScan.value = payload.materialInventory
+  nextTick(() => slotInputRef.value?.focus())
+}
+
+function onMaterialError(errorMsg: string) {
+  materialInventoryFromScan.value = null
+  showError(errorMsg)
+}
+
+async function handleBeforeSlotSubmit(raw: string): Promise<boolean> {
+  const code = raw.trim().toUpperCase()
+  if (code === MATERIAL_UNLOAD_TRIGGER) {
+    unloadModeType.value = "pack_auto_slot"
+    isIpqcMode.value = false
+    enterUnloadMode()
+    return false
+  }
+  if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    unloadModeType.value = "force_single_slot"
+    isIpqcMode.value = false
+    enterUnloadMode()
+    return false
+  }
+  if (code === MATERIAL_IPQC_TRIGGER) {
+    toggleIpqcMode()
+    return false
+  }
+  if (code === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
+    exitIpqcMode()
+    return false
+  }
+  return true
+}
+
+async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; subSlot: string }) {
+  slotFormValue.value.slotIdno = payload.slotIdno
   await onSubmitSlotFormRaw()
+  materialResetKey.value++
+  slotResetKey.value++
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
@@ -792,34 +786,33 @@ async function handleUnloadSlotSubmit() {
       <!-- Normal scan inputs -->
       <template v-else>
         <n-gi>
-          <n-form size="large" :model="materialFormValue" @submit.prevent="onMainMaterialSubmit">
-            <n-form-item label="物料條碼">
-              <n-input
-                data-testid="material-input"
-                type="text"
-                size="large"
-                v-model:value.lazy="materialFormValue.materialInventoryIdno"
-                autofocus
-                ref="materialInputRef"
-                :disabled="!productionStarted"
-                placeholder="輸入物料條碼"
-              />
-            </n-form-item>
-          </n-form>
+          <MaterialInventoryBarcodeInput
+            ref="materialInputRef"
+            :disabled="!productionStarted"
+            :is-testing-mode="isTestingMode"
+            :get-material-matched-rows="getMaterialMatchedRows"
+            :reset-key="materialResetKey"
+            :allow-no-match-in-testing="true"
+            :before-scan="handleBeforeMaterialScan"
+            :scan="mockScan ?? undefined"
+            input-test-id="fuji-production-material-input"
+            @matched="onMaterialMatched"
+            @error="onMaterialError"
+          />
         </n-gi>
         <n-gi>
-          <n-form size="large" :model="slotFormValue" @submit.prevent="onMainSlotSubmit">
-            <n-form-item label="槽位">
-              <n-input
-                type="text"
-                size="large"
-                v-model:value.lazy="slotFormValue.slotIdno"
-                ref="slotInputRef"
-                :disabled="!productionStarted"
-                placeholder="輸入槽位"
-              />
-            </n-form-item>
-          </n-form>
+          <SlotIdnoInput
+            ref="slotInputRef"
+            :disabled="!productionStarted"
+            :is-testing-mode="isTestingMode"
+            :has-material="!!materialInventoryFromScan"
+            :parse-slot-idno="parseFujiSlotInput"
+            :reset-key="slotResetKey"
+            :before-submit="handleBeforeSlotSubmit"
+            input-test-id="fuji-production-slot-input"
+            @submit="onNormalSlotSubmit"
+            @error="showError"
+          />
         </n-gi>
       </template>
     </template>

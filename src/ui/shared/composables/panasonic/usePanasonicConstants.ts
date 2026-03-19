@@ -1,5 +1,4 @@
-﻿export const PANASONIC_MODE_NAME_TESTING = "🧪 試產生產模式"
-export const PANASONIC_MODE_NAME_NORMAL = "✅ 正式生產模式"
+﻿export { MODE_NAME_TESTING as PANASONIC_MODE_NAME_TESTING, MODE_NAME_NORMAL as PANASONIC_MODE_NAME_NORMAL } from "@/ui/shared/messageCatalog"
 
 export const PANASONIC_HOME_PATH = "/smt/panasonic-mounter/"
 export const PANASONIC_DETAIL_BASE_PATH = "/smt/panasonic-mounter"

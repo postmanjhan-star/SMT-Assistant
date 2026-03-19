@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { NForm, NFormItem, NInput, InputInst } from 'naive-ui'
+import { NFormItem, NInput, InputInst } from 'naive-ui'
 
 const props = defineProps<{
     isTestingMode: boolean
@@ -141,14 +141,13 @@ defineExpose({ focus, clear })
 </script>
 
 <template>
-    <n-form size="large" :model="formValue" @submit.prevent="onSubmit">
-        <n-form-item label="打件機料件槽位">
-            <n-input
-                ref="slotIdnoInput"
-                v-model:value="inputValue"
-                :disabled="props.disabled"
-                :data-testid="props.inputTestId"
-            />
-        </n-form-item>
-    </n-form>
+    <n-form-item label="打件機料件槽位">
+        <n-input
+            ref="slotIdnoInput"
+            v-model:value="inputValue"
+            :disabled="props.disabled"
+            :data-testid="props.inputTestId"
+            @keydown.enter.prevent="onSubmit"
+        />
+    </n-form-item>
 </template>

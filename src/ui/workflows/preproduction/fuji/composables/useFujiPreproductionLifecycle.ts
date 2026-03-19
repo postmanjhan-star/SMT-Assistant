@@ -20,6 +20,7 @@ import { ProductionLifecycleUseCase } from "@/application/preproduction/Producti
 import { StartProductionStatsUseCase } from "@/application/preproduction/StartProductionStatsUseCase"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
+import { msg } from "@/ui/shared/messageCatalog"
 
 export type FujiUnloadRecord = {
   slot: number
@@ -186,11 +187,11 @@ export function useFujiPreproductionLifecycle(
         onUnloadUploaded: options.onUnloadUploaded,
         onIpqcUploaded: options.onIpqcUploaded,
       })
-      showSuccess("開始生產，資料已上傳")
+      showSuccess(msg.production.startedAndUploaded)
       handleProductionStarted(productionUuid)
     } catch (error) {
       console.error("upload failed: ", error)
-      showError(error instanceof Error ? error.message : "資料上傳失敗")
+      showError(error instanceof Error ? error.message : msg.production.uploadFailed)
     }
   }
 
@@ -203,7 +204,7 @@ export function useFujiPreproductionLifecycle(
 
     if (!allCorrect) return
 
-    await showSuccess("所有物料已完成上料，準備進入正式生產...")
+    await showSuccess(msg.production.allMaterialReady)
     await startProductionUpload()
   }
 
@@ -212,7 +213,7 @@ export function useFujiPreproductionLifecycle(
       (row) => !row.correct && !options.isTestingMode.value
     )
     if (invalidRows.length > 0) {
-      return showError("尚有槽位未綁定，不能開始生產")
+      return showError(msg.production.slotsNotAllBound)
     }
 
     dialog.warning({

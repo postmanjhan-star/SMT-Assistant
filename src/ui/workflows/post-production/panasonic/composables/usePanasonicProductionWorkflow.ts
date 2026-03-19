@@ -27,6 +27,7 @@ import {
   PANASONIC_NOT_FOUND_PATH,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import { useUnloadReplaceFlow } from "@/ui/shared/composables/useUnloadReplaceFlow"
+import { msg } from "@/ui/shared/messageCatalog"
 
 export type PanasonicProductionWorkflowOptions = {
   onResetInputs: () => void
@@ -397,7 +398,7 @@ export function usePanasonicProductionWorkflow(
 
       await deps.startPanasonicProduction(payload)
 
-      ui.success("開始生產，資料已上傳")
+      ui.success(msg.production.startedAndUploaded)
       productionStarted.value = true
 
       router.replace({
@@ -414,7 +415,7 @@ export function usePanasonicProductionWorkflow(
 
   const handleProductionStopped = () => {
     productionStarted.value = false
-    ui.success("生產已結束")
+    ui.success(msg.production.stopped)
   }
 
   // ── Mounted ────────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { type GridApi } from 'ag-grid-community'
 import { CheckMaterialMatchEnum } from '@/client'
 import { appendMaterialCode, removeMaterialCode } from '@/domain/production/PostProductionFeedRules'
+import { msg } from '@/ui/shared/messageCatalog'
 
 // ── Row base type ────────────────────────────────────────────────────────────
 
@@ -170,14 +171,14 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
   async function validateUnloadMaterialPackCode(materialPackCode: string): Promise<boolean> {
     const trimmed = materialPackCode.trim()
     if (!trimmed) {
-      ui.error('請先輸入物料條碼')
+      ui.error(msg.input.materialRequired)
       return false
     }
     try {
       await uploader.fetchMaterialInventory(trimmed)
       return true
     } catch (error) {
-      ui.error('查無此物料條碼')
+      ui.error(msg.material.codeNotFound)
       console.error(error)
       return false
     }
@@ -192,7 +193,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     const materialPackCode = params.materialPackCode.trim()
     const slotIdno = params.slotIdno.trim()
     if (!materialPackCode) {
-      ui.error('請先輸入物料條碼')
+      ui.error(msg.input.materialRequired)
       return false
     }
 
@@ -207,12 +208,12 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       const scannedMaterialId = String(materialInventory.material_idno ?? '').trim()
       const expectedMaterialId = String(resolved.row.materialIdno ?? '').trim()
       if (!scannedMaterialId || scannedMaterialId !== expectedMaterialId) {
-        ui.error(`料號不符：站位 ${slotIdno} 應為 ${expectedMaterialId}`)
+        ui.error(msg.material.packCodeMismatchForStation(slotIdno, expectedMaterialId))
         return false
       }
       return true
     } catch (error) {
-      ui.error('查無此物料條碼')
+      ui.error(msg.material.codeNotFound)
       console.error(error)
       return false
     }
@@ -229,7 +230,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     const slotIdno = params.slotIdno.trim()
 
     if (!materialPackCode) {
-      ui.error('請先輸入物料條碼')
+      ui.error(msg.input.materialRequired)
       return false
     }
 
@@ -245,7 +246,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(materialPackCode)
 
     if (!inMain && !inAppended) {
-      ui.error(`料號 ${materialPackCode} 不在槽位 ${displaySlotIdno} 的主料或接料清單`)
+      ui.error(msg.material.packCodeNotInSlotList(materialPackCode, displaySlotIdno))
       return false
     }
 
@@ -275,10 +276,10 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       }
       safeGridUpdate(rowId, gridUpdates)
 
-      ui.success(`卸料成功：${materialPackCode} @ ${displaySlotIdno}`)
+      ui.success(msg.unload.success(materialPackCode, displaySlotIdno))
       return true
     } catch (error) {
-      ui.error('卸料上傳失敗')
+      ui.error(msg.unload.uploadFailed)
       console.error(error)
       return false
     }
@@ -292,7 +293,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
   }): Promise<{ ok: boolean; slotIdno?: string; materialPackCode?: string }> {
     const slotIdno = params.slotIdno.trim()
     if (!slotIdno) {
-      ui.error('請輸入站位')
+      ui.error(msg.input.stationRequired)
       return { ok: false }
     }
 
@@ -309,7 +310,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     const materialPackCode = String(preferredPackCode ?? mainPackCode).trim()
 
     if (!materialPackCode) {
-      ui.error(`槽位 ${slotIdno} 無可卸除料號`)
+      ui.error(msg.slot.noMaterialToUnload(slotIdno))
       return { ok: false }
     }
 
@@ -339,7 +340,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     const materialPackCode = params.materialPackCode.trim()
     const slotIdno = params.slotIdno.trim()
     if (!materialPackCode) {
-      ui.error('請先輸入物料條碼')
+      ui.error(msg.input.materialRequired)
       return false
     }
 
@@ -378,10 +379,10 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
         options.onAfterReplaceGridUpdate(rowId, api, now)
       }
 
-      ui.success(`接料成功：${materialPackCode} @ ${displaySlotIdno}`)
+      ui.success(msg.feed.success(materialPackCode, displaySlotIdno))
       return true
     } catch (error) {
-      ui.error('上傳接料資料失敗')
+      ui.error(msg.feed.uploadFailed)
       console.error(error)
       return false
     }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
-import { NForm, NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
+import { NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'
 import { SmtMaterialInventory } from '@/client'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
@@ -222,10 +222,9 @@ defineExpose({ focus, clear })
 </script>
 
 <template>
-    <n-form size="large" :model="formValue" @submit.prevent="onSubmit">
-        <n-form-item label="物料單包條碼">
+    <n-form-item label="物料單包條碼">
         <n-input ref="materialInventoryIdnoInput" autofocus v-model:value="inputValue"
-            :disabled="props.disabled" :data-testid="props.inputTestId" />
-        </n-form-item>
-    </n-form>
+            :disabled="props.disabled" :data-testid="props.inputTestId"
+            @keydown.enter.prevent="onSubmit" />
+    </n-form-item>
 </template>
