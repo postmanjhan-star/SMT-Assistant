@@ -24,6 +24,28 @@ export function createProductionGridOptions(
         columnDefs: [
             createCorrectColDef({ true: '✅', false: '❌', warning: '⚠️', unloaded: '⛔' }),
             {
+                headerName: '巡檢料號',
+                field: 'inspectMaterialPackCode',
+                flex: 2,
+                minWidth: 100,
+                hide: true,
+            },
+            {
+                headerName: '巡檢時間',
+                field: 'inspectTime',
+                flex: 2,
+                minWidth: 150,
+                hide: true,
+                valueFormatter: p => format(p.value),
+            },
+            {
+                headerName: '巡檢次數',
+                field: 'inspectCount',
+                flex: 1,
+                minWidth: 80,
+                hide: true,
+            },
+            {
                 field: 'slotIdno',
                 tooltipField: 'slotIdno',
                 headerName: '槽位',

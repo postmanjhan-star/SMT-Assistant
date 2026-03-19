@@ -12,6 +12,7 @@ import {
   type FujiUnloadRecord,
   type FujiSpliceRecord,
 } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
+import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import { useFujiPreproductionSlotFlow } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionSlotFlow"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
@@ -22,6 +23,8 @@ export type FujiDetailPageOptions = {
   getPendingUnloadRecords?: () => FujiUnloadRecord[]
   onUnloadUploaded?: (ok: boolean) => void
   getPendingSpliceRecords?: () => FujiSpliceRecord[]
+  getPendingIpqcRecords?: () => IpqcInspectionRecord[]
+  onIpqcUploaded?: (ok: boolean) => void
   isMockMode?: boolean
 }
 
@@ -44,6 +47,8 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     getPendingUnloadRecords: options.getPendingUnloadRecords,
     onUnloadUploaded: options.onUnloadUploaded,
     getPendingSpliceRecords: options.getPendingSpliceRecords,
+    getPendingIpqcRecords: options.getPendingIpqcRecords,
+    onIpqcUploaded: options.onIpqcUploaded,
   })
 
   const gridAdapter = shallowRef<SlotSubmitGridPort | null>(null)

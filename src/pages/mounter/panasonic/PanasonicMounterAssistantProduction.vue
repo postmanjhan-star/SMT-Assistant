@@ -2,6 +2,7 @@
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
+import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
 import { computed, nextTick, ref } from "vue"
 import { useRoute } from "vue-router"
@@ -31,6 +32,8 @@ import {
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import type { InputComponentHandle, MaterialMatchedPayload } from "./types/production"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
+import { SmtService } from "@/client"
+import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import {
   MATERIAL_UNLOAD_TRIGGER,
   MATERIAL_EXIT_TRIGGER,
@@ -68,6 +71,12 @@ const unloadMaterialValue = ref("")
 const unloadSlotValue = ref("")
 const resolvedUnloadSlotIdno = ref("")
 const replacementMaterialPackCode = ref("")
+
+const ipqcMaterialValue = ref("")
+const ipqcSlotValue = ref("")
+const ipqcMaterialInput = ref<HTMLInputElement | null>(null)
+const ipqcSlotInput = ref<HTMLInputElement | null>(null)
+const ipqcSavedCorrectStates = ref<Map<string, string | null>>(new Map())
 
 const store = usePostProductionFeedStore()
 const { materialResult } = storeToRefs(store)
@@ -124,6 +133,15 @@ const {
 
 const { rowData: materialQueryRawData, load: loadMaterialQuery } = usePanasonicMaterialQueryState(productionUuid)
 const materialQueryRows = computed(() => materialQueryRawData.value as MaterialQueryRowModel[])
+
+const localGridApi = ref<GridApi | null>(null)
+const localColumnApi = ref<ColumnApi | null>(null)
+
+function onGridReadyWithIpqc(e: GridReadyEvent) {
+  localGridApi.value = e.api
+  localColumnApi.value = e.columnApi
+  onGridReady(e)
+}
 
 const gridOptions = createPanasonicProductionGrid()
 const rollShortageBindings = { formRef: rollShortageFormRef }
@@ -260,6 +278,45 @@ function exitUnloadMode() {
   focusMaterialInventoryInput()
 }
 
+function showIpqcColumns(visible: boolean) {
+  localColumnApi.value?.setColumnVisible("inspectMaterialPackCode", visible)
+  localColumnApi.value?.setColumnVisible("inspectTime", visible)
+}
+
+function focusIpqcMaterialInput() {
+  nextTick(() => {
+    ipqcMaterialInput.value?.focus()
+  })
+}
+
+function focusIpqcSlotInput() {
+  nextTick(() => {
+    ipqcSlotInput.value?.focus()
+  })
+}
+
+function findRowBySlotIdno(slotIdno: string) {
+  const parsed = parsePanasonicSlotIdno(slotIdno)
+  if (!parsed) return null
+  return (rowData.value ?? []).find(
+    (row: any) =>
+      String(row.slotIdno ?? "").trim() === String(parsed.slot ?? "").trim() &&
+      String(row.subSlotIdno ?? "").trim() === String(parsed.subSlot ?? "").trim()
+  )
+}
+
+function parseAppendedCodes(value: string | null | undefined): string[] {
+  const raw = String(value ?? "").trim()
+  if (!raw) return []
+  return raw.split(",").map((code) => code.trim()).filter((code) => code.length > 0)
+}
+
+function getCurrentPackCode(row: any): string {
+  const appended = parseAppendedCodes(row.appendedMaterialInventoryIdno)
+  if (appended.length > 0) return appended[appended.length - 1]
+  return String(row.materialInventoryIdno ?? "").trim()
+}
+
 function enterIpqcMode() {
   isIpqcMode.value = true
   if (isUnloadMode.value) {
@@ -267,11 +324,43 @@ function enterIpqcMode() {
     resetUnloadFlowState("pack_auto_slot")
   }
   clearNormalScanState()
-  focusMaterialInventoryInput()
+
+  // 儲存目前 correct 狀態，全部設為 ⛔
+  const saved = new Map<string, string | null>()
+  for (const row of rowData.value) {
+    const key = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+    saved.set(key, row.correct as string | null)
+    row.correct = "UNLOADED_MATERIAL_PACK" as any
+  }
+  ipqcSavedCorrectStates.value = saved
+
+  if (localGridApi.value) {
+    localGridApi.value.applyTransaction({ update: [...rowData.value] })
+  }
+
+  showIpqcColumns(true)
+  focusIpqcMaterialInput()
 }
 
 function exitIpqcMode() {
   isIpqcMode.value = false
+  // 恢復原本 correct 狀態
+  for (const row of rowData.value) {
+    const key = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+    const saved = ipqcSavedCorrectStates.value.get(key)
+    if (saved !== undefined) {
+      row.correct = saved as any
+    }
+  }
+  ipqcSavedCorrectStates.value.clear()
+
+  if (localGridApi.value) {
+    localGridApi.value.applyTransaction({ update: [...rowData.value] })
+  }
+
+  showIpqcColumns(false)
+  ipqcMaterialValue.value = ""
+  ipqcSlotValue.value = ""
   clearNormalScanState()
   focusMaterialInventoryInput()
 }
@@ -282,6 +371,112 @@ function toggleIpqcMode() {
     return
   }
   enterIpqcMode()
+}
+
+async function handleIpqcMaterialSubmit() {
+  const materialPackCode = ipqcMaterialValue.value.trim()
+  if (!materialPackCode) return
+
+  const code = materialPackCode.toUpperCase()
+  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
+    exitIpqcMode()
+    ipqcMaterialValue.value = ""
+    return
+  }
+  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    exitIpqcMode()
+    handleModeTriggerFromNormalInput(code)
+    ipqcMaterialValue.value = ""
+    return
+  }
+
+  // ERP 驗證
+  if (!isMockMode) {
+    try {
+      await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: materialPackCode })
+    } catch (error) {
+      ui.error(resolveMaterialLookupError(error))
+      ipqcMaterialValue.value = ""
+      focusIpqcMaterialInput()
+      return
+    }
+  }
+
+  ipqcMaterialValue.value = materialPackCode
+  focusIpqcSlotInput()
+}
+
+async function handleIpqcSlotSubmit() {
+  const slotIdno = ipqcSlotValue.value.trim()
+  if (!slotIdno) return
+
+  const code = slotIdno.toUpperCase()
+  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
+    exitIpqcMode()
+    ipqcSlotValue.value = ""
+    return
+  }
+
+  const materialPackCode = ipqcMaterialValue.value.trim()
+  const row = findRowBySlotIdno(slotIdno)
+  if (!row) {
+    ui.error(`找不到槽位 ${slotIdno}`)
+    ipqcSlotValue.value = ""
+    focusIpqcSlotInput()
+    return
+  }
+
+  const currentPackCode = getCurrentPackCode(row)
+  if (materialPackCode !== currentPackCode) {
+    ui.error(`料號不符：掃描 ${materialPackCode}，槽位應為 ${currentPackCode}`)
+    ipqcSlotValue.value = ""
+    ipqcMaterialValue.value = ""
+    focusIpqcMaterialInput()
+    return
+  }
+
+  // 標記已巡檢 ✅
+  row.correct = "MATCHED_MATERIAL_PACK" as any
+  row.inspectMaterialPackCode = materialPackCode
+  row.inspectTime = new Date().toISOString()
+  row.inspectCount = (row.inspectCount ?? 0) + 1
+  row.remark = `巡檢 ${row.inspectCount} 次`
+
+  if (localGridApi.value) {
+    localGridApi.value.applyTransaction({ update: [row] })
+  }
+
+  // 即時上傳巡檢紀錄
+  const parsed = parsePanasonicSlotIdno(slotIdno)
+  if (parsed) {
+    try {
+      const stat = (rowData.value as any[]).find(
+        (r: any) => r.slotIdno === parsed.slot && (r.subSlotIdno ?? "") === (parsed.subSlot ?? "")
+      )
+      if (stat?.id) {
+        await SmtService.addPanasonicMounterItemStatRoll({
+          requestBody: {
+            stat_item_id: stat.id,
+            operator_id: currentUsername.value || null,
+            operation_time: new Date().toISOString(),
+            slot_idno: parsed.slot,
+            sub_slot_idno: parsed.subSlot ?? null,
+            material_pack_code: materialPackCode,
+            operation_type: "FEED" as any,
+            feed_material_pack_type: "INSPECTION_MATERIAL_PACK" as any,
+            check_pack_code_match: "MATCHED_MATERIAL_PACK" as any,
+            unfeed_reason: null,
+          },
+        })
+      }
+    } catch {
+      // 上傳失敗不影響 UI
+    }
+  }
+
+  ipqcSlotValue.value = ""
+  ipqcMaterialValue.value = ""
+  focusIpqcMaterialInput()
 }
 
 function handleModeTriggerFromNormalInput(code: string): boolean {
@@ -627,40 +822,8 @@ function onRollShortageModalUpdate(value: boolean) {
     </template>
 
     <template #inputs>
-      <template v-if="!isUnloadMode">
-        <n-gi>
-          <MaterialInventoryBarcodeInput
-            :disabled="!productionStarted"
-            :is-testing-mode="isTestingMode"
-            input-test-id="panasonic-main-material-input"
-            :get-material-matched-rows="getMaterialMatchedRowArray"
-            @matched="handleMaterialMatched"
-            :before-scan="handleBeforeMaterialScan"
-            :reset-key="inputs.resetKey.value"
-            :scan="mockScan"
-            ref="materialInventoryInput"
-            @error="handleMaterialScanError"
-          />
-        </n-gi>
-
-        <n-gi>
-          <SlotIdnoInput
-            :disabled="!productionStarted"
-            :is-testing-mode="isTestingMode"
-            :has-material="inputs.hasMaterial.value"
-            :parse-slot-idno="parsePanasonicSlotIdno"
-            :reset-key="inputs.slotResetKey.value"
-            input-test-id="panasonic-main-slot-input"
-            ref="slotIdnoInput"
-            :before-submit="handleBeforeSlotSubmit"
-            @submit="onNormalSlotSubmit"
-            @done="resetInputsAfterSlotSubmit"
-            @error="ui.error"
-          />
-        </n-gi>
-      </template>
-
-      <template v-else>
+      <!-- 換料模式 inputs -->
+      <template v-if="isUnloadMode">
         <n-gi>
           <div class="unload-mode-input">
             <label class="input-label" for="unload-material-input">{{ unloadMaterialLabel }}</label>
@@ -695,13 +858,84 @@ function onRollShortageModalUpdate(value: boolean) {
           </div>
         </n-gi>
       </template>
+
+      <!-- IPQC 覆檢 inputs -->
+      <template v-else-if="isIpqcMode">
+        <n-gi>
+          <div class="ipqc-mode-input">
+            <label class="input-label" for="prod-ipqc-material-input">
+              覆檢物料條碼
+            </label>
+            <input
+              id="prod-ipqc-material-input"
+              ref="ipqcMaterialInput"
+              v-model="ipqcMaterialValue"
+              type="text"
+              class="material-input"
+              placeholder="請掃描物料條碼"
+              @keydown.enter.prevent="handleIpqcMaterialSubmit"
+            />
+          </div>
+        </n-gi>
+        <n-gi>
+          <div class="ipqc-mode-input">
+            <label class="input-label" for="prod-ipqc-slot-input">
+              覆檢站位
+            </label>
+            <input
+              id="prod-ipqc-slot-input"
+              ref="ipqcSlotInput"
+              v-model="ipqcSlotValue"
+              type="text"
+              class="slot-input"
+              placeholder="請掃描站位"
+              :disabled="!ipqcMaterialValue.trim()"
+              @keydown.enter.prevent="handleIpqcSlotSubmit"
+            />
+          </div>
+        </n-gi>
+      </template>
+
+      <!-- 一般掃描 inputs -->
+      <template v-else>
+        <n-gi>
+          <MaterialInventoryBarcodeInput
+            :disabled="!productionStarted"
+            :is-testing-mode="isTestingMode"
+            input-test-id="panasonic-main-material-input"
+            :get-material-matched-rows="getMaterialMatchedRowArray"
+            @matched="handleMaterialMatched"
+            :before-scan="handleBeforeMaterialScan"
+            :reset-key="inputs.resetKey.value"
+            :scan="mockScan"
+            ref="materialInventoryInput"
+            @error="handleMaterialScanError"
+          />
+        </n-gi>
+
+        <n-gi>
+          <SlotIdnoInput
+            :disabled="!productionStarted"
+            :is-testing-mode="isTestingMode"
+            :has-material="inputs.hasMaterial.value"
+            :parse-slot-idno="parsePanasonicSlotIdno"
+            :reset-key="inputs.slotResetKey.value"
+            input-test-id="panasonic-main-slot-input"
+            ref="slotIdnoInput"
+            :before-submit="handleBeforeSlotSubmit"
+            @submit="onNormalSlotSubmit"
+            @done="resetInputsAfterSlotSubmit"
+            @error="ui.error"
+          />
+        </n-gi>
+      </template>
     </template>
 
     <ag-grid-vue
       class="ag-theme-balham-dark grid-content"
       :rowData="rowData"
       :gridOptions="gridOptions"
-      @grid-ready="onGridReady"
+      @grid-ready="onGridReadyWithIpqc"
     />
   </MounterLayout>
 </template>
@@ -737,6 +971,20 @@ function onRollShortageModalUpdate(value: boolean) {
   background-color: #f5f5f5;
   border-radius: 4px;
   border: 2px solid #1890ff;
+}
+
+.ipqc-mode-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #fff7e6;
+  border-radius: 4px;
+  border: 2px solid #fa8c16;
+}
+
+.ipqc-mode-input .input-label {
+  color: #fa8c16;
 }
 
 .input-label {

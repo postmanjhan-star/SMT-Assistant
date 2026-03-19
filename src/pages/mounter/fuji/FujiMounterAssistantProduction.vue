@@ -2,6 +2,7 @@
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
+import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NForm, NFormItem, NGi, NInput, NTag } from "naive-ui"
 import { computed, nextTick, ref, watch } from "vue"
 import { useRoute } from "vue-router"
@@ -9,6 +10,8 @@ import { useMeta } from "vue-meta"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { decideMaterialScanAction } from "@/domain/material/MaterialScanDecision"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
+import { CheckMaterialMatchEnum, SmtService } from "@/client"
+import { isFujiStatSlotMatch } from "@/domain/production/buildFujiProductionRowData"
 
 import MounterMaterialQueryModal from "@/pages/components/shared/MounterMaterialQueryModal.vue"
 import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
@@ -74,6 +77,9 @@ const {
   onStopProduction,
   onMaterialQuery,
   showError,
+  mounterData,
+  inspectionUpload,
+  applyInspectionUpdate,
 } = useFujiProductionPage()
 
 const unloadMaterialInputRef = ref<HTMLInputElement | null>(null)
@@ -83,6 +89,13 @@ const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
 const resolvedUnloadSlotIdno = ref("")
 const replacementMaterialPackCode = ref("")
 const isIpqcMode = ref(false)
+const ipqcMaterialValue = ref("")
+const ipqcSlotValue = ref("")
+const ipqcMaterialInput = ref<HTMLInputElement | null>(null)
+const ipqcSlotInput = ref<HTMLInputElement | null>(null)
+const ipqcSavedCorrectStates = ref<Map<string, unknown>>(new Map())
+const localGridApi = ref<GridApi | null>(null)
+const localColumnApi = ref<ColumnApi | null>(null)
 
 const gridOptions = createFujiProductionGridOptions()
 
@@ -184,26 +197,200 @@ function handleExitUnloadMode() {
   exitUnloadMode()
 }
 
+// ─── IPQC helpers ──────────────────────────────────────────────────────────────
+
+function onGridReadyWithIpqc(e: GridReadyEvent) {
+  localGridApi.value = e.api
+  localColumnApi.value = e.columnApi
+  onGridReady(e)
+}
+
+function focusIpqcMaterialInput() {
+  nextTick(() => ipqcMaterialInput.value?.focus())
+}
+
+function focusIpqcSlotInput() {
+  nextTick(() => ipqcSlotInput.value?.focus())
+}
+
+function parseAppendedCodes(value: string | null | undefined): string[] {
+  if (!value) return []
+  return value.split(",").map((s) => s.trim()).filter(Boolean)
+}
+
+function getCurrentPackCode(row: any): string {
+  const appended = parseAppendedCodes(row.appendedMaterialInventoryIdno)
+  if (appended.length > 0) return appended[appended.length - 1]
+  return String(row.materialInventoryIdno ?? "").trim()
+}
+
+function findRowBySlotIdno(slotIdno: string) {
+  const parsed = parseFujiSlotIdno(slotIdno)
+  if (!parsed) return null
+  return (rowData.value ?? []).find(
+    (row: any) =>
+      Number(row.slot) === parsed.slot && String(row.stage).trim() === String(parsed.stage).trim()
+  )
+}
+
+async function validateIpqcMaterialPackCode(materialPackCode: string): Promise<boolean> {
+  const trimmed = materialPackCode.trim()
+  if (!trimmed) {
+    showError("請先輸入物料條碼")
+    return false
+  }
+  if (isTestingMode.value || isMockMode) return true
+  try {
+    await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: trimmed })
+    return true
+  } catch (error) {
+    showError(resolveMaterialLookupError(error))
+    return false
+  }
+}
+
 function enterIpqcMode() {
   isIpqcMode.value = true
   materialFormValue.value.materialInventoryIdno = ""
   slotFormValue.value.slotIdno = ""
-  materialInputRef.value?.focus()
+
+  // 儲存目前 correct 狀態，全部設為 ⛔
+  const saved = new Map<string, unknown>()
+  for (const row of rowData.value) {
+    const key = `${row.mounterIdno}-${row.stage}-${row.slot}`
+    saved.set(key, row.correct)
+    ;(row as any).correct = "UNLOADED_MATERIAL_PACK"
+  }
+  ipqcSavedCorrectStates.value = saved
+
+  if (localGridApi.value) {
+    localGridApi.value.setRowData(rowData.value as any)
+  }
+
+  focusIpqcMaterialInput()
 }
 
 function exitIpqcMode() {
   isIpqcMode.value = false
-  materialFormValue.value.materialInventoryIdno = ""
-  slotFormValue.value.slotIdno = ""
+  // 恢復原本 correct 狀態
+  for (const row of rowData.value) {
+    const key = `${row.mounterIdno}-${row.stage}-${row.slot}`
+    const saved = ipqcSavedCorrectStates.value.get(key)
+    if (saved !== undefined) {
+      ;(row as any).correct = saved
+    }
+  }
+  ipqcSavedCorrectStates.value.clear()
+
+  if (localGridApi.value) {
+    localGridApi.value.setRowData(rowData.value as any)
+  }
+
+  ipqcMaterialValue.value = ""
+  ipqcSlotValue.value = ""
   materialInputRef.value?.focus()
 }
 
 function toggleIpqcMode() {
-  if (isIpqcMode.value) {
+  isIpqcMode.value ? exitIpqcMode() : enterIpqcMode()
+}
+
+async function handleIpqcMaterialSubmit() {
+  const materialPackCode = ipqcMaterialValue.value.trim()
+  if (!materialPackCode) return
+
+  const code = materialPackCode.toUpperCase()
+  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
     exitIpqcMode()
+    ipqcMaterialValue.value = ""
     return
   }
-  enterIpqcMode()
+  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    exitIpqcMode()
+    ipqcMaterialValue.value = ""
+    unloadModeType.value = code === MATERIAL_FORCE_UNLOAD_TRIGGER ? "force_single_slot" : "pack_auto_slot"
+    enterUnloadMode()
+    return
+  }
+
+  const isValid = await validateIpqcMaterialPackCode(materialPackCode)
+  if (!isValid) {
+    ipqcMaterialValue.value = ""
+    focusIpqcMaterialInput()
+    return
+  }
+
+  ipqcMaterialValue.value = materialPackCode
+  focusIpqcSlotInput()
+}
+
+async function handleIpqcSlotSubmit() {
+  const slotIdno = ipqcSlotValue.value.trim()
+  if (!slotIdno) return
+
+  const code = slotIdno.toUpperCase()
+  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
+    exitIpqcMode()
+    ipqcSlotValue.value = ""
+    return
+  }
+
+  const materialPackCode = ipqcMaterialValue.value.trim()
+  const parsed = parseFujiSlotIdno(slotIdno)
+  if (!parsed) {
+    showError(`槽位格式錯誤: ${slotIdno}`)
+    ipqcSlotValue.value = ""
+    focusIpqcSlotInput()
+    return
+  }
+
+  const row = findRowBySlotIdno(slotIdno)
+  if (!row) {
+    showError(`找不到槽位 ${slotIdno}`)
+    ipqcSlotValue.value = ""
+    focusIpqcSlotInput()
+    return
+  }
+
+  // 比對掃描的捲號 vs 槽位目前的捲號
+  const currentPackCode = getCurrentPackCode(row)
+  if (materialPackCode !== currentPackCode) {
+    showError(`料號不符：掃描 ${materialPackCode}，槽位應為 ${currentPackCode}`)
+    ipqcSlotValue.value = ""
+    ipqcMaterialValue.value = ""
+    focusIpqcMaterialInput()
+    return
+  }
+
+  // 即時上傳 IPQC 紀錄
+  const statItem = mounterData.value.find((s) =>
+    isFujiStatSlotMatch(s, parsed.slot, parsed.stage)
+  )
+
+  if (statItem) {
+    try {
+      await inspectionUpload({
+        stat_id: statItem.id,
+        inputSlot: String(parsed.slot),
+        inputSubSlot: parsed.stage,
+        materialInventory: { idno: materialPackCode } as any,
+      })
+      applyInspectionUpdate(parsed.machineIdno, parsed.stage, parsed.slot, materialPackCode)
+    } catch (error) {
+      showError("巡檢上傳失敗")
+      console.error(error)
+    }
+  }
+
+  // 標記已巡檢 ✅
+  ;(row as any).correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+  if (localGridApi.value) {
+    localGridApi.value.applyTransaction?.({ update: [row] })
+  }
+
+  ipqcSlotValue.value = ""
+  ipqcMaterialValue.value = ""
+  focusIpqcMaterialInput()
 }
 
 function handleModeTriggerFromUnloadInput(code: string) {
@@ -526,40 +713,8 @@ async function handleUnloadSlotSubmit() {
     </template>
 
     <template #inputs>
-      <template v-if="!isUnloadMode">
-        <n-gi>
-          <n-form size="large" :model="materialFormValue" @submit.prevent="onMainMaterialSubmit">
-            <n-form-item label="物料條碼">
-              <n-input
-                data-testid="material-input"
-                type="text"
-                size="large"
-                v-model:value.lazy="materialFormValue.materialInventoryIdno"
-                autofocus
-                ref="materialInputRef"
-                :disabled="!productionStarted"
-                placeholder="輸入物料條碼"
-              />
-            </n-form-item>
-          </n-form>
-        </n-gi>
-        <n-gi>
-          <n-form size="large" :model="slotFormValue" @submit.prevent="onMainSlotSubmit">
-            <n-form-item label="槽位">
-              <n-input
-                type="text"
-                size="large"
-                v-model:value.lazy="slotFormValue.slotIdno"
-                ref="slotInputRef"
-                :disabled="!productionStarted"
-                placeholder="輸入槽位"
-              />
-            </n-form-item>
-          </n-form>
-        </n-gi>
-      </template>
-
-      <template v-else>
+      <!-- Unload mode inputs -->
+      <template v-if="isUnloadMode">
         <n-gi>
           <div class="unload-mode-input">
             <label class="input-label" for="fuji-unload-material-input">
@@ -596,6 +751,77 @@ async function handleUnloadSlotSubmit() {
           </div>
         </n-gi>
       </template>
+
+      <!-- IPQC 覆檢 inputs -->
+      <template v-else-if="isIpqcMode">
+        <n-gi>
+          <div class="ipqc-mode-input">
+            <label class="input-label" for="fuji-ipqc-material-input">
+              覆檢物料條碼
+            </label>
+            <input
+              id="fuji-ipqc-material-input"
+              ref="ipqcMaterialInput"
+              v-model="ipqcMaterialValue"
+              type="text"
+              class="material-input"
+              placeholder="請掃描物料條碼"
+              @keydown.enter.prevent="handleIpqcMaterialSubmit"
+            />
+          </div>
+        </n-gi>
+        <n-gi>
+          <div class="ipqc-mode-input">
+            <label class="input-label" for="fuji-ipqc-slot-input">
+              覆檢站位
+            </label>
+            <input
+              id="fuji-ipqc-slot-input"
+              ref="ipqcSlotInput"
+              v-model="ipqcSlotValue"
+              type="text"
+              class="slot-input"
+              placeholder="請掃描站位"
+              :disabled="!ipqcMaterialValue.trim()"
+              @keydown.enter.prevent="handleIpqcSlotSubmit"
+            />
+          </div>
+        </n-gi>
+      </template>
+
+      <!-- Normal scan inputs -->
+      <template v-else>
+        <n-gi>
+          <n-form size="large" :model="materialFormValue" @submit.prevent="onMainMaterialSubmit">
+            <n-form-item label="物料條碼">
+              <n-input
+                data-testid="material-input"
+                type="text"
+                size="large"
+                v-model:value.lazy="materialFormValue.materialInventoryIdno"
+                autofocus
+                ref="materialInputRef"
+                :disabled="!productionStarted"
+                placeholder="輸入物料條碼"
+              />
+            </n-form-item>
+          </n-form>
+        </n-gi>
+        <n-gi>
+          <n-form size="large" :model="slotFormValue" @submit.prevent="onMainSlotSubmit">
+            <n-form-item label="槽位">
+              <n-input
+                type="text"
+                size="large"
+                v-model:value.lazy="slotFormValue.slotIdno"
+                ref="slotInputRef"
+                :disabled="!productionStarted"
+                placeholder="輸入槽位"
+              />
+            </n-form-item>
+          </n-form>
+        </n-gi>
+      </template>
     </template>
 
     <ag-grid-vue
@@ -603,7 +829,7 @@ async function handleUnloadSlotSubmit() {
       :rowData="rowData"
       style="height: 100%"
       :gridOptions="gridOptions"
-      @grid-ready="onGridReady"
+      @grid-ready="onGridReadyWithIpqc"
     />
   </MounterLayout>
 </template>
@@ -653,5 +879,19 @@ async function handleUnloadSlotSubmit() {
   background-color: #f5f5f5;
   cursor: not-allowed;
   color: #bfbfbf;
+}
+
+.ipqc-mode-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #fff7e6;
+  border-radius: 4px;
+  border: 2px solid #fa8c16;
+}
+
+.ipqc-mode-input .input-label {
+  color: #fa8c16;
 }
 </style>

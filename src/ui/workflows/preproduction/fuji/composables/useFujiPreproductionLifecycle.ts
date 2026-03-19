@@ -18,6 +18,7 @@ import { startFujiProduction } from "@/application/fuji/production/StartFujiProd
 import { stopFujiProduction } from "@/application/fuji/production/StopFujiProduction"
 import { ProductionLifecycleUseCase } from "@/application/preproduction/ProductionLifecycleUseCase"
 import { StartProductionStatsUseCase } from "@/application/preproduction/StartProductionStatsUseCase"
+import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 
 export type FujiUnloadRecord = {
@@ -45,6 +46,8 @@ export type UseFujiPreproductionLifecycleOptions = {
   getPendingUnloadRecords?: () => FujiUnloadRecord[]
   onUnloadUploaded?: (ok: boolean) => void
   getPendingSpliceRecords?: () => FujiSpliceRecord[]
+  getPendingIpqcRecords?: () => IpqcInspectionRecord[]
+  onIpqcUploaded?: (ok: boolean) => void
 }
 
 type FujiStartStatPayload = FujiMounterItemStatCreate & {
@@ -84,7 +87,8 @@ export function useFujiPreproductionLifecycle(
   const startStatsUseCase = new StartProductionStatsUseCase<
     FujiMounterRowModel,
     FujiUnloadRecord,
-    FujiSpliceRecord
+    FujiSpliceRecord,
+    IpqcInspectionRecord
   >({
     startProduction: async (rows) => {
       const now = new Date().toISOString()
@@ -152,6 +156,24 @@ export function useFujiPreproductionLifecycle(
         },
       })
     },
+    uploadIpqc: async (record, statItemMap) => {
+      const id = statItemMap.get(`${record.slot}-${record.stage}`)
+      if (id === undefined) return
+      await SmtService.addFujiMounterItemStatRoll({
+        requestBody: {
+          stat_item_id: id,
+          operator_id: record.inspectorIdno || null,
+          operation_time: record.inspectionTime,
+          slot_idno: String(record.slot!),
+          sub_slot_idno: record.stage!,
+          material_pack_code: record.materialPackCode,
+          operation_type: MaterialOperationTypeEnum.FEED,
+          feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
+          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+          unfeed_reason: null,
+        },
+      })
+    },
   })
 
   async function startProductionUpload() {
@@ -160,7 +182,9 @@ export function useFujiPreproductionLifecycle(
         rowData: options.rowData.value,
         pendingUnloadRecords: options.getPendingUnloadRecords?.() ?? [],
         pendingSpliceRecords: options.getPendingSpliceRecords?.() ?? [],
+        pendingIpqcRecords: options.getPendingIpqcRecords?.() ?? [],
         onUnloadUploaded: options.onUnloadUploaded,
+        onIpqcUploaded: options.onIpqcUploaded,
       })
       showSuccess("開始生產，資料已上傳")
       handleProductionStarted(productionUuid)

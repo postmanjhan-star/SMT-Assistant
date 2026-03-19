@@ -644,5 +644,8 @@ export function useFujiProductionWorkflow() {
     onStopProduction,
     onMaterialQuery,
     showError,
+    mounterData,
+    inspectionUpload,
+    applyInspectionUpdate,
   }
 }

@@ -37,6 +37,7 @@ import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupErro
 import { appendMaterialCode, removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import {
   MATERIAL_UNLOAD_TRIGGER,
+  MATERIAL_EXIT_TRIGGER,
   MATERIAL_FORCE_UNLOAD_TRIGGER,
   MATERIAL_IPQC_TRIGGER,
   MATERIAL_UNLOAD_MODE_NAME,
@@ -44,6 +45,8 @@ import {
   MATERIAL_IPQC_MODE_NAME,
   MATERIAL_FEED_MODE_NAME,
 } from "@/domain/mounter/operationModes"
+import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
+import type { CorrectState } from "./types/production"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
 
@@ -170,6 +173,7 @@ type PanasonicCachePayload = {
   rows: PanasonicCacheRow[]
   unloadRecords?: PanasonicUnloadRecord[]
   spliceRecords?: PanasonicSpliceRecord[]
+  ipqcRecords?: IpqcInspectionRecord[]
   materialInventoryResult?: {
     success: boolean
     materialInventory?: { idno: string; remark?: string } | null
@@ -192,6 +196,13 @@ const replacementMaterialPackCode = ref("")
 const replacementCorrectState = ref<"true" | "warning" | null>(null)
 const pendingUnloadRecords = ref<PanasonicUnloadRecord[]>([])
 const pendingSpliceRecords = ref<PanasonicSpliceRecord[]>([])
+
+const ipqcMaterialValue = ref("")
+const ipqcSlotValue = ref("")
+const ipqcMaterialInput = ref<HTMLInputElement | null>(null)
+const ipqcSlotInput = ref<HTMLInputElement | null>(null)
+const ipqcSavedCorrectStates = ref<Map<string, CorrectState | null>>(new Map())
+const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
 
 const operationModeName = computed(() => {
   if (isUnloadMode.value) {
@@ -308,6 +319,7 @@ function writeCache() {
     })),
     unloadRecords: pendingUnloadRecords.value,
     spliceRecords: pendingSpliceRecords.value,
+    ipqcRecords: pendingIpqcRecords.value,
     materialInventoryResult: cachedMaterialResult,
     inputs: {
       material: materialInputValue.value,
@@ -390,6 +402,10 @@ function hydrateFromCache(key: string) {
     pendingSpliceRecords.value = cached.spliceRecords
   }
 
+  if (cached.ipqcRecords) {
+    pendingIpqcRecords.value = cached.ipqcRecords
+  }
+
   hydratedKey.value = key
 }
 
@@ -422,6 +438,7 @@ watch(
     slotInputValue,
     pendingUnloadRecords,
     pendingSpliceRecords,
+    pendingIpqcRecords,
   ],
   () => {
     persistNow()
@@ -698,31 +715,170 @@ function exitUnloadMode() {
   focusMaterialInput()
 }
 
+function showIpqcColumns(visible: boolean) {
+  columnApi.value?.setColumnVisible("inspectMaterialPackCode", visible)
+  columnApi.value?.setColumnVisible("inspectTime", visible)
+  columnApi.value?.setColumnVisible("inspectCount", visible)
+}
+
+function focusIpqcMaterialInput() {
+  nextTick(() => {
+    ipqcMaterialInput.value?.focus()
+  })
+}
+
+function focusIpqcSlotInput() {
+  nextTick(() => {
+    ipqcSlotInput.value?.focus()
+  })
+}
+
 function enterIpqcMode() {
   isIpqcMode.value = true
   if (isUnloadMode.value) exitUnloadMode()
+  clearNormalScanState()
+
+  // 儲存目前 correct 狀態，全部設為 ⛔
+  const saved = new Map<string, CorrectState | null>()
+  for (const row of rowData.value) {
+    const key = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+    saved.set(key, row.correct as CorrectState | null)
+    row.correct = "unloaded"
+    updateRowInGrid(row)
+  }
+  ipqcSavedCorrectStates.value = saved
+
+  showIpqcColumns(true)
+  focusIpqcMaterialInput()
 }
 
 function exitIpqcMode() {
   isIpqcMode.value = false
+  // 恢復原本 correct 狀態
+  for (const row of rowData.value) {
+    const key = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+    const saved = ipqcSavedCorrectStates.value.get(key)
+    if (saved !== undefined) {
+      row.correct = saved
+      updateRowInGrid(row)
+    }
+  }
+  ipqcSavedCorrectStates.value.clear()
+  showIpqcColumns(false)
+  ipqcMaterialValue.value = ""
+  ipqcSlotValue.value = ""
   focusMaterialInput()
+}
+
+function getCurrentPackCode(row: any): string {
+  const appended = parseAppendedCodes(row.appendedMaterialInventoryIdno)
+  if (appended.length > 0) return appended[appended.length - 1]
+  return String(row.materialInventoryIdno ?? "").trim()
+}
+
+async function handleIpqcMaterialSubmit() {
+  const materialPackCode = ipqcMaterialValue.value.trim()
+  if (!materialPackCode) return
+
+  const code = materialPackCode.toUpperCase()
+  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
+    exitIpqcMode()
+    ipqcMaterialValue.value = ""
+    return
+  }
+  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+    exitIpqcMode()
+    handleModeTriggerFromNormalInput(code)
+    ipqcMaterialValue.value = ""
+    return
+  }
+
+  // ERP 驗證
+  const isValid = await validateUnloadMaterialPackCode(materialPackCode)
+  if (!isValid) {
+    ipqcMaterialValue.value = ""
+    focusIpqcMaterialInput()
+    return
+  }
+
+  ipqcMaterialValue.value = materialPackCode
+  focusIpqcSlotInput()
+}
+
+function handleIpqcSlotSubmit() {
+  const slotIdno = ipqcSlotValue.value.trim()
+  if (!slotIdno) return
+
+  const code = slotIdno.toUpperCase()
+  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
+    exitIpqcMode()
+    ipqcSlotValue.value = ""
+    return
+  }
+
+  const materialPackCode = ipqcMaterialValue.value.trim()
+  const row = findRowBySlotIdno(slotIdno)
+  if (!row) {
+    showError(`找不到槽位 ${slotIdno}`)
+    ipqcSlotValue.value = ""
+    focusIpqcSlotInput()
+    return
+  }
+
+  // 比對掃描的捲號 vs 槽位目前的捲號
+  const currentPackCode = getCurrentPackCode(row)
+  if (materialPackCode !== currentPackCode) {
+    showError(`料號不符：掃描 ${materialPackCode}，槽位應為 ${currentPackCode}`)
+    ipqcSlotValue.value = ""
+    ipqcMaterialValue.value = ""
+    focusIpqcMaterialInput()
+    return
+  }
+
+  // 標記已巡檢 ✅
+  row.correct = "true"
+  row.inspectMaterialPackCode = materialPackCode
+  row.inspectTime = new Date().toISOString()
+  row.inspectCount = (row.inspectCount ?? 0) + 1
+  updateRowInGrid(row)
+
+  pendingIpqcRecords.value = [
+    ...pendingIpqcRecords.value,
+    {
+      slotIdno: row.slotIdno,
+      subSlotIdno: row.subSlotIdno ?? null,
+      materialPackCode,
+      inspectorIdno: currentUsername.value || "",
+      inspectionTime: new Date().toISOString(),
+    },
+  ]
+
+  ipqcSlotValue.value = ""
+  ipqcMaterialValue.value = ""
+  focusIpqcMaterialInput()
+  persistNow()
 }
 
 function handleModeTriggerFromNormalInput(code: string): boolean {
   if (code === MATERIAL_UNLOAD_TRIGGER) {
-    isIpqcMode.value = false
+    if (isIpqcMode.value) exitIpqcMode()
     enterUnloadMode("pack_auto_slot")
     return true
   }
 
   if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-    isIpqcMode.value = false
+    if (isIpqcMode.value) exitIpqcMode()
     enterUnloadMode("force_single_slot")
     return true
   }
 
   if (code === MATERIAL_IPQC_TRIGGER) {
     isIpqcMode.value ? exitIpqcMode() : enterIpqcMode()
+    return true
+  }
+
+  if (code === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
+    exitIpqcMode()
     return true
   }
 
@@ -1021,6 +1177,12 @@ function onUnloadUploaded(ok: boolean) {
   pendingUnloadRecords.value = []
   persistNow()
 }
+
+function onIpqcUploaded(ok: boolean) {
+  if (!ok) return
+  pendingIpqcRecords.value = []
+  persistNow()
+}
 </script>
 
 <template>
@@ -1091,8 +1253,10 @@ function onUnloadUploaded(ok: boolean) {
                   :work-sheet-side-query="workSheetSideQuery"
                   :pending-unload-records="pendingUnloadRecords"
                   :pending-splice-records="pendingSpliceRecords"
+                  :pending-ipqc-records="pendingIpqcRecords"
                   @started="handleProductionStarted"
                   @unload-uploaded="onUnloadUploaded"
+                  @ipqc-uploaded="onIpqcUploaded"
                   @error="showError"
                 />
                 <n-button v-else type="error" size="small" @click="onStopProduction">
@@ -1145,6 +1309,43 @@ function onUnloadUploaded(ok: boolean) {
               :placeholder="unloadSlotPlaceholder"
               :disabled="isUnloadSlotInputDisabled"
               @keydown.enter.prevent="handleUnloadSlotSubmit"
+            />
+          </div>
+        </n-gi>
+      </template>
+
+      <!-- IPQC 覆檢 inputs -->
+      <template v-else-if="isIpqcMode">
+        <n-gi>
+          <div class="ipqc-mode-input">
+            <label class="input-label" for="detail-ipqc-material-input">
+              覆檢物料條碼
+            </label>
+            <input
+              id="detail-ipqc-material-input"
+              ref="ipqcMaterialInput"
+              v-model="ipqcMaterialValue"
+              type="text"
+              class="material-input"
+              placeholder="請掃描物料條碼"
+              @keydown.enter.prevent="handleIpqcMaterialSubmit"
+            />
+          </div>
+        </n-gi>
+        <n-gi>
+          <div class="ipqc-mode-input">
+            <label class="input-label" for="detail-ipqc-slot-input">
+              覆檢站位
+            </label>
+            <input
+              id="detail-ipqc-slot-input"
+              ref="ipqcSlotInput"
+              v-model="ipqcSlotValue"
+              type="text"
+              class="slot-input"
+              placeholder="請掃描站位"
+              :disabled="!ipqcMaterialValue.trim()"
+              @keydown.enter.prevent="handleIpqcSlotSubmit"
             />
           </div>
         </n-gi>
@@ -1226,6 +1427,20 @@ function onUnloadUploaded(ok: boolean) {
   background-color: #f5f5f5;
   border-radius: 4px;
   border: 2px solid #1890ff;
+}
+
+.ipqc-mode-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #fff7e6;
+  border-radius: 4px;
+  border: 2px solid #fa8c16;
+}
+
+.ipqc-mode-input .input-label {
+  color: #fa8c16;
 }
 
 .input-label {

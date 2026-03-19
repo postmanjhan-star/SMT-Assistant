@@ -16,6 +16,7 @@ import {
 } from '@/client';
 import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
 import { StartProductionStatsUseCase } from '@/application/preproduction/StartProductionStatsUseCase'
+import type { IpqcInspectionRecord } from '@/domain/mounter/ipqcTypes'
 
 type CorrectState = 'true' | 'false' | 'warning' | 'unloaded'
 
@@ -69,9 +70,13 @@ const props = defineProps({
         type: Array as () => PanasonicSpliceRecord[],
         default: () => [],
     },
+    pendingIpqcRecords: {
+        type: Array as () => IpqcInspectionRecord[],
+        default: () => [],
+    },
 })
 
-const emit = defineEmits(['started', 'error', 'unload-uploaded'])
+const emit = defineEmits(['started', 'error', 'unload-uploaded', 'ipqc-uploaded'])
 
 
 const productionStatUuid = ref()
@@ -98,7 +103,7 @@ function convertBoardSide(s: String | null): BoardSideEnum | null {
     return s as unknown as BoardSideEnum
 }
 
-const startStatsUseCase = new StartProductionStatsUseCase<RowModel, PanasonicUnloadRecord, PanasonicSpliceRecord>({
+const startStatsUseCase = new StartProductionStatsUseCase<RowModel, PanasonicUnloadRecord, PanasonicSpliceRecord, IpqcInspectionRecord>({
     startProduction: async (rows) => {
         machineSide.value =
             props.machineSideQuery === '1' ? MachineSideEnum.FRONT
@@ -170,6 +175,24 @@ const startStatsUseCase = new StartProductionStatsUseCase<RowModel, PanasonicUnl
             },
         })
     },
+    uploadIpqc: async (record, statItemMap) => {
+        const id = statItemMap.get(makeSlotKey(record.slotIdno, record.subSlotIdno))
+        if (id === undefined) return
+        await SmtService.addPanasonicMounterItemStatRoll({
+            requestBody: {
+                stat_item_id: id,
+                operator_id: record.inspectorIdno || null,
+                operation_time: record.inspectionTime,
+                slot_idno: record.slotIdno,
+                sub_slot_idno: record.subSlotIdno ?? null,
+                material_pack_code: record.materialPackCode,
+                operation_type: MaterialOperationTypeEnum.FEED,
+                feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
+                check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+                unfeed_reason: null,
+            },
+        })
+    },
 })
 
 function onProduction() {
@@ -205,7 +228,9 @@ async function startProductionUpload(rows?: RowModel[]) {
             rowData: rows || props.rowData,
             pendingUnloadRecords: props.pendingUnloadRecords ?? [],
             pendingSpliceRecords: props.pendingSpliceRecords ?? [],
+            pendingIpqcRecords: props.pendingIpqcRecords ?? [],
             onUnloadUploaded: (ok) => emit('unload-uploaded', ok),
+            onIpqcUploaded: (ok) => emit('ipqc-uploaded', ok),
         })
         emit('started', productionUuid)
     } catch {
