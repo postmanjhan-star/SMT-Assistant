@@ -55,6 +55,7 @@ describe("PostProductionFeedUseCase", () => {
             isTestingMode: () => true,
             isProductionStarted: () => true,
             resetMaterialScan: vi.fn(),
+            getOperatorIdno: () => null,
             inspectionUpload: vi.fn().mockResolvedValue(undefined),
             appendedMaterialUpload: vi.fn().mockResolvedValue(undefined),
         }

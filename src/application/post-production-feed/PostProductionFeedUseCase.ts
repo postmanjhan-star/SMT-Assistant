@@ -1,4 +1,4 @@
-﻿import { FeedMaterialTypeEnum, PanasonicMounterItemStatRead } from "@/client"
+﻿import { FeedMaterialTypeEnum } from "@/client"
 import {
     appendMaterialCode,
     findLoadedSlotByPack,
@@ -7,7 +7,7 @@ import {
     StatLike,
 } from "@/domain/production/PostProductionFeedRules"
 import { PostProductionFeedContext } from "./PostProductionFeedContext"
-import { PostProductionFeedDeps } from "./PostProductionFeedDeps"
+import { MounterStatLike, PostProductionFeedDeps } from "./PostProductionFeedDeps"
 import { RowModelBase } from "./PostProductionFeedTypes"
 import { PostProductionFeedStrategy } from "./PostProductionFeedStrategy"
 
@@ -131,7 +131,7 @@ export class PostProductionFeedUseCase<TRow extends RowModelBase> {
         return true
     }
 
-    private toStatLike(stat: PanasonicMounterItemStatRead): StatLike {
+    private toStatLike(stat: MounterStatLike): StatLike {
         return {
             slotIdno: stat.slot_idno,
             subSlotIdno: stat.sub_slot_idno ?? null,

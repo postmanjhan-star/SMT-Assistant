@@ -1,4 +1,4 @@
-﻿import type { Ref } from 'vue'
+import type { Ref } from 'vue'
 import { NormalModeStrategy } from '@/application/post-production-feed/NormalModeStrategy'
 import { TestingModeStrategy } from '@/application/post-production-feed/TestingModeStrategy'
 import type {
@@ -6,21 +6,20 @@ import type {
   MaterialInventoryLike,
 } from '@/application/post-production-feed/PostProductionFeedContext'
 import type { RowModelBase } from '@/application/post-production-feed/PostProductionFeedTypes'
-import type { PostProductionFeedDeps } from '@/application/post-production-feed/PostProductionFeedDeps'
-import { PostProductionFeedGridAdapter } from '@/ui/workflows/post-production/panasonic/PostProductionFeedGridAdapter'
+import type { MounterStatLike, PostProductionFeedDeps } from '@/application/post-production-feed/PostProductionFeedDeps'
+import { PostProductionFeedGridAdapter } from '@/ui/shared/grid/post-production/PostProductionFeedGridAdapter'
 import {
   usePostProductionFeedStore,
   type PostProductionCorrectState,
   type PostProductionFeedUi,
 } from '@/stores/postProductionFeedStore'
-import type { PanasonicMounterItemStatRead } from '@/client'
 import { PostProductionFeedFlow } from '@/application/post-production-feed/PostProductionFeedFlow'
 
 export type PostProductionFeedFlowOptions<TRow extends RowModelBase> = {
   gridApi: Ref<any | null>
   rowData: Ref<TRow[]>
   ui: PostProductionFeedUi
-  getMounterData: () => PanasonicMounterItemStatRead[]
+  getMounterData: () => MounterStatLike[]
   isTestingMode: () => boolean
   isProductionStarted: () => boolean
   resetMaterialScan: () => void
