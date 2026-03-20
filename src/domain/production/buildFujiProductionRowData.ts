@@ -47,6 +47,8 @@ export type FujiProductionRowModel = {
   boardSide: string
   stage: string
   slot: number
+  slotIdno: string
+  subSlotIdno: string
   materialIdno: string
   operatorIdno: string | null
   materialInventoryIdno: string | null
@@ -393,6 +395,8 @@ export function buildFujiProductionRowData(
       boardSide: String(stat.board_side ?? ""),
       stage,
       slot: Number(stat.slot_idno),
+      slotIdno: String(stat.slot_idno),
+      subSlotIdno: stage,
       materialIdno: String(stat.material_idno ?? ""),
       materialInventoryIdno: activeImportedRecord?.material_pack_code ?? "",
       operationTime: activeImportedRecord?.operation_time ?? null,

@@ -16,14 +16,12 @@ import {
 } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
+import { usePostProductionFeedFlow } from "@/ui/shared/composables/usePostProductionFeedFlow"
+import type { MounterStatLike } from "@/application/post-production-feed/PostProductionFeedDeps"
+import type { PostProductionCorrectState } from "@/stores/postProductionFeedStore"
 import { MATERIAL_UNLOAD_TRIGGER } from "@/domain/mounter/operationModes"
 import { useFujiMaterialQueryState } from "@/ui/workflows/post-production/fuji/composables/useFujiMaterialQueryState"
-import {
-  appendMaterialCode,
-  findLoadedSlotByPack,
-  isInspectionScan,
-  type StatLike,
-} from "@/domain/production/PostProductionFeedRules"
+import type { StatLike } from "@/domain/production/PostProductionFeedRules"
 import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
 import {
   buildFujiInspectionStats,
@@ -60,21 +58,12 @@ function toUploadSubSlotIdno(value: unknown): string | null {
   return trimmed ? trimmed : null
 }
 
-function getApiErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof ApiError) {
-    if (error.status === 422) return `${fallback}：參數錯誤`
-    if (error.status === 404) return `${fallback}：找不到資料`
-    if (error.status === 500) return `${fallback}：伺服器錯誤`
-    if (error.status === 504) return `${fallback}：服務逾時`
-  }
-  return fallback
-}
 
 export function useFujiProductionWorkflow() {
   const route = useRoute()
   const router = useRouter()
   const dialog = useDialog()
-  const { success: showSuccess, warn: showWarn, error: showError, info } = useUiNotifier()
+  const { success: showSuccess, warn: showWarn, error: showError, info, notifyError, playErrorTone } = useUiNotifier()
   const { currentUsername } = useCurrentUsername()
 
   const workOrderIdno = ref("")
@@ -161,13 +150,13 @@ export function useFujiProductionWorkflow() {
         uploadSlotIdno: uploadSlot.slotIdno,
         uploadSubSlotIdno: uploadSlot.subSlotIdno,
         displaySlotIdno: `${parsed.machineIdno}-${parsed.stage}-${parsed.slot}`,
-        rowId: `${parsed.machineIdno}-${parsed.stage}-${parsed.slot}`,
+        rowId: `${parsed.slot}-${parsed.stage}`,
       }
     },
     toDisplaySlotIdno: (row: FujiProductionRowModel) =>
       `${row.mounterIdno}-${row.stage}-${row.slot}`,
     toRowId: (row: FujiProductionRowModel) =>
-      `${row.mounterIdno}-${row.stage}-${row.slot}`,
+      `${row.slotIdno}-${row.subSlotIdno}`,
     getRowData: () => rowData.value,
   }
 
@@ -175,6 +164,49 @@ export function useFujiProductionWorkflow() {
 
   const fujiApi = new FujiPostProductionRecordApi()
   const fujiUploader = new FujiPostProductionRecordUploader(fujiApi)
+
+  // ── Shared post-production feed flow ───────────────────────────────────────
+
+  function getMounterDataForFeedFlow(): MounterStatLike[] {
+    return mounterData.value.map(stat => {
+      const normalizedSubSlot = normalizeStageLabel(stat.sub_slot_idno)
+      const inspStat = inspectionStats.value.find(
+        is =>
+          String(is.slotIdno) === String(stat.slot_idno) &&
+          statMatchesStage(is.subSlotIdno, normalizedSubSlot)
+      )
+      return {
+        id: stat.id,
+        slot_idno: stat.slot_idno,
+        sub_slot_idno: normalizedSubSlot,
+        feed_records: inspStat?.feedRecords?.map(r => ({
+          feed_material_pack_type: r.feedMaterialPackType ?? null,
+          material_pack_code: r.materialPackCode ?? null,
+        })) ?? [],
+      }
+    })
+  }
+
+  const { submit: submitPostProductionFeed } = usePostProductionFeedFlow<FujiProductionRowModel>({
+    gridApi,
+    rowData,
+    ui: {
+      success: showSuccess,
+      warn: showWarn,
+      error: showError,
+      info,
+      notifyError,
+      playErrorTone,
+      resetSlotMaterialFormInputs: resetForms,
+    },
+    getMounterData: getMounterDataForFeedFlow,
+    isTestingMode: () => isTestingMode.value,
+    isProductionStarted: () => productionStarted.value,
+    resetMaterialScan: resetForms,
+    getOperatorIdno: () => currentUsername.value || null,
+    inspectionUpload,
+    appendedMaterialUpload,
+  })
 
   // ── Shared unload/replace flow ─────────────────────────────────────────────
 
@@ -203,57 +235,65 @@ export function useFujiProductionWorkflow() {
 
   // ── Local helpers for upload (pre-production inspection/append) ────────────
 
-  function toPackCodeMatch(
-    state: CheckMaterialMatchEnum | null
-  ): "true" | "false" | "warning" | null {
-    if (state == null) return null
-    if (state === CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK) return "true"
-    if (state === CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK) return "false"
-    if (state === CheckMaterialMatchEnum.TESTING_MATERIAL_PACK) return "warning"
-    return null
-  }
-
   async function appendedMaterialUpload(params: {
     stat_id: number
     inputSlot: string
-    inputSubSlot: string | null
-    materialInventory: SmtMaterialInventory
-    correctState: CheckMaterialMatchEnum
+    inputSubSlot: string
+    materialInventory?: { idno: string } | null
+    correctState?: PostProductionCorrectState
   }) {
-    const payload = {
-      stat_item_id: params.stat_id,
-      operator_id: "",
-      operation_time: new Date().toISOString(),
-      slot_idno: params.inputSlot,
-      sub_slot_idno: params.inputSubSlot ?? null,
-      material_pack_code: params.materialInventory.idno,
-      operation_type: MaterialOperationTypeEnum.FEED,
-      feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-      check_pack_code_match: toPackCodeMatch(params.correctState),
-    }
+    const material = params.materialInventory
+    if (!material) throw new Error("materialInventory is required")
 
-    await SmtService.addFujiMounterItemStatRoll({ requestBody: payload as any })
+    const now = new Date().toISOString()
+    await SmtService.addFujiMounterItemStatRoll({
+      requestBody: {
+        stat_item_id: params.stat_id,
+        operator_id: "",
+        operation_time: now,
+        slot_idno: params.inputSlot,
+        sub_slot_idno: params.inputSubSlot ?? null,
+        material_pack_code: material.idno,
+        operation_type: MaterialOperationTypeEnum.FEED,
+        feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+        check_pack_code_match: params.correctState ?? null,
+      } as any,
+    })
+
+    // Update correct + operationTime immediately (shared adapter handles appendedMaterialInventoryIdno)
+    const rowId = `${params.inputSlot}-${params.inputSubSlot}`
+    const rowNode = gridApi.value?.getRowNode(rowId)
+    if (rowNode) {
+      if (params.correctState === "true") {
+        rowNode.setDataValue("correct", CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
+      } else if (params.correctState === "false") {
+        rowNode.setDataValue("correct", CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
+      } else if (params.correctState === "warning") {
+        rowNode.setDataValue("correct", CheckMaterialMatchEnum.TESTING_MATERIAL_PACK)
+      }
+      rowNode.setDataValue("operationTime", now)
+    }
   }
 
   async function inspectionUpload(params: {
     stat_id: number
     inputSlot: string
-    inputSubSlot: string | null
-    materialInventory: SmtMaterialInventory
+    inputSubSlot: string
+    materialInventory: { idno: string }
   }) {
-    const payload = {
-      stat_item_id: params.stat_id,
-      operator_id: "",
-      operation_time: new Date().toISOString(),
-      slot_idno: params.inputSlot,
-      sub_slot_idno: params.inputSubSlot ?? null,
-      material_pack_code: params.materialInventory.idno,
-      operation_type: MaterialOperationTypeEnum.FEED,
-      feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
-      check_pack_code_match: "true",
-    }
-
-    await SmtService.addFujiMounterItemStatRoll({ requestBody: payload as any })
+    await SmtService.addFujiMounterItemStatRoll({
+      requestBody: {
+        stat_item_id: params.stat_id,
+        operator_id: "",
+        operation_time: new Date().toISOString(),
+        slot_idno: params.inputSlot,
+        sub_slot_idno: params.inputSubSlot ?? null,
+        material_pack_code: params.materialInventory.idno,
+        operation_type: MaterialOperationTypeEnum.FEED,
+        feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
+        check_pack_code_match: "true",
+      } as any,
+    })
   }
 
   // ── Inspection update ──────────────────────────────────────────────────────
@@ -264,7 +304,7 @@ export function useFujiProductionWorkflow() {
     slot: number | null,
     materialIdno: string
   ) {
-    const rowId = `${mounter}-${stage}-${slot}`
+    const rowId = `${slot}-${stage}`
     const rowNode = gridApi.value?.getRowNode(rowId)
     if (rowNode) {
       const now = new Date().toISOString()
@@ -358,178 +398,23 @@ export function useFujiProductionWorkflow() {
     const parsed = parseFujiSlotIdno(inputSlotIdno)
     if (!parsed) return showError("槽位格式錯誤")
 
-    const mounter = parsed.machineIdno
-    const stage = parsed.stage
-    const slot = parsed.slot
-    const materialInventory = materialInventoryFromScan.value
+    const { stage, slot } = parsed
+    const material = materialInventoryFromScan.value
+    const matchedRows = getMaterialMatchedRows(material.material_idno).map(row => ({
+      slotIdno: String(row.slot),
+      subSlotIdno: row.stage,
+    }))
 
-    if (!isTestingMode.value && productionStarted.value && materialInventory) {
-      const stat = inspectionStats.value.find(
-        (current) =>
-          String(current.slotIdno) === String(slot) && statMatchesStage(current.subSlotIdno, stage)
-      )
-
-      if (stat) {
-        const inspection = isInspectionScan({
-          productionStarted: productionStarted.value,
-          stat,
-          importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
-          inputPackIdno: materialInventory.idno,
-        })
-
-        if (inspection) {
-          const statItem = mounterData.value.find((current) =>
-            isFujiStatSlotMatch(current, slot, stage)
-          )
-          if (!statItem) {
-            showError(`找不到槽位 ${stage}-${slot}`)
-            resetForms()
-            return
-          }
-
-          try {
-            const uploadSlot = resolveUploadSlotByStatId(statItem.id, {
-              slotIdno: String(slot),
-              subSlotIdno: stage,
-            })
-
-            await inspectionUpload({
-              stat_id: statItem.id,
-              inputSlot: uploadSlot.slotIdno,
-              inputSubSlot: uploadSlot.subSlotIdno,
-              materialInventory,
-            })
-
-            applyInspectionUpdate(mounter, stage, slot, materialInventory.idno)
-            showSuccess(`巡檢通過：${stage}-${slot}`)
-          } catch (error) {
-            showError(getApiErrorMessage(error, "巡檢上傳失敗"))
-            console.error(error)
-          }
-
-          resetForms()
-          return
-        }
-      }
-
-      const loadedSlot = findLoadedSlotByPack({
-        stats: inspectionStats.value,
-        importPackType: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
-        inputPackIdno: materialInventory.idno,
-      })
-
-      if (loadedSlot) {
-        const loadedStage = normalizeStageLabel(loadedSlot.subSlotIdno ?? "")
-        const isSameSlot =
-          String(loadedSlot.slotIdno) === String(slot) && loadedStage === String(stage ?? "")
-
-        if (!isSameSlot) {
-          showError(`巡檢失敗：此料號位於 ${loadedStage}-${loadedSlot.slotIdno}，非 ${stage}-${slot}`)
-          resetForms()
-          return
-        }
-      }
-    }
-
-    const matchedRows = getMaterialMatchedRows(materialInventory.material_idno)
-    const targetRow = matchedRows.find(
-      (row) => row.mounterIdno === mounter && row.stage === stage && row.slot === slot
-    )
-
-    if (targetRow) {
-      try {
-        const uploadSlot = resolveUploadSlotByStatId(targetRow.id, {
-          slotIdno: String(slot),
-          subSlotIdno: stage,
-        })
-
-        await appendedMaterialUpload({
-          stat_id: targetRow.id,
-          inputSlot: uploadSlot.slotIdno,
-          inputSubSlot: uploadSlot.subSlotIdno,
-          materialInventory,
-          correctState: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
-        })
-
-        const rowNode = gridApi.value?.getRowNode(`${mounter}-${stage}-${slot}`)
-        if (rowNode) {
-          rowNode.setDataValue("correct", CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
-          rowNode.setDataValue("operationTime", new Date().toISOString())
-          rowNode.setDataValue(
-            "appendedMaterialInventoryIdno",
-            appendMaterialCode(rowNode.data.appendedMaterialInventoryIdno, materialInventory.idno)
-          )
-        }
-
-        showSuccess(`${isTestingMode.value ? MODE_NAME_TESTING : MODE_NAME_NORMAL}：物料綁定成功`)
-      } catch (error) {
-        showError("上傳接料資料失敗")
-        console.error(error)
-      }
-    } else if (isTestingMode.value) {
-      const rowNode = gridApi.value?.getRowNode(`${mounter}-${stage}-${slot}`)
-      if (rowNode) {
-        try {
-          const uploadSlot = resolveUploadSlotByStatId(rowNode.data.id, {
-            slotIdno: String(slot),
-            subSlotIdno: stage,
-          })
-
-          await appendedMaterialUpload({
-            stat_id: rowNode.data.id,
-            inputSlot: uploadSlot.slotIdno,
-            inputSubSlot: uploadSlot.subSlotIdno,
-            materialInventory,
-            correctState: CheckMaterialMatchEnum.TESTING_MATERIAL_PACK,
-          })
-
-          rowNode.setDataValue("correct", CheckMaterialMatchEnum.TESTING_MATERIAL_PACK)
-          rowNode.setDataValue("remark", "[測試模式綁定]")
-          rowNode.setDataValue("operationTime", new Date().toISOString())
-          rowNode.setDataValue(
-            "appendedMaterialInventoryIdno",
-            appendMaterialCode(rowNode.data.appendedMaterialInventoryIdno, materialInventory.idno)
-          )
-          showSuccess(`${MODE_NAME_TESTING}：槽位 ${stage}-${slot} 已標記為測試料`)
-        } catch (error) {
-          showError("上傳接料資料失敗")
-          console.error(error)
-        }
-      } else {
-        showError(`找不到輸入槽位 ${inputSlotIdno}`)
-      }
-    } else {
-      const rowNode = gridApi.value?.getRowNode(`${mounter}-${stage}-${slot}`)
-      if (rowNode) {
-        try {
-          const uploadSlot = resolveUploadSlotByStatId(rowNode.data.id, {
-            slotIdno: String(slot),
-            subSlotIdno: stage,
-          })
-
-          await appendedMaterialUpload({
-            stat_id: rowNode.data.id,
-            inputSlot: uploadSlot.slotIdno,
-            inputSubSlot: uploadSlot.subSlotIdno,
-            materialInventory,
-            correctState: CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK,
-          })
-
-          rowNode.setDataValue("correct", CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
-          rowNode.setDataValue("operationTime", new Date().toISOString())
-          rowNode.setDataValue(
-            "appendedMaterialInventoryIdno",
-            appendMaterialCode(rowNode.data.appendedMaterialInventoryIdno, materialInventory.idno)
-          )
-        } catch (error) {
-          console.error(error)
-        }
-      }
-
-      showError(`綁定失敗：此槽位應為 ${matchedRows.map((row) => `${row.stage}-${row.slot}`).join(", ")}`)
-    }
-
-    resetForms()
+    await submitPostProductionFeed({
+      slot: String(slot),
+      subSlot: stage,
+      slotIdno: `${stage}-${slot}`,
+      result: {
+        success: true,
+        materialInventory: material,
+        matchedRows,
+      },
+    })
   }
 
   // ── Stop production ────────────────────────────────────────────────────────

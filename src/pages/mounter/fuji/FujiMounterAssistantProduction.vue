@@ -4,7 +4,7 @@ import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NTag } from "naive-ui"
-import { computed, nextTick, ref, watch } from "vue"
+import { nextTick, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { useMeta } from "vue-meta"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
@@ -19,16 +19,13 @@ import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
 import { parseFujiSlotIdno, parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiProductionPage } from "@/ui/workflows/post-production/fuji/composables/useFujiProductionPage"
+import { useUnloadModeController } from "@/ui/shared/composables/useUnloadModeController"
 import { createFujiProductionGridOptions } from "@/ui/workflows/post-production/fuji/createFujiProductionGridOptions"
 import {
   MATERIAL_UNLOAD_TRIGGER,
   MATERIAL_FORCE_UNLOAD_TRIGGER,
   MATERIAL_EXIT_TRIGGER,
   MATERIAL_IPQC_TRIGGER,
-  MATERIAL_UNLOAD_MODE_NAME,
-  MATERIAL_FORCE_UNLOAD_MODE_NAME,
-  MATERIAL_FEED_MODE_NAME,
-  MATERIAL_IPQC_MODE_NAME,
 } from "@/domain/mounter/operationModes"
 
 useMeta({ title: "Fuji Mounter Production" })
@@ -36,13 +33,6 @@ useMeta({ title: "Fuji Mounter Production" })
 const route = useRoute()
 const isMockMode = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
 const mockScan = isMockMode ? createMockScan() : null
-
-type UnloadModeType = "pack_auto_slot" | "force_single_slot"
-type UnloadReplacePhase =
-  | "unload_scan"
-  | "force_unload_slot_scan"
-  | "replace_material_scan"
-  | "replace_slot_scan"
 
 const {
   workOrderIdno,
@@ -59,8 +49,6 @@ const {
   materialInventoryFromScan,
   getMaterialMatchedRows,
   isUnloadMode,
-  unloadMaterialValue,
-  unloadSlotValue,
   showMaterialQueryModal,
   materialQueryRowData,
   fetchMaterialQueryLogs,
@@ -87,10 +75,6 @@ const materialResetKey = ref(0)
 const slotResetKey = ref(0)
 const unloadMaterialInputRef = ref<HTMLInputElement | null>(null)
 const unloadSlotInputRef = ref<HTMLInputElement | null>(null)
-const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
-const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
-const resolvedUnloadSlotIdno = ref("")
-const replacementMaterialPackCode = ref("")
 const isIpqcMode = ref(false)
 const ipqcMaterialValue = ref("")
 const ipqcSlotValue = ref("")
@@ -102,98 +86,42 @@ const localColumnApi = ref<ColumnApi | null>(null)
 
 const gridOptions = createFujiProductionGridOptions()
 
-const operationModeName = computed(() => {
-  if (isUnloadMode.value) {
-    return unloadModeType.value === "force_single_slot"
-      ? MATERIAL_FORCE_UNLOAD_MODE_NAME
-      : MATERIAL_UNLOAD_MODE_NAME
-  }
-  if (isIpqcMode.value) return MATERIAL_IPQC_MODE_NAME
-  return MATERIAL_FEED_MODE_NAME
-})
-
-const isUnloadScanPhase = computed(() => unloadReplacePhase.value === "unload_scan")
-const isForceUnloadSlotPhase = computed(
-  () => unloadReplacePhase.value === "force_unload_slot_scan"
-)
-const isReplaceMaterialPhase = computed(
-  () => unloadReplacePhase.value === "replace_material_scan"
-)
-const isReplaceSlotPhase = computed(() => unloadReplacePhase.value === "replace_slot_scan")
-
-const unloadMaterialLabel = computed(() => {
-  if (isUnloadScanPhase.value) return "卸除捲號（自動定位）"
-  if (isReplaceMaterialPhase.value) return "更換捲號"
-  return "更換捲號（待掃站位）"
-})
-
-const unloadMaterialPlaceholder = computed(() => {
-  if (isUnloadScanPhase.value) return "請掃描要卸除的捲號"
-  if (isForceUnloadSlotPhase.value) return "請先掃描站位進行強制卸除"
-  if (isReplaceMaterialPhase.value) return "請掃描要更換的捲號"
-  return replacementMaterialPackCode.value
-})
-
-const hasUnloadMaterial = computed(() => {
-  if (isReplaceSlotPhase.value) return replacementMaterialPackCode.value.trim().length > 0
-  return unloadMaterialValue.value.trim().length > 0
-})
-
-const isUnloadMaterialInputDisabled = computed(
-  () => isReplaceSlotPhase.value || isForceUnloadSlotPhase.value
-)
-
-const isUnloadSlotInputDisabled = computed(() => {
-  if (isForceUnloadSlotPhase.value) return false
-  if (isReplaceSlotPhase.value) return !hasUnloadMaterial.value
-  return true
-})
-
-const unloadSlotLabel = computed(() =>
-  isForceUnloadSlotPhase.value ? "卸除站位" : "站位編號"
-)
-
-const unloadSlotPlaceholder = computed(() => {
-  if (isForceUnloadSlotPhase.value) return "請掃描要卸除的站位"
-  if (isReplaceSlotPhase.value) return `請掃描原卸料站位 ${resolvedUnloadSlotIdno.value || ""}`
-  return "請先掃描更換捲號"
-})
-
 function toCanonicalFujiSlot(raw: string): string | null {
   const parsed = parseFujiSlotIdno(raw)
   if (!parsed) return null
   return `${parsed.machineIdno}-${parsed.stage}-${parsed.slot}`
 }
 
-function resetUnloadFlowState(modeType: UnloadModeType = unloadModeType.value) {
-  unloadModeType.value = modeType
-  unloadReplacePhase.value =
-    modeType === "force_single_slot" ? "force_unload_slot_scan" : "unload_scan"
-  unloadMaterialValue.value = ""
-  unloadSlotValue.value = ""
-  resolvedUnloadSlotIdno.value = ""
-  replacementMaterialPackCode.value = ""
-}
-
-function focusUnloadMaterialInput() {
-  nextTick(() => {
-    unloadMaterialInputRef.value?.focus()
-  })
-}
-
-function focusUnloadSlotInput() {
-  nextTick(() => {
-    unloadSlotInputRef.value?.focus()
-  })
-}
-
-function focusByCurrentPhase() {
-  if (isForceUnloadSlotPhase.value || isReplaceSlotPhase.value) {
-    focusUnloadSlotInput()
-    return
-  }
-  focusUnloadMaterialInput()
-}
+const {
+  unloadModeType,
+  unloadReplacePhase,
+  unloadMaterialValue,
+  unloadSlotValue,
+  resolvedUnloadSlotIdno,
+  replacementMaterialPackCode,
+  operationModeName,
+  isUnloadScanPhase,
+  isForceUnloadSlotPhase,
+  isReplaceMaterialPhase,
+  isReplaceSlotPhase,
+  unloadMaterialLabel,
+  unloadMaterialPlaceholder,
+  isUnloadMaterialInputDisabled,
+  isUnloadSlotInputDisabled,
+  unloadSlotLabel,
+  unloadSlotPlaceholder,
+  resetUnloadFlowState,
+  focusUnloadMaterialInput,
+  focusUnloadSlotInput,
+  focusByCurrentPhase,
+  resetToInitialUnloadPhase,
+} = useUnloadModeController({
+  isUnloadMode,
+  isIpqcMode,
+  toCanonicalSlot: toCanonicalFujiSlot,
+  getUnloadMaterialInputRef: () => unloadMaterialInputRef.value,
+  getUnloadSlotInputRef: () => unloadSlotInputRef.value,
+})
 
 function handleExitUnloadMode() {
   resetUnloadFlowState("pack_auto_slot")
@@ -541,13 +469,6 @@ async function handleForceUnloadSlotSubmit(slotIdno: string) {
   resolvedUnloadSlotIdno.value = result.slotIdno ?? slotIdno
   unloadReplacePhase.value = "replace_material_scan"
   focusUnloadMaterialInput()
-}
-
-function resetToInitialUnloadPhase() {
-  unloadReplacePhase.value =
-    unloadModeType.value === "force_single_slot"
-      ? "force_unload_slot_scan"
-      : "unload_scan"
 }
 
 async function handleReplacementMaterialSubmit(materialPackCode: string) {

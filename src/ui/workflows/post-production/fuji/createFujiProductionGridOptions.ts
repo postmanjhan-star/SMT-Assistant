@@ -47,6 +47,6 @@ export function createFujiProductionGridOptions(): GridOptions<FujiProductionRow
       { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
     ],
     getRowId: (params: GetRowIdParams<FujiProductionRowModel>) =>
-      `${params.data.mounterIdno}-${params.data.stage}-${params.data.slot}`,
+      `${params.data.slotIdno}-${params.data.subSlotIdno}`,
   }
 }
