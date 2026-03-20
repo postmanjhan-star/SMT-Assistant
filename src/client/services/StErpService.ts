@@ -90,7 +90,7 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStReceiveList({
-        stReceiveDate = '2026-03-16',
+        stReceiveDate = '2026-03-20',
     }: {
         stReceiveDate?: string,
     }): CancelablePromise<Array<STReceiveHeader>> {
@@ -260,7 +260,7 @@ export class StErpService {
      * @throws ApiError
      */
     public static getStWorkOrderList({
-        date = '2026-03-16',
+        date = '2026-03-20',
     }: {
         date?: string,
     }): CancelablePromise<Array<STWorkOrder>> {

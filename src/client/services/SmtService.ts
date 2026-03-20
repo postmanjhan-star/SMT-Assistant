@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { BarcodeLoginRequest } from '../models/BarcodeLoginRequest';
 import type { Body_upload_fst } from '../models/Body_upload_fst';
 import type { Body_upload_mounter_file } from '../models/Body_upload_mounter_file';
 import type { Body_upload_panasonic_mounter_csv } from '../models/Body_upload_panasonic_mounter_csv';
@@ -14,6 +15,7 @@ import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
 import type { FujiMounterFileReadLegacy } from '../models/FujiMounterFileReadLegacy';
 import type { FujiMounterItemStatCreate } from '../models/FujiMounterItemStatCreate';
 import type { FujiMounterItemStatRead } from '../models/FujiMounterItemStatRead';
+import type { OperatorSyncResponse } from '../models/OperatorSyncResponse';
 import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
 import type { PanasonicItemStatFeedLogRead } from '../models/PanasonicItemStatFeedLogRead';
 import type { PanasonicMounterFileCreate } from '../models/PanasonicMounterFileCreate';
@@ -22,7 +24,9 @@ import type { PanasonicMounterFileRead } from '../models/PanasonicMounterFileRea
 import type { PanasonicMounterItemStatCreate } from '../models/PanasonicMounterItemStatCreate';
 import type { PanasonicMounterItemStatRead } from '../models/PanasonicMounterItemStatRead';
 import type { PanasonicMounterMaterialPackCreate } from '../models/PanasonicMounterMaterialPackCreate';
+import type { Printer } from '../models/Printer';
 import type { SmtMaterialInventory } from '../models/SmtMaterialInventory';
+import type { Token } from '../models/Token';
 import type { UnfeedMaterialTypeEnum } from '../models/UnfeedMaterialTypeEnum';
 import type { UnfeedReasonEnum } from '../models/UnfeedReasonEnum';
 
@@ -664,6 +668,65 @@ export class SmtService {
                 'mounter_idno': mounterIdno,
                 'testing_mode': testingMode,
                 'testing_product_idno': testingProductIdno,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Sync Eform Operators
+     * @returns OperatorSyncResponse Successful Response
+     * @throws ApiError
+     */
+    public static syncEformOperators(): CancelablePromise<OperatorSyncResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/operator/sync',
+        });
+    }
+
+    /**
+     * Operator Barcode Login
+     * @returns Token Successful Response
+     * @throws ApiError
+     */
+    public static operatorBarcodeLogin({
+        requestBody,
+    }: {
+        requestBody: BarcodeLoginRequest,
+    }): CancelablePromise<Token> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/operator/barcode-login',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Generate Operator Qrcodes
+     * @returns any Successful Response
+     * @returns binary Created
+     * @throws ApiError
+     */
+    public static generateOperatorQrcodes({
+        workIds,
+        printer = 'weasyprint',
+    }: {
+        workIds: Array<number>,
+        printer?: Printer,
+    }): CancelablePromise<any | Blob> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/smt/operator/qrcodes',
+            query: {
+                'work_ids': workIds,
+                'printer': printer,
             },
             errors: {
                 422: `Validation Error`,
