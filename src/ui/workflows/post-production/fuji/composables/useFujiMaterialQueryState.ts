@@ -1,16 +1,12 @@
-import { ref, type Ref } from "vue"
+import { type Ref } from "vue"
 import { SmtService } from "@/client"
 import type { MaterialQueryRowModel } from "@/domain/mounter/MaterialQueryRowModel"
+import { useMaterialQueryState } from "@/ui/shared/composables/useMaterialQueryState"
 
 export function useFujiMaterialQueryState(uuid: Ref<string>) {
-  const rowData = ref<MaterialQueryRowModel[]>([])
-
-  const load = async () => {
-    const normalized = uuid.value?.toString().trim()
-    if (!normalized) return rowData.value
-
-    const logs = await SmtService.getTheFujiStatsOfLogsByUuid({ uuid: normalized })
-    rowData.value = logs.map((log) => ({
+  return useMaterialQueryState<MaterialQueryRowModel>(uuid, async (u) => {
+    const logs = await SmtService.getTheFujiStatsOfLogsByUuid({ uuid: u })
+    return logs.map((log) => ({
       id: log.id,
       correct: log.check_pack_code_match,
       slotIdno: log.slot_idno,
@@ -21,8 +17,5 @@ export function useFujiMaterialQueryState(uuid: Ref<string>) {
       checktime: log.operation_time,
       remark: log.check_pack_code_match === "TESTING_MATERIAL_PACK" ? "[廠商測試新料]" : "",
     }))
-    return rowData.value
-  }
-
-  return { rowData, load }
+  })
 }

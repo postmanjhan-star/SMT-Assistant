@@ -1,16 +1,24 @@
-﻿import { buildPanasonicFeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
-import type {
-  FeedMaterialTypeEnum,
-  CheckMaterialMatchEnum,
-  UnfeedReasonEnum,
-} from '@/client'
+import type { PanasonicFeedRecordCreate } from '@/client'
 import { PostProductionRecordApi } from '@/infra/post-production/PostProductionRecordApi'
+import { PostProductionFeedUploader } from './PostProductionFeedUploader'
+import { buildPanasonicFeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
 
-export type PostProductionCorrectState = 'true' | 'false' | 'warning'
+export type { PostProductionCorrectState } from './PostProductionFeedUploader'
 
-export class PostProductionRecordUploader {
-  constructor(private api: PostProductionRecordApi) {}
+export class PostProductionRecordUploader extends PostProductionFeedUploader {
+  constructor(private api: PostProductionRecordApi) {
+    super()
+  }
 
+  protected doUpload(payload: PanasonicFeedRecordCreate) {
+    return this.api.uploadFeedRecord(payload)
+  }
+
+  protected doFetchMaterialInventory(id: string) {
+    return this.api.fetchMaterialInventory(id)
+  }
+
+  // Panasonic-only: inspection upload
   async uploadInspection(params: {
     statId: number
     slotIdno: string
@@ -29,60 +37,6 @@ export class PostProductionRecordUploader {
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })
-
-    return this.api.uploadFeedRecord(payload)
-  }
-
-  async uploadAppend(params: {
-    statId: number
-    slotIdno: string
-    subSlotIdno?: string | null
-    materialPackCode: string
-    correctState?: PostProductionCorrectState | null
-    feedMaterialPackType?: FeedMaterialTypeEnum | string | null
-    operatorId?: string | null
-  }) {
-    const payload = buildPanasonicFeedRecordPayload({
-      statId: params.statId,
-      slotIdno: params.slotIdno,
-      subSlotIdno: params.subSlotIdno ?? null,
-      materialPackCode: params.materialPackCode,
-      operationType: 'FEED',
-      feedMaterialPackType: params.feedMaterialPackType ?? 'new',
-      checkPackCodeMatch: (params.correctState ?? null) as CheckMaterialMatchEnum | string | null,
-      operationTime: new Date().toISOString(),
-      operatorId: params.operatorId ?? '',
-    })
-
-    return this.api.uploadFeedRecord(payload)
-  }
-
-  async uploadUnfeed(params: {
-    statId: number
-    slotIdno: string
-    subSlotIdno?: string | null
-    materialPackCode: string
-    unfeedReason?: UnfeedReasonEnum | string | null
-    operatorId?: string | null
-  }) {
-    const payload = buildPanasonicFeedRecordPayload({
-      statId: params.statId,
-      slotIdno: params.slotIdno,
-      subSlotIdno: params.subSlotIdno ?? null,
-      materialPackCode: params.materialPackCode,
-      operationType: 'UNFEED',
-      feedMaterialPackType: null,
-      unfeedMaterialPackType: 'NORMAL_UNFEED',
-      unfeedReason: params.unfeedReason ?? null,
-      checkPackCodeMatch: 'true',
-      operationTime: new Date().toISOString(),
-      operatorId: params.operatorId ?? '',
-    })
-
-    return this.api.uploadFeedRecord(payload)
-  }
-
-  async fetchMaterialInventory(materialInventoryIdno: string) {
-    return this.api.fetchMaterialInventory(materialInventoryIdno)
+    return this.doUpload(payload)
   }
 }

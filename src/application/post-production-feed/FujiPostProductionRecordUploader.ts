@@ -1,56 +1,33 @@
-import { buildPanasonicFeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
-import type { UnfeedReasonEnum } from '@/client'
+import type { PanasonicFeedRecordCreate } from '@/client'
 import { FujiPostProductionRecordApi } from '@/infra/post-production/FujiPostProductionRecordApi'
+import { PostProductionFeedUploader } from './PostProductionFeedUploader'
 
-export class FujiPostProductionRecordUploader {
-  constructor(private api: FujiPostProductionRecordApi) {}
+export class FujiPostProductionRecordUploader extends PostProductionFeedUploader {
+  constructor(private api: FujiPostProductionRecordApi) {
+    super()
+  }
 
-  async uploadUnfeed(params: {
-    statId: number
-    slotIdno: string
-    subSlotIdno?: string | null
-    materialPackCode: string
-    unfeedReason?: UnfeedReasonEnum | string | null
-    operatorId?: string | null
-  }) {
-    const payload = buildPanasonicFeedRecordPayload({
-      statId: params.statId,
-      slotIdno: params.slotIdno,
-      subSlotIdno: params.subSlotIdno ?? null,
-      materialPackCode: params.materialPackCode,
-      operationType: 'UNFEED',
-      unfeedMaterialPackType: 'NORMAL_UNFEED',
-      unfeedReason: params.unfeedReason ?? null,
-      checkPackCodeMatch: 'true',
-      feedMaterialPackType: null,
-      operationTime: new Date().toISOString(),
-      operatorId: params.operatorId ?? null,
-    })
+  protected doUpload(payload: PanasonicFeedRecordCreate) {
     return this.api.uploadFeedRecord(payload)
   }
 
-  async uploadAppend(params: {
+  protected doFetchMaterialInventory(id: string) {
+    return this.api.fetchMaterialInventory(id)
+  }
+
+  // Preserve existing public interface: no correctState/feedMaterialPackType params,
+  // always hardcode feedMaterialPackType='new' and checkPackCodeMatch='true'
+  override async uploadAppend(params: {
     statId: number
     slotIdno: string
     subSlotIdno?: string | null
     materialPackCode: string
     operatorId?: string | null
   }) {
-    const payload = buildPanasonicFeedRecordPayload({
-      statId: params.statId,
-      slotIdno: params.slotIdno,
-      subSlotIdno: params.subSlotIdno ?? null,
-      materialPackCode: params.materialPackCode,
-      operationType: 'FEED',
+    return super.uploadAppend({
+      ...params,
+      correctState: 'true',
       feedMaterialPackType: 'new',
-      checkPackCodeMatch: 'true',
-      operationTime: new Date().toISOString(),
-      operatorId: params.operatorId ?? null,
     })
-    return this.api.uploadFeedRecord(payload)
-  }
-
-  async fetchMaterialInventory(materialInventoryIdno: string) {
-    return this.api.fetchMaterialInventory(materialInventoryIdno)
   }
 }
