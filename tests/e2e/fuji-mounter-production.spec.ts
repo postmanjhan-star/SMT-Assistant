@@ -1,5 +1,29 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+    // 呼叫真實 login API，取得有效 token
+    const loginRes = await page.request.post('http://localhost/api/session/login', {
+        form: { username: 'operator', password: 'operatorpassword' },
+    });
+    if (!loginRes.ok()) {
+        const body = await loginRes.text();
+        throw new Error(`Login failed (${loginRes.status()}): ${body.substring(0, 300)}`);
+    }
+    const { access_token, token_type } = await loginRes.json();
+
+    // 在頁面載入前注入至 localStorage
+    await page.addInitScript(({ access_token, token_type }) => {
+        localStorage.setItem('authorized', JSON.stringify({
+            OAuth2PasswordBearer: {
+                schema: { flow: 'password', tokenUrl: '', scopes: {}, type: 'oauth2' },
+                token: { access_token, token_type },
+                username: 'operator',
+            },
+            HTTPBasic: null,
+        }));
+    }, { access_token, token_type });
+});
+
 test('Fuji mounter assistant material appending', async ({ page }) => {
     // 1. 導航至一個已存在的生產頁面
     // 注意：此 UUID 需要來自您的測試資料庫或 Seeding 過程

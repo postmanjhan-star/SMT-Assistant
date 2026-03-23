@@ -15,6 +15,7 @@ import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
 import type { FujiMounterFileReadLegacy } from '../models/FujiMounterFileReadLegacy';
 import type { FujiMounterItemStatCreate } from '../models/FujiMounterItemStatCreate';
 import type { FujiMounterItemStatRead } from '../models/FujiMounterItemStatRead';
+import type { OperatorChangePasswordRequest } from '../models/OperatorChangePasswordRequest';
 import type { OperatorSwitchResponse } from '../models/OperatorSwitchResponse';
 import type { OperatorSyncResponse } from '../models/OperatorSyncResponse';
 import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
@@ -732,6 +733,27 @@ export class SmtService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/smt/operator/switch',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Operator Change Password
+     * @returns void
+     * @throws ApiError
+     */
+    public static operatorChangePasswordSmtOperatorChangePasswordPost({
+        requestBody,
+    }: {
+        requestBody: OperatorChangePasswordRequest,
+    }): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/operator/change-password',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

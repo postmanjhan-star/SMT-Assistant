@@ -4,8 +4,8 @@ import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
-import { NButton, NGi, NTag } from "naive-ui"
-import { ref, computed, watch, nextTick } from "vue"
+import { NButton, NGi, NTag, NModal, NInput } from "naive-ui"
+import { ref, computed, watch, nextTick, onMounted } from "vue"
 import { useMeta } from "vue-meta"
 import { useRoute } from "vue-router"
 
@@ -30,7 +30,10 @@ import {
   MATERIAL_FORCE_UNLOAD_MODE_NAME,
   MATERIAL_IPQC_MODE_NAME,
   MATERIAL_FEED_MODE_NAME,
+  USER_SWITCH_TRIGGER,
 } from "@/domain/mounter/operationModes"
+import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
+import { useAuthStore } from "@/stores/authStore"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 
 useMeta({ title: "Fuji Mounter Assistant" })
@@ -147,6 +150,27 @@ const {
     }
   },
   isMockMode,
+})
+
+// ─── Scan Login ──────────────────────────────────────────────────────────────
+
+const authStore = useAuthStore()
+const {
+  showLoginModal,
+  loginInput,
+  loginError,
+  isLoginLoading,
+  isLoginRequired,
+  currentUsername: loginCurrentUsername,
+  openLoginModal,
+  closeLoginModal,
+  autoOpenIfUnauthenticated,
+  handleLoginSubmit,
+  handleUserSwitchTrigger,
+} = useScanLoginModal()
+
+onMounted(() => {
+  autoOpenIfUnauthenticated()
 })
 
 // ─── Computed ────────────────────────────────────────────────────────────────
@@ -726,6 +750,12 @@ async function handleIpqcMaterialSubmit() {
     ipqcMaterialValue.value = ""
     return
   }
+  if (code === USER_SWITCH_TRIGGER) {
+    exitIpqcMode()
+    handleUserSwitchTrigger(code)
+    ipqcMaterialValue.value = ""
+    return
+  }
   if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
     exitIpqcMode()
     handleModeTriggerFromNormalInput(code)
@@ -804,6 +834,7 @@ function handleIpqcSlotSubmit() {
 // ─── Mode triggers ─────────────────────────────────────────────────────────────
 
 function handleModeTriggerFromNormalInput(code: string): boolean {
+  if (handleUserSwitchTrigger(code)) return true
   if (code === MATERIAL_UNLOAD_TRIGGER) {
     if (isIpqcMode.value) exitIpqcMode()
     enterUnloadMode("pack_auto_slot")
@@ -1207,6 +1238,40 @@ async function handleUnloadSlotSubmit() {
       @grid-ready="onGridReadyWithCache"
     />
   </MounterLayout>
+
+  <n-modal
+    :show="showLoginModal"
+    :mask-closable="!isLoginRequired"
+    :close-on-esc="!isLoginRequired"
+    :closable="!isLoginRequired"
+    @update:show="(v) => { if (!v && !isLoginRequired) closeLoginModal() }"
+    preset="card"
+    style="width: 420px"
+    title="掃碼登入"
+  >
+    <div data-testid="scan-login-modal">
+      <div style="margin-bottom: 8px; color: #aaa; font-size: 13px">
+        目前使用者：{{ loginCurrentUsername || '（未登入）' }}
+      </div>
+      <n-input
+        v-model:value="loginInput"
+        placeholder="請掃描操作員條碼"
+        :disabled="isLoginLoading"
+        data-testid="scan-login-input"
+        autofocus
+        @keydown.enter.prevent="handleLoginSubmit"
+      />
+      <div
+        v-if="loginError"
+        style="color: #e88080; margin-top: 6px; font-size: 13px"
+        data-testid="scan-login-error"
+      >{{ loginError }}</div>
+    </div>
+    <template #footer>
+      <n-button v-if="!isLoginRequired" @click="closeLoginModal">取消</n-button>
+      <n-button type="primary" :loading="isLoginLoading" @click="handleLoginSubmit">登入</n-button>
+    </template>
+  </n-modal>
 </template>
 
 <style scoped>

@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AccountPasswordUpdate } from '../models/AccountPasswordUpdate';
 import type { AccountRead } from '../models/AccountRead';
 import type { Body_batch_create_employee_accounts_from_csv } from '../models/Body_batch_create_employee_accounts_from_csv';
 import type { EmployeeAccountCreate } from '../models/EmployeeAccountCreate';
@@ -143,6 +144,27 @@ export class AccountsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/reset-passwords',
+        });
+    }
+
+    /**
+     * Update Own Password
+     * @returns EmployeeAccountRead Successful Response
+     * @throws ApiError
+     */
+    public static updateOwnPassword({
+        requestBody,
+    }: {
+        requestBody: AccountPasswordUpdate,
+    }): CancelablePromise<EmployeeAccountRead> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/accounts/me/password',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
 
