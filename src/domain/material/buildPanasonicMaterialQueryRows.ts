@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] PanasonicItemStatFeedLogRead, Phase 2b 移除
-import type { PanasonicItemStatFeedLogRead } from "@/client"
+import type { PanasonicItemStatFeedLogInput } from "@/domain/shared/inputTypes"
 
 export type PanasonicMaterialQueryRowModel = {
     id: number
@@ -14,7 +13,7 @@ export type PanasonicMaterialQueryRowModel = {
 }
 
 export const buildPanasonicMaterialQueryRows = (
-    logs: PanasonicItemStatFeedLogRead[]
+    logs: PanasonicItemStatFeedLogInput[]
 ): PanasonicMaterialQueryRowModel[] => {
     return logs.map(log => ({
         id: log.id,

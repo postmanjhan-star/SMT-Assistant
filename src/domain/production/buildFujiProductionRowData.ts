@@ -1,17 +1,11 @@
-﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] FujiItemStatFeedLogRead, FujiMounterItemStatRead, Phase 2b 移除
-import type { FujiItemStatFeedLogRead, FujiMounterItemStatRead } from "@/client"
-import {
+﻿import {
   CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
   MaterialOperationTypeEnum,
   ProduceTypeEnum,
 } from "@/domain/shared/domainEnums"
+import type { FujiItemStatFeedLogInput, FujiMounterItemStatInput } from "@/domain/shared/inputTypes"
 import type { StatLike } from "@/domain/production/PostProductionFeedRules"
-
-type FujiMounterItemStatReadWithFeeds = FujiMounterItemStatRead & {
-  feed_records?: FujiFeedRecordLike[]
-  check_pack_code_match?: string | null
-}
 
 export type FujiFeedRecordLike = {
   id?: number
@@ -165,8 +159,8 @@ function mergeFeedRecords(
   return Array.from(recordMap.values())
 }
 
-function getStatFeedRecords(stat: FujiMounterItemStatReadWithFeeds): FujiFeedRecordLike[] {
-  return stat.feed_records ?? []
+function getStatFeedRecords(stat: FujiMounterItemStatInput): FujiFeedRecordLike[] {
+  return (stat.feed_records ?? []) as FujiFeedRecordLike[]
 }
 
 function statMatchesStage(statStage: unknown, inputStage: string | null): boolean {
@@ -278,8 +272,8 @@ export function parseFujiProductionSlotIdno(
 }
 
 export function buildFujiInspectionStats(
-  logs: FujiItemStatFeedLogRead[],
-  stats: FujiMounterItemStatRead[]
+  logs: FujiItemStatFeedLogInput[],
+  stats: FujiMounterItemStatInput[]
 ): StatLike[] {
   const map = new Map<string, StatLike>()
 
@@ -309,8 +303,7 @@ export function buildFujiInspectionStats(
   logs.forEach((record) => addRecord(record.slot_idno, record.sub_slot_idno, record))
 
   stats.forEach((record) => {
-    const withFeeds = record as FujiMounterItemStatReadWithFeeds
-    getStatFeedRecords(withFeeds).forEach((feedRecord) => {
+    getStatFeedRecords(record).forEach((feedRecord) => {
       addRecord(record.slot_idno, record.sub_slot_idno, feedRecord)
     })
   })
@@ -319,11 +312,10 @@ export function buildFujiInspectionStats(
 }
 
 export function buildFujiProductionRowData(
-  stats: FujiMounterItemStatRead[],
-  logs: FujiItemStatFeedLogRead[]
+  stats: FujiMounterItemStatInput[],
+  logs: FujiItemStatFeedLogInput[]
 ): FujiProductionRowModel[] {
-  return stats.map((statRecord) => {
-    const stat = statRecord as FujiMounterItemStatReadWithFeeds
+  return stats.map((stat) => {
     let feedRecords = getStatFeedRecords(stat)
 
     if (logs.length > 0) {
@@ -408,7 +400,7 @@ export function buildFujiProductionRowData(
 }
 
 export function isFujiStatSlotMatch(
-  stat: Pick<FujiMounterItemStatRead, "slot_idno" | "sub_slot_idno">,
+  stat: Pick<FujiMounterItemStatInput, "slot_idno" | "sub_slot_idno">,
   slot: string | number,
   stage: string | null
 ): boolean {

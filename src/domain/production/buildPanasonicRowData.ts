@@ -1,10 +1,9 @@
-﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] PanasonicItemStatFeedLogRead, PanasonicMounterItemStatRead, Phase 2b 移除
-import type { PanasonicItemStatFeedLogRead, PanasonicMounterItemStatRead } from "@/client"
-import {
+﻿import {
     CheckMaterialMatchEnum,
     FeedMaterialTypeEnum,
     MaterialOperationTypeEnum,
 } from "@/domain/shared/domainEnums"
+import type { PanasonicItemStatFeedLogInput, PanasonicMounterItemStatInput } from "@/domain/shared/inputTypes"
 
 export type ProductionRowModel = {
     id: number
@@ -45,7 +44,7 @@ const toRecordKey = (record: FeedRecordLike, index: number) => {
 
 const mergeFeedRecords = (
     feedRecords: FeedRecordLike[],
-    logs: PanasonicItemStatFeedLogRead[]
+    logs: PanasonicItemStatFeedLogInput[]
 ) => {
     const recordMap = new Map<string, FeedRecordLike>()
 
@@ -296,8 +295,8 @@ const getFirstAppendTime = (
 }
 
 export const buildProductionRowData = (
-    stats: PanasonicMounterItemStatRead[],
-    logs: PanasonicItemStatFeedLogRead[]
+    stats: PanasonicMounterItemStatInput[],
+    logs: PanasonicItemStatFeedLogInput[]
 ): ProductionRowModel[] => {
     return stats.map((stat) => {
         const baseRecords =

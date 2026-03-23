@@ -1,5 +1,4 @@
-﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] FujiMounterFileRead, Phase 2b 移除
-import type { FujiMounterFileRead } from '@/client'
+﻿import type { FujiMounterFileInput } from '@/domain/shared/inputTypes'
 import type { BaseProductionRow } from '@/domain/production/BaseProductionRow'
 
 export type FujiProductionRow = BaseProductionRow & {
@@ -20,7 +19,7 @@ const normalizeStage = (stage: string) => {
 
 // Domain: normalize stage & build Fuji rows
 export class FujiProductionRowBuilder {
-  static build(data: FujiMounterFileRead[]): FujiProductionRow[] {
+  static build(data: FujiMounterFileInput[]): FujiProductionRow[] {
     const rows: FujiProductionRow[] = []
     data.forEach(masterData => {
       masterData.fuji_mounter_file_items.forEach(detailData => {

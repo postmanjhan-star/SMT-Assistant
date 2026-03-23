@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化)
-import type { PanasonicMounterFileItemRead } from '@/client'
+import type { PanasonicMounterFileItemInput } from '@/domain/shared/inputTypes'
 import type { BaseProductionRow } from '@/domain/production/BaseProductionRow'
 
 export type PanasonicProductionRow = BaseProductionRow & {
@@ -11,7 +10,7 @@ export type PanasonicProductionRow = BaseProductionRow & {
 }
 
 export class PanasonicProductionRowBuilder {
-  static build(items: PanasonicMounterFileItemRead[]): PanasonicProductionRow[] {
+  static build(items: PanasonicMounterFileItemInput[]): PanasonicProductionRow[] {
     return items.map((i, index) => ({
       correct: null,
       id: i.id ?? -(index + 1),
