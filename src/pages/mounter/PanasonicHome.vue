@@ -1,5 +1,5 @@
 <script setup lang="ts">
-
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { FormInst, FormItemRule, FormRules, NA, NButton, NForm, NFormItemGi, NGi, NGrid, NIcon, NH1, NInput, NRadioButton, NRadioGroup, NSpace, useMessage, NSwitch, NSelect } from 'naive-ui'
 import { ref, watch, nextTick } from 'vue'
 import { useMeta } from 'vue-meta'

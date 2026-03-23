@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { NButton, NModal, NPopconfirm, NSpace, useMessage, NTabs, NTabPane } from 'naive-ui'
 import { CellComponent, TabulatorFull as Tabulator } from 'tabulator-tables'
 import "tabulator-tables/dist/css/tabulator_bootstrap4.min.css"

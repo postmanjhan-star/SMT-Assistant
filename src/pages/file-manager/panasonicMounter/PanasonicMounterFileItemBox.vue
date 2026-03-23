@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { DataTableColumns, NCard, NDataTable, NSpace, NTag, useMessage } from 'naive-ui'
 import { ref, watch } from 'vue'
 import { PanasonicMounterFileItemRead, PanasonicMounterFileRead, SmtService } from '@/client'

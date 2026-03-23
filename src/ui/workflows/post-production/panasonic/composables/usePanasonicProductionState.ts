@@ -1,4 +1,5 @@
-﻿import { ref, type Ref } from "vue"
+﻿/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
+import { ref, type Ref } from "vue"
 import {
     loadPanasonicProduction,
     type PanasonicProductionLoadResult,

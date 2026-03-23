@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { computed, onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import {

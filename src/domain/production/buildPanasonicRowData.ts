@@ -1,4 +1,5 @@
-﻿import {
+﻿/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化) */
+import {
     CheckMaterialMatchEnum,
     FeedMaterialTypeEnum,
     MaterialOperationTypeEnum,

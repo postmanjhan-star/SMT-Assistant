@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3/5 */
 import { computed, ref, watch, type Ref, type ShallowRef } from "vue"
 import type { SmtMaterialInventory } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"

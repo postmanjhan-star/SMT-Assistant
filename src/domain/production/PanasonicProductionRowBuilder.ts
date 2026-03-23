@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化)
 import type { PanasonicMounterFileItemRead } from '@/client'
 import type { BaseProductionRow } from '@/domain/production/BaseProductionRow'
 

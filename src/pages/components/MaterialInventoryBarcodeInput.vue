@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3/5 */
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'

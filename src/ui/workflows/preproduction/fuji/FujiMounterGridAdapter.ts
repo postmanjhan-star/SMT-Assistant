@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3
 import { CheckMaterialMatchEnum } from '@/client'
 import type { SlotSubmitGridPort } from '@/application/slot-submit/SlotSubmitDeps'
 import { parseFujiSlotIdno } from '@/domain/slot/FujiSlotParser'

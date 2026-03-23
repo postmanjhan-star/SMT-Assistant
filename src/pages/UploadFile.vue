@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import panasonicCsvExportOptions from '@/assets/panasonic_csv_export_options.png'
 import { FormInst, FormRules, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, NModal, NP, NSpace, NText, NUpload, NUploadDragger, UploadCustomRequestOptions, UploadFileInfo, useMessage } from 'naive-ui'
 import { FileInfo, UploadInst } from 'naive-ui/es/upload/src/interface'
