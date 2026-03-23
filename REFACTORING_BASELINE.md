@@ -11,7 +11,7 @@
 |---|---|---|
 | Pages/UI → client 違規檔案數 | **26** | 0（只留 adapter 層） |
 | Pages/UI → infra 違規檔案數 | **3** | 0 |
-| Domain → client/infra 違規 | **9**（Phase 2 修復目標）| 0 |
+| Domain → client/infra 違規 | **2**（Phase 3 修復目標，剩 PanasonicFeedRecordCreate）| 0 |
 | 超過 500 行的檔案數 | **7** | ≤ 3 |
 | Unit test 檔案數 | **19** | ↑ 增加 |
 | E2E test 檔案數 | **7** | 守住不減 |
@@ -160,7 +160,7 @@ grep -r "Phase-1 whitelist" src/ | wc -l
 每次 PR 合併前必須確認：
 1. Pages/UI → client 違規數 ≤ 26（逐步減少，不得增加）
 2. Pages/UI → infra 違規數 ≤ 3（逐步減少，不得增加）
-3. Domain → client/infra 違規數 ≤ 9（Phase 2 逐步減至 0，不得增加）
+3. Domain → client/infra 違規數 ≤ 2（Phase 3 移除，不得增加）
 4. 超過 500 行的檔案數 ≤ 7（逐步減少，不得增加）
 5. Unit test 數 ≥ 19（只增不減）
 6. E2E test 數 ≥ 7（只增不減）
