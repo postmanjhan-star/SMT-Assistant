@@ -1,17 +1,13 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化) */
-import type {
-    CheckMaterialMatchEnum,
-    FeedMaterialTypeEnum,
-    PanasonicItemStatFeedLogRead,
-} from "@/client"
+// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] PanasonicItemStatFeedLogRead, Phase 2b 移除
+import type { PanasonicItemStatFeedLogRead } from "@/client"
 
 export type PanasonicMaterialQueryRowModel = {
     id: number
-    correct: CheckMaterialMatchEnum | null
+    correct: string | null
     slotIdno: string
     subSlotIdno: string
     materialInventoryIdno: string
-    materialInventoryType: FeedMaterialTypeEnum | null
+    materialInventoryType: string | null
     checktime: string
     operatorName: string
     remark?: string

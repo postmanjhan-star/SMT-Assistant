@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化)
-import { ApiError } from "@/client"
+import { isHttpError } from '@/domain/shared/httpTypes'
 
 const ERP_TIMEOUT_MESSAGE = "ERP 連線超時，請確認 ERP 連線"
 const ERP_CONNECTION_ERROR_MESSAGE =
@@ -23,7 +22,7 @@ export function resolveMaterialLookupError(
   error: unknown,
   fallbackMessage = "物料查詢失敗"
 ): string {
-  if (error instanceof ApiError) {
+  if (isHttpError(error)) {
     return (
       {
         404: "查無此條碼",

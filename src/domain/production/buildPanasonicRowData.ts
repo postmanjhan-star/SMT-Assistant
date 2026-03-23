@@ -1,11 +1,10 @@
-﻿/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化) */
+﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] PanasonicItemStatFeedLogRead, PanasonicMounterItemStatRead, Phase 2b 移除
+import type { PanasonicItemStatFeedLogRead, PanasonicMounterItemStatRead } from "@/client"
 import {
     CheckMaterialMatchEnum,
     FeedMaterialTypeEnum,
     MaterialOperationTypeEnum,
-    PanasonicItemStatFeedLogRead,
-    PanasonicMounterItemStatRead,
-} from "@/client"
+} from "@/domain/shared/domainEnums"
 
 export type ProductionRowModel = {
     id: number
@@ -16,7 +15,7 @@ export type ProductionRowModel = {
     materialInventoryIdno: string | null
     appendedMaterialInventoryIdno: string
     total?: number | string
-    correct: CheckMaterialMatchEnum | "UNLOADED_MATERIAL_PACK" | null
+    correct: string | null
     firstAppendTime?: string | null
     inspectMaterialPackCode?: string
     inspectTime?: string | null
@@ -30,9 +29,9 @@ type FeedRecordLike = {
     operation_time?: string
     material_idno?: string | null
     material_pack_code?: string | null
-    operation_type?: MaterialOperationTypeEnum | null
-    feed_material_pack_type?: FeedMaterialTypeEnum | null
-    check_pack_code_match?: CheckMaterialMatchEnum | null
+    operation_type?: string | null
+    feed_material_pack_type?: string | null
+    check_pack_code_match?: string | null
     operator_id?: string | null
 }
 
@@ -74,7 +73,7 @@ const mergeFeedRecords = (
 
 const toOperationType = (value: unknown): MaterialOperationTypeEnum => {
     if (value == null) return MaterialOperationTypeEnum.FEED
-    return value as MaterialOperationTypeEnum
+    return value as unknown as MaterialOperationTypeEnum
 }
 
 const getTimeValue = (value: string | undefined): number => {
@@ -115,7 +114,7 @@ const getLatestInspection = (records: FeedRecordLike[]) => {
 const normalizeValue = (value: unknown): string => String(value ?? "").trim()
 
 const isCorrectFeedType = (
-    value: FeedMaterialTypeEnum | null | undefined
+    value: string | null | undefined
 ) => {
     return (
         value === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK ||

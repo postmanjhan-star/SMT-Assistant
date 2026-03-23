@@ -1,9 +1,5 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化) */
-import type {
-    CheckMaterialMatchEnum,
-    FeedMaterialTypeEnum,
-    PanasonicFeedRecordCreate,
-} from "@/client"
+// eslint-disable-next-line no-restricted-imports -- Phase-3 defer: buildPanasonicFeedRecord 移到 application 時同步移除
+import type { PanasonicFeedRecordCreate } from "@/client"
 
 export type RollShortageInput = {
     materialInventoryIdno: string
@@ -74,16 +70,14 @@ export function appendMaterialInventoryIdno(
 
 export function toCheckMaterialMatch(
     value: string | null | undefined
-): CheckMaterialMatchEnum | null {
-    if (value == null) return null
-    return value as unknown as CheckMaterialMatchEnum
+): string | null {
+    return value ?? null
 }
 
 export function toFeedMaterialType(
     value: string | null | undefined
-): FeedMaterialTypeEnum | null {
-    if (value == null) return null
-    return value as unknown as FeedMaterialTypeEnum
+): string | null {
+    return value ?? null
 }
 
 export function buildPanasonicFeedRecord(
@@ -98,7 +92,7 @@ export function buildPanasonicFeedRecord(
         material_pack_code: input.materialPackCode,
         feed_material_pack_type: toFeedMaterialType(input.feedMaterialPackType),
         check_pack_code_match: toCheckMaterialMatch(input.checkPackCodeMatch),
-    }
+    } as unknown as PanasonicFeedRecordCreate
 }
 
 export const RollShortagePolicy = {

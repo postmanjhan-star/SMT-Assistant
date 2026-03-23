@@ -1,23 +1,16 @@
-﻿/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化) */
-import type {
-    CheckMaterialMatchEnum,
-    FeedMaterialTypeEnum,
-    MaterialOperationTypeEnum,
-    PanasonicFeedRecordCreate,
-    UnfeedMaterialTypeEnum,
-    UnfeedReasonEnum,
-} from "@/client"
+// eslint-disable-next-line no-restricted-imports -- Phase-3 defer: buildPanasonicFeedRecordPayload 移到 application 時同步移除
+import type { PanasonicFeedRecordCreate } from "@/client"
 
 export type PostProductionFeedRecordInput = {
     statId: number
     slotIdno: string
     subSlotIdno?: string | null
     materialPackCode: string
-    operationType?: MaterialOperationTypeEnum | string | null
-    feedMaterialPackType?: FeedMaterialTypeEnum | string | null
-    unfeedMaterialPackType?: UnfeedMaterialTypeEnum | string | null
-    unfeedReason?: UnfeedReasonEnum | string | null
-    checkPackCodeMatch?: CheckMaterialMatchEnum | string | null
+    operationType?: string | null
+    feedMaterialPackType?: string | null
+    unfeedMaterialPackType?: string | null
+    unfeedReason?: string | null
+    checkPackCodeMatch?: string | null
     operationTime: string
     operatorId?: string | null
 }
@@ -36,32 +29,20 @@ export const parseSlotIdno = (slotIdno: string): ParsedSlotId => {
 }
 
 export const toFeedMaterialType = (
-    value: FeedMaterialTypeEnum | string | null | undefined
-): FeedMaterialTypeEnum | null => {
-    if (value == null) return null
-    return value as unknown as FeedMaterialTypeEnum
-}
+    value: string | null | undefined
+): string | null => value ?? null
 
 export const toOperationType = (
-    value: MaterialOperationTypeEnum | string | null | undefined
-): MaterialOperationTypeEnum => {
-    if (value == null) return "FEED" as unknown as MaterialOperationTypeEnum
-    return value as unknown as MaterialOperationTypeEnum
-}
+    value: string | null | undefined
+): string => value ?? 'FEED'
 
 export const toUnfeedMaterialType = (
-    value: UnfeedMaterialTypeEnum | string | null | undefined
-): UnfeedMaterialTypeEnum | null => {
-    if (value == null) return null
-    return value as unknown as UnfeedMaterialTypeEnum
-}
+    value: string | null | undefined
+): string | null => value ?? null
 
 export const toCheckMaterialMatch = (
-    value: CheckMaterialMatchEnum | string | null | undefined
-): CheckMaterialMatchEnum | null => {
-    if (value == null) return null
-    return value as unknown as CheckMaterialMatchEnum
-}
+    value: string | null | undefined
+): string | null => value ?? null
 
 export const buildPanasonicFeedRecordPayload = (
     input: PostProductionFeedRecordInput
@@ -77,12 +58,8 @@ export const buildPanasonicFeedRecordPayload = (
         material_pack_code: input.materialPackCode,
         operation_type: operationType,
         feed_material_pack_type: toFeedMaterialType(input.feedMaterialPackType),
-        unfeed_material_pack_type: toUnfeedMaterialType(
-            input.unfeedMaterialPackType
-        ),
-        unfeed_reason: (input.unfeedReason ?? null) as
-            | UnfeedReasonEnum
-            | null,
+        unfeed_material_pack_type: toUnfeedMaterialType(input.unfeedMaterialPackType),
+        unfeed_reason: (input.unfeedReason ?? null),
         check_pack_code_match: toCheckMaterialMatch(input.checkPackCodeMatch),
-    }
+    } as unknown as PanasonicFeedRecordCreate
 }

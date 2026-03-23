@@ -1,17 +1,16 @@
-﻿/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化) */
+﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] FujiItemStatFeedLogRead, FujiMounterItemStatRead, Phase 2b 移除
+import type { FujiItemStatFeedLogRead, FujiMounterItemStatRead } from "@/client"
 import {
   CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
   MaterialOperationTypeEnum,
   ProduceTypeEnum,
-  type FujiItemStatFeedLogRead,
-  type FujiMounterItemStatRead,
-} from "@/client"
+} from "@/domain/shared/domainEnums"
 import type { StatLike } from "@/domain/production/PostProductionFeedRules"
 
 type FujiMounterItemStatReadWithFeeds = FujiMounterItemStatRead & {
   feed_records?: FujiFeedRecordLike[]
-  check_pack_code_match?: CheckMaterialMatchEnum | null
+  check_pack_code_match?: string | null
 }
 
 export type FujiFeedRecordLike = {
@@ -26,13 +25,13 @@ export type FujiFeedRecordLike = {
   materialPackCode?: string | null
   material_pack_idno?: string | null
   materialPackIdno?: string | null
-  operation_type?: MaterialOperationTypeEnum | string | null
-  operationType?: MaterialOperationTypeEnum | string | null
-  feed_material_pack_type?: string | FeedMaterialTypeEnum | null
-  feedMaterialPackType?: string | FeedMaterialTypeEnum | null
-  feed_material_type?: string | FeedMaterialTypeEnum | null
-  feedMaterialType?: string | FeedMaterialTypeEnum | null
-  check_pack_code_match?: CheckMaterialMatchEnum | null
+  operation_type?: string | null
+  operationType?: string | null
+  feed_material_pack_type?: string | null
+  feedMaterialPackType?: string | null
+  feed_material_type?: string | null
+  feedMaterialType?: string | null
+  check_pack_code_match?: string | null
 }
 
 type FujiMounterProductionSlot = {
@@ -42,7 +41,7 @@ type FujiMounterProductionSlot = {
 }
 
 export type FujiProductionRowModel = {
-  correct: CheckMaterialMatchEnum | "UNLOADED_MATERIAL_PACK" | null
+  correct: string | null
   id: number
   mounterIdno: string
   boardSide: string

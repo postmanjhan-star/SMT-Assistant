@@ -1,9 +1,9 @@
-﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 2 (Domain 純化)
-import type { CheckMaterialMatchEnum, FujiMounterFileRead } from '@/client'
+﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] FujiMounterFileRead, Phase 2b 移除
+import type { FujiMounterFileRead } from '@/client'
 import type { BaseProductionRow } from '@/domain/production/BaseProductionRow'
 
 export type FujiProductionRow = BaseProductionRow & {
-  correct: CheckMaterialMatchEnum | null
+  correct: string | null
   mounterIdno: string
   boardSide: string
   stage: string
