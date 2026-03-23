@@ -15,6 +15,7 @@ import type { FujiMounterFileRead } from '../models/FujiMounterFileRead';
 import type { FujiMounterFileReadLegacy } from '../models/FujiMounterFileReadLegacy';
 import type { FujiMounterItemStatCreate } from '../models/FujiMounterItemStatCreate';
 import type { FujiMounterItemStatRead } from '../models/FujiMounterItemStatRead';
+import type { OperatorSwitchResponse } from '../models/OperatorSwitchResponse';
 import type { OperatorSyncResponse } from '../models/OperatorSyncResponse';
 import type { PanasonicFeedRecordCreate } from '../models/PanasonicFeedRecordCreate';
 import type { PanasonicItemStatFeedLogRead } from '../models/PanasonicItemStatFeedLogRead';
@@ -680,10 +681,20 @@ export class SmtService {
      * @returns OperatorSyncResponse Successful Response
      * @throws ApiError
      */
-    public static syncEformOperators(): CancelablePromise<OperatorSyncResponse> {
+    public static syncEformOperators({
+        format = 'json',
+    }: {
+        format?: 'json' | 'csv',
+    }): CancelablePromise<OperatorSyncResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/smt/operator/sync',
+            query: {
+                'format': format,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
 
@@ -700,6 +711,27 @@ export class SmtService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/smt/operator/barcode-login',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Operator Switch User
+     * @returns OperatorSwitchResponse Successful Response
+     * @throws ApiError
+     */
+    public static operatorSwitchUser({
+        requestBody,
+    }: {
+        requestBody: BarcodeLoginRequest,
+    }): CancelablePromise<OperatorSwitchResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/smt/operator/switch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

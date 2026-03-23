@@ -7,6 +7,7 @@ import type { Body_batch_create_employee_accounts_from_csv } from '../models/Bod
 import type { EmployeeAccountCreate } from '../models/EmployeeAccountCreate';
 import type { EmployeeAccountRead } from '../models/EmployeeAccountRead';
 import type { EmployeeAccountUpdate } from '../models/EmployeeAccountUpdate';
+import type { EmployeeAccountWithPassword } from '../models/EmployeeAccountWithPassword';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -41,14 +42,14 @@ export class AccountsService {
 
     /**
      * Create Employee Account
-     * @returns AccountRead Successful Response
+     * @returns EmployeeAccountWithPassword Successful Response
      * @throws ApiError
      */
     public static createEmployeeAccount({
         requestBody,
     }: {
         requestBody: EmployeeAccountCreate,
-    }): CancelablePromise<AccountRead> {
+    }): CancelablePromise<EmployeeAccountWithPassword> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/',
@@ -62,14 +63,14 @@ export class AccountsService {
 
     /**
      * Batch Create Employee Accounts
-     * @returns AccountRead Successful Response
+     * @returns EmployeeAccountWithPassword Successful Response
      * @throws ApiError
      */
     public static batchCreateEmployeeAccounts({
         requestBody,
     }: {
         requestBody: Array<EmployeeAccountCreate>,
-    }): CancelablePromise<Array<AccountRead>> {
+    }): CancelablePromise<Array<EmployeeAccountWithPassword>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/batch',
@@ -92,14 +93,14 @@ export class AccountsService {
      * If role is empty, it defaults to Operator.
      * Example row:
      * EMP001,ChangeMe123,Operator,Employee One,Production,E001,1
-     * @returns AccountRead Successful Response
+     * @returns EmployeeAccountWithPassword Successful Response
      * @throws ApiError
      */
     public static batchCreateEmployeeAccountsFromCsv({
         formData,
     }: {
         formData: Body_batch_create_employee_accounts_from_csv,
-    }): CancelablePromise<Array<AccountRead>> {
+    }): CancelablePromise<Array<EmployeeAccountWithPassword>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/accounts/batch/csv',
@@ -127,6 +128,21 @@ export class AccountsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/accounts/batch/csv/template',
+        });
+    }
+
+    /**
+     * Reset All Employee Passwords
+     * Reset all employee passwords to their employee ID (idno).
+     *
+     * Returns the full list of employees with their new plaintext passwords.
+     * @returns EmployeeAccountWithPassword Successful Response
+     * @throws ApiError
+     */
+    public static resetAllEmployeePasswords(): CancelablePromise<Array<EmployeeAccountWithPassword>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/accounts/reset-passwords',
         });
     }
 
