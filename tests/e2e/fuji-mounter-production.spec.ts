@@ -18,6 +18,7 @@ test.beforeEach(async ({ page }) => {
                 schema: { flow: 'password', tokenUrl: '', scopes: {}, type: 'oauth2' },
                 token: { access_token, token_type },
                 username: 'operator',
+                employee: { idno: 'OP001', full_name: 'operator' },
             },
             HTTPBasic: null,
         }));
