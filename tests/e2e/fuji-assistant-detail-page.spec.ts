@@ -136,7 +136,7 @@ test('test scan fuji mounter feed records in normal mode', async ({ page }) => {
     const records = readCsvRecords();
     console.log(`共載入 ${records.length} 筆資料`);
 
-    await page.goto(FUJI_NORMAL_URL);
+    await page.goto(FUJI_NORMAL_URL + '&mock_scan=1');
 
     await scanAll(page, records);
 
@@ -181,7 +181,7 @@ test('test scan fuji mounter feed records in testing mode', async ({ page }) => 
     const records = readCsvRecords();
     console.log(`總共 ${records.length} 筆資料`);
 
-    await page.goto(FUJI_TESTING_URL);
+    await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
 
     await scanAll(page, records);
 
@@ -259,7 +259,7 @@ test('test scan fuji mounter feed records in testing mode and append after produ
     });
 
     const records = readCsvRecords();
-    await page.goto(FUJI_TESTING_URL);
+    await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
     await scanAll(page, records);
 
     const startBtn = page.getByRole('button', { name: /開始生產/ });
@@ -345,7 +345,7 @@ test('test testing mode quick virtual materials then append after production', a
         return route.continue();
     });
 
-    await page.goto(FUJI_TESTING_URL);
+    await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
     await scanOne(page, preProductionMaterials[0], 'XP2B1-A-9');
     await scanOne(page, preProductionMaterials[1], 'XP2B1-B-9');
 
@@ -380,7 +380,7 @@ test('test testing mode quick virtual materials then append after production', a
 });
 
 test('test wrong slot scan in normal mode', async ({ page }) => {
-    await page.goto(FUJI_NORMAL_URL);
+    await page.goto(FUJI_NORMAL_URL + '&mock_scan=1');
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
     const materialPackCode = 'B4933598';
@@ -413,7 +413,7 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
 });
 
 test('test wrong slot scan in testing mode', async ({ page }) => {
-    await page.goto(FUJI_TESTING_URL);
+    await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
     const materialPackCode = 'B4933598';
@@ -457,7 +457,7 @@ test('test submit slot without material in normal mode', async ({ page }) => {
 });
 
 test('test invalid slot format in normal mode', async ({ page }) => {
-    await page.goto(FUJI_NORMAL_URL);
+    await page.goto(FUJI_NORMAL_URL + '&mock_scan=1');
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
     const materialInput = page.locator('.n-input input').first();

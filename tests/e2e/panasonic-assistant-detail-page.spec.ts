@@ -137,7 +137,7 @@ test('test scan panasonic mounter feed records in normal mode', async ({ page })
     const records = readCsvRecords();
     console.log(`loaded ${records.length} records`);
 
-    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&mock_scan=1");
 
     // first scan pass
     await scanAll(page, records);
@@ -223,7 +223,7 @@ test('test scan panasonic mounter feed records in testing mode', async ({ page }
     const records = readCsvRecords();
     console.log(`loaded ${records.length} records`);
 
-    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3");
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3&mock_scan=1");
 
     await scanAll(page, records);
 
@@ -328,7 +328,7 @@ test('test testing mode quick virtual materials then append after production', a
         return route.continue();
     });
 
-    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3");
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3&mock_scan=1");
 
     await scanOne(page, preProductionMaterials[0], '10008-L');
     await scanOne(page, preProductionMaterials[1], '10009-R');
@@ -362,7 +362,7 @@ test('test testing mode quick virtual materials then append after production', a
 });
 test('test wrong slot scan in normal mode', async ({ page }) => {
 
-    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&mock_scan=1");
 
     await expect(page.locator(".ag-root-wrapper")).toBeVisible();
 
@@ -412,7 +412,7 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
 
 test('test wrong slot scan in testing mode', async ({ page }) => {
     // 1. open testing mode page
-    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3");
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&testing_mode=1&testing_product_idno=40Y85-010A-M3&mock_scan=1");
 
     // wait AG Grid
     await expect(page.locator(".ag-root-wrapper")).toBeVisible();
@@ -474,7 +474,7 @@ test('test submit slot without material in normal mode', async ({ page }) => {
 });
 
 test('test invalid slot format in normal mode', async ({ page }) => {
-    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&mock_scan=1");
     await expect(page.locator(".ag-root-wrapper")).toBeVisible();
 
     const materialInput = getMainMaterialInput(page);
@@ -490,7 +490,7 @@ test('test invalid slot format in normal mode', async ({ page }) => {
 });
 
 test('test successful scan flow focuses slot then resets to material in panasonic detail page', async ({ page }) => {
-    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3");
+    await page.goto("http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&mock_scan=1");
     await expect(page.locator(".ag-root-wrapper")).toBeVisible();
 
     const materialInput = getMainMaterialInput(page);
