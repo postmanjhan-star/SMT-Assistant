@@ -15,6 +15,10 @@ export class FujiPostProductionRecordUploader extends PostProductionFeedUploader
     return this.api.fetchMaterialInventory(id)
   }
 
+  fetchProductionStats(uuid: string) { return this.api.fetchProductionStats(uuid) }
+  fetchFeedLogs(uuid: string) { return this.api.fetchFeedLogs(uuid) }
+  stopProduction(uuid: string) { return this.api.stopProduction(uuid) }
+
   // Preserve existing public interface: no correctState/feedMaterialPackType params,
   // always hardcode feedMaterialPackType='new' and checkPackCodeMatch='true'
   override async uploadAppend(params: {
