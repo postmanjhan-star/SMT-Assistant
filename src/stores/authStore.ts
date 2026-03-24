@@ -35,6 +35,7 @@ interface OAuth2PasswordBearer {
   token: OAuth2Token | null
   username: string
   password?: string
+  employee?: { idno: string; full_name: string }
   // 其他屬性
   [key:string]: any
 }
@@ -78,7 +79,7 @@ export const useAuthStore = defineStore('authorized', () => {
     OAuth2PasswordBearer.value = null
   }
 
-  function setToken(token: OAuth2Token) {
+  function setToken(token: OAuth2Token, employee?: { idno: string; full_name: string }) {
     if (!OAuth2PasswordBearer.value) {
       OAuth2PasswordBearer.value = {
         schema: {
@@ -88,10 +89,16 @@ export const useAuthStore = defineStore('authorized', () => {
           type: 'oauth2'
         },
         token: token as any,
-        username: ''
+        username: employee?.full_name ?? ''
       }
     } else {
       OAuth2PasswordBearer.value.token = token as any
+      if (employee) {
+        OAuth2PasswordBearer.value.username = employee.full_name
+      }
+    }
+    if (employee && OAuth2PasswordBearer.value) {
+      OAuth2PasswordBearer.value.employee = employee
     }
   }
 

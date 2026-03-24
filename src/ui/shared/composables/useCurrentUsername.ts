@@ -9,5 +9,8 @@ export function useCurrentUsername() {
       authStore.authState.HTTPBasic?.value?.username ??
       ""
   )
-  return { currentUsername }
+  const currentOperatorIdno = computed(
+    () => authStore.authState.OAuth2PasswordBearer?.employee?.idno ?? ""
+  )
+  return { currentUsername, currentOperatorIdno }
 }
