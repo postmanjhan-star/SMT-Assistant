@@ -86,6 +86,7 @@ const {
   isTestingMode,
   mounterIdno,
   currentUsername,
+  currentOperatorIdno,
   rowData,
   productionStarted,
   workOrderIdno,
@@ -218,6 +219,7 @@ const authStore = useAuthStore()
 const {
   showLoginModal,
   loginInput,
+  loginInputRef,
   loginError,
   isLoginLoading,
   isLoginRequired,
@@ -731,6 +733,7 @@ function onRollShortageModalUpdate(value: boolean) {
               :board-side="boardSide ?? ''"
               :machine-side="machineSideLabel"
               :operator-name="currentUsername"
+              :operator-idno="currentOperatorIdno"
             />
 
             <n-space size="small">
@@ -909,11 +912,11 @@ function onRollShortageModalUpdate(value: boolean) {
         目前使用者：{{ loginCurrentUsername || '（未登入）' }}
       </div>
       <n-input
+        ref="loginInputRef"
         v-model:value="loginInput"
         placeholder="請掃描操作員條碼"
         :disabled="isLoginLoading"
         data-testid="scan-login-input"
-        autofocus
         @keydown.enter.prevent="handleLoginSubmit"
       />
       <div

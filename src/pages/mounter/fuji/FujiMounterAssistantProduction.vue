@@ -45,6 +45,7 @@ const {
   boardSide,
   isTestingMode,
   currentUsername,
+  currentOperatorIdno,
   productionStarted,
   rowData,
   slotFormValue,
@@ -138,6 +139,7 @@ const authStore = useAuthStore()
 const {
   showLoginModal,
   loginInput,
+  loginInputRef,
   loginError,
   isLoginLoading,
   isLoginRequired,
@@ -625,6 +627,7 @@ async function handleUnloadSlotSubmit() {
         :product-idno="productIdno"
         :board-side="boardSide ?? ''"
         :operator-name="currentUsername"
+        :operator-idno="currentOperatorIdno"
         @back="onClickBackArrow"
       >
         <template #mode-extra>
@@ -794,11 +797,11 @@ async function handleUnloadSlotSubmit() {
         目前使用者：{{ loginCurrentUsername || '（未登入）' }}
       </div>
       <n-input
+        ref="loginInputRef"
         v-model:value="loginInput"
         placeholder="請掃描操作員條碼"
         :disabled="isLoginLoading"
         data-testid="scan-login-input"
-        autofocus
         @keydown.enter.prevent="handleLoginSubmit"
       />
       <div

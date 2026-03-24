@@ -1,4 +1,4 @@
-import { ref, computed } from "vue"
+import { ref, computed, watch, nextTick } from "vue"
 import { useAuthStore } from "@/stores/authStore"
 import { SmtService } from "@/client"
 
@@ -10,12 +10,21 @@ export function useScanLoginModal() {
   const loginError = ref("")
   const isLoginLoading = ref(false)
   const isLoginRequired = ref(false) // true = 頁面載入時未登入，無法取消
+  const loginInputRef = ref<{ focus: () => void } | null>(null)
+
+  watch(showLoginModal, (val) => {
+    if (val) nextTick(() => loginInputRef.value?.focus())
+  })
 
   const currentUsername = computed(
     () =>
       authStore.authState.OAuth2PasswordBearer?.username ??
       authStore.authState.HTTPBasic?.value?.username ??
       ""
+  )
+
+  const currentOperatorIdno = computed(
+    () => authStore.authState.OAuth2PasswordBearer?.employee?.idno ?? ""
   )
 
   function openLoginModal(required: boolean) {
@@ -37,13 +46,13 @@ export function useScanLoginModal() {
 
     const colonIndex = raw.indexOf(":")
     if (colonIndex === -1) {
-      loginError.value = "條碼格式錯誤，應為 work_id:password"
+      loginError.value = "條碼格式錯誤，應為 work_id:signature"
       loginInput.value = ""
       return
     }
 
     const workId = parseInt(raw.slice(0, colonIndex), 10)
-    const password = raw.slice(colonIndex + 1)
+    const signature = raw.slice(colonIndex + 1)
 
     if (isNaN(workId)) {
       loginError.value = "work_id 必須為數字"
@@ -55,9 +64,9 @@ export function useScanLoginModal() {
     loginError.value = ""
     try {
       const result = await SmtService.operatorSwitchUser({
-        requestBody: { work_id: workId, password },
+        requestBody: { work_id: workId, signature },
       })
-      authStore.setToken({ access_token: result.access_token, token_type: result.token_type })
+      authStore.setToken({ access_token: result.access_token, token_type: result.token_type }, result.employee)
       closeLoginModal()
     } catch {
       loginError.value = "登入失敗，請確認條碼是否正確"
@@ -82,7 +91,8 @@ export function useScanLoginModal() {
    * 正式環境強制登入（不可取消），開發環境可取消。
    */
   function autoOpenIfUnauthenticated() {
-    if (!authStore.authState.OAuth2PasswordBearer) {
+    const oauth2 = authStore.authState.OAuth2PasswordBearer
+    if (!oauth2 || !oauth2.employee) {
       openLoginModal(import.meta.env.PROD)
     }
   }
@@ -90,10 +100,12 @@ export function useScanLoginModal() {
   return {
     showLoginModal,
     loginInput,
+    loginInputRef,
     loginError,
     isLoginLoading,
     isLoginRequired,
     currentUsername,
+    currentOperatorIdno,
     openLoginModal,
     closeLoginModal,
     handleLoginSubmit,

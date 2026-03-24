@@ -28,6 +28,7 @@ test.beforeEach(async ({ page }) => {
                 schema: { flow: 'password', tokenUrl: '', scopes: {}, type: 'oauth2' },
                 token: { access_token, token_type },
                 username: 'operator',
+                employee: { idno: 'OP001', full_name: 'operator' },
             },
             HTTPBasic: null,
         }));
@@ -1317,6 +1318,32 @@ function mockSwitchUserApi(page: Page, status = 200) {
     );
 }
 
+function mockFujiProductionActiveStats(page: Page, uuid: string) {
+    return page.route(`**/smt/fuji_mounter_item/stats/${uuid}`, (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([{
+                id: 1,
+                uuid,
+                created_at: '2026-01-01T00:00:00',
+                updated_at: null,
+                production_start: '2026-01-01T00:00:00',
+                production_end: null,
+                work_order_no: 'WO-TEST',
+                product_idno: 'PROD-TEST',
+                machine_idno: 'MACH-TEST',
+                machine_side: null,
+                board_side: null,
+                slot_idno: 'SLOT-TEST',
+                sub_slot_idno: '',
+                material_idno: null,
+                produce_mode: null,
+            }]),
+        })
+    );
+}
+
 test('scan login: shows modal when not authenticated on fuji detail page load', async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem('authorized'));
     await mockSwitchUserApi(page);
@@ -1325,7 +1352,31 @@ test('scan login: shows modal when not authenticated on fuji detail page load', 
     await expect(page.getByTestId('scan-login-modal')).toBeVisible();
 
     const loginInput = page.getByTestId('scan-login-input').locator('input');
-    await loginInput.fill('1001:mytoken');
+    await loginInput.fill('1001:mysignature');
+    await loginInput.press('Enter');
+
+    await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+});
+
+test('scan login: shows modal when employee info missing from existing session on fuji detail page', async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.setItem('authorized', JSON.stringify({
+            OAuth2PasswordBearer: {
+                schema: { flow: 'password', tokenUrl: '', scopes: {}, type: 'oauth2' },
+                token: { access_token: 'old-token', token_type: 'bearer' },
+                username: 'operator',
+            },
+            HTTPBasic: null,
+        }));
+    });
+    await mockSwitchUserApi(page);
+    await page.goto(FUJI_NORMAL_URL);
+
+    await expect(page.getByTestId('scan-login-modal')).toBeVisible();
+
+    const loginInput = page.getByTestId('scan-login-input').locator('input');
+    await loginInput.fill('1001:mysignature');
     await loginInput.press('Enter');
 
     await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
@@ -1355,11 +1406,13 @@ test('scan login: S1111 success switches user on fuji detail page', async ({ pag
     await expect(page.getByTestId('scan-login-modal')).toBeVisible();
 
     const loginInput = page.getByTestId('scan-login-input').locator('input');
-    await loginInput.fill('1001:mytoken');
+    await loginInput.fill('1001:mysignature');
     await loginInput.press('Enter');
 
     await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+    await expect(page.getByTestId('operator-name-tag')).toContainText('Switched User');
+    await expect(page.getByTestId('operator-idno-tag')).toContainText('1001');
 });
 
 test('scan login: S1111 failure shows error on fuji detail page', async ({ page }) => {
@@ -1374,7 +1427,7 @@ test('scan login: S1111 failure shows error on fuji detail page', async ({ page 
     await expect(page.getByTestId('scan-login-modal')).toBeVisible();
 
     const loginInput = page.getByTestId('scan-login-input').locator('input');
-    await loginInput.fill('1001:wrongtoken');
+    await loginInput.fill('1001:wrongsignature');
     await loginInput.press('Enter');
 
     await expect(page.getByTestId('scan-login-error')).toBeVisible();
@@ -1396,7 +1449,7 @@ test('scan login: shows modal when not authenticated on fuji production page loa
     await expect(page.getByTestId('scan-login-modal')).toBeVisible();
 
     const loginInput = page.getByTestId('scan-login-input').locator('input');
-    await loginInput.fill('1001:mytoken');
+    await loginInput.fill('1001:mysignature');
     await loginInput.press('Enter');
 
     await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
@@ -1405,9 +1458,7 @@ test('scan login: shows modal when not authenticated on fuji production page loa
 
 test('scan login: S1111 opens login modal on fuji production page', async ({ page }) => {
     const productionUuid = 'scan-login-fuji-prod-s1111';
-    await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, (route) =>
-        route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
-    );
+    await mockFujiProductionActiveStats(page, productionUuid);
     await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
     );
@@ -1423,9 +1474,7 @@ test('scan login: S1111 opens login modal on fuji production page', async ({ pag
 
 test('scan login: S1111 success switches user on fuji production page', async ({ page }) => {
     const productionUuid = 'scan-login-fuji-prod-success';
-    await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, (route) =>
-        route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
-    );
+    await mockFujiProductionActiveStats(page, productionUuid);
     await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
     );
@@ -1440,18 +1489,18 @@ test('scan login: S1111 success switches user on fuji production page', async ({
     await expect(page.getByTestId('scan-login-modal')).toBeVisible();
 
     const loginInput = page.getByTestId('scan-login-input').locator('input');
-    await loginInput.fill('1001:mytoken');
+    await loginInput.fill('1001:mysignature');
     await loginInput.press('Enter');
 
     await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+    await expect(page.getByTestId('operator-name-tag')).toContainText('Switched User');
+    await expect(page.getByTestId('operator-idno-tag')).toContainText('1001');
 });
 
 test('scan login: S1111 failure shows error on fuji production page', async ({ page }) => {
     const productionUuid = 'scan-login-fuji-prod-fail';
-    await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, (route) =>
-        route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
-    );
+    await mockFujiProductionActiveStats(page, productionUuid);
     await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
     );
@@ -1466,7 +1515,7 @@ test('scan login: S1111 failure shows error on fuji production page', async ({ p
     await expect(page.getByTestId('scan-login-modal')).toBeVisible();
 
     const loginInput = page.getByTestId('scan-login-input').locator('input');
-    await loginInput.fill('1001:wrongtoken');
+    await loginInput.fill('1001:wrongsignature');
     await loginInput.press('Enter');
 
     await expect(page.getByTestId('scan-login-error')).toBeVisible();

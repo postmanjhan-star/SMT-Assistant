@@ -101,6 +101,7 @@ const {
   machineSideQuery,
   workSheetSideQuery,
   currentUsername,
+  currentOperatorIdno,
   rowData,
   productionStarted,
   productionUuid,
@@ -137,6 +138,7 @@ const authStore = useAuthStore()
 const {
   showLoginModal,
   loginInput,
+  loginInputRef,
   loginError,
   isLoginLoading,
   isLoginRequired,
@@ -1258,6 +1260,7 @@ function onIpqcUploaded(ok: boolean) {
               :board-side="workSheetSideQuery"
               :machine-side="machineSideQuery"
               :operator-name="currentUsername"
+              :operator-idno="currentOperatorIdno"
             />
 
             <n-space size="small">
@@ -1442,11 +1445,11 @@ function onIpqcUploaded(ok: boolean) {
         目前使用者：{{ loginCurrentUsername || '（未登入）' }}
       </div>
       <n-input
+        ref="loginInputRef"
         v-model:value="loginInput"
         placeholder="請掃描操作員條碼"
         :disabled="isLoginLoading"
         data-testid="scan-login-input"
-        autofocus
         @keydown.enter.prevent="handleLoginSubmit"
       />
       <div
