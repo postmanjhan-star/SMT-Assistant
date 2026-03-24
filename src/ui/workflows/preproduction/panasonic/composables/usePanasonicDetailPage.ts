@@ -76,7 +76,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
   const router = useRouter()
   const deps = createPreproductionPanasonicDeps(options.deps)
 
-  const { currentUsername } = useCurrentUsername()
+  const { currentUsername, currentOperatorIdno } = useCurrentUsername()
 
   const ui = useUiNotifier()
   useSlotResultNotifier(ui)
@@ -248,6 +248,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     machineSideQuery,
     workSheetSideQuery,
     currentUsername,
+    currentOperatorIdno,
     rowData,
     productionStarted,
     productionUuid,

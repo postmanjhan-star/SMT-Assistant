@@ -30,7 +30,7 @@ export type FujiDetailPageOptions = {
 
 export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
   const router = useRouter()
-  const { currentUsername } = useCurrentUsername()
+  const { currentUsername, currentOperatorIdno } = useCurrentUsername()
   const ui = useUiNotifier()
   useSlotResultNotifier(ui)
   const { rows: rowData, setFromApi } = useFujiProductionState()
@@ -77,6 +77,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     mounterIdno,
     isTestingMode,
     currentUsername,
+    currentOperatorIdno,
     rowData,
     gridOptions: createFujiPreproductionGridOptions(),
     onGridReady,

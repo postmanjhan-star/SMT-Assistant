@@ -65,7 +65,7 @@ export function useFujiProductionWorkflow() {
   const router = useRouter()
   const dialog = useDialog()
   const { success: showSuccess, warn: showWarn, error: showError, info, notifyError, playErrorTone } = useUiNotifier()
-  const { currentUsername } = useCurrentUsername()
+  const { currentUsername, currentOperatorIdno } = useCurrentUsername()
 
   const workOrderIdno = ref("")
   const productIdno = ref("")
@@ -500,6 +500,7 @@ export function useFujiProductionWorkflow() {
     boardSide,
     isTestingMode,
     currentUsername,
+    currentOperatorIdno,
     productionUuid,
     productionStarted,
     rowData,

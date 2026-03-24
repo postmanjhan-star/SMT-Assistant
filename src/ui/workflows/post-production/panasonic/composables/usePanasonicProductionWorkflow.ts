@@ -43,7 +43,7 @@ export function usePanasonicProductionWorkflow(
   const dialog = useDialog()
   const ui = useUiNotifier()
   const deps = createPostproductionPanasonicDeps(options.deps)
-  const { currentUsername } = useCurrentUsername()
+  const { currentUsername, currentOperatorIdno } = useCurrentUsername()
 
   const normalizeRoute = (val: unknown) => String(val ?? "").trim()
 
@@ -453,6 +453,7 @@ export function usePanasonicProductionWorkflow(
     isTestingMode,
     mounterIdno,
     currentUsername,
+    currentOperatorIdno,
     mounterData,
     rowData,
     productionStarted,
