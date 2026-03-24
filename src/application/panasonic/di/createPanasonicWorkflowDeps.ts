@@ -14,6 +14,8 @@ import {
 import { PostProductionRecordApi } from "@/infra/post-production/PostProductionRecordApi"
 import { PostProductionRecordUploader } from "@/application/post-production-feed/PostProductionRecordUploader"
 import { startPanasonicProduction } from "@/application/panasonic/production/StartPanasonicProduction"
+import { ApiMaterialRepository } from "@/infra/material/ApiMaterialRepository"
+import type { MaterialRepository } from "@/application/barcode-scan/BarcodeScanDeps"
 
 export type PreproductionPanasonicDeps = {
   createSmtRepository: () => SmtProductionRepository
@@ -25,6 +27,7 @@ export type PreproductionPanasonicDeps = {
     deps: ProductionLifecycleDeps
   ) => ProductionLifecycleUseCase
   now: () => string
+  createMaterialRepository: () => MaterialRepository
 }
 
 export type PostproductionPanasonicDeps = {
@@ -43,6 +46,7 @@ export function createPreproductionPanasonicDeps(
     createProductionLifecycleUseCase: (deps) =>
       new ProductionLifecycleUseCase(deps),
     now: () => new Date().toISOString(),
+    createMaterialRepository: () => new ApiMaterialRepository(),
     ...overrides,
   }
 }

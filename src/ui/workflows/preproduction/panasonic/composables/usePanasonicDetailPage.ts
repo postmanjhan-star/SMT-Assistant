@@ -31,6 +31,7 @@ import type {
   ProductionRowModel,
   SlotInputResult,
 } from "@/pages/mounter/panasonic/types/production"
+import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
 
 export type PanasonicDetailPageOptions = {
   onResetInputs: () => void
@@ -75,6 +76,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
   const route = useRoute()
   const router = useRouter()
   const deps = createPreproductionPanasonicDeps(options.deps)
+  const materialRepository = deps.createMaterialRepository()
 
   const { currentUsername, currentOperatorIdno } = useCurrentUsername()
 
@@ -240,6 +242,10 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     }
   }
 
+  async function fetchMaterialInventory(code: string): Promise<MaterialRepositoryResult> {
+    return materialRepository.fetchByBarcode(code)
+  }
+
   return {
     isTestingMode,
     workOrderIdno,
@@ -269,6 +275,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     handleSlotSubmitWithPolicy,
     onRollShortageModalUpdate,
     getMaterialMatchedRows,
+    fetchMaterialInventory,
     showError: ui.error,
   }
 }
