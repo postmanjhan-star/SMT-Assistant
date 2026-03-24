@@ -1,17 +1,10 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3/5 */
+/* eslint-disable no-restricted-imports -- [Phase-3 residual] 僅剩 type import，Phase 5 搬至 domain/application 層 */
 import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type GridApi, type GridReadyEvent } from "ag-grid-community"
 import { useDialog } from "naive-ui"
 import {
-  ApiError,
-  CheckMaterialMatchEnum,
-  FeedMaterialTypeEnum,
-  MaterialOperationTypeEnum,
-  ProduceTypeEnum,
-  SmtService,
   type BoardSideEnum,
-  type FujiItemStatFeedLogRead,
   type FujiMounterItemStatRead,
   type SmtMaterialInventory,
 } from "@/client"
@@ -247,18 +240,13 @@ export function useFujiProductionWorkflow() {
     if (!material) throw new Error("materialInventory is required")
 
     const now = new Date().toISOString()
-    await SmtService.addFujiMounterItemStatRoll({
-      requestBody: {
-        stat_item_id: params.stat_id,
-        operator_id: "",
-        operation_time: now,
-        slot_idno: params.inputSlot,
-        sub_slot_idno: params.inputSubSlot ?? null,
-        material_pack_code: material.idno,
-        operation_type: MaterialOperationTypeEnum.FEED,
-        feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-        check_pack_code_match: params.correctState ?? null,
-      } as any,
+    await fujiUploader.uploadAppend({
+      statId: params.stat_id,
+      slotIdno: params.inputSlot,
+      subSlotIdno: params.inputSubSlot ?? null,
+      materialPackCode: material.idno,
+      correctState: params.correctState ?? null,
+      feedMaterialPackType: 'NEW_MATERIAL_PACK',
     })
 
     // Update correct + operationTime immediately (shared adapter handles appendedMaterialInventoryIdno)
@@ -266,11 +254,11 @@ export function useFujiProductionWorkflow() {
     const rowNode = gridApi.value?.getRowNode(rowId)
     if (rowNode) {
       if (params.correctState === "true") {
-        rowNode.setDataValue("correct", CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
+        rowNode.setDataValue("correct", 'MATCHED_MATERIAL_PACK')
       } else if (params.correctState === "false") {
-        rowNode.setDataValue("correct", CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
+        rowNode.setDataValue("correct", 'UNMATCHED_MATERIAL_PACK')
       } else if (params.correctState === "warning") {
-        rowNode.setDataValue("correct", CheckMaterialMatchEnum.TESTING_MATERIAL_PACK)
+        rowNode.setDataValue("correct", 'TESTING_MATERIAL_PACK')
       }
       rowNode.setDataValue("operationTime", now)
     }
@@ -282,18 +270,13 @@ export function useFujiProductionWorkflow() {
     inputSubSlot: string
     materialInventory: { idno: string }
   }) {
-    await SmtService.addFujiMounterItemStatRoll({
-      requestBody: {
-        stat_item_id: params.stat_id,
-        operator_id: "",
-        operation_time: new Date().toISOString(),
-        slot_idno: params.inputSlot,
-        sub_slot_idno: params.inputSubSlot ?? null,
-        material_pack_code: params.materialInventory.idno,
-        operation_type: MaterialOperationTypeEnum.FEED,
-        feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
-        check_pack_code_match: "true",
-      } as any,
+    await fujiUploader.uploadAppend({
+      statId: params.stat_id,
+      slotIdno: params.inputSlot,
+      subSlotIdno: params.inputSubSlot ?? null,
+      materialPackCode: params.materialInventory.idno,
+      correctState: 'true',
+      feedMaterialPackType: 'INSPECTION_MATERIAL_PACK',
     })
   }
 
@@ -347,11 +330,9 @@ export function useFujiProductionWorkflow() {
     }
 
     try {
-      materialInventoryFromScan.value = await SmtService.getMaterialInventoryForSmt({
-        materialInventoryIdno: idno,
-      })
+      materialInventoryFromScan.value = await fujiUploader.fetchMaterialInventory(idno)
     } catch (error) {
-      if (isTestingMode.value && error instanceof ApiError && error.status === 404) {
+      if (isTestingMode.value && (error as any)?.status === 404) {
         info(`${MODE_NAME_TESTING}：使用測試物料 ${idno}`)
         materialInventoryFromScan.value = {
           idno,
@@ -430,7 +411,7 @@ export function useFujiProductionWorkflow() {
       negativeText: "取消",
       onPositiveClick: async () => {
         try {
-          await SmtService.updateFujiItemStatsEndTime({ uuid: productionUuid.value })
+          await fujiUploader.stopProduction(productionUuid.value)
           productionStarted.value = false
           showSuccess(msg.production.stopped)
         } catch (error) {
@@ -458,9 +439,7 @@ export function useFujiProductionWorkflow() {
   onMounted(async () => {
     try {
       productionUuid.value = String(route.params.productionUuid ?? "").trim()
-      mounterData.value = await SmtService.getTheFujiItemStatsOfProduction({
-        uuid: productionUuid.value,
-      })
+      mounterData.value = await fujiUploader.fetchProductionStats(productionUuid.value)
 
       if (mounterData.value.length > 0) {
         const firstRecord = mounterData.value[0]
@@ -468,11 +447,11 @@ export function useFujiProductionWorkflow() {
         productIdno.value = String(firstRecord.product_idno ?? "")
         mounterIdno.value = String(firstRecord.machine_idno ?? "")
         boardSide.value = firstRecord.board_side
-        isTestingMode.value = firstRecord.produce_mode === ProduceTypeEnum.TESTING_PRODUCE_MODE
+        isTestingMode.value = firstRecord.produce_mode === 'TESTING_PRODUCE_MODE'
         productionStarted.value = !firstRecord.production_end
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
+      if ((error as any)?.status === 404) {
         router.push("/http-status/404")
       } else {
         showError("載入生產資料失敗")
@@ -480,9 +459,9 @@ export function useFujiProductionWorkflow() {
       }
     }
 
-    let logs: FujiItemStatFeedLogRead[] = []
+    let logs: Awaited<ReturnType<typeof fujiUploader.fetchFeedLogs>> = []
     try {
-      logs = await SmtService.getTheFujiStatsOfLogsByUuid({ uuid: productionUuid.value })
+      logs = await fujiUploader.fetchFeedLogs(productionUuid.value)
     } catch (error) {
       console.error("Failed to fetch logs", error)
     }
