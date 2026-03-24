@@ -8,7 +8,7 @@ export const $BarcodeLoginRequest = {
             type: 'number',
             isRequired: true,
         },
-        password: {
+        signature: {
             type: 'string',
             isRequired: true,
         },
