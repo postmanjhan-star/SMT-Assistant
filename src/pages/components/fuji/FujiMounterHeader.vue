@@ -12,6 +12,7 @@ defineProps<{
   productIdno: string
   boardSide: string
   operatorName: string
+  operatorIdno?: string
 }>()
 
 defineEmits<{
@@ -42,6 +43,7 @@ defineEmits<{
           :product="productIdno"
           :board-side="boardSide"
           :operator-name="operatorName"
+          :operator-idno="operatorIdno"
         />
 
         <n-space size="small">
