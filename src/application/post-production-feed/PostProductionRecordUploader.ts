@@ -1,12 +1,12 @@
 import type { PanasonicFeedRecordCreate } from '@/client'
-import { PostProductionRecordApi } from '@/infra/post-production/PostProductionRecordApi'
 import { PostProductionFeedUploader } from './PostProductionFeedUploader'
 import { buildPanasonicFeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
+import type { RecordApiPort } from './RecordApiPort'
 
 export type { PostProductionCorrectState } from './PostProductionFeedUploader'
 
 export class PostProductionRecordUploader extends PostProductionFeedUploader {
-  constructor(private api: PostProductionRecordApi) {
+  constructor(private api: RecordApiPort) {
     super()
   }
 

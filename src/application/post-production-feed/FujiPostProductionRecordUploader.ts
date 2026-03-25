@@ -1,9 +1,9 @@
 import type { PanasonicFeedRecordCreate } from '@/client'
-import { FujiPostProductionRecordApi } from '@/infra/post-production/FujiPostProductionRecordApi'
 import { PostProductionFeedUploader } from './PostProductionFeedUploader'
+import type { FujiRecordApiPort } from './FujiRecordApiPort'
 
 export class FujiPostProductionRecordUploader extends PostProductionFeedUploader {
-  constructor(private api: FujiPostProductionRecordApi) {
+  constructor(private api: FujiRecordApiPort) {
     super()
   }
 

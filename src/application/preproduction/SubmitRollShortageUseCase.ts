@@ -9,7 +9,7 @@ import {
 import { RollShortagePolicy } from "@/domain/preproduction/RollShortagePolicy"
 import { MaterialMatchingPolicy } from "@/domain/preproduction/MaterialMatchingPolicy"
 import type { ProductionRowModel } from "@/pages/mounter/panasonic/types/production"
-import type { SmtProductionRepository } from "@/infrastructure/repositories/SmtProductionRepository"
+import type { SmtRepositoryPort } from "@/application/panasonic/di/PanasonicWorkflowDeps"
 
 export type SubmitRollShortageInput = PanasonicRollShortageInput
 export type SubmitRollShortageError = PanasonicRollShortageError
@@ -18,7 +18,7 @@ export type SubmitRollShortageUpdate = PanasonicRollShortageUpdate<ProductionRow
 export type SubmitRollShortageResult = PanasonicRollShortageResult<ProductionRowModel>
 
 export type SubmitRollShortageUseCaseDeps = {
-  repository: SmtProductionRepository
+  repository: SmtRepositoryPort
   getRowData: () => ProductionRowModel[]
   getStatBySlotIdno: (slotIdno: string) => { id: number } | null
   isTestingMode: () => boolean
