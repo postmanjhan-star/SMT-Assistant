@@ -1213,6 +1213,7 @@ async function handleUnloadSlotSubmit() {
             :scan="effectiveScan ?? scanMaterial"
             :allow-no-match-in-testing="true"
             :before-scan="handleBeforeMaterialScan"
+            input-test-id="fuji-detail-material-input"
             @matched="onMaterialMatched"
             @error="onMaterialError"
           />
@@ -1226,6 +1227,7 @@ async function handleUnloadSlotSubmit() {
             :is-testing-mode="isTestingMode"
             :has-material="!!materialInventory"
             :parse-slot-idno="parseFujiSlotInput"
+            input-test-id="fuji-detail-slot-input"
             @submit="onSlotSubmit"
             @error="showError"
           />
