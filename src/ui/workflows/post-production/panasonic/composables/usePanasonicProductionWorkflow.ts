@@ -22,7 +22,7 @@ import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowDa
 import {
   createPostproductionPanasonicDeps,
   type PostproductionPanasonicDeps,
-} from "@/application/panasonic/di/createPanasonicWorkflowDeps"
+} from "@/ui/di/panasonic/createPanasonicWorkflowDeps"
 import {
   PANASONIC_HOME_PATH,
   PANASONIC_NOT_FOUND_PATH,
@@ -417,6 +417,7 @@ export function usePanasonicProductionWorkflow(
   const handleProductionStopped = () => {
     productionStarted.value = false
     ui.success(msg.production.stopped)
+    router.push(PANASONIC_HOME_PATH)
   }
 
   // ── Mounted ────────────────────────────────────────────────────────────────

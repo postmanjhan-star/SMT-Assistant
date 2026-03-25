@@ -1,6 +1,6 @@
 ﻿export { MODE_NAME_TESTING as PANASONIC_MODE_NAME_TESTING, MODE_NAME_NORMAL as PANASONIC_MODE_NAME_NORMAL } from "@/ui/shared/messageCatalog"
 
-export const PANASONIC_HOME_PATH = "/smt/panasonic-mounter/"
+export const PANASONIC_HOME_PATH = "/smt/panasonic-mounter"
 export const PANASONIC_DETAIL_BASE_PATH = "/smt/panasonic-mounter"
 export const PANASONIC_PRODUCTION_BASE_PATH = "/smt/panasonic-mounter-production"
 
