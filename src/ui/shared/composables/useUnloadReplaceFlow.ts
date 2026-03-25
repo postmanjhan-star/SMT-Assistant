@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { type GridApi } from 'ag-grid-community'
 import { CheckMaterialMatchEnum } from '@/client'
 import { appendMaterialCode, removeMaterialCode } from '@/domain/production/PostProductionFeedRules'
+import { resolveMaterialLookupError } from '@/domain/material/MaterialLookupError'
 import { msg } from '@/ui/shared/messageCatalog'
 
 // ── Row base type ────────────────────────────────────────────────────────────
@@ -179,7 +180,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       await uploader.fetchMaterialInventory(trimmed)
       return true
     } catch (error) {
-      ui.error(msg.material.codeNotFound)
+      ui.error(resolveMaterialLookupError(error))
       console.error(error)
       return false
     }
@@ -214,7 +215,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       }
       return true
     } catch (error) {
-      ui.error(msg.material.codeNotFound)
+      ui.error(resolveMaterialLookupError(error))
       console.error(error)
       return false
     }

@@ -1,12 +1,10 @@
-import { nextTick, ref } from "vue"
+import { computed, nextTick, ref } from "vue"
 import type { ComputedRef, Ref } from "vue"
 import type { ColumnApi, GridApi } from "ag-grid-community"
 import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
-import {
-  useUnloadModeController,
-  type UnloadModeType,
-} from "@/ui/shared/composables/useUnloadModeController"
+import { useOperationModeStateMachine } from "@/ui/shared/composables/useOperationModeStateMachine"
+import type { UnloadModeType } from "@/ui/shared/composables/useOperationModeStateMachine"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { appendMaterialCode, removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
@@ -15,6 +13,10 @@ import {
   MATERIAL_FORCE_UNLOAD_TRIGGER,
   MATERIAL_IPQC_TRIGGER,
   MATERIAL_UNLOAD_TRIGGER,
+  MATERIAL_UNLOAD_MODE_NAME,
+  MATERIAL_FORCE_UNLOAD_MODE_NAME,
+  MATERIAL_IPQC_MODE_NAME,
+  MATERIAL_FEED_MODE_NAME,
   USER_SWITCH_TRIGGER,
 } from "@/domain/mounter/operationModes"
 import type { PanasonicUnloadRecord, PanasonicSpliceRecord } from "./panasonicDetailTypes"
@@ -50,10 +52,22 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     pendingUnloadRecords, pendingSpliceRecords, pendingIpqcRecords,
   } = options
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── State machine ──────────────────────────────────────────────────────────
 
-  const isUnloadMode = ref(false)
-  const isIpqcMode = ref(false)
+  const machine = useOperationModeStateMachine()
+
+  const {
+    isUnloadMode,
+    isIpqcMode,
+    isUnloadScanPhase,
+    isForceUnloadSlotPhase,
+    isReplaceMaterialPhase,
+    isReplaceSlotPhase,
+    unloadModeType,
+    resolvedUnloadSlotIdno,
+    replacementMaterialPackCode,
+  } = machine
+
   const replacementCorrectState = ref<"true" | "warning" | null>(null)
 
   const ipqcMaterialValue = ref("")
@@ -65,38 +79,57 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
   // These are returned so the template can bind them via :ref
   const unloadMaterialInput = ref<HTMLInputElement | null>(null)
   const unloadSlotInput = ref<HTMLInputElement | null>(null)
+  const unloadMaterialValue = ref("")
+  const unloadSlotValue = ref("")
 
-  // ── Unload mode controller ─────────────────────────────────────────────────
+  // ── UI helper computeds ──────────────────────────────────────────────────────
 
-  const {
-    unloadModeType,
-    unloadReplacePhase,
-    unloadMaterialValue,
-    unloadSlotValue,
-    resolvedUnloadSlotIdno,
-    replacementMaterialPackCode,
-    operationModeName,
-    isUnloadScanPhase,
-    isForceUnloadSlotPhase,
-    isReplaceMaterialPhase,
-    isReplaceSlotPhase,
-    unloadMaterialLabel,
-    unloadMaterialPlaceholder,
-    hasUnloadMaterial,
-    isUnloadMaterialInputDisabled,
-    isUnloadSlotInputDisabled,
-    unloadSlotLabel,
-    unloadSlotPlaceholder,
-    resetUnloadFlowState: controllerResetUnloadFlowState,
-    focusUnloadMaterialInput,
-    focusUnloadSlotInput,
-    focusByCurrentPhase,
-  } = useUnloadModeController({
-    isUnloadMode,
-    isIpqcMode,
-    toCanonicalSlot: toCanonicalPanasonicSlot,
-    getUnloadMaterialInputRef: () => unloadMaterialInput.value,
-    getUnloadSlotInputRef: () => unloadSlotInput.value,
+  const operationModeName = computed(() => {
+    if (isUnloadMode.value) {
+      return unloadModeType.value === "force_single_slot"
+        ? MATERIAL_FORCE_UNLOAD_MODE_NAME
+        : MATERIAL_UNLOAD_MODE_NAME
+    }
+    if (isIpqcMode.value) return MATERIAL_IPQC_MODE_NAME
+    return MATERIAL_FEED_MODE_NAME
+  })
+
+  const unloadMaterialLabel = computed(() => {
+    if (isUnloadScanPhase.value) return "卸除捲號（自動定位）"
+    if (isReplaceMaterialPhase.value) return "更換捲號"
+    return "更換捲號（待掃站位）"
+  })
+
+  const unloadMaterialPlaceholder = computed(() => {
+    if (isUnloadScanPhase.value) return "請掃描要卸除的捲號"
+    if (isForceUnloadSlotPhase.value) return "請先掃描站位進行強制卸除"
+    if (isReplaceMaterialPhase.value) return "請掃描要更換的捲號"
+    return replacementMaterialPackCode.value
+  })
+
+  const hasUnloadMaterial = computed(() => {
+    if (isReplaceSlotPhase.value) return replacementMaterialPackCode.value.trim().length > 0
+    return unloadMaterialValue.value.trim().length > 0
+  })
+
+  const isUnloadMaterialInputDisabled = computed(
+    () => isReplaceSlotPhase.value || isForceUnloadSlotPhase.value
+  )
+
+  const isUnloadSlotInputDisabled = computed(() => {
+    if (isForceUnloadSlotPhase.value) return false
+    if (isReplaceSlotPhase.value) return !hasUnloadMaterial.value
+    return true
+  })
+
+  const unloadSlotLabel = computed(() =>
+    isForceUnloadSlotPhase.value ? "卸除站位" : "站位編號"
+  )
+
+  const unloadSlotPlaceholder = computed(() => {
+    if (isForceUnloadSlotPhase.value) return "請掃描要卸除的站位"
+    if (isReplaceSlotPhase.value) return `請掃描原卸料站位 ${resolvedUnloadSlotIdno.value || ""}`
+    return "請先掃描更換捲號"
   })
 
   // ── Helper functions ───────────────────────────────────────────────────────
@@ -205,15 +238,26 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
 
   // ── Mode control ───────────────────────────────────────────────────────────
 
-  function resetUnloadFlowState(modeType: UnloadModeType = unloadModeType.value) {
-    controllerResetUnloadFlowState(modeType)
-    replacementCorrectState.value = null
-  }
-
   function showIpqcColumns(visible: boolean) {
     columnApi.value?.setColumnVisible("inspectMaterialPackCode", visible)
     columnApi.value?.setColumnVisible("inspectTime", visible)
     columnApi.value?.setColumnVisible("inspectCount", visible)
+  }
+
+  function focusUnloadMaterialInput() {
+    nextTick(() => { unloadMaterialInput.value?.focus() })
+  }
+
+  function focusUnloadSlotInput() {
+    nextTick(() => { unloadSlotInput.value?.focus() })
+  }
+
+  function focusByCurrentPhase() {
+    if (isForceUnloadSlotPhase.value || isReplaceSlotPhase.value) {
+      focusUnloadSlotInput()
+    } else {
+      focusUnloadMaterialInput()
+    }
   }
 
   function focusIpqcMaterialInput() {
@@ -225,26 +269,31 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
   }
 
   function enterUnloadMode(modeType: UnloadModeType) {
-    isUnloadMode.value = true
-    resetUnloadFlowState(modeType)
+    machine.enterUnloadMode(modeType)
+    replacementCorrectState.value = null
+    unloadMaterialValue.value = ""
+    unloadSlotValue.value = ""
     clearNormalScanState()
-    if (modeType === "force_single_slot") {
-      focusUnloadSlotInput()
-      return
-    }
-    focusUnloadMaterialInput()
+    nextTick(() => {
+      if (modeType === "force_single_slot") {
+        focusUnloadSlotInput()
+      } else {
+        focusUnloadMaterialInput()
+      }
+    })
   }
 
   function exitUnloadMode() {
-    isUnloadMode.value = false
-    resetUnloadFlowState("pack_auto_slot")
+    machine.exitToNormal()
+    replacementCorrectState.value = null
+    unloadMaterialValue.value = ""
+    unloadSlotValue.value = ""
     clearNormalScanState()
     focusMaterialInput()
   }
 
   function enterIpqcMode() {
-    isIpqcMode.value = true
-    if (isUnloadMode.value) exitUnloadMode()
+    machine.enterIpqcMode()
     clearNormalScanState()
 
     const saved = new Map<string, unknown>()
@@ -261,7 +310,7 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
   }
 
   function exitIpqcMode() {
-    isIpqcMode.value = false
+    machine.exitToNormal()
     for (const row of rowData.value) {
       const key = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
       const saved = ipqcSavedCorrectStates.value.get(key)
@@ -440,22 +489,17 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     updateRowInGrid(row)
   }
 
-  function resetToInitialUnloadPhase() {
-    unloadReplacePhase.value =
-      unloadModeType.value === "force_single_slot" ? "force_unload_slot_scan" : "unload_scan"
-  }
-
   async function handleUnloadMaterialSubmit(materialPackCode: string) {
-    const isValidPackCode = await validateUnloadMaterialPackCode(materialPackCode)
-    if (!isValidPackCode) {
+    const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
+    if (!resolved.ok || !resolved.row) {
+      showError(resolved.error ?? "找不到對應槽位")
       unloadMaterialValue.value = ""
       focusUnloadMaterialInput()
       return
     }
 
-    const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
-    if (!resolved.ok || !resolved.row) {
-      showError(resolved.error ?? "找不到對應槽位")
+    const isValidPackCode = await validateUnloadMaterialPackCode(materialPackCode)
+    if (!isValidPackCode) {
       unloadMaterialValue.value = ""
       focusUnloadMaterialInput()
       return
@@ -473,8 +517,7 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     applyUnloadToRow(resolved.row, materialPackCode)
 
     unloadMaterialValue.value = ""
-    resolvedUnloadSlotIdno.value = resolved.slotIdno ?? ""
-    unloadReplacePhase.value = "replace_material_scan"
+    machine.onUnloadSubmitted(resolved.slotIdno ?? "")
     focusUnloadMaterialInput()
   }
 
@@ -511,8 +554,7 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     applyUnloadToRow(row, materialPackCode)
 
     unloadSlotValue.value = ""
-    resolvedUnloadSlotIdno.value = toRowSlotIdno(row)
-    unloadReplacePhase.value = "replace_material_scan"
+    machine.onForceUnloadSubmitted(toRowSlotIdno(row))
     focusUnloadMaterialInput()
   }
 
@@ -520,10 +562,13 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
     if (!targetSlotIdno) {
       showError("找不到卸料站位，請重新掃描")
-      resetToInitialUnloadPhase()
+      // Re-enter unload with current mode to reset back to initial phase
+      machine.enterUnloadMode(unloadModeType.value)
       unloadMaterialValue.value = ""
-      if (isForceUnloadSlotPhase.value) focusUnloadSlotInput()
-      else focusUnloadMaterialInput()
+      nextTick(() => {
+        if (isForceUnloadSlotPhase.value) focusUnloadSlotInput()
+        else focusUnloadMaterialInput()
+      })
       return
     }
 
@@ -535,9 +580,8 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
       return
     }
 
-    replacementMaterialPackCode.value = materialPackCode
     replacementCorrectState.value = correctState
-    unloadReplacePhase.value = "replace_slot_scan"
+    machine.onReplacementMaterialScanned(materialPackCode)
     unloadSlotValue.value = ""
     focusUnloadSlotInput()
   }
@@ -578,7 +622,8 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
 
     if (!replacementPackCode || !correctState) {
       showError("找不到更換捲號，請重新掃描")
-      unloadReplacePhase.value = "replace_material_scan"
+      // Re-enter unload with current mode to reset to REPLACE_MATERIAL_SCAN equivalent
+      machine.enterUnloadMode(unloadModeType.value)
       focusUnloadMaterialInput()
       return
     }
@@ -586,7 +631,7 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     const row = findRowBySlotIdno(targetSlotIdno)
     if (!row) {
       showError(`找不到槽位 ${targetSlotIdno}`)
-      resetToInitialUnloadPhase()
+      machine.enterUnloadMode(unloadModeType.value)
       focusUnloadMaterialInput()
       return
     }
@@ -612,7 +657,9 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     persistNow()
 
     unloadSlotValue.value = ""
-    exitUnloadMode()
+    machine.onReplaceSlotSubmitted()
+    replacementCorrectState.value = null
+    focusMaterialInput()
   }
 
   // ── Upload callbacks ────────────────────────────────────────────────────────
@@ -639,13 +686,10 @@ export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptio
     // Mode state
     isUnloadMode,
     isIpqcMode,
-    // Unload mode controller values
+    // Machine-sourced state
     unloadModeType,
-    unloadReplacePhase,
     unloadMaterialValue,
     unloadSlotValue,
-    resolvedUnloadSlotIdno,
-    replacementMaterialPackCode,
     operationModeName,
     isUnloadScanPhase,
     isForceUnloadSlotPhase,

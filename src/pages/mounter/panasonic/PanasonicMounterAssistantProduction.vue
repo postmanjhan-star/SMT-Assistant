@@ -26,7 +26,8 @@ import { useSlotInputSelection } from "@/ui/shared/composables/useSlotInputSelec
 import { usePanasonicProductionPage } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicProductionPage"
 import { createPanasonicProductionGrid } from "@/ui/workflows/post-production/panasonic/PanasonicProductionGridAdapter"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
-import { useUnloadModeController, type UnloadModeType } from "@/ui/shared/composables/useUnloadModeController"
+import { useOperationModeStateMachine } from "@/ui/shared/composables/useOperationModeStateMachine"
+import type { UnloadModeType } from "@/ui/shared/composables/useOperationModeStateMachine"
 import { usePanasonicInputReset } from "@/ui/shared/composables/panasonic/usePanasonicInputReset"
 import {
   PANASONIC_MODE_NAME_NORMAL,
@@ -41,6 +42,10 @@ import {
   MATERIAL_EXIT_TRIGGER,
   MATERIAL_FORCE_UNLOAD_TRIGGER,
   MATERIAL_IPQC_TRIGGER,
+  MATERIAL_UNLOAD_MODE_NAME,
+  MATERIAL_FORCE_UNLOAD_MODE_NAME,
+  MATERIAL_IPQC_MODE_NAME,
+  MATERIAL_FEED_MODE_NAME,
   USER_SWITCH_TRIGGER,
 } from "@/domain/mounter/operationModes"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
@@ -57,8 +62,21 @@ const materialInventoryInput = ref<InputComponentHandle | null>(null)
 const unloadMaterialInput = ref<HTMLInputElement | null>(null)
 const unloadSlotInput = ref<HTMLInputElement | null>(null)
 
-const isUnloadMode = ref(false)
-const isIpqcMode = ref(false)
+const machine = useOperationModeStateMachine()
+const {
+  isUnloadMode,
+  isIpqcMode,
+  isUnloadScanPhase,
+  isForceUnloadSlotPhase,
+  isReplaceMaterialPhase,
+  isReplaceSlotPhase,
+  unloadModeType,
+  resolvedUnloadSlotIdno,
+  replacementMaterialPackCode,
+} = machine
+
+const unloadMaterialValue = ref("")
+const unloadSlotValue = ref("")
 
 const ipqcMaterialValue = ref("")
 const ipqcSlotValue = ref("")
@@ -167,48 +185,84 @@ function clearNormalScanState() {
   slotIdnoInput.value?.clear?.()
 }
 
-const {
-  unloadModeType,
-  unloadReplacePhase,
-  unloadMaterialValue,
-  unloadSlotValue,
-  resolvedUnloadSlotIdno,
-  replacementMaterialPackCode,
-  operationModeName,
-  isUnloadScanPhase,
-  isForceUnloadSlotPhase,
-  isReplaceMaterialPhase,
-  isReplaceSlotPhase,
-  unloadMaterialLabel,
-  unloadMaterialPlaceholder,
-  isUnloadMaterialInputDisabled,
-  isUnloadSlotInputDisabled,
-  unloadSlotLabel,
-  unloadSlotPlaceholder,
-  resetUnloadFlowState,
-  focusUnloadMaterialInput,
-  focusUnloadSlotInput,
-  focusByCurrentPhase,
-  resetToInitialUnloadPhase,
-} = useUnloadModeController({
-  isUnloadMode,
-  isIpqcMode,
-  toCanonicalSlot: toCanonicalPanasonicSlot,
-  getUnloadMaterialInputRef: () => unloadMaterialInput.value,
-  getUnloadSlotInputRef: () => unloadSlotInput.value,
+// ── UI helper computeds (machine-sourced) ──────────────────────────────────
+
+const operationModeName = computed(() => {
+  if (isUnloadMode.value) {
+    return unloadModeType.value === "force_single_slot"
+      ? MATERIAL_FORCE_UNLOAD_MODE_NAME
+      : MATERIAL_UNLOAD_MODE_NAME
+  }
+  if (isIpqcMode.value) return MATERIAL_IPQC_MODE_NAME
+  return MATERIAL_FEED_MODE_NAME
 })
 
+const unloadMaterialLabel = computed(() => {
+  if (isUnloadScanPhase.value) return "卸除捲號（自動定位）"
+  if (isReplaceMaterialPhase.value) return "更換捲號"
+  return "更換捲號（待掃站位）"
+})
+
+const unloadMaterialPlaceholder = computed(() => {
+  if (isUnloadScanPhase.value) return "請掃描要卸除的捲號"
+  if (isForceUnloadSlotPhase.value) return "請先掃描站位進行強制卸除"
+  if (isReplaceMaterialPhase.value) return "請掃描要更換的捲號"
+  return replacementMaterialPackCode.value
+})
+
+const hasUnloadMaterial = computed(() => {
+  if (isReplaceSlotPhase.value) return replacementMaterialPackCode.value.trim().length > 0
+  return unloadMaterialValue.value.trim().length > 0
+})
+
+const isUnloadMaterialInputDisabled = computed(
+  () => isReplaceSlotPhase.value || isForceUnloadSlotPhase.value
+)
+
+const isUnloadSlotInputDisabled = computed(() => {
+  if (isForceUnloadSlotPhase.value) return false
+  if (isReplaceSlotPhase.value) return !hasUnloadMaterial.value
+  return true
+})
+
+const unloadSlotLabel = computed(() =>
+  isForceUnloadSlotPhase.value ? "卸除站位" : "站位編號"
+)
+
+const unloadSlotPlaceholder = computed(() => {
+  if (isForceUnloadSlotPhase.value) return "請掃描要卸除的站位"
+  if (isReplaceSlotPhase.value) return `請掃描原卸料站位 ${resolvedUnloadSlotIdno.value || ""}`
+  return "請先掃描更換捲號"
+})
+
+function focusUnloadMaterialInput() {
+  nextTick(() => { unloadMaterialInput.value?.focus() })
+}
+
+function focusUnloadSlotInput() {
+  nextTick(() => { unloadSlotInput.value?.focus() })
+}
+
+function focusByCurrentPhase() {
+  if (isForceUnloadSlotPhase.value || isReplaceSlotPhase.value) {
+    focusUnloadSlotInput()
+  } else {
+    focusUnloadMaterialInput()
+  }
+}
+
 function enterUnloadMode(modeType: UnloadModeType) {
-  isUnloadMode.value = true
-  isIpqcMode.value = false
-  resetUnloadFlowState(modeType)
+  machine.enterUnloadMode(modeType)
+  unloadMaterialValue.value = ""
+  unloadSlotValue.value = ""
   clearNormalScanState()
-  focusByCurrentPhase()
+  nextTick(() => focusByCurrentPhase())
 }
 
 function exitUnloadMode() {
-  isUnloadMode.value = false
-  resetUnloadFlowState("pack_auto_slot")
+  machine.exitToNormal()
+  unloadMaterialValue.value = ""
+  unloadSlotValue.value = ""
   clearNormalScanState()
   focusMaterialInventoryInput()
 }
@@ -275,11 +329,7 @@ function getCurrentPackCode(row: any): string {
 }
 
 function enterIpqcMode() {
-  isIpqcMode.value = true
-  if (isUnloadMode.value) {
-    isUnloadMode.value = false
-    resetUnloadFlowState("pack_auto_slot")
-  }
+  machine.enterIpqcMode()
   clearNormalScanState()
 
   // 儲存目前 correct 狀態，全部設為 ⛔
@@ -300,7 +350,7 @@ function enterIpqcMode() {
 }
 
 function exitIpqcMode() {
-  isIpqcMode.value = false
+  machine.exitToNormal()
   // 恢復原本 correct 狀態
   for (const row of rowData.value) {
     const key = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
@@ -500,16 +550,16 @@ async function handleBeforeSlotSubmit(raw: string) {
 }
 
 async function handleUnloadMaterialSubmit(materialPackCode: string) {
-  const isValidPackCode = isMockMode || await validateUnloadMaterialPackCode(materialPackCode)
-  if (!isValidPackCode) {
+  const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
+  if (resolved.ok === false) {
+    ui.error(resolved.error)
     unloadMaterialValue.value = ""
     focusUnloadMaterialInput()
     return
   }
 
-  const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
-  if (resolved.ok === false) {
-    ui.error(resolved.error)
+  const isValidPackCode = isMockMode || await validateUnloadMaterialPackCode(materialPackCode)
+  if (!isValidPackCode) {
     unloadMaterialValue.value = ""
     focusUnloadMaterialInput()
     return
@@ -526,8 +576,7 @@ async function handleUnloadMaterialSubmit(materialPackCode: string) {
     return
   }
 
-  resolvedUnloadSlotIdno.value = resolved.slotIdno
-  unloadReplacePhase.value = "replace_material_scan"
+  machine.onUnloadSubmitted(resolved.slotIdno)
   focusUnloadMaterialInput()
 }
 
@@ -543,8 +592,7 @@ async function handleForceUnloadSlotSubmit(slotIdno: string) {
     return
   }
 
-  resolvedUnloadSlotIdno.value = result.slotIdno ?? slotIdno
-  unloadReplacePhase.value = "replace_material_scan"
+  machine.onForceUnloadSubmitted(result.slotIdno ?? slotIdno)
   focusUnloadMaterialInput()
 }
 
@@ -552,7 +600,7 @@ async function handleReplacementMaterialSubmit(materialPackCode: string) {
   const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
   if (!targetSlotIdno) {
     ui.error("找不到卸料站位，請重新掃描")
-    resetToInitialUnloadPhase()
+    machine.enterUnloadMode(unloadModeType.value)
     unloadMaterialValue.value = ""
 
     if (isForceUnloadSlotPhase.value) {
@@ -574,8 +622,7 @@ async function handleReplacementMaterialSubmit(materialPackCode: string) {
     return
   }
 
-  replacementMaterialPackCode.value = materialPackCode
-  unloadReplacePhase.value = "replace_slot_scan"
+  machine.onReplacementMaterialScanned(materialPackCode)
   unloadSlotValue.value = ""
   focusUnloadSlotInput()
 }
@@ -638,7 +685,7 @@ async function handleUnloadSlotSubmit() {
 
   if (!replacementPackCode) {
     ui.error("找不到更換捲號，請重新掃描")
-    unloadReplacePhase.value = "replace_material_scan"
+    machine.enterUnloadMode(unloadModeType.value)
     focusUnloadMaterialInput()
     return
   }
