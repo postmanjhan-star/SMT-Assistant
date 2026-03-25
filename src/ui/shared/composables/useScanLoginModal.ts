@@ -1,5 +1,6 @@
 import { ref, computed, watch, nextTick } from "vue"
 import { useAuthStore } from "@/stores/authStore"
+// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] 既有違規，@/client 暫留
 import { SmtService } from "@/client"
 
 export function useScanLoginModal() {

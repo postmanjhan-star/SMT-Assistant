@@ -2,7 +2,7 @@
 import { ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import type { PanasonicMounterFileRead } from "@/client"
-import { loadPanasonicProductionSlots } from "@/application/preproduction/PanasonicProductionLoadUseCase"
+import type { PanasonicFetchSlotsParams } from "@/application/panasonic/di/PanasonicWorkflowDeps"
 import { PanasonicProductionRowBuilder } from "@/domain/production/PanasonicProductionRowBuilder"
 import type { ProductionRowModel } from "@/pages/mounter/panasonic/types/production"
 import {
@@ -33,7 +33,9 @@ function toMachineSide(value: unknown): PanasonicMachineSide | null {
     : null
 }
 
-export function usePanasonicProductionData() {
+export function usePanasonicProductionData(
+  fetchSlots: (params: PanasonicFetchSlotsParams) => Promise<PanasonicMounterFileRead>
+) {
   const route = useRoute()
   const router = useRouter()
 
@@ -53,7 +55,7 @@ export function usePanasonicProductionData() {
         return
       }
 
-      mounterData.value = await loadPanasonicProductionSlots({
+      mounterData.value = await fetchSlots({
         workOrderIdno,
         mounterIdno,
         productIdno,

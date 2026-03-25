@@ -12,6 +12,7 @@ import {
   type FujiUnloadRecord,
   type FujiSpliceRecord,
 } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
+import { createFujiPreproductionDeps } from "@/ui/di/fuji/createFujiPreproductionDeps"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import { useFujiPreproductionSlotFlow } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionSlotFlow"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
@@ -34,9 +35,10 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
   const ui = useUiNotifier()
   useSlotResultNotifier(ui)
   const { rows: rowData, setFromApi } = useFujiProductionState()
+  const fujiPreDeps = createFujiPreproductionDeps()
 
   const { workOrderIdno, productIdno, boardSide, mounterIdno, isTestingMode } =
-    useFujiPreproductionData({ setFromApi })
+    useFujiPreproductionData({ setFromApi, fetchSlots: fujiPreDeps.fetchSlots })
 
   const lifecycle = useFujiPreproductionLifecycle({
     rowData,
@@ -49,6 +51,8 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     getPendingSpliceRecords: options.getPendingSpliceRecords,
     getPendingIpqcRecords: options.getPendingIpqcRecords,
     onIpqcUploaded: options.onIpqcUploaded,
+    startProduction: fujiPreDeps.startProduction,
+    stopProduction: fujiPreDeps.stopProduction,
   })
 
   const gridAdapter = shallowRef<SlotSubmitGridPort | null>(null)
@@ -64,6 +68,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     gridAdapter,
     focusSlotInput: options.focusSlotInput,
     onAfterSuccess: lifecycle.checkAndStartProduction,
+    materialRepository: fujiPreDeps.createMaterialRepository(),
   })
 
   function onClickBackArrow() {

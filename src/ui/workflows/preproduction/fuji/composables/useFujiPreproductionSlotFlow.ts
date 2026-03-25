@@ -1,5 +1,5 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3/5 */
 import { computed, ref, watch, type Ref, type ShallowRef } from "vue"
+// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] @/client type import，Phase 3 移除目標
 import type { SmtMaterialInventory } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { SlotSubmissionRunner } from "@/application/slot-submit/SlotSubmissionRunner"
@@ -7,7 +7,7 @@ import { createSlotSubmitStrategy } from "@/application/slot-submit/createSlotSu
 import { useSlotSubmitStore } from "@/stores/slotSubmitStore"
 import { SimpleBarcodeValidator } from "@/domain/material/BarcodeValidator"
 import { BarcodeScanUseCase } from "@/application/barcode-scan/BarcodeScanUseCase"
-import { ApiMaterialRepository } from "@/infra/material/ApiMaterialRepository"
+import type { MaterialRepository } from "@/application/barcode-scan/BarcodeScanDeps"
 import type { SlotSubmitGridPort } from "@/application/slot-submit/SlotSubmitDeps"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 import { msg as uiMsg } from "@/ui/shared/messageCatalog"
@@ -19,6 +19,7 @@ export type UseFujiPreproductionSlotFlowOptions = {
   gridAdapter: ShallowRef<SlotSubmitGridPort | null>
   focusSlotInput?: () => void
   onAfterSuccess?: () => void | Promise<void>
+  materialRepository: MaterialRepository
 }
 
 export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFlowOptions) {
@@ -37,7 +38,7 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
     () =>
       new BarcodeScanUseCase<FujiMounterRowModel>({
         validator: new SimpleBarcodeValidator(),
-        materialRepository: new ApiMaterialRepository(),
+        materialRepository: options.materialRepository,
         isTestingMode: options.isTestingMode.value,
         getMaterialMatchedRows,
       })

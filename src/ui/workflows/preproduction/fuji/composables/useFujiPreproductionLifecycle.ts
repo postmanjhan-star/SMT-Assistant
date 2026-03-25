@@ -12,11 +12,10 @@ import {
   SmtService,
   type BoardSideEnum,
   type FujiMounterItemStatCreate,
+  type FujiMounterItemStatRead,
   type UnfeedReasonEnum,
 } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
-import { startFujiProduction } from "@/application/fuji/production/StartFujiProduction"
-import { stopFujiProduction } from "@/application/fuji/production/StopFujiProduction"
 import { ProductionLifecycleUseCase } from "@/application/preproduction/ProductionLifecycleUseCase"
 import { StartProductionStatsUseCase } from "@/application/preproduction/StartProductionStatsUseCase"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
@@ -50,6 +49,8 @@ export type UseFujiPreproductionLifecycleOptions = {
   getPendingSpliceRecords?: () => FujiSpliceRecord[]
   getPendingIpqcRecords?: () => IpqcInspectionRecord[]
   onIpqcUploaded?: (ok: boolean) => void
+  startProduction: (payload: FujiMounterItemStatCreate[]) => Promise<FujiMounterItemStatRead[]>
+  stopProduction: (uuid: string) => Promise<unknown>
 }
 
 type FujiStartStatPayload = FujiMounterItemStatCreate & {
@@ -73,7 +74,7 @@ export function useFujiPreproductionLifecycle(
       productionUuid.value = uuid
     },
     stop: async () => {
-      await stopFujiProduction(productionUuid.value)
+      await options.stopProduction(productionUuid.value)
       productionStarted.value = false
     },
     buildProductionPath: (uuid) => `/smt/fuji-mounter-production/${uuid}`,
@@ -113,7 +114,7 @@ export function useFujiPreproductionLifecycle(
         operation_time: now,
         production_start: now,
       }))
-      const response = await startFujiProduction(payload)
+      const response = await options.startProduction(payload)
       if (!response?.length || !response[0].uuid)
         throw new Error("開始生產失敗，後端未回傳生產ID")
       const statItemMap = new Map<string, number>()

@@ -2,14 +2,23 @@
 import { ref, type Ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type BoardSideEnum, type FujiMounterFileRead } from "@/client"
-import { loadFujiProductionSlots } from "@/application/preproduction/FujiProductionLoadUseCase"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 import { usePreproductionLoader } from "@/ui/shared/composables/usePreproductionLoader"
 import { msg } from "@/ui/shared/messageCatalog"
 
+export type FetchSlotsParams = {
+  workOrderIdno: string
+  mounterIdno: string
+  productIdno: string
+  boardSide: any
+  testingMode: boolean
+  testingProductIdno?: string | null
+}
+
 export type UseFujiPreproductionDataOptions = {
   setFromApi: (rows: FujiMounterFileRead[]) => void
+  fetchSlots: (params: FetchSlotsParams) => Promise<FujiMounterFileRead[]>
 }
 
 export type FujiPreproductionDataState = {
@@ -35,7 +44,7 @@ export function useFujiPreproductionData(
 
   usePreproductionLoader({
     load: async () => {
-      const data = await loadFujiProductionSlots({
+      const data = await options.fetchSlots({
         workOrderIdno: workOrderIdno.value,
         mounterIdno: mounterIdno.value,
         productIdno: productIdno.value,

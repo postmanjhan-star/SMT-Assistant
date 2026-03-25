@@ -21,7 +21,7 @@ import { SubmitSlotUseCase } from "@/application/preproduction/SubmitSlotUseCase
 import {
   createPreproductionPanasonicDeps,
   type PreproductionPanasonicDeps,
-} from "@/application/panasonic/di/createPanasonicWorkflowDeps"
+} from "@/ui/di/panasonic/createPanasonicWorkflowDeps"
 import { usePanasonicStatMap } from "@/ui/shared/composables/panasonic/usePanasonicStatMap"
 import {
   PANASONIC_HOME_PATH,
@@ -92,7 +92,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     normalizeRouteValue(route.query.work_sheet_side)
   )
 
-  const { mounterData, rowData } = usePanasonicProductionData()
+  const { mounterData, rowData } = usePanasonicProductionData(deps.fetchSlots)
   const { gridApi, onGridReady } = useProductionGridBinding({
     resetInputs: options.onResetInputs,
     getOperatorIdno: () => currentUsername.value || null,
@@ -108,7 +108,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     productionUuid,
     start: startProduction,
     stop: stopProduction,
-  } = useProductionState()
+  } = useProductionState(deps.stopProduction)
 
   const productionLifecycleUseCase = deps.createProductionLifecycleUseCase({
     start: startProduction,

@@ -1,7 +1,6 @@
 ﻿import { ref } from 'vue'
-import { stopPanasonicProduction } from '@/application/panasonic/production/StopPanasonicProduction'
 
-export function useProductionState() {
+export function useProductionState(stopProductionFn: (uuid: string) => Promise<unknown>) {
     const productionStarted = ref(false)
     const productionUuid = ref('')
 
@@ -12,7 +11,7 @@ export function useProductionState() {
 
     async function stop() {
         if (!productionUuid.value) return
-        await stopPanasonicProduction(productionUuid.value)
+        await stopProductionFn(productionUuid.value)
         productionStarted.value = false
     }
 
