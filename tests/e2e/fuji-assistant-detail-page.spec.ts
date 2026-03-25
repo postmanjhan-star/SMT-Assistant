@@ -502,8 +502,8 @@ for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
         await page.goto(FUJI_NORMAL_URL);
         await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
-        const materialInput = page.locator('.n-input input').first();
-        const slotInput = page.locator('.n-input input').nth(1);
+        const materialInput = page.getByTestId('fuji-detail-material-input').locator('input');
+        const slotInput = page.getByTestId('fuji-detail-slot-input').locator('input');
         await materialInput.fill(unreachableMaterial);
         await materialInput.press('Enter');
         await waitVisualStepIfNeeded(page, testInfo);
@@ -579,7 +579,7 @@ for (const errorCase of MATERIAL_LOOKUP_ERROR_CASES) {
         await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
         const materialInput = page.getByTestId('fuji-production-material-input').locator('input');
-        const slotInput = page.getByPlaceholder('輸入槽位');
+        const slotInput = page.getByTestId('fuji-production-slot-input').locator('input');
         await materialInput.fill(unreachableMaterial);
         await materialInput.press('Enter');
         await waitVisualStepIfNeeded(page, testInfo);
@@ -707,6 +707,13 @@ test('fuji unload/replace flow keeps grid visible and auto exits after successfu
                     material_idno: 'MAT-1',
                     material_name: 'TEST-MATERIAL',
                 }),
+            });
+        }
+        if (url.pathname.endsWith('/smt/material_inventory/APP-1')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 2, idno: 'APP-1', material_idno: 'MAT-1', material_name: 'TEST-MATERIAL' }),
             });
         }
         return route.continue();
@@ -920,6 +927,141 @@ test('fuji force unload flow by slot (S5577) uses WRONG_MATERIAL and completes r
     await expect(page.getByTestId('fuji-exit-unload-mode-btn')).toHaveCount(0);
 });
 
+test('fuji force unload mode keeps phase when force slot has no matched stat', async ({ page }, testInfo) => {
+    const productionUuid = 'force-unload-fuji-no-slot';
+    const now = new Date().toISOString();
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40X85-009B-TEST_SCAN',
+            machine_idno: 'XP2B1',
+            machine_side: 'FRONT',
+            board_side: 'TOP',
+            slot_idno: '9',
+            sub_slot_idno: 'A',
+            material_idno: 'MAT-1',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'APP-1',
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.goto(`http://localhost/smt/fuji-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = page.getByTestId('fuji-production-material-input').locator('input');
+    await materialInput.fill('S5577');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(page.getByTestId('fuji-exit-unload-mode-btn')).toBeVisible();
+
+    const unloadSlotInput = page.getByTestId('fuji-unload-slot-input');
+    await expect(unloadSlotInput).toBeFocused();
+    await unloadSlotInput.fill('XP2B1-B-99');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expectLatestMessage(page, 'error-message', /找不到槽位/);
+    await expect(unloadSlotInput).toBeFocused();
+    await expect(unloadSlotInput).toHaveValue('');
+    await expect(page.getByTestId('fuji-exit-unload-mode-btn')).toBeVisible();
+});
+
+test('fuji force unload mode keeps replace phase when replacement ERP lookup fails', async ({ page }, testInfo) => {
+    const productionUuid = 'force-unload-fuji-replace-erp-fail';
+    const replacementPackCode = 'FUJI-S5577-ERP-FAIL';
+    const now = new Date().toISOString();
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40X85-009B-TEST_SCAN',
+            machine_idno: 'XP2B1',
+            machine_side: 'FRONT',
+            board_side: 'TOP',
+            slot_idno: '9',
+            sub_slot_idno: 'A',
+            material_idno: 'MAT-1',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'APP-1',
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.route('**/smt/fuji_mounter_item/stat/roll', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) })
+    );
+
+    await page.route('**/smt/material_inventory/*', (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith(`/smt/material_inventory/${replacementPackCode}`)) {
+            return route.fulfill({
+                status: 502,
+                contentType: 'application/json',
+                body: JSON.stringify({ detail: 'Bad Gateway' }),
+            });
+        }
+        return route.continue();
+    });
+
+    await page.goto(`http://localhost/smt/fuji-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = page.getByTestId('fuji-production-material-input').locator('input');
+    await materialInput.fill('S5577');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+
+    const unloadMaterialInput = page.getByTestId('fuji-unload-material-input');
+    const unloadSlotInput = page.getByTestId('fuji-unload-slot-input');
+    await expect(unloadSlotInput).toBeFocused();
+
+    await unloadSlotInput.fill('XP2B1-A-9');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(unloadMaterialInput).toBeFocused();
+
+    await unloadMaterialInput.fill(replacementPackCode);
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expectLatestMessage(page, 'error-message', /ERP 連線錯誤/);
+    await expect(unloadMaterialInput).toBeFocused();
+    await expect(unloadMaterialInput).toHaveValue('');
+    await expect(page.getByTestId('fuji-exit-unload-mode-btn')).toBeVisible();
+});
+
 test('fuji unload flow by pack (S5555) uses MATERIAL_FINISHED and completes replace', async ({ page }, testInfo) => {
     const productionUuid = 'unload-mode-fuji-s5555';
     const now = new Date().toISOString();
@@ -1001,6 +1143,13 @@ test('fuji unload flow by pack (S5555) uses MATERIAL_FINISHED and completes repl
                     material_idno: 'MAT-1',
                     material_name: 'TEST-MATERIAL',
                 }),
+            });
+        }
+        if (url.pathname.endsWith('/smt/material_inventory/APP-1')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 2, idno: 'APP-1', material_idno: 'MAT-1', material_name: 'TEST-MATERIAL' }),
             });
         }
         return route.continue();
@@ -1241,6 +1390,13 @@ test('fuji unload mode keeps replace phase when replacement ERP lookup fails', a
                 status: 502,
                 contentType: 'application/json',
                 body: JSON.stringify({ detail: 'Bad Gateway' }),
+            });
+        }
+        if (url.pathname.endsWith('/smt/material_inventory/APP-1')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 2, idno: 'APP-1', material_idno: 'MAT-1', material_name: 'TEST-MATERIAL' }),
             });
         }
         return route.continue();

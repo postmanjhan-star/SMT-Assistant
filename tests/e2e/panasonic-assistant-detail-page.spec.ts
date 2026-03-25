@@ -821,6 +821,13 @@ test('panasonic unload/replace flow keeps grid visible and auto exits after succ
                 }),
             });
         }
+        if (url.pathname.endsWith('/smt/material_inventory/APP-L')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 2, idno: 'APP-L', material_idno: '88120-0001-S0', material_name: 'TEST-MATERIAL' }),
+            });
+        }
         return route.continue();
     });
 
@@ -1114,6 +1121,13 @@ test('panasonic unload flow by pack (S5555) uses MATERIAL_FINISHED and completes
                 }),
             });
         }
+        if (url.pathname.endsWith('/smt/material_inventory/APP-L')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 2, idno: 'APP-L', material_idno: '88120-0001-S0', material_name: 'TEST-MATERIAL' }),
+            });
+        }
         return route.continue();
     });
 
@@ -1352,6 +1366,13 @@ test('panasonic unload mode keeps replace phase when replacement ERP lookup fail
                 status: 502,
                 contentType: 'application/json',
                 body: JSON.stringify({ detail: 'Bad Gateway' }),
+            });
+        }
+        if (url.pathname.endsWith('/smt/material_inventory/APP-L')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 2, idno: 'APP-L', material_idno: '88120-0001-S0', material_name: 'TEST-MATERIAL' }),
             });
         }
         return route.continue();
