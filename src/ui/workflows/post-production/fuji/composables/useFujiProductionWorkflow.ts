@@ -1,8 +1,8 @@
-/* eslint-disable no-restricted-imports -- [Phase-3 residual] 僅剩 type import，Phase 5 搬至 domain/application 層 */
 import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type GridApi, type GridReadyEvent } from "ag-grid-community"
 import { useDialog } from "naive-ui"
+// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] @/client type imports，Phase 3 移除目標
 import {
   type BoardSideEnum,
   type FujiMounterItemStatRead,
@@ -25,9 +25,11 @@ import {
 } from "@/domain/production/buildFujiProductionRowData"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { useUnloadReplaceFlow } from "@/ui/shared/composables/useUnloadReplaceFlow"
-import { FujiPostProductionRecordApi } from "@/infra/post-production/FujiPostProductionRecordApi"
-import { FujiPostProductionRecordUploader } from "@/application/post-production-feed/FujiPostProductionRecordUploader"
 import { MODE_NAME_TESTING, MODE_NAME_NORMAL, msg } from "@/ui/shared/messageCatalog"
+import {
+  createFujiPostproductionDeps,
+  type FujiPostproductionDeps,
+} from "@/ui/di/fuji/createFujiPostproductionDeps"
 
 function normalizeStageLabel(stage: unknown): string {
   if (stage == null) return ""
@@ -53,7 +55,10 @@ function toUploadSubSlotIdno(value: unknown): string | null {
 }
 
 
-export function useFujiProductionWorkflow() {
+export function useFujiProductionWorkflow(
+  deps: Partial<FujiPostproductionDeps> = {}
+) {
+  const { createUploader } = createFujiPostproductionDeps(deps)
   const route = useRoute()
   const router = useRouter()
   const dialog = useDialog()
@@ -156,8 +161,7 @@ export function useFujiProductionWorkflow() {
 
   // ── Fuji uploader ──────────────────────────────────────────────────────────
 
-  const fujiApi = new FujiPostProductionRecordApi()
-  const fujiUploader = new FujiPostProductionRecordUploader(fujiApi)
+  const fujiUploader = createUploader()
 
   // ── Shared post-production feed flow ───────────────────────────────────────
 
@@ -414,6 +418,7 @@ export function useFujiProductionWorkflow() {
           await fujiUploader.stopProduction(productionUuid.value)
           productionStarted.value = false
           showSuccess(msg.production.stopped)
+          router.push("/smt/fuji-mounter")
         } catch (error) {
           showError("結束生產失敗")
           console.error(error)
@@ -431,7 +436,7 @@ export function useFujiProductionWorkflow() {
   }
 
   function onClickBackArrow() {
-    router.push("/smt/fuji-mounter/")
+    router.push("/smt/fuji-mounter")
   }
 
   // ── Mounted ────────────────────────────────────────────────────────────────
