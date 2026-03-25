@@ -1,6 +1,7 @@
 <script setup lang="ts">
+/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { useDialog } from 'naive-ui'
-import { stopPanasonicProduction } from '@/application/panasonic/production/StopPanasonicProduction'
+import { stopPanasonicProductionStats as stopPanasonicProduction } from '@/infra/panasonic/production/PanasonicProductionApi'
 
 const props = defineProps<{
     uuid: string
@@ -31,7 +32,7 @@ async function stopProduction() {
 }
 
 async function uploadEndProductionTime(uuid: string) {
-    await stopPanasonicProduction(uuid)
+    await stopPanasonicProduction({ uuid, endTime: new Date().toISOString() })
 }
 </script>
 

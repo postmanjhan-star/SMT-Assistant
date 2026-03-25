@@ -15,7 +15,7 @@ import {
     UnfeedReasonEnum,
     SmtService,
 } from '@/client';
-import { startPanasonicProduction } from '@/application/panasonic/production/StartPanasonicProduction'
+import { startPanasonicProductionStats as startPanasonicProduction } from '@/infra/panasonic/production/PanasonicProductionApi'
 import { StartProductionStatsUseCase } from '@/application/preproduction/StartProductionStatsUseCase'
 import type { IpqcInspectionRecord } from '@/domain/mounter/ipqcTypes'
 
