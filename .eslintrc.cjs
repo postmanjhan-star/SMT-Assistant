@@ -73,7 +73,21 @@ module.exports = {
         } ],
       },
     },
-    // Pages/UI 層：不可依賴 infra 或 client 層
+    // Application 層：不可依賴 Infra 層
+    {
+      files: [ "src/application/**/*.ts" ],
+      rules: {
+        "no-restricted-imports": [ "error", {
+          patterns: [
+            {
+              group: [ "@/infra", "@/infra/*", "@/infrastructure", "@/infrastructure/*" ],
+              message: "[Arch] Application 層不可依賴 Infra 層。使用 Port/Deps 介面注入。Phase 5 修復目標。",
+            },
+          ],
+        } ],
+      },
+    },
+    // Pages/UI 層：不可依賴 infra 或 client 層（ui/di/ 除外，見下方例外規則）
     {
       files: [ "src/pages/**/*.ts", "src/pages/**/*.vue", "src/ui/**/*.ts", "src/ui/**/*.vue" ],
       rules: {
@@ -89,6 +103,13 @@ module.exports = {
             },
           ],
         } ],
+      },
+    },
+    // UI DI 層（Composition Root）：允許 import infra，覆蓋上方 Pages/UI 規則
+    {
+      files: [ "src/ui/di/**/*.ts" ],
+      rules: {
+        "no-restricted-imports": [ "off" ],
       },
     },
   ],

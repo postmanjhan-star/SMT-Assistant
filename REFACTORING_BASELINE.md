@@ -11,6 +11,7 @@
 |---|---|---|
 | Pages/UI → client 違規檔案數 | **26** | 0（只留 adapter 層） |
 | Pages/UI → infra 違規檔案數 | **3** | 0 |
+| Application → infra 違規檔案數 | **10**（Phase 5 修復目標）| 0 |
 | Domain → client/infra 違規 | **2**（Phase 3 修復目標，剩 PanasonicFeedRecordCreate）| 0 |
 | 超過 500 行的檔案數 | **7** | ≤ 3 |
 | Unit test 檔案數 | **19** | ↑ 增加 |
@@ -146,6 +147,15 @@ Phase 1 已在所有既有違規檔案加入 `eslint-disable no-restricted-impor
 **追蹤指令**（數字應隨重構進展逐漸趨近 0）：
 ```bash
 grep -r "Phase-1 whitelist" src/ | wc -l
+```
+
+## Phase 5 白名單（eslint-disable 追蹤）
+
+Phase 5 已在所有既有 Application → infra 違規檔案加入 `[Phase-5 whitelist]` 標記，共 10 個。
+
+**追蹤指令**（數字應隨 PR2/3/4 進展逐漸趨近 0）：
+```bash
+grep -r "Phase-5 whitelist" src/ | wc -l
 ```
 
 **規則**：
