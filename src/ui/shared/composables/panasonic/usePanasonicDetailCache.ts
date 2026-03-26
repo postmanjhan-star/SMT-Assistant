@@ -1,13 +1,13 @@
-import { computed, ref, watch } from "vue"
+import { computed } from "vue"
 import type { ComputedRef, Ref } from "vue"
 import type { SlotInputResult } from "@/pages/mounter/panasonic/types/production"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
+import type { PanasonicUnloadRecord, PanasonicSpliceRecord } from "./panasonicDetailTypes"
 import type {
-  PanasonicCacheRow,
-  PanasonicCachePayload,
-  PanasonicUnloadRecord,
-  PanasonicSpliceRecord,
-} from "./panasonicDetailTypes"
+  BaseCachePayload,
+  PreproductionDetailCacheAdapter,
+} from "../core/PreproductionDetailCacheAdapter"
+import { usePreproductionDetailCacheCore } from "../core/usePreproductionDetailCacheCore"
 
 interface PanasonicDetailCacheOptions {
   isTestingMode: boolean
@@ -35,56 +35,23 @@ export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
     onHydrateRows,
   } = options
 
-  const cacheEnabled = ref(true)
-  const hydratedKey = ref<string | null>(null)
-  const readyToPersist = ref(false)
+  const adapter: PreproductionDetailCacheAdapter = {
+    storageKey: computed(() => {
+      if (typeof window === "undefined") return ""
+      const mode = isTestingMode ? "testing" : "normal"
+      return [
+        "smt:panasonic:preproduction",
+        workOrderIdno.value ?? "",
+        productIdno.value ?? "",
+        mounterIdno.value ?? "",
+        machineSideQuery.value ?? "",
+        workSheetSideQuery.value ?? "",
+        mode,
+      ].join("|")
+    }),
 
-  const storageKey = computed(() => {
-    if (typeof window === "undefined") return ""
-    const mode = isTestingMode ? "testing" : "normal"
-    return [
-      "smt:panasonic:preproduction",
-      workOrderIdno.value ?? "",
-      productIdno.value ?? "",
-      mounterIdno.value ?? "",
-      machineSideQuery.value ?? "",
-      workSheetSideQuery.value ?? "",
-      mode,
-    ].join("|")
-  })
-
-  function readCache(key: string): PanasonicCachePayload | null {
-    if (typeof window === "undefined") return null
-    if (!key) return null
-    const raw = localStorage.getItem(key)
-    if (!raw) return null
-    try {
-      return JSON.parse(raw) as PanasonicCachePayload
-    } catch {
-      return null
-    }
-  }
-
-  function writeCache() {
-    if (typeof window === "undefined") return
-    if (!cacheEnabled.value) return
-    if (!storageKey.value) return
-    const cachedMaterialResult = materialInventoryResult.value
-      ? {
-          success: materialInventoryResult.value.success,
-          materialInventory: materialInventoryResult.value.materialInventory
-            ? {
-                idno: materialInventoryResult.value.materialInventory.idno,
-                remark: materialInventoryResult.value.materialInventory.remark,
-              }
-            : null,
-          matchedRows: materialInventoryResult.value.matchedRows ?? null,
-        }
-      : null
-
-    const payload: PanasonicCachePayload = {
-      version: 1,
-      rows: (rowData.value ?? []).map((row: any) => ({
+    serializeRow(row: any) {
+      return {
         id: row.id,
         slotIdno: row.slotIdno,
         subSlotIdno: row.subSlotIdno ?? null,
@@ -94,122 +61,59 @@ export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
         appendedMaterialInventoryIdno: row.appendedMaterialInventoryIdno ?? null,
         firstAppendTime: row.firstAppendTime ?? null,
         remark: row.remark ?? "",
-      })),
-      unloadRecords: pendingUnloadRecords.value,
-      spliceRecords: pendingSpliceRecords.value,
-      ipqcRecords: pendingIpqcRecords.value,
-      materialInventoryResult: cachedMaterialResult,
-      inputs: {
-        material: materialInputValue.value,
-        slot: slotInputValue.value,
-      },
-    }
-    try {
-      localStorage.setItem(storageKey.value, JSON.stringify(payload))
-    } catch {
-      return
-    }
-  }
-
-  function clearCache() {
-    if (typeof window === "undefined") return
-    if (!storageKey.value) return
-    localStorage.removeItem(storageKey.value)
-  }
-
-  function persistNow() {
-    if (!readyToPersist.value) return
-    if (!cacheEnabled.value) return
-    writeCache()
-  }
-
-  function hydrateFromCache(key: string) {
-    const cached = readCache(key)
-    if (!cached) {
-      hydratedKey.value = key
-      return
-    }
-
-    const cachedById = new Map<number, PanasonicCacheRow>()
-    const cachedBySlot = new Map<string, PanasonicCacheRow>()
-    for (const row of cached.rows ?? []) {
-      if (typeof row.id === "number") cachedById.set(row.id, row)
-      if (row.slotIdno != null) {
-        const slotKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
-        cachedBySlot.set(slotKey, row)
       }
-    }
+    },
 
-    const nextRows = (rowData.value ?? []).map((row: any) => {
-      const rowKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
-      const cachedRow = cachedById.get(row.id) ?? cachedBySlot.get(rowKey)
-      if (!cachedRow) return row
-      const next = { ...row }
-      if ("correct" in cachedRow) next.correct = cachedRow.correct ?? null
-      if ("operatorIdno" in cachedRow) next.operatorIdno = cachedRow.operatorIdno ?? null
-      if ("materialInventoryIdno" in cachedRow)
-        next.materialInventoryIdno = cachedRow.materialInventoryIdno ?? null
+    serializeMaterialAsPayloadFields() {
+      const v = materialInventoryResult.value
+      return {
+        materialInventoryResult: v
+          ? {
+              success: v.success,
+              materialInventory: v.materialInventory
+                ? { idno: v.materialInventory.idno, remark: v.materialInventory.remark }
+                : null,
+              matchedRows: v.matchedRows ?? null,
+            }
+          : null,
+      }
+    },
+
+    toAlternativeKey(cachedRow) {
+      const slotIdno = cachedRow.slotIdno as string | null | undefined
+      if (slotIdno == null) return null
+      return `${slotIdno}-${(cachedRow.subSlotIdno as string | null | undefined) ?? ""}`
+    },
+
+    toLiveRowAlternativeKey(row: any) {
+      return `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+    },
+
+    hydrateExtraFields(next: any, cachedRow) {
       if ("appendedMaterialInventoryIdno" in cachedRow)
-        next.appendedMaterialInventoryIdno = cachedRow.appendedMaterialInventoryIdno ?? ""
+        next.appendedMaterialInventoryIdno = (cachedRow.appendedMaterialInventoryIdno as string | null | undefined) ?? ""
       if ("firstAppendTime" in cachedRow)
-        next.firstAppendTime = cachedRow.firstAppendTime ?? null
-      if ("remark" in cachedRow) next.remark = cachedRow.remark ?? ""
-      return next
-    })
+        next.firstAppendTime = (cachedRow.firstAppendTime as string | null | undefined) ?? null
+    },
 
-    rowData.value = nextRows
-    onHydrateRows(nextRows)
-
-    if ("materialInventoryResult" in cached) {
-      materialInventoryResult.value = (cached.materialInventoryResult ?? null) as SlotInputResult | null
-    }
-
-    if (cached.inputs) {
-      materialInputValue.value = cached.inputs.material ?? ""
-      slotInputValue.value = cached.inputs.slot ?? ""
-    }
-
-    if (cached.unloadRecords) pendingUnloadRecords.value = cached.unloadRecords
-    if (cached.spliceRecords) pendingSpliceRecords.value = cached.spliceRecords
-    if (cached.ipqcRecords) pendingIpqcRecords.value = cached.ipqcRecords
-
-    hydratedKey.value = key
+    hydrateMaterial(payload: BaseCachePayload) {
+      if ("materialInventoryResult" in payload)
+        materialInventoryResult.value = (payload.materialInventoryResult ?? null) as SlotInputResult | null
+    },
   }
 
-  watch(
-    [storageKey, () => rowData.value.length],
-    ([key, len]) => {
-      if (!key) return
-      if (len <= 0) return
-      if (hydratedKey.value === key) return
-      hydrateFromCache(key)
-      readyToPersist.value = true
-    },
-    { immediate: true }
-  )
-
-  watch(
-    () => productionStarted.value,
-    (started) => {
-      if (!started) return
-      cacheEnabled.value = false
-      clearCache()
-    }
-  )
-
-  watch(
-    [
-      () => rowData.value,
-      materialInventoryResult,
+  return usePreproductionDetailCacheCore(
+    {
+      rowData,
+      materialRef: materialInventoryResult as Ref<unknown>,
       materialInputValue,
       slotInputValue,
-      pendingUnloadRecords,
-      pendingSpliceRecords,
+      pendingUnloadRecords: pendingUnloadRecords as Ref<unknown[]>,
+      pendingSpliceRecords: pendingSpliceRecords as Ref<unknown[]>,
       pendingIpqcRecords,
-    ],
-    () => { persistNow() },
-    { deep: true }
+      productionStarted,
+      onHydrateRows,
+    },
+    adapter,
   )
-
-  return { cacheEnabled, persistNow, clearCache }
 }
