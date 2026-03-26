@@ -1,38 +1,11 @@
 ﻿import { test, expect, Page, type TestInfo } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
+import { setupAuthToken } from './helpers/auth';
+import { readCsvRecords, expectLatestMessage, type ScanRecord } from './helpers/scan';
+import { mockSwitchUserApi } from './helpers/scanLogin';
 const HEADED_VISUAL_STEP_DELAY_MS = 450;
 
 test.beforeEach(async ({ page }) => {
-    // 呼叫真實 login API，取得有效 token
-    const loginRes = await page.request.post('http://localhost/api/session/login', {
-        form: { username: 'operator', password: 'operatorpassword' },
-    });
-    if (!loginRes.ok()) {
-        const body = await loginRes.text();
-        throw new Error(`Login failed (${loginRes.status()}): ${body.substring(0, 300)}`);
-    }
-    let loginBody: any;
-    try {
-        loginBody = await loginRes.json();
-    } catch (e) {
-        const text = await loginRes.text();
-        throw new Error(`Failed to parse login response JSON: ${text.substring(0, 300)}`);
-    }
-    const { access_token, token_type } = loginBody;
-
-    // 在頁面載入前注入至 localStorage
-    await page.addInitScript(({ access_token, token_type }) => {
-        localStorage.setItem('authorized', JSON.stringify({
-            OAuth2PasswordBearer: {
-                schema: { flow: 'password', tokenUrl: '', scopes: {}, type: 'oauth2' },
-                token: { access_token, token_type },
-                username: 'operator',
-                employee: { idno: 'OP001', full_name: 'operator' },
-            },
-            HTTPBasic: null,
-        }));
-    }, { access_token, token_type });
+    await setupAuthToken(page);
 });
 
 function shouldUseVisualStepDelay(testInfo: TestInfo) {
@@ -47,37 +20,10 @@ async function waitVisualStepIfNeeded(page: Page, testInfo: TestInfo) {
     await page.waitForTimeout(HEADED_VISUAL_STEP_DELAY_MS);
 }
 
-type ScanRecord = { material: string; slot: string };
-
 const FUJI_NORMAL_URL =
     'http://localhost/smt/fuji-mounter/XP2B1/ZZ9999?product_idno=40X85-009B-TEST_SCAN&work_sheet_side=TOP';
 const FUJI_TESTING_URL =
     'http://localhost/smt/fuji-mounter/XP2B1/ZZ9999?product_idno=40X85-009B-TEST_SCAN&work_sheet_side=TOP&testing_mode=1&testing_product_idno=40X85-009B-TEST_SCAN';
-
-function readCsvRecords(): ScanRecord[] {
-    const csvPath = path.join(
-        process.cwd(),
-        'tests/e2e/data/fuji_mounter_feed_records.csv'
-    );
-
-    if (!fs.existsSync(csvPath)) {
-        console.warn(`CSV file not found at ${csvPath}, returning empty list.`);
-        return [];
-    }
-
-    const content = fs.readFileSync(csvPath, 'utf-8');
-    const lines = content.split(/\r?\n/);
-    const records: ScanRecord[] = [];
-
-    for (const line of lines) {
-        const parts = line.split(',');
-        if (parts.length >= 2 && parts[0].trim()) {
-            records.push({ material: parts[0].trim(), slot: parts[1].trim() });
-        }
-    }
-
-    return records;
-}
 
 async function waitForSlotFocus(
     page: Page,
@@ -109,16 +55,6 @@ async function scanOne(page: Page, material: string, slot: string) {
     await slotInput.press('Enter');
 }
 
-async function expectLatestMessage(
-    page: Page,
-    testId: 'error-message' | 'warning-message' | 'info-message' | 'success-message',
-    text: string | RegExp
-) {
-    const message = page.getByTestId(testId).last();
-    await expect(message).toBeVisible();
-    await expect(message).toContainText(text);
-}
-
 async function scanAll(page: Page, records: ScanRecord[]) {
     for (const [index, record] of records.entries()) {
         console.log(`正在處理第 ${index + 1}/${records.length} 筆: ${record.material}`);
@@ -133,7 +69,7 @@ async function scanAll(page: Page, records: ScanRecord[]) {
 test('test scan fuji mounter feed records in normal mode', async ({ page }) => {
     test.setTimeout(300000);
 
-    const records = readCsvRecords();
+    const records = readCsvRecords('tests/e2e/data/fuji_mounter_feed_records.csv');
     console.log(`共載入 ${records.length} 筆資料`);
 
     await page.goto(FUJI_NORMAL_URL + '&mock_scan=1');
@@ -178,7 +114,7 @@ test('test scan fuji mounter feed records in testing mode', async ({ page }) => 
         return route.continue();
     });
 
-    const records = readCsvRecords();
+    const records = readCsvRecords('tests/e2e/data/fuji_mounter_feed_records.csv');
     console.log(`總共 ${records.length} 筆資料`);
 
     await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
@@ -258,7 +194,7 @@ test('test scan fuji mounter feed records in testing mode and append after produ
         return route.continue();
     });
 
-    const records = readCsvRecords();
+    const records = readCsvRecords('tests/e2e/data/fuji_mounter_feed_records.csv');
     await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
     await scanAll(page, records);
 
@@ -1453,26 +1389,6 @@ test('test virtual material force warning binding in testing mode', async ({ pag
 });
 
 // ─── Scan Login (S1111) ───────────────────────────────────────────────────────
-
-function mockSwitchUserApi(page: Page, status = 200) {
-    return page.route('**/smt/operator/switch', (route) =>
-        status === 200
-            ? route.fulfill({
-                  status: 200,
-                  contentType: 'application/json',
-                  body: JSON.stringify({
-                      access_token: 'switched-token',
-                      token_type: 'bearer',
-                      employee: { idno: '1001', full_name: 'Switched User' },
-                  }),
-              })
-            : route.fulfill({
-                  status,
-                  contentType: 'application/json',
-                  body: JSON.stringify({ detail: 'Unauthorized' }),
-              })
-    );
-}
 
 function mockFujiProductionActiveStats(page: Page, uuid: string) {
     return page.route(`**/smt/fuji_mounter_item/stats/${uuid}`, (route) =>
