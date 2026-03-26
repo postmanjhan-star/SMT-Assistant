@@ -263,11 +263,11 @@ async function onSlotSubmit(payload: {
         r.slotIdno === payload.slot &&
         (r.subSlotIdno ?? "") === (payload.subSlot ?? "")
     )
-    let correctState: "true" | "warning"
+    let correctState: "MATCHED_MATERIAL_PACK" | "TESTING_MATERIAL_PACK"
     if (isMatched || (isMockMode && !isTestingMode)) {
-      correctState = "true"
+      correctState = "MATCHED_MATERIAL_PACK"
     } else if (isTestingMode) {
-      correctState = "warning"
+      correctState = "TESTING_MATERIAL_PACK"
     } else {
       showError(`料號不符：無法對站位 ${payload.slotIdno} 進行接料`)
       resetInputsAfterSlotSubmit()
@@ -280,7 +280,7 @@ async function onSlotSubmit(payload: {
     )
     targetRow.operatorIdno = currentUsername.value || null
     targetRow.firstAppendTime = targetRow.firstAppendTime ?? new Date().toISOString()
-    if (correctState === "warning") targetRow.remark = "[測試模式接料]"
+    if (correctState === "TESTING_MATERIAL_PACK") targetRow.remark = "[測試模式接料]"
     updateRowInGrid(targetRow)
 
     pendingSpliceRecords.value = [

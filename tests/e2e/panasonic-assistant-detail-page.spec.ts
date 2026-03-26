@@ -1342,6 +1342,228 @@ test('panasonic unload mode keeps replace phase when replacement ERP lookup fail
     await expect(page.getByTestId('exit-unload-mode-btn')).toBeVisible();
 });
 
+test('panasonic S5555 succeeds when two slots share the same material_idno but have distinct pack codes (production page)', async ({ page }, testInfo) => {
+    const productionUuid = 'unload-panasonic-same-mat-idno-prod';
+    const now = new Date().toISOString();
+    const mockStats = [
+        {
+            id: 1,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_idno: '88120-0001',
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 1000,
+                    feed_record_id: 1000,
+                    operation_time: now,
+                    material_pack_code: 'DUP-MAT-A',
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+        {
+            id: 2,
+            work_order_no: 'ZZ9999',
+            product_idno: '40Y85-010A-M3',
+            machine_idno: 'A1-NPM-W2',
+            machine_side: 'FRONT',
+            board_side: 'DUPLEX',
+            slot_idno: '10009',
+            sub_slot_idno: 'R',
+            material_idno: '88120-0001', // same material_idno as slot L
+            production_end: null,
+            produce_mode: 'NORMAL_PRODUCE_MODE',
+            feed_records: [
+                {
+                    id: 2000,
+                    feed_record_id: 2000,
+                    operation_time: now,
+                    material_pack_code: 'DUP-MAT-B', // different pack code
+                    feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                    check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+                },
+            ],
+        },
+    ];
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    const unfeedRequests: any[] = [];
+    const feedRequests: any[] = [];
+    await page.route('**/smt/panasonic_mounter_item/stat/roll', async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST') return route.continue();
+        const body = request.postDataJSON();
+        if (body?.operation_type === 'UNFEED') unfeedRequests.push(body);
+        if (body?.operation_type === 'FEED') feedRequests.push(body);
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
+    });
+
+    await page.route('**/smt/material_inventory/*', (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.endsWith('/smt/material_inventory/DUP-MAT-A')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 1, idno: 'DUP-MAT-A', material_idno: '88120-0001', material_name: 'TEST-MATERIAL' }),
+            });
+        }
+        if (url.pathname.endsWith('/smt/material_inventory/DUP-MAT-REPLACE')) {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ id: 3, idno: 'DUP-MAT-REPLACE', material_idno: '88120-0001', material_name: 'TEST-MATERIAL' }),
+            });
+        }
+        return route.continue();
+    });
+
+    await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = getMainMaterialInput(page);
+    await materialInput.fill('S5555');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(page.getByTestId('exit-unload-mode-btn')).toBeVisible();
+
+    const unloadMaterialInput = page.getByTestId('unload-material-input');
+    const unloadSlotInput = page.getByTestId('unload-slot-input');
+    await expect(unloadMaterialInput).toBeFocused();
+
+    // scanning DUP-MAT-A should uniquely find slot 10008-L (not "多個站位" error)
+    await unloadMaterialInput.fill('DUP-MAT-A');
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect.poll(() => unfeedRequests.length).toBe(1);
+    expect(unfeedRequests[0]).toEqual(
+        expect.objectContaining({
+            stat_item_id: 1,
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_pack_code: 'DUP-MAT-A',
+            operation_type: 'UNFEED',
+            unfeed_reason: 'MATERIAL_FINISHED',
+        })
+    );
+
+    const row = page.locator('[row-id="10008-L"]');
+    await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
+    await expect(unloadMaterialInput).toBeFocused();
+
+    await unloadMaterialInput.fill('DUP-MAT-REPLACE');
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(unloadSlotInput).toBeFocused();
+
+    await unloadSlotInput.fill('10008-L');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect.poll(() => feedRequests.length).toBe(1);
+    expect(feedRequests[0]).toEqual(
+        expect.objectContaining({
+            stat_item_id: 1,
+            slot_idno: '10008',
+            sub_slot_idno: 'L',
+            material_pack_code: 'DUP-MAT-REPLACE',
+            operation_type: 'FEED',
+        })
+    );
+
+    await expect(row.locator('[col-id="correct"]')).toContainText('✅');
+    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText('DUP-MAT-REPLACE');
+    await expect(page.getByTestId('exit-unload-mode-btn')).toHaveCount(0);
+});
+
+test('panasonic S5555 succeeds when two slots share the same material_idno but have distinct pack codes (detail page)', async ({ page }, testInfo) => {
+    const mockMounterFile = {
+        file_name: 'test',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        product_idno: '40Y85-010A-M3',
+        product_ver: '1',
+        mounter_idno: 'A1-NPM-W2',
+        board_side: 'DUPLEX',
+        panasonic_mounter_file_items: [
+            { id: 1, slot_idno: '10008', sub_slot_idno: 'L', smd_model_idno: 'SAME-MAT-001', feeder_idno: 'F1', smd_description: 'Test', smd_quantity: 1 },
+            { id: 2, slot_idno: '10009', sub_slot_idno: 'R', smd_model_idno: 'SAME-MAT-001', feeder_idno: 'F2', smd_description: 'Test', smd_quantity: 1 },
+        ],
+    };
+
+    await page.route('**/smt/panasonic_mounter/A1-NPM-W2/ZZ9999', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockMounterFile) })
+    );
+
+    await page.goto('http://localhost/smt/panasonic-mounter/A1-NPM-W2/ZZ9999?work_sheet_side=DUPLEX&machine_side=1%2B2&product_idno=40Y85-010A-M3&mock_scan=1');
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const materialInput = getMainMaterialInput(page);
+    const slotInput = getMainSlotInput(page);
+
+    // scan first material → slot 10008-L
+    await materialInput.fill('DUP-DETAIL-PACK-A');
+    await materialInput.press('Enter');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
+    await slotInput.fill('10008-L');
+    await slotInput.press('Enter');
+    await expect(materialInput).toBeFocused({ timeout: 5000 });
+
+    // scan second material → slot 10009-R
+    await materialInput.fill('DUP-DETAIL-PACK-B');
+    await materialInput.press('Enter');
+    await expect(slotInput).toBeFocused({ timeout: 10000 });
+    await slotInput.fill('10009-R');
+    await slotInput.press('Enter');
+    await expect(materialInput).toBeFocused({ timeout: 5000 });
+
+    // verify initial state: both rows have their pack codes
+    const row10008L = page.locator('[row-id="10008-L"]');
+    const row10009R = page.locator('[row-id="10009-R"]');
+    await expect(row10008L.locator('[col-id="materialInventoryIdno"]')).toContainText('DUP-DETAIL-PACK-A');
+    await expect(row10009R.locator('[col-id="materialInventoryIdno"]')).toContainText('DUP-DETAIL-PACK-B');
+
+    // trigger S5555 unload mode
+    await materialInput.fill('S5555');
+    await materialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+
+    const unloadMaterialInput = page.locator('#detail-unload-material-input');
+    const unloadSlotInput = page.locator('#detail-unload-slot-input');
+    await expect(unloadMaterialInput).toBeVisible({ timeout: 5000 });
+
+    // scanning DUP-DETAIL-PACK-A uniquely finds 10008-L (not "多個站位" error)
+    await unloadMaterialInput.fill('DUP-DETAIL-PACK-A');
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(row10008L.locator('[col-id="correct"]')).toContainText('⛔', { timeout: 5000 });
+
+    // scan replacement pack code (mock mode → auto MATCHED, slot input focused)
+    await unloadMaterialInput.fill('DUP-DETAIL-REPLACE');
+    await unloadMaterialInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(unloadSlotInput).toBeFocused({ timeout: 5000 });
+
+    // confirm slot → row shows ✅, unload mode exits automatically
+    await unloadSlotInput.fill('10008-L');
+    await unloadSlotInput.press('Enter');
+    await waitVisualStepIfNeeded(page, testInfo);
+    await expect(row10008L.locator('[col-id="correct"]')).toContainText('✅', { timeout: 5000 });
+    await expect(unloadMaterialInput).not.toBeVisible();
+});
+
 test('test virtual material force warning binding in testing mode', async ({ page }) => {
     const virtualMaterial = 'virtual-no-match-panasonic';
     await page.route('**/smt/material_inventory/*', (route) => {

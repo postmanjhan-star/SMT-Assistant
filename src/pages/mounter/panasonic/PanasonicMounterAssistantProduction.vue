@@ -495,13 +495,13 @@ async function handleIpqcSlotSubmit() {
 function handleModeTriggerFromNormalInput(code: string): boolean {
   if (handleUserSwitchTrigger(code)) return true
   if (code === MATERIAL_UNLOAD_TRIGGER) {
-    isIpqcMode.value = false
+    if (isIpqcMode.value) exitIpqcMode()
     enterUnloadMode("pack_auto_slot")
     return true
   }
 
   if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-    isIpqcMode.value = false
+    if (isIpqcMode.value) exitIpqcMode()
     enterUnloadMode("force_single_slot")
     return true
   }
