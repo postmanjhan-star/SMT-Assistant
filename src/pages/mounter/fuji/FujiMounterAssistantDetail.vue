@@ -1,11 +1,10 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NTag, NModal, NInput } from "naive-ui"
-import { ref, computed, watch, nextTick, onMounted } from "vue"
+import { ref, computed, nextTick, onMounted } from "vue"
 import { useMeta } from "vue-meta"
 import { useRoute } from "vue-router"
 
@@ -15,64 +14,19 @@ import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
 import { parseFujiSlotIdno, parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiDetailPage } from "@/ui/workflows/preproduction/fuji/composables/useFujiDetailPage"
-import type { FujiUnloadRecord } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
-import { CheckMaterialMatchEnum, SmtService } from "@/client"
 import { appendMaterialCode } from "@/domain/production/PostProductionFeedRules"
-import type { FujiSpliceRecord } from "@/ui/workflows/preproduction/fuji/composables/useFujiPreproductionLifecycle"
-import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
-import {
-  MATERIAL_UNLOAD_TRIGGER,
-  MATERIAL_FORCE_UNLOAD_TRIGGER,
-  MATERIAL_IPQC_TRIGGER,
-  MATERIAL_EXIT_TRIGGER,
-  MATERIAL_UNLOAD_MODE_NAME,
-  MATERIAL_FORCE_UNLOAD_MODE_NAME,
-  MATERIAL_IPQC_MODE_NAME,
-  MATERIAL_FEED_MODE_NAME,
-  USER_SWITCH_TRIGGER,
-} from "@/domain/mounter/operationModes"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
 import { useAuthStore } from "@/stores/authStore"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
+import { useFujiPreproductionOperationFlows } from "@/ui/shared/composables/fuji/useFujiPreproductionOperationFlows"
+import { useFujiDetailCache } from "@/ui/shared/composables/fuji/useFujiDetailCache"
+import type {
+  FujiPreproductionUnloadRecord,
+  FujiPreproductionSpliceRecord,
+} from "@/ui/shared/composables/fuji/fujiPreproductionDetailTypes"
 
 useMeta({ title: "Fuji Mounter Assistant" })
-
-type UnloadModeType = "pack_auto_slot" | "force_single_slot"
-type UnloadReplacePhase =
-  | "unload_scan"
-  | "force_unload_slot_scan"
-  | "replace_material_scan"
-  | "replace_slot_scan"
-
-type FujiCacheRow = {
-  id?: number
-  key?: string
-  correct?: unknown
-  operatorIdno?: string | null
-  materialInventoryIdno?: string | null
-  appendedMaterialInventoryIdno?: string
-  remark?: string
-}
-
-type FujiCachePayload = {
-  version: 1
-  rows: FujiCacheRow[]
-  unloadRecords?: FujiUnloadRecord[]
-  spliceRecords?: FujiSpliceRecord[]
-  ipqcRecords?: IpqcInspectionRecord[]
-  materialInventory?: {
-    id?: number | null
-    idno: string
-    material_id?: number | null
-    material_idno: string
-    material_name?: string
-  } | null
-  inputs?: {
-    material?: string
-    slot?: string
-  }
-}
 
 const route = useRoute()
 const isMockMode = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === "1")
@@ -80,34 +34,15 @@ const effectiveScan = isMockMode ? createMockScan() : undefined
 
 const slotIdnoInput = ref<{ focus: () => void } | null>(null)
 const materialInventoryInput = ref<{ focus?: () => void; clear?: () => void } | null>(null)
-const unloadMaterialInput = ref<HTMLInputElement | null>(null)
-const unloadSlotInput = ref<HTMLInputElement | null>(null)
 const materialInputValue = ref("")
 const slotInputValue = ref("")
-const cacheEnabled = ref(true)
-const hydratedKey = ref<string | null>(null)
-const readyToPersist = ref(false)
 const gridApi = ref<GridApi | null>(null)
 const columnApi = ref<ColumnApi | null>(null)
 const pendingGridSync = ref(false)
 
-const isUnloadMode = ref(false)
-const isIpqcMode = ref(false)
-const ipqcMaterialValue = ref("")
-const ipqcSlotValue = ref("")
-const ipqcMaterialInput = ref<HTMLInputElement | null>(null)
-const ipqcSlotInput = ref<HTMLInputElement | null>(null)
-const ipqcSavedCorrectStates = ref<Map<string, unknown>>(new Map())
+const pendingUnloadRecords = ref<FujiPreproductionUnloadRecord[]>([])
+const pendingSpliceRecords = ref<FujiPreproductionSpliceRecord[]>([])
 const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
-const unloadModeType = ref<UnloadModeType>("pack_auto_slot")
-const unloadReplacePhase = ref<UnloadReplacePhase>("unload_scan")
-const unloadMaterialValue = ref("")
-const unloadSlotValue = ref("")
-const resolvedUnloadSlot = ref<{ slot: number; stage: string } | null>(null)
-const replacementMaterialPackCode = ref("")
-const replacementCorrectState = ref<CheckMaterialMatchEnum | null>(null)
-const pendingUnloadRecords = ref<FujiUnloadRecord[]>([])
-const pendingSpliceRecords = ref<FujiSpliceRecord[]>([])
 
 const {
   workOrderIdno,
@@ -133,6 +68,7 @@ const {
   resetMaterialState,
   handleSlotSubmit,
   showError,
+  fetchMaterialInventory,
 } = useFujiDetailPage({
   focusSlotInput: () => slotIdnoInput.value?.focus(),
   getPendingUnloadRecords: () => pendingUnloadRecords.value,
@@ -175,259 +111,97 @@ onMounted(() => {
   autoOpenIfUnauthenticated()
 })
 
-// ─── Computed ────────────────────────────────────────────────────────────────
+// ─── Local scan helpers (passed to composables) ───────────────────────────────
 
-const operationModeName = computed(() => {
-  if (isUnloadMode.value) {
-    return unloadModeType.value === "force_single_slot"
-      ? MATERIAL_FORCE_UNLOAD_MODE_NAME
-      : MATERIAL_UNLOAD_MODE_NAME
-  }
-  if (isIpqcMode.value) return MATERIAL_IPQC_MODE_NAME
-  return MATERIAL_FEED_MODE_NAME
-})
-
-const isUnloadScanPhase = computed(() => unloadReplacePhase.value === "unload_scan")
-const isForceUnloadSlotPhase = computed(
-  () => unloadReplacePhase.value === "force_unload_slot_scan"
-)
-const isReplaceMaterialPhase = computed(
-  () => unloadReplacePhase.value === "replace_material_scan"
-)
-const isReplaceSlotPhase = computed(() => unloadReplacePhase.value === "replace_slot_scan")
-
-const unloadMaterialLabel = computed(() => {
-  if (isUnloadScanPhase.value) return "卸除捲號（自動定位）"
-  if (isReplaceMaterialPhase.value) return "更換捲號"
-  return "更換捲號（待掃站位）"
-})
-
-const unloadMaterialPlaceholder = computed(() => {
-  if (isUnloadScanPhase.value) return "請掃描要卸除的捲號"
-  if (isForceUnloadSlotPhase.value) return "請先掃描站位進行強制卸除"
-  if (isReplaceMaterialPhase.value) return "請掃描要更換的捲號"
-  return replacementMaterialPackCode.value
-})
-
-const hasUnloadMaterial = computed(() => {
-  if (isReplaceSlotPhase.value) return replacementMaterialPackCode.value.trim().length > 0
-  return unloadMaterialValue.value.trim().length > 0
-})
-
-const isUnloadMaterialInputDisabled = computed(
-  () => isReplaceSlotPhase.value || isForceUnloadSlotPhase.value
-)
-
-const isUnloadSlotInputDisabled = computed(() => {
-  if (isForceUnloadSlotPhase.value) return false
-  if (isReplaceSlotPhase.value) return !hasUnloadMaterial.value
-  return true
-})
-
-const unloadSlotLabel = computed(() =>
-  isForceUnloadSlotPhase.value ? "卸除站位" : "站位編號"
-)
-
-const resolvedUnloadSlotIdno = computed(() => {
-  if (!resolvedUnloadSlot.value) return ""
-  const { slot, stage } = resolvedUnloadSlot.value
-  return `${mounterIdno.value}-${stage}-${slot}`
-})
-
-const unloadSlotPlaceholder = computed(() => {
-  if (isForceUnloadSlotPhase.value) return "請掃描要卸除的站位"
-  if (isReplaceSlotPhase.value) return `請掃描原卸料站位 ${resolvedUnloadSlotIdno.value}`
-  return "請先掃描更換捲號"
-})
-
-// ─── Cache ────────────────────────────────────────────────────────────────────
-
-const storageKey = computed(() => {
-  if (typeof window === "undefined") return ""
-  const testingProductValue = route.query.testing_product_idno
-  const testingProductIdno = Array.isArray(testingProductValue)
-    ? String(testingProductValue[0] ?? "")
-    : String(testingProductValue ?? "")
-  const mode = isTestingMode.value ? "testing" : "normal"
-  return [
-    "smt:fuji:preproduction",
-    workOrderIdno.value ?? "",
-    productIdno.value ?? "",
-    mounterIdno.value ?? "",
-    boardSide.value ?? "",
-    mode,
-    testingProductIdno,
-  ].join("|")
-})
-
-function toRowKey(row: any) {
-  return `${row.mounterIdno}-${row.stage}-${row.slot}`
+function focusMaterialInput() {
+  nextTick(() => materialInventoryInput.value?.focus?.())
 }
 
-function readCache(key: string): FujiCachePayload | null {
-  if (typeof window === "undefined") return null
-  if (!key) return null
-  const raw = localStorage.getItem(key)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as FujiCachePayload
-  } catch {
-    return null
-  }
+function clearNormalScanState() {
+  materialInputValue.value = ""
+  slotInputValue.value = ""
+  resetMaterialState()
 }
 
-function writeCache() {
-  if (typeof window === "undefined") return
-  if (!cacheEnabled.value) return
-  if (!storageKey.value) return
-  const cachedMaterial = materialInventory.value
-    ? {
-        id: materialInventory.value.id ?? null,
-        idno: materialInventory.value.idno,
-        material_id: materialInventory.value.material_id ?? null,
-        material_idno: materialInventory.value.material_idno,
-        material_name: materialInventory.value.material_name ?? "",
-      }
-    : null
+// ─── Cache composable ─────────────────────────────────────────────────────────
 
-  const payload: FujiCachePayload = {
-    version: 1,
-    rows: (rowData.value ?? []).map((row: any) => ({
-      id: row.id,
-      key: toRowKey(row),
-      correct: row.correct,
-      operatorIdno: row.operatorIdno ?? null,
-      materialInventoryIdno: row.materialInventoryIdno ?? null,
-      appendedMaterialInventoryIdno: row.appendedMaterialInventoryIdno ?? undefined,
-      remark: row.remark ?? "",
-    })),
-    unloadRecords: pendingUnloadRecords.value,
-    spliceRecords: pendingSpliceRecords.value,
-    ipqcRecords: pendingIpqcRecords.value,
-    materialInventory: cachedMaterial,
-    inputs: {
-      material: materialInputValue.value,
-      slot: slotInputValue.value,
-    },
-  }
-  try {
-    localStorage.setItem(storageKey.value, JSON.stringify(payload))
-  } catch {
+const testingProductIdno = computed(() => {
+  const val = route.query.testing_product_idno
+  return Array.isArray(val) ? String(val[0] ?? "") : String(val ?? "")
+})
+
+const { persistNow } = useFujiDetailCache({
+  isTestingMode,
+  workOrderIdno: workOrderIdno as any,
+  productIdno: productIdno as any,
+  mounterIdno: mounterIdno as any,
+  boardSideQuery: boardSide as any,
+  testingProductIdno,
+  rowData,
+  materialInventory,
+  materialInputValue,
+  slotInputValue,
+  pendingUnloadRecords,
+  pendingSpliceRecords,
+  pendingIpqcRecords,
+  productionStarted,
+  onHydrateRows: (rows) => syncGridRows(rows),
+})
+
+// ─── Operation flows composable ───────────────────────────────────────────────
+
+const {
+  isUnloadMode, isIpqcMode, unloadModeType,
+  operationModeName,
+  unloadMaterialLabel, unloadMaterialPlaceholder,
+  isUnloadMaterialInputDisabled, isUnloadSlotInputDisabled,
+  unloadSlotLabel, unloadSlotPlaceholder,
+  unloadMaterialValue, unloadSlotValue,
+  ipqcMaterialValue, ipqcSlotValue,
+  unloadMaterialInput, unloadSlotInput, ipqcMaterialInput, ipqcSlotInput,
+  exitUnloadMode, exitIpqcMode,
+  handleBeforeMaterialScan,
+  handleUnloadMaterialEnter, handleUnloadSlotSubmit,
+  handleIpqcMaterialSubmit, handleIpqcSlotSubmit,
+  findRowBySlotIdno, updateRowInGrid,
+} = useFujiPreproductionOperationFlows({
+  getGridApi: () => gridApi.value as any,
+  getColumnApi: () => columnApi.value as any,
+  rowData,
+  mounterIdno: mounterIdno as any,
+  currentUsername: currentUsername as any,
+  isTestingMode,
+  isMockMode,
+  fetchMaterialInventory,
+  showError,
+  handleUserSwitchTrigger,
+  clearNormalScanState,
+  focusMaterialInput,
+  persistNow: () => persistNow(),
+  pendingUnloadRecords,
+  pendingSpliceRecords,
+  pendingIpqcRecords,
+})
+
+// ─── Grid helpers ─────────────────────────────────────────────────────────────
+
+function syncGridRows(rows: unknown[]) {
+  if (!gridApi.value) {
+    pendingGridSync.value = true
     return
   }
+  gridApi.value.setRowData(rows as any)
 }
 
-function clearCache() {
-  if (typeof window === "undefined") return
-  if (!storageKey.value) return
-  localStorage.removeItem(storageKey.value)
+function onGridReadyWithCache(e: GridReadyEvent) {
+  gridApi.value = e.api
+  columnApi.value = e.columnApi
+  onGridReady(e)
+  if (pendingGridSync.value) {
+    pendingGridSync.value = false
+    syncGridRows(rowData.value)
+  }
 }
-
-function persistNow() {
-  if (!readyToPersist.value) return
-  if (!cacheEnabled.value) return
-  writeCache()
-}
-
-function hydrateFromCache(key: string) {
-  const cached = readCache(key)
-  if (!cached) {
-    hydratedKey.value = key
-    return
-  }
-
-  const cachedById = new Map<number, FujiCacheRow>()
-  const cachedByKey = new Map<string, FujiCacheRow>()
-  for (const row of cached.rows ?? []) {
-    if (typeof row.id === "number") cachedById.set(row.id, row)
-    if (row.key) cachedByKey.set(row.key, row)
-  }
-
-  const nextRows = (rowData.value ?? []).map((row: any) => {
-    const cachedRow = cachedById.get(row.id) ?? cachedByKey.get(toRowKey(row))
-    if (!cachedRow) return row
-    const next = { ...row }
-    if ("correct" in cachedRow) next.correct = cachedRow.correct ?? null
-    if ("operatorIdno" in cachedRow) next.operatorIdno = cachedRow.operatorIdno ?? null
-    if ("materialInventoryIdno" in cachedRow)
-      next.materialInventoryIdno = cachedRow.materialInventoryIdno ?? null
-    if ("appendedMaterialInventoryIdno" in cachedRow)
-      next.appendedMaterialInventoryIdno = cachedRow.appendedMaterialInventoryIdno
-    if ("remark" in cachedRow) next.remark = cachedRow.remark ?? ""
-    return next
-  })
-
-  rowData.value = nextRows
-  syncGridRows(nextRows)
-
-  if ("materialInventory" in cached) {
-    materialInventory.value = cached.materialInventory
-      ? {
-          id: cached.materialInventory.id ?? null,
-          idno: cached.materialInventory.idno,
-          material_id: cached.materialInventory.material_id ?? null,
-          material_idno: cached.materialInventory.material_idno,
-          material_name: cached.materialInventory.material_name ?? "",
-        }
-      : null
-  }
-
-  if (cached.inputs) {
-    materialInputValue.value = cached.inputs.material ?? ""
-    slotInputValue.value = cached.inputs.slot ?? ""
-  }
-
-  if (cached.unloadRecords) {
-    pendingUnloadRecords.value = cached.unloadRecords
-  }
-
-  if (cached.spliceRecords) {
-    pendingSpliceRecords.value = cached.spliceRecords
-  }
-
-  if (cached.ipqcRecords) {
-    pendingIpqcRecords.value = cached.ipqcRecords
-  }
-
-  hydratedKey.value = key
-}
-
-watch(
-  [storageKey, () => rowData.value.length],
-  ([key, len]) => {
-    if (!key) return
-    if (len <= 0) return
-    if (hydratedKey.value === key) return
-    hydrateFromCache(key)
-    readyToPersist.value = true
-  },
-  { immediate: true }
-)
-
-watch(
-  () => productionStarted.value,
-  (started) => {
-    if (!started) return
-    cacheEnabled.value = false
-    clearCache()
-  }
-)
-
-watch(
-  [
-    () => rowData.value,
-    materialInventory,
-    materialInputValue,
-    slotInputValue,
-    pendingUnloadRecords,
-    pendingSpliceRecords,
-    pendingIpqcRecords,
-  ],
-  () => {
-    persistNow()
-  },
-  { deep: true }
-)
 
 // ─── Normal scan handlers ─────────────────────────────────────────────────────
 
@@ -451,11 +225,11 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
     const scannedMaterialId = String(currentMaterial?.material_idno ?? "").trim()
     const expectedMaterialId = String(targetRow.materialIdno ?? "").trim()
 
-    let correctState: CheckMaterialMatchEnum
+    let correctState: "MATCHED_MATERIAL_PACK" | "TESTING_MATERIAL_PACK"
     if ((scannedMaterialId && scannedMaterialId === expectedMaterialId) || (isMockMode && !isTestingMode.value)) {
-      correctState = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+      correctState = "MATCHED_MATERIAL_PACK"
     } else if (isTestingMode.value) {
-      correctState = CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
+      correctState = "TESTING_MATERIAL_PACK"
     } else {
       showError(`料號不符：無法對站位 ${payload.slotIdno} 進行接料`)
       clearNormalScanState()
@@ -494,594 +268,6 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
   const result = await handleSlotSubmit(payload)
   persistNow()
   return result
-}
-
-// ─── Grid helpers ─────────────────────────────────────────────────────────────
-
-function syncGridRows(rows: unknown[]) {
-  if (!gridApi.value) {
-    pendingGridSync.value = true
-    return
-  }
-  gridApi.value.setRowData(rows as any)
-}
-
-function updateRowInGrid(row: any) {
-  try {
-    gridApi.value?.applyTransaction?.({ update: [row] })
-  } catch {
-    // Grid might not be ready
-  }
-}
-
-function onGridReadyWithCache(e: GridReadyEvent) {
-  gridApi.value = e.api
-  columnApi.value = e.columnApi
-  onGridReady(e)
-  if (pendingGridSync.value) {
-    pendingGridSync.value = false
-    syncGridRows(rowData.value)
-  }
-}
-
-// ─── Unload mode helpers ──────────────────────────────────────────────────────
-
-function toRowSlotIdno(row: any): string {
-  return `${row.mounterIdno}-${row.stage}-${row.slot}`
-}
-
-function findRowBySlotIdno(slotIdno: string) {
-  const parsed = parseFujiSlotIdno(slotIdno)
-  if (!parsed) return null
-  return (rowData.value ?? []).find(
-    (row: any) =>
-      Number(row.slot) === parsed.slot && String(row.stage).trim() === String(parsed.stage).trim()
-  )
-}
-
-function findUniqueUnloadSlotByPackCode(materialPackCode: string) {
-  const targetPackCode = materialPackCode.trim()
-  if (!targetPackCode) {
-    return { ok: false as const, error: "請先輸入物料條碼" }
-  }
-
-  const matchedRows = (rowData.value ?? []).filter(
-    (row: any) => String(row.materialInventoryIdno ?? "").trim() === targetPackCode
-  )
-
-  if (matchedRows.length === 0) {
-    return { ok: false as const, error: `找不到料號 ${targetPackCode} 對應的站位` }
-  }
-
-  if (matchedRows.length > 1) {
-    const slots = matchedRows.map((row: any) => toRowSlotIdno(row)).join(", ")
-    return { ok: false as const, error: `料號 ${targetPackCode} 對應多個站位：${slots}` }
-  }
-
-  return {
-    ok: true as const,
-    row: matchedRows[0],
-    slot: matchedRows[0].slot as number,
-    stage: matchedRows[0].stage as string,
-  }
-}
-
-async function validateUnloadMaterialPackCode(materialPackCode: string): Promise<boolean> {
-  const trimmed = materialPackCode.trim()
-  if (!trimmed) {
-    showError("請先輸入物料條碼")
-    return false
-  }
-
-  if (isTestingMode.value || isMockMode) return true
-
-  try {
-    await SmtService.getMaterialInventoryForSmt({ materialInventoryIdno: trimmed })
-    return true
-  } catch (error) {
-    showError(resolveMaterialLookupError(error))
-    return false
-  }
-}
-
-async function resolveReplacementCorrectState(params: {
-  materialPackCode: string
-  slot: number
-  stage: string
-}): Promise<CheckMaterialMatchEnum | null> {
-  const materialPackCode = params.materialPackCode.trim()
-  if (!materialPackCode) {
-    showError("請先輸入物料條碼")
-    return null
-  }
-
-  const row = (rowData.value ?? []).find(
-    (r: any) => Number(r.slot) === params.slot && String(r.stage).trim() === params.stage
-  )
-  if (!row) {
-    showError(`找不到槽位 ${mounterIdno.value}-${params.stage}-${params.slot}`)
-    return null
-  }
-
-  if (isMockMode && !isTestingMode.value) return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-  if (isTestingMode.value) return CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
-
-  try {
-    const materialInventoryData = await SmtService.getMaterialInventoryForSmt({
-      materialInventoryIdno: materialPackCode,
-    })
-    const scannedMaterialId = String(materialInventoryData.material_idno ?? "").trim()
-    const expectedMaterialId = String(row.materialIdno ?? "").trim()
-    if (!scannedMaterialId || scannedMaterialId !== expectedMaterialId) {
-      showError(
-        `料號不符：站位 ${mounterIdno.value}-${params.stage}-${params.slot} 應為 ${expectedMaterialId}`
-      )
-      return null
-    }
-    return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-  } catch (error) {
-    showError(resolveMaterialLookupError(error))
-    return null
-  }
-}
-
-function resetUnloadFlowState(modeType: UnloadModeType = unloadModeType.value) {
-  unloadModeType.value = modeType
-  unloadReplacePhase.value =
-    modeType === "force_single_slot" ? "force_unload_slot_scan" : "unload_scan"
-  unloadMaterialValue.value = ""
-  unloadSlotValue.value = ""
-  resolvedUnloadSlot.value = null
-  replacementMaterialPackCode.value = ""
-  replacementCorrectState.value = null
-}
-
-function focusUnloadMaterialInput() {
-  nextTick(() => unloadMaterialInput.value?.focus())
-}
-
-function focusUnloadSlotInput() {
-  nextTick(() => unloadSlotInput.value?.focus())
-}
-
-function focusMaterialInput() {
-  nextTick(() => materialInventoryInput.value?.focus?.())
-}
-
-function clearNormalScanState() {
-  materialInputValue.value = ""
-  slotInputValue.value = ""
-  resetMaterialState()
-}
-
-function enterUnloadMode(modeType: UnloadModeType) {
-  isUnloadMode.value = true
-  resetUnloadFlowState(modeType)
-  clearNormalScanState()
-
-  if (modeType === "force_single_slot") {
-    focusUnloadSlotInput()
-    return
-  }
-
-  focusUnloadMaterialInput()
-}
-
-function exitUnloadMode() {
-  isUnloadMode.value = false
-  resetUnloadFlowState("pack_auto_slot")
-  clearNormalScanState()
-  focusMaterialInput()
-}
-
-// ─── IPQC helpers ──────────────────────────────────────────────────────────────
-
-function showIpqcColumns(visible: boolean) {
-  columnApi.value?.setColumnVisible("inspectMaterialPackCode", visible)
-  columnApi.value?.setColumnVisible("inspectTime", visible)
-  columnApi.value?.setColumnVisible("inspectCount", visible)
-}
-
-function focusIpqcMaterialInput() {
-  nextTick(() => {
-    ipqcMaterialInput.value?.focus()
-  })
-}
-
-function focusIpqcSlotInput() {
-  nextTick(() => {
-    ipqcSlotInput.value?.focus()
-  })
-}
-
-function parseAppendedCodes(value: string | null | undefined): string[] {
-  if (!value) return []
-  return value.split(",").map((s) => s.trim()).filter(Boolean)
-}
-
-function getCurrentPackCode(row: any): string {
-  const appended = parseAppendedCodes(row.appendedMaterialInventoryIdno)
-  if (appended.length > 0) return appended[appended.length - 1]
-  return String(row.materialInventoryIdno ?? "").trim()
-}
-
-function enterIpqcMode() {
-  isIpqcMode.value = true
-  if (isUnloadMode.value) exitUnloadMode()
-  clearNormalScanState()
-
-  // 儲存目前 correct 狀態，全部設為 ⛔
-  const saved = new Map<string, unknown>()
-  for (const row of rowData.value) {
-    const key = toRowKey(row)
-    saved.set(key, row.correct)
-    row.correct = "UNLOADED" as any
-    updateRowInGrid(row)
-  }
-  ipqcSavedCorrectStates.value = saved
-
-  showIpqcColumns(true)
-  focusIpqcMaterialInput()
-}
-
-function exitIpqcMode() {
-  isIpqcMode.value = false
-  // 恢復原本 correct 狀態
-  for (const row of rowData.value) {
-    const key = toRowKey(row)
-    const saved = ipqcSavedCorrectStates.value.get(key)
-    if (saved !== undefined) {
-      row.correct = saved as any
-      updateRowInGrid(row)
-    }
-  }
-  ipqcSavedCorrectStates.value.clear()
-  showIpqcColumns(false)
-  ipqcMaterialValue.value = ""
-  ipqcSlotValue.value = ""
-  focusMaterialInput()
-}
-
-async function handleIpqcMaterialSubmit() {
-  const materialPackCode = ipqcMaterialValue.value.trim()
-  if (!materialPackCode) return
-
-  const code = materialPackCode.toUpperCase()
-  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
-    exitIpqcMode()
-    ipqcMaterialValue.value = ""
-    return
-  }
-  if (code === USER_SWITCH_TRIGGER) {
-    exitIpqcMode()
-    handleUserSwitchTrigger(code)
-    ipqcMaterialValue.value = ""
-    return
-  }
-  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-    exitIpqcMode()
-    handleModeTriggerFromNormalInput(code)
-    ipqcMaterialValue.value = ""
-    return
-  }
-
-  // ERP 驗證
-  const isValid = await validateUnloadMaterialPackCode(materialPackCode)
-  if (!isValid) {
-    ipqcMaterialValue.value = ""
-    focusIpqcMaterialInput()
-    return
-  }
-
-  ipqcMaterialValue.value = materialPackCode
-  focusIpqcSlotInput()
-}
-
-function handleIpqcSlotSubmit() {
-  const slotIdno = ipqcSlotValue.value.trim()
-  if (!slotIdno) return
-
-  const code = slotIdno.toUpperCase()
-  if (code === MATERIAL_EXIT_TRIGGER || code === MATERIAL_IPQC_TRIGGER) {
-    exitIpqcMode()
-    ipqcSlotValue.value = ""
-    return
-  }
-
-  const materialPackCode = ipqcMaterialValue.value.trim()
-  const row = findRowBySlotIdno(slotIdno)
-  if (!row) {
-    showError(`找不到槽位 ${slotIdno}`)
-    ipqcSlotValue.value = ""
-    focusIpqcSlotInput()
-    return
-  }
-
-  // 比對掃描的捲號 vs 槽位目前的捲號
-  const currentPackCode = getCurrentPackCode(row)
-  if (materialPackCode !== currentPackCode) {
-    showError(`料號不符：掃描 ${materialPackCode}，槽位應為 ${currentPackCode}`)
-    ipqcSlotValue.value = ""
-    ipqcMaterialValue.value = ""
-    focusIpqcMaterialInput()
-    return
-  }
-
-  // 標記已巡檢 ✅
-  row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK as any
-  row.inspectMaterialPackCode = materialPackCode
-  row.inspectTime = new Date().toISOString()
-  row.inspectCount = (row.inspectCount ?? 0) + 1
-  updateRowInGrid(row)
-
-  const parsed = parseFujiSlotIdno(slotIdno)
-  pendingIpqcRecords.value = [
-    ...pendingIpqcRecords.value,
-    {
-      slotIdno: slotIdno,
-      stage: parsed?.stage ?? "",
-      slot: parsed?.slot ?? 0,
-      materialPackCode,
-      inspectorIdno: currentUsername.value || "",
-      inspectionTime: new Date().toISOString(),
-    },
-  ]
-
-  ipqcSlotValue.value = ""
-  ipqcMaterialValue.value = ""
-  focusIpqcMaterialInput()
-  persistNow()
-}
-
-// ─── Mode triggers ─────────────────────────────────────────────────────────────
-
-function handleModeTriggerFromNormalInput(code: string): boolean {
-  if (handleUserSwitchTrigger(code)) return true
-  if (code === MATERIAL_UNLOAD_TRIGGER) {
-    if (isIpqcMode.value) exitIpqcMode()
-    enterUnloadMode("pack_auto_slot")
-    return true
-  }
-  if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-    if (isIpqcMode.value) exitIpqcMode()
-    enterUnloadMode("force_single_slot")
-    return true
-  }
-  if (code === MATERIAL_IPQC_TRIGGER) {
-    isIpqcMode.value ? exitIpqcMode() : enterIpqcMode()
-    return true
-  }
-  if (code === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
-    exitIpqcMode()
-    return true
-  }
-  return false
-}
-
-function handleModeTriggerFromUnloadInput(code: string): boolean {
-  if (code === MATERIAL_IPQC_TRIGGER) {
-    exitUnloadMode()
-    enterIpqcMode()
-    return true
-  }
-  if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-    exitUnloadMode()
-    return true
-  }
-  return false
-}
-
-async function handleBeforeMaterialScan(barcode: string): Promise<boolean> {
-  const code = barcode.trim().toUpperCase()
-  return !handleModeTriggerFromNormalInput(code)
-}
-
-function pushUnloadRecord(record: FujiUnloadRecord) {
-  pendingUnloadRecords.value = [...pendingUnloadRecords.value, record]
-  persistNow()
-}
-
-function applyUnloadToRow(row: any, materialPackCode: string) {
-  if (String(row.materialInventoryIdno ?? "").trim() === materialPackCode) {
-    row.materialInventoryIdno = ""
-    row.correct = "UNLOADED"
-  }
-  updateRowInGrid(row)
-}
-
-async function handleUnloadMaterialSubmit(materialPackCode: string) {
-  const isValid = await validateUnloadMaterialPackCode(materialPackCode)
-  if (!isValid) {
-    unloadMaterialValue.value = ""
-    focusUnloadMaterialInput()
-    return
-  }
-
-  const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
-  if (!resolved.ok || !resolved.row) {
-    showError(resolved.error ?? "找不到對應槽位")
-    unloadMaterialValue.value = ""
-    focusUnloadMaterialInput()
-    return
-  }
-
-  pushUnloadRecord({
-    slot: resolved.slot,
-    stage: resolved.stage,
-    materialPackCode,
-    unfeedReason: "MATERIAL_FINISHED",
-    operationTime: new Date().toISOString(),
-  })
-
-  applyUnloadToRow(resolved.row, materialPackCode)
-
-  unloadMaterialValue.value = ""
-  resolvedUnloadSlot.value = { slot: resolved.slot, stage: resolved.stage }
-  unloadReplacePhase.value = "replace_material_scan"
-  focusUnloadMaterialInput()
-}
-
-async function handleForceUnloadSlotSubmit(slotIdno: string) {
-  const row = findRowBySlotIdno(slotIdno)
-  if (!row) {
-    showError(`找不到槽位 ${slotIdno}`)
-    unloadSlotValue.value = ""
-    focusUnloadSlotInput()
-    return
-  }
-
-  const materialPackCode = String(row.materialInventoryIdno ?? "").trim()
-  if (!materialPackCode) {
-    showError(`槽位 ${slotIdno} 無可卸除料號`)
-    unloadSlotValue.value = ""
-    focusUnloadSlotInput()
-    return
-  }
-
-  pushUnloadRecord({
-    slot: row.slot as number,
-    stage: row.stage as string,
-    materialPackCode,
-    unfeedReason: "WRONG_MATERIAL",
-    operationTime: new Date().toISOString(),
-  })
-
-  applyUnloadToRow(row, materialPackCode)
-
-  unloadSlotValue.value = ""
-  resolvedUnloadSlot.value = { slot: row.slot as number, stage: row.stage as string }
-  unloadReplacePhase.value = "replace_material_scan"
-  focusUnloadMaterialInput()
-}
-
-function resetToInitialUnloadPhase() {
-  unloadReplacePhase.value =
-    unloadModeType.value === "force_single_slot" ? "force_unload_slot_scan" : "unload_scan"
-}
-
-async function handleReplacementMaterialSubmit(materialPackCode: string) {
-  const target = resolvedUnloadSlot.value
-  if (!target) {
-    showError("找不到卸料站位，請重新掃描")
-    resetToInitialUnloadPhase()
-    unloadMaterialValue.value = ""
-    focusUnloadMaterialInput()
-    return
-  }
-
-  const correctState = await resolveReplacementCorrectState({
-    materialPackCode,
-    slot: target.slot,
-    stage: target.stage,
-  })
-
-  unloadMaterialValue.value = ""
-  if (!correctState) {
-    focusUnloadMaterialInput()
-    return
-  }
-
-  replacementMaterialPackCode.value = materialPackCode
-  replacementCorrectState.value = correctState
-  unloadReplacePhase.value = "replace_slot_scan"
-  unloadSlotValue.value = ""
-  focusUnloadSlotInput()
-}
-
-function handleUnloadMaterialEnter() {
-  const material = unloadMaterialValue.value.trim()
-  unloadMaterialValue.value = material
-  if (!material) return
-
-  if (handleModeTriggerFromUnloadInput(material.toUpperCase())) return
-
-  if (isUnloadScanPhase.value) {
-    void handleUnloadMaterialSubmit(material)
-    return
-  }
-
-  if (isReplaceMaterialPhase.value) {
-    void handleReplacementMaterialSubmit(material)
-  }
-}
-
-async function handleUnloadSlotSubmit() {
-  if (!isUnloadMode.value) return
-
-  const slotIdno = unloadSlotValue.value.trim()
-  if (!slotIdno) {
-    showError("請輸入站位")
-    focusUnloadSlotInput()
-    return
-  }
-
-  if (handleModeTriggerFromUnloadInput(slotIdno.toUpperCase())) return
-
-  if (isForceUnloadSlotPhase.value) {
-    void handleForceUnloadSlotSubmit(slotIdno)
-    return
-  }
-
-  if (!isReplaceSlotPhase.value) {
-    focusUnloadSlotInput()
-    return
-  }
-
-  const target = resolvedUnloadSlot.value
-  const parsedInput = parseFujiSlotIdno(slotIdno)
-  if (
-    !parsedInput ||
-    !target ||
-    parsedInput.slot !== target.slot ||
-    parsedInput.stage !== target.stage
-  ) {
-    showError(`請掃描原卸料站位 ${resolvedUnloadSlotIdno.value}`)
-    unloadSlotValue.value = ""
-    focusUnloadSlotInput()
-    return
-  }
-
-  const replacementPackCode = replacementMaterialPackCode.value.trim()
-  const correctState = replacementCorrectState.value
-  if (!replacementPackCode || !correctState) {
-    showError("找不到更換捲號，請重新掃描")
-    unloadReplacePhase.value = "replace_material_scan"
-    focusUnloadMaterialInput()
-    return
-  }
-
-  const row = (rowData.value ?? []).find(
-    (r: any) => Number(r.slot) === target.slot && String(r.stage).trim() === target.stage
-  )
-  if (!row) {
-    showError(`找不到槽位 ${resolvedUnloadSlotIdno.value}`)
-    resetToInitialUnloadPhase()
-    focusUnloadMaterialInput()
-    return
-  }
-
-  row.materialInventoryIdno = replacementPackCode
-  row.correct = correctState
-  row.operatorIdno = currentUsername.value || null
-  if (correctState === CheckMaterialMatchEnum.TESTING_MATERIAL_PACK) {
-    row.remark = "[測試模式綁定]"
-  }
-  updateRowInGrid(row)
-
-  pendingSpliceRecords.value = [
-    ...pendingSpliceRecords.value,
-    {
-      slot: target.slot,
-      stage: target.stage,
-      materialPackCode: replacementPackCode,
-      correctState,
-      operationTime: new Date().toISOString(),
-    },
-  ]
-  persistNow()
-
-  unloadSlotValue.value = ""
-  exitUnloadMode()
 }
 </script>
 

@@ -34,7 +34,7 @@ export type FujiSpliceRecord = {
   slot: number
   stage: string
   materialPackCode: string
-  correctState: CheckMaterialMatchEnum
+  correctState: CheckMaterialMatchEnum | "MATCHED_MATERIAL_PACK" | "TESTING_MATERIAL_PACK"
   operationTime: string
 }
 
@@ -154,7 +154,7 @@ export function useFujiPreproductionLifecycle(
           material_pack_code: record.materialPackCode,
           operation_type: MaterialOperationTypeEnum.FEED,
           feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-          check_pack_code_match: record.correctState,
+          check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
           unfeed_reason: null,
         },
       })

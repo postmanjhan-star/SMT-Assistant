@@ -102,5 +102,6 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     resetMaterialState: slotFlow.resetMaterialState,
     handleSlotSubmit: slotFlow.handleSlotSubmit,
     showError: slotFlow.showError,
+    fetchMaterialInventory: fujiPreDeps.fetchMaterialInventory,
   }
 }

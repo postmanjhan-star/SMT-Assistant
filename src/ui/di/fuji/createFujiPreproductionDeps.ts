@@ -2,13 +2,14 @@ import { startFujiProductionStats } from '@/infra/fuji/production/FujiProduction
 import { stopFujiProductionStats } from '@/infra/fuji/production/FujiProductionApi'
 import { fetchFujiProductionSlots } from '@/infra/fuji/production/FujiProductionApi'
 import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository'
-import type { MaterialRepository } from '@/application/barcode-scan/BarcodeScanDeps'
+import type { MaterialRepository, MaterialRepositoryResult } from '@/application/barcode-scan/BarcodeScanDeps'
 
 export type FujiPreproductionDeps = {
   startProduction: typeof startFujiProductionStats
   stopProduction: (uuid: string) => Promise<unknown>
   fetchSlots: typeof fetchFujiProductionSlots
   createMaterialRepository: () => MaterialRepository
+  fetchMaterialInventory: (idno: string) => Promise<MaterialRepositoryResult>
 }
 
 export function createFujiPreproductionDeps(
@@ -19,6 +20,7 @@ export function createFujiPreproductionDeps(
     stopProduction: (uuid) => stopFujiProductionStats(uuid),
     fetchSlots: fetchFujiProductionSlots,
     createMaterialRepository: () => new ApiMaterialRepository(),
+    fetchMaterialInventory: (idno) => new ApiMaterialRepository().fetchByBarcode(idno),
     ...overrides,
   }
 }
