@@ -22,7 +22,14 @@ export function createProductionGridOptions(
     return {
         ...createPanasonicBaseGridOptions(),
         columnDefs: [
-            createCorrectColDef({ true: '✅', false: '❌', warning: '⚠️', unloaded: '⛔' }),
+            createCorrectColDef({
+                // Legacy slot-binding values
+                true: '✅', false: '❌', warning: '⚠️', unloaded: '⛔',
+                // Enum-aligned values（from operation flows / CheckMaterialMatchEnum）
+                MATCHED_MATERIAL_PACK: '✅',
+                TESTING_MATERIAL_PACK: '⚠️',
+                UNLOADED: '⛔',
+            }),
             {
                 headerName: '巡檢料號',
                 field: 'inspectMaterialPackCode',

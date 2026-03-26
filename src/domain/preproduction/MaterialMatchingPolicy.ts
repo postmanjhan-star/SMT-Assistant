@@ -11,7 +11,7 @@ export function filterUnboundRows<T extends MaterialMatchRow>(
     return rows.filter(
         row =>
             row.materialIdno === materialIdno &&
-            (!row.materialInventoryIdno || row.correct !== "true")
+            (!row.materialInventoryIdno || (row.correct !== "true" && row.correct !== "MATCHED_MATERIAL_PACK"))
     )
 }
 

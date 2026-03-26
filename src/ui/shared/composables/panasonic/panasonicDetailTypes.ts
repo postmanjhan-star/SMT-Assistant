@@ -12,7 +12,7 @@ export type PanasonicSpliceRecord = {
   slotIdno: string
   subSlotIdno?: string | null
   materialPackCode: string
-  correctState: "true" | "warning"
+  correctState: "MATCHED_MATERIAL_PACK" | "TESTING_MATERIAL_PACK"
   operationTime: string
 }
 

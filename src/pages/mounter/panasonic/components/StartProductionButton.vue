@@ -20,6 +20,7 @@ import { StartProductionStatsUseCase } from '@/application/preproduction/StartPr
 import type { IpqcInspectionRecord } from '@/domain/mounter/ipqcTypes'
 
 type CorrectState = 'true' | 'false' | 'warning' | 'unloaded'
+  | 'MATCHED_MATERIAL_PACK' | 'TESTING_MATERIAL_PACK' | 'UNLOADED'
 
 type PanasonicUnloadRecord = {
     slotIdno: string
@@ -33,7 +34,7 @@ type PanasonicSpliceRecord = {
     slotIdno: string
     subSlotIdno?: string | null
     materialPackCode: string
-    correctState: 'true' | 'warning'
+    correctState: 'MATCHED_MATERIAL_PACK' | 'TESTING_MATERIAL_PACK'
     operationTime: string
 }
 
@@ -199,7 +200,7 @@ const startStatsUseCase = new StartProductionStatsUseCase<RowModel, PanasonicUnl
 function onProduction() {
     const invalid = props.rowData.filter(r => {
         if (r.correct === 'false') return true
-        if (r.correct === 'unloaded') return true
+        if (r.correct === 'unloaded' || r.correct === 'UNLOADED') return true
         if (!props.isTestingMode && r.correct == null) return true
         return false
     })
