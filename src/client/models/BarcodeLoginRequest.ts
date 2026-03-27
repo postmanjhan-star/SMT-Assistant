@@ -5,6 +5,6 @@
 
 export type BarcodeLoginRequest = {
     work_id: number;
-    signature: string;
+    signature?: (string | null);
 };
 

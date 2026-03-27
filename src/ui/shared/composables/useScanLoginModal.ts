@@ -41,17 +41,21 @@ export function useScanLoginModal() {
     if (!raw) return
 
     const colonIndex = raw.indexOf(":")
-    if (colonIndex === -1) {
-      loginError.value = "條碼格式錯誤，應為 work_id:signature"
-      loginInput.value = ""
-      return
+    let workId: number
+    let signature: string | undefined
+
+    if (colonIndex !== -1) {
+      // 後端開啟憑證模式：work_id:signature
+      workId = parseInt(raw.slice(0, colonIndex), 10)
+      signature = raw.slice(colonIndex + 1)
+    } else {
+      // 後端關閉憑證模式：只有 work_id
+      workId = parseInt(raw, 10)
+      signature = undefined
     }
 
-    const workId = parseInt(raw.slice(0, colonIndex), 10)
-    const signature = raw.slice(colonIndex + 1)
-
     if (isNaN(workId)) {
-      loginError.value = "work_id 必須為數字"
+      loginError.value = "條碼格式錯誤，work_id 必須為數字"
       loginInput.value = ""
       return
     }
@@ -60,7 +64,7 @@ export function useScanLoginModal() {
     loginError.value = ""
     try {
       const result = await SmtService.operatorSwitchUser({
-        requestBody: { work_id: workId, signature },
+        requestBody: signature !== undefined ? { work_id: workId, signature } : { work_id: workId },
       })
       authStore.setToken({ access_token: result.access_token, token_type: result.token_type }, result.employee)
       closeLoginModal()
