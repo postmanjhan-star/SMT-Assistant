@@ -36,6 +36,7 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
     const message = useMessage()
 
     const isTestingMode = ref(route.query.testing_mode === '1')
+    const autoFillProductIdno = ref(true)
     const formRef = ref<FormInst | null>(null)
     const formValue = ref({ ...config.initialFormValue }) as Ref<T>
     const mounterOptions = ref<{ label: string; value: string }[]>([])
@@ -122,7 +123,7 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
     watch(
         () => formValue.value.workOrderIdno,
         async (newVal) => {
-            if (isTestingMode.value || !newVal) return
+            if (isTestingMode.value || !autoFillProductIdno.value || !newVal) return
             try {
                 const stWorkOrder = await StErpService.getStWorkOrder({ workOrderIdno: newVal.trim() })
                 if (stWorkOrder?.product_idno) {
@@ -165,6 +166,7 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
 
     return {
         isTestingMode,
+        autoFillProductIdno,
         formRef,
         formValue,
         mounterOptions,

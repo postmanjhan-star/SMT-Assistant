@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
-import { NButton, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, NSwitch, NSelect } from 'naive-ui'
+import { NButton, NCheckbox, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, NSwitch, NSelect } from 'naive-ui'
 import { useMeta } from 'vue-meta'
 import { useRouter } from 'vue-router'
 import { SmtService } from '@/client'
@@ -9,7 +9,7 @@ import { useMounterHomeForm } from '@/ui/shared/composables/useMounterHomeForm'
 useMeta({ title: 'Fuji Mounter Assistant' })
 const router = useRouter()
 
-const { isTestingMode, formRef, formValue, mounterOptions, rules,
+const { isTestingMode, autoFillProductIdno, formRef, formValue, mounterOptions, rules,
     workSheetSideOptions, onToggleTestingMode, onClickSubmitButton } =
     useMounterHomeForm({
         initialFormValue: {
@@ -72,6 +72,12 @@ const { isTestingMode, formRef, formValue, mounterOptions, rules,
                     <n-form-item-gi label="工單號" show-require-mark path="workOrderIdno">
                         <n-input autofocus v-model:value.lazy="formValue.workOrderIdno"
                             :input-props="{ id: 'workOrderIdnoInput' }" />
+                    </n-form-item-gi>
+                    <n-gi></n-gi>
+
+                    <n-gi></n-gi>
+                    <n-form-item-gi>
+                        <n-checkbox v-model:checked="autoFillProductIdno">工單號自動帶入成品料號</n-checkbox>
                     </n-form-item-gi>
                     <n-gi></n-gi>
 
