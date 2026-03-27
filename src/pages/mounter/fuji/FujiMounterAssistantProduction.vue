@@ -4,7 +4,7 @@ import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
-import { NButton, NGi, NTag, NModal, NInput } from "naive-ui"
+import { NButton, NGi, NTag } from "naive-ui"
 import { nextTick, ref, onMounted } from "vue"
 import { useRoute } from "vue-router"
 import { useMeta } from "vue-meta"
@@ -14,6 +14,7 @@ import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryB
 import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
 import MounterMaterialQueryModal from "@/pages/components/shared/MounterMaterialQueryModal.vue"
 import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
+import ScanLoginModal from "@/pages/components/shared/ScanLoginModal.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
 import { parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiProductionPage } from "@/ui/workflows/post-production/fuji/composables/useFujiProductionPage"
@@ -76,7 +77,6 @@ const authStore = useAuthStore()
 const {
   showLoginModal,
   loginInput,
-  loginInputRef,
   loginError,
   isLoginLoading,
   isLoginRequired,
@@ -347,39 +347,16 @@ async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; sub
     />
   </MounterLayout>
 
-  <n-modal
+  <ScanLoginModal
     :show="showLoginModal"
-    :mask-closable="!isLoginRequired"
-    :close-on-esc="!isLoginRequired"
-    :closable="!isLoginRequired"
-    @update:show="(v) => { if (!v && !isLoginRequired) closeLoginModal() }"
-    preset="card"
-    style="width: 420px"
-    title="掃碼登入"
-  >
-    <div data-testid="scan-login-modal">
-      <div style="margin-bottom: 8px; color: #aaa; font-size: 13px">
-        目前使用者：{{ loginCurrentUsername || '（未登入）' }}
-      </div>
-      <n-input
-        ref="loginInputRef"
-        v-model:value="loginInput"
-        placeholder="請掃描操作員條碼"
-        :disabled="isLoginLoading"
-        data-testid="scan-login-input"
-        @keydown.enter.prevent="handleLoginSubmit"
-      />
-      <div
-        v-if="loginError"
-        style="color: #e88080; margin-top: 6px; font-size: 13px"
-        data-testid="scan-login-error"
-      >{{ loginError }}</div>
-    </div>
-    <template #footer>
-      <n-button v-if="!isLoginRequired" @click="closeLoginModal">取消</n-button>
-      <n-button type="primary" :loading="isLoginLoading" @click="handleLoginSubmit">登入</n-button>
-    </template>
-  </n-modal>
+    v-model:login-input="loginInput"
+    :login-error="loginError"
+    :is-login-loading="isLoginLoading"
+    :is-login-required="isLoginRequired"
+    :current-username="loginCurrentUsername"
+    @close="closeLoginModal"
+    @submit="handleLoginSubmit"
+  />
 </template>
 
 <style scoped>

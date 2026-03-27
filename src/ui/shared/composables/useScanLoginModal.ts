@@ -1,4 +1,4 @@
-import { ref, computed, watch, nextTick } from "vue"
+import { ref, computed } from "vue"
 import { useAuthStore } from "@/stores/authStore"
 // eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] 既有違規，@/client 暫留
 import { SmtService } from "@/client"
@@ -11,11 +11,6 @@ export function useScanLoginModal() {
   const loginError = ref("")
   const isLoginLoading = ref(false)
   const isLoginRequired = ref(false) // true = 頁面載入時未登入，無法取消
-  const loginInputRef = ref<{ focus: () => void } | null>(null)
-
-  watch(showLoginModal, (val) => {
-    if (val) nextTick(() => loginInputRef.value?.focus())
-  })
 
   const currentUsername = computed(
     () =>
@@ -101,7 +96,6 @@ export function useScanLoginModal() {
   return {
     showLoginModal,
     loginInput,
-    loginInputRef,
     loginError,
     isLoginLoading,
     isLoginRequired,
