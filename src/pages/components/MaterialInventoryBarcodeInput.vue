@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3/5 */
-import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
 import * as Tone from 'tone'
 import { SmtMaterialInventory } from '@/client'
@@ -70,8 +70,6 @@ const inputValue = computed({
         formValue.value.materialInventoryIdno = value
     },
 })
-const PANASONIC_SLOT_SUBMITTED_EVENT = 'panasonic-slot-submitted'
-
 /* ================= tone ================= */
 
 async function playSuccessTone() {
@@ -204,19 +202,6 @@ function focus() {
 function clear() {
     inputValue.value = ''
 }
-
-function handlePanasonicSlotSubmitted() {
-    if (props.inputTestId !== 'panasonic-main-material-input') return
-    reset()
-}
-
-onMounted(() => {
-    window.addEventListener(PANASONIC_SLOT_SUBMITTED_EVENT, handlePanasonicSlotSubmitted)
-})
-
-onBeforeUnmount(() => {
-    window.removeEventListener(PANASONIC_SLOT_SUBMITTED_EVENT, handlePanasonicSlotSubmitted)
-})
 
 defineExpose({ focus, clear })
 

@@ -63,22 +63,6 @@ watch(
     }
 )
 
-function clearPanasonicMaterialInputFallback() {
-    if (typeof document === 'undefined') return
-
-    const materialInput = document.querySelector<HTMLInputElement>(
-        '[data-testid="panasonic-main-material-input"] input'
-    )
-    if (!materialInput) return
-
-    materialInput.value = ''
-    materialInput.dispatchEvent(new Event('input', { bubbles: true }))
-
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('panasonic-slot-submitted'))
-    }
-}
-
 async function onSubmit() {
     const raw = inputValue.value.trim()
     if (!raw) {
@@ -88,7 +72,6 @@ async function onSubmit() {
 
     // Non-empty Enter should clear slot input immediately.
     inputValue.value = ''
-    clearPanasonicMaterialInputFallback()
 
     if (props.beforeSubmit) {
         const shouldContinue = await props.beforeSubmit(raw)
