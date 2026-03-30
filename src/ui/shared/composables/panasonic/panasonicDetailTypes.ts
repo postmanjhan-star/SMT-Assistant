@@ -24,7 +24,7 @@ export type PanasonicCacheRow = {
   operatorIdno?: string | null
   materialInventoryIdno?: string | null
   appendedMaterialInventoryIdno?: string | null
-  firstAppendTime?: string | null
+  operationTime?: string | null
   remark?: string
 }
 

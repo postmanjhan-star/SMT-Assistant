@@ -60,7 +60,7 @@ export class SlotSubmitFeedGridAdapter implements SlotSubmitGridPort {
         rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
         rowNode.setDataValue('remark', remark ?? '')
         rowNode.setDataValue('correct', 'true')
-        rowNode.setDataValue('firstAppendTime', new Date().toISOString())
+        rowNode.setDataValue('operationTime', new Date().toISOString())
         return true
     }
 
@@ -79,7 +79,7 @@ export class SlotSubmitFeedGridAdapter implements SlotSubmitGridPort {
         rowNode.setDataValue('correct', 'warning')
         rowNode.setDataValue('remark', remark)
         rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
-        rowNode.setDataValue('firstAppendTime', new Date().toISOString())
+        rowNode.setDataValue('operationTime', new Date().toISOString())
         return true
     }
 
@@ -117,7 +117,7 @@ export class SlotSubmitFeedGridAdapter implements SlotSubmitGridPort {
                 node.setDataValue("materialInventoryIdno", "")
                 node.setDataValue("correct", "")
                 node.setDataValue("remark", "")
-                node.setDataValue("firstAppendTime", null)
+                node.setDataValue("operationTime", null)
                 node.setDataValue("operatorIdno", "")
             }
         })

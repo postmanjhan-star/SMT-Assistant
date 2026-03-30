@@ -65,7 +65,7 @@ export class PostProductionFeedGridAdapter<TRow extends RowModelBase> {
                 node.setDataValue("materialInventoryIdno", "")
                 node.setDataValue("correct", "")
                 node.setDataValue("remark", "")
-                node.setDataValue("firstAppendTime", null)
+                node.setDataValue("operationTime", null)
             }
         })
     }

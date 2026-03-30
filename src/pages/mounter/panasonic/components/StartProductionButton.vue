@@ -47,7 +47,7 @@ type RowModel = {
     materialInventoryIdno: string,
     appendedMaterialInventoryIdno: string,
     remark?: string,
-    firstAppendTime?: string | null,
+    operationTime?: string | null,
 }
 
 type PanasonicStartStatPayload = PanasonicMounterItemStatCreate & {
@@ -114,8 +114,8 @@ const startStatsUseCase = new StartProductionStatsUseCase<RowModel, PanasonicUnl
         const boardSide = convertBoardSide(props.workSheetSideQuery)
         const payload: PanasonicStartStatPayload[] = rows.map(row => ({
             operator_id: props.operator_id ?? null,
-            operation_time: row.firstAppendTime
-                ? new Date(row.firstAppendTime).toISOString()
+            operation_time: row.operationTime
+                ? new Date(row.operationTime).toISOString()
                 : new Date().toISOString(),
             production_start: new Date().toISOString(),
             work_order_no: props.workOrderIdno,

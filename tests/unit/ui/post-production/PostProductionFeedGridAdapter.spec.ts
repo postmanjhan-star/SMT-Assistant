@@ -140,7 +140,7 @@ describe('PostProductionFeedGridAdapter', () => {
         expect(targetNode.setDataValue).toHaveBeenCalledWith('materialInventoryIdno', '')
         expect(targetNode.setDataValue).toHaveBeenCalledWith('correct', '')
         expect(targetNode.setDataValue).toHaveBeenCalledWith('remark', '')
-        expect(targetNode.setDataValue).toHaveBeenCalledWith('firstAppendTime', null)
+        expect(targetNode.setDataValue).toHaveBeenCalledWith('operationTime', null)
 
         expect(sameSlotNode.setDataValue).not.toHaveBeenCalled()
         expect(correctNode.setDataValue).not.toHaveBeenCalled()

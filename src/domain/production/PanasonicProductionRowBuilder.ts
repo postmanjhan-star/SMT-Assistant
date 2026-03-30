@@ -5,7 +5,7 @@ export type PanasonicProductionRow = BaseProductionRow & {
   correct: null
   slotIdno: string
   subSlotIdno: string | null
-  firstAppendTime: string | null
+  operationTime: string | null
   appendedMaterialInventoryIdno: string
 }
 
@@ -16,7 +16,7 @@ export class PanasonicProductionRowBuilder {
       id: i.id ?? -(index + 1),
       slotIdno: i.slot_idno ?? '',
       subSlotIdno: i.sub_slot_idno ?? null,
-      firstAppendTime: null,
+      operationTime: null,
       materialIdno: i.smd_model_idno,
       operatorIdno: null,
       appendedMaterialInventoryIdno: '',

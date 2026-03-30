@@ -32,7 +32,7 @@ export type ProductionRowModel = {
   id: number
   slotIdno: string
   subSlotIdno: string | null
-  firstAppendTime?: string | null
+  operationTime?: string | null
   materialIdno: string
   operatorIdno?: string | null
   materialInventoryIdno: string | null

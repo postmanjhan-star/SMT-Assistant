@@ -3,7 +3,7 @@ import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 
 /**
  * cache row 的最小公因子欄位（兩個品牌共有）。
- * 品牌特有欄位（Panasonic 的 slotIdno/firstAppendTime、Fuji 的 key）
+ * 品牌特有欄位（Panasonic 的 slotIdno/operationTime、Fuji 的 key）
  * 透過 `& Record<string, unknown>` 擴充。
  */
 export interface BaseCacheRow {
@@ -34,7 +34,7 @@ export interface PreproductionDetailCacheAdapter {
 
   /**
    * 序列化單一 row 至 cache。
-   * Panasonic 含 slotIdno/subSlotIdno/firstAppendTime；
+   * Panasonic 含 slotIdno/subSlotIdno/operationTime；
    * Fuji 含 key（mounterIdno-stage-slot 三元組）。
    */
   serializeRow(row: any): BaseCacheRow & Record<string, unknown>
@@ -63,7 +63,7 @@ export interface PreproductionDetailCacheAdapter {
 
   /**
    * hydrate 時合併品牌特有欄位（共用欄位由 core 負責）。
-   * Panasonic 合併 appendedMaterialInventoryIdno（帶 fallback ""）與 firstAppendTime；
+   * Panasonic 合併 appendedMaterialInventoryIdno（帶 fallback ""）與 operationTime；
    * Fuji 合併 appendedMaterialInventoryIdno（無 fallback）。
    */
   hydrateExtraFields(next: any, cachedRow: BaseCacheRow & Record<string, unknown>): void
