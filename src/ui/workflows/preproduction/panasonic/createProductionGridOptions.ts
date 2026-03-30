@@ -11,6 +11,9 @@ import {
     createMaterialIdnoColDef,
     createOperatorIdnoColDef,
     createMaterialInventoryIdnoColDef,
+    createInspectMaterialPackCodeColDef,
+    createInspectTimeColDef,
+    createInspectorIdnoColDef,
     remarkColDef,
 } from '@/ui/shared/grid/mounterPreproductionColumns'
 
@@ -31,27 +34,15 @@ export function createProductionGridOptions(
                 UNLOADED: '⛔',
             }),
             {
-                headerName: '巡檢料號',
-                field: 'inspectMaterialPackCode',
-                flex: 2,
-                minWidth: 100,
-                hide: true,
-            },
-            {
-                headerName: '巡檢時間',
-                field: 'inspectTime',
-                flex: 2,
-                minWidth: 150,
-                hide: true,
-                valueFormatter: p => format(p.value),
-            },
-            {
                 headerName: '巡檢次數',
                 field: 'inspectCount',
                 flex: 1,
                 minWidth: 80,
                 hide: true,
             },
+            createInspectMaterialPackCodeColDef(),
+            createInspectTimeColDef(format),
+            createInspectorIdnoColDef(),
             {
                 field: 'slotIdno',
                 tooltipField: 'slotIdno',
@@ -67,8 +58,8 @@ export function createProductionGridOptions(
                 minWidth: 100,
             },
             {
-                field: 'firstAppendTime',
-                tooltipField: 'firstAppendTime',
+                field: 'operationTime',
+                tooltipField: 'operationTime',
                 headerName: '上料時間',
                 flex: 3,
                 minWidth: 180,
@@ -80,7 +71,7 @@ export function createProductionGridOptions(
             {
                 field: 'appendedMaterialInventoryIdno',
                 tooltipField: 'appendedMaterialInventoryIdno',
-                headerName: '接料條碼',
+                headerName: '當前接料條碼',
                 flex: 5,
                 minWidth: 140,
             },

@@ -33,12 +33,14 @@ import type { UnloadModeType } from '@/ui/shared/composables/useOperationModeSta
 export type FujiOperationFlowsOptions = {
   // Grid
   getGridApi: () => FujiGridApi | null
+  getColumnApi?: () => Pick<import('ag-grid-community').ColumnApi, 'setColumnVisible'> | null
   // Data
   rowData: Ref<FujiProductionRowModel[]>
   mounterData: Ref<FujiMounterItemStatRead[]>
   // Mode
   isTestingMode: Ref<boolean>
   isMockMode: boolean
+  currentUsername?: () => string | null
   // UI callbacks
   showError: (msg: string) => void
   handleUserSwitchTrigger: (code: string) => boolean
@@ -202,6 +204,28 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
     )
   }
 
+  // ── Duplicate detection ───────────────────────────────────────
+
+  function isBarcodeAlreadyInGrid(barcode: string): boolean {
+    return options.rowData.value.some((row) => {
+      if (String(row.materialInventoryIdno ?? "").trim() === barcode) return true
+      const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
+      return appended.split(",").some((c) => c.trim() === barcode)
+    })
+  }
+
+  // ── Column toggle ─────────────────────────────────────────────
+
+  const NORMAL_COLS = ["materialInventoryIdno", "operatorIdno", "operationTime"]
+  const IPQC_COLS   = ["inspectMaterialPackCode", "inspectTime", "inspectorIdno", "inspectCount"]
+
+  function toggleIpqcColumns(entering: boolean) {
+    const api = options.getColumnApi?.()
+    if (!api) return
+    IPQC_COLS.forEach(col   => { try { api.setColumnVisible(col, entering)  } catch { /* no-op */ } })
+    NORMAL_COLS.forEach(col => { try { api.setColumnVisible(col, !entering) } catch { /* no-op */ } })
+  }
+
   // ── Mode entry/exit ───────────────────────────────────────────
 
   function _enterUnloadMode(modeType: UnloadModeType) {
@@ -240,6 +264,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
       gridApi.setRowData(options.rowData.value as any)
     }
 
+    toggleIpqcColumns(true)
     focusIpqcMaterialInput()
   }
 
@@ -259,6 +284,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
       gridApi.setRowData(options.rowData.value as any)
     }
 
+    toggleIpqcColumns(false)
     ipqcMaterialValue.value = ""
     ipqcSlotValue.value = ""
     options.focusMaterialInput()
@@ -378,6 +404,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
     }
 
     ;(row as any).correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    ;(row as any).inspectorIdno = options.currentUsername?.() ?? null
     const gridApi = options.getGridApi()
     if (gridApi) {
       gridApi.applyTransaction?.({ update: [row] })
@@ -408,7 +435,8 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
   }
 
   function handleBeforeMaterialScan(barcode: string): boolean {
-    const code = barcode.trim().toUpperCase()
+    const trimmed = barcode.trim()
+    const code = trimmed.toUpperCase()
     if (options.handleUserSwitchTrigger(code)) return false
     if (code === MATERIAL_UNLOAD_TRIGGER) {
       _enterUnloadMode("pack_auto_slot")
@@ -424,6 +452,10 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
     }
     if (code === MATERIAL_EXIT_TRIGGER && isIpqcMode.value) {
       exitIpqcMode()
+      return false
+    }
+    if (!isIpqcMode.value && isBarcodeAlreadyInGrid(trimmed)) {
+      options.showError("重複掃描：此條碼已存在於目前站位資料")
       return false
     }
     return true

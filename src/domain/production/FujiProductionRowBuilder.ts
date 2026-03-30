@@ -7,6 +7,7 @@ export type FujiProductionRow = BaseProductionRow & {
   boardSide: string
   stage: string
   slot: number
+  operationTime?: string | null
 }
 
 const normalizeStage = (stage: string) => {

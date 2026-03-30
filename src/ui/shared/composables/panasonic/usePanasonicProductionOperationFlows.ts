@@ -167,9 +167,22 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
 
   // ── Grid helpers ──────────────────────────────────────────────
 
+  const NORMAL_COLS = ['materialInventoryIdno', 'operatorIdno', 'operationTime']
+  const IPQC_COLS   = ['inspectMaterialPackCode', 'inspectTime', 'inspectorIdno', 'inspectCount']
+
   function showIpqcColumns(visible: boolean) {
-    options.columnApi.value?.setColumnVisible('inspectMaterialPackCode', visible)
-    options.columnApi.value?.setColumnVisible('inspectTime', visible)
+    const api = options.columnApi.value
+    if (!api) return
+    IPQC_COLS.forEach(col   => { try { api.setColumnVisible(col, visible)  } catch { /* no-op */ } })
+    NORMAL_COLS.forEach(col => { try { api.setColumnVisible(col, !visible) } catch { /* no-op */ } })
+  }
+
+  function isBarcodeAlreadyInGrid(barcode: string): boolean {
+    return options.rowData.value.some((row: any) => {
+      if (String(row.materialInventoryIdno ?? '').trim() === barcode) return true
+      const appended = String(row.appendedMaterialInventoryIdno ?? '').trim()
+      return appended.split(',').some((c: string) => c.trim() === barcode)
+    })
   }
 
   // ── Slot helpers ──────────────────────────────────────────────
@@ -344,6 +357,7 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
     row.inspectMaterialPackCode = materialPackCode
     row.inspectTime = new Date().toISOString()
     row.inspectCount = (row.inspectCount ?? 0) + 1
+    row.inspectorIdno = options.currentUsername.value || null
     row.remark = `巡檢 ${row.inspectCount} 次`
 
     options.gridApi.value?.applyTransaction?.({ update: [row] })
@@ -411,8 +425,14 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
   }
 
   function handleBeforeMaterialScan(barcode: string): boolean {
-    const code = barcode.trim().toUpperCase()
-    return !handleModeTriggerFromNormalInput(code)
+    const trimmed = barcode.trim()
+    const code = trimmed.toUpperCase()
+    if (handleModeTriggerFromNormalInput(code)) return false
+    if (!isIpqcMode.value && isBarcodeAlreadyInGrid(trimmed)) {
+      options.showError('重複掃描：此條碼已存在於目前站位資料')
+      return false
+    }
+    return true
   }
 
   function handleBeforeSlotSubmit(raw: string): boolean {

@@ -18,6 +18,8 @@ export interface MounterOperationFlowsAdapter {
   applyGridTransaction(update: any[]): void
   /** 呼叫 columnApi.setColumnVisible */
   setColumnVisible(colId: string, visible: boolean): void
+  /** 進入/退出 IPQC 模式時，隱藏或顯示格線特定的一般欄位（materialInventoryIdno、operatorIdno、operationTime）*/
+  toggleNormalColumnsForIpqc?(visible: boolean): void
 
   // ── Slot parsing ───────────────────────────────────────────────────
   /** 依掃描輸入找到對應的 row，找不到回傳 null */

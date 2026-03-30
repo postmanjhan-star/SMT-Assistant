@@ -72,6 +72,13 @@ function buildFujiPreproductionAdapter(
       getColumnApi()?.setColumnVisible(colId, visible)
     },
 
+    toggleNormalColumnsForIpqc(visible: boolean) {
+      const api = getColumnApi()
+      if (!api) return
+      const normalCols = ["materialInventoryIdno", "operatorIdno", "operationTime"]
+      normalCols.forEach(col => { try { api.setColumnVisible(col, !visible) } catch { /* no-op */ } })
+    },
+
     // ── Slot parsing ──────────────────────────────────────────────────────
     findRowBySlotInput(slotIdno: string, rowData: any[]): any | null {
       const parsed = parseFujiSlotIdno(slotIdno)

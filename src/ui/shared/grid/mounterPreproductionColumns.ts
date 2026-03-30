@@ -20,7 +20,23 @@ export function createOperatorIdnoColDef(overrides?: Partial<ColDef>): ColDef {
 }
 
 export function createMaterialInventoryIdnoColDef(overrides?: Partial<ColDef>): ColDef {
-  return { field: 'materialInventoryIdno', tooltipField: 'materialInventoryIdno', headerName: '上料條碼', flex: 5, minWidth: 140, ...overrides }
+  return { field: 'materialInventoryIdno', tooltipField: 'materialInventoryIdno', headerName: '首次上料條碼', flex: 5, minWidth: 140, ...overrides }
+}
+
+export function createAppendedMaterialInventoryIdnoColDef(overrides?: Partial<ColDef>): ColDef {
+  return { field: 'appendedMaterialInventoryIdno', tooltipField: 'appendedMaterialInventoryIdno', headerName: '當前接料條碼', flex: 5, minWidth: 140, ...overrides }
 }
 
 export const remarkColDef: ColDef = { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 }
+
+export function createInspectMaterialPackCodeColDef(overrides?: Partial<ColDef>): ColDef {
+  return { field: 'inspectMaterialPackCode', tooltipField: 'inspectMaterialPackCode', headerName: '覆檢料號', flex: 5, minWidth: 140, hide: true, ...overrides }
+}
+
+export function createInspectTimeColDef(format: (val: unknown) => string, overrides?: Partial<ColDef>): ColDef {
+  return { field: 'inspectTime', tooltipField: 'inspectTime', headerName: '覆檢時間', flex: 3, minWidth: 180, hide: true, valueFormatter: (p) => format(p.value), ...overrides }
+}
+
+export function createInspectorIdnoColDef(overrides?: Partial<ColDef>): ColDef {
+  return { field: 'inspectorIdno', tooltipField: 'inspectorIdno', headerName: '覆檢人', flex: 3, minWidth: 120, hide: true, ...overrides }
+}

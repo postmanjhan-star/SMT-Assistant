@@ -7,11 +7,16 @@ import {
   createMaterialIdnoColDef,
   createOperatorIdnoColDef,
   createMaterialInventoryIdnoColDef,
+  createAppendedMaterialInventoryIdnoColDef,
+  createInspectMaterialPackCodeColDef,
+  createInspectTimeColDef,
+  createInspectorIdnoColDef,
   remarkColDef,
 } from "@/ui/shared/grid/mounterPreproductionColumns"
 
 export function createFujiPreproductionGridOptions(): GridOptions<FujiMounterRowModel> {
   const { format } = useDateFormatter()
+
   return {
     ...createBaseGridOptions(),
     columnDefs: [
@@ -22,10 +27,13 @@ export function createFujiPreproductionGridOptions(): GridOptions<FujiMounterRow
       { field: "boardSide", headerName: "PCB面", flex: 1, minWidth: 90 },
       createMaterialIdnoColDef({ headerName: "物料號", minWidth: 160 }),
       createOperatorIdnoColDef({ flex: 4, minWidth: 160 }),
-      createMaterialInventoryIdnoColDef({ headerName: "物料條碼", minWidth: 180 }),
-      { headerName: '巡檢料號', field: 'inspectMaterialPackCode', flex: 2, minWidth: 100, hide: true },
-      { headerName: '巡檢時間', field: 'inspectTime', flex: 2, minWidth: 150, hide: true, valueFormatter: (p: any) => format(p.value) },
+      { field: "operationTime", tooltipField: "operationTime", headerName: "上料時間", flex: 3, minWidth: 180, valueFormatter: (params) => format(params.value) },
+      createMaterialInventoryIdnoColDef({ headerName: "首次上料條碼", minWidth: 180 }),
+      createAppendedMaterialInventoryIdnoColDef({ minWidth: 180 }),
       { headerName: '巡檢次數', field: 'inspectCount', flex: 1, minWidth: 80, hide: true },
+      createInspectMaterialPackCodeColDef(),
+      createInspectTimeColDef(format),
+      createInspectorIdnoColDef(),
       remarkColDef,
     ],
     getRowId: (params: GetRowIdParams<FujiMounterRowModel>) =>

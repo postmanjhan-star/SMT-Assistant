@@ -162,19 +162,9 @@ export function useMounterOperationFlowsCore(
     }
   }
 
-  function applyUnloadToRow(row: any, materialPackCode: string) {
-    const inMain     = String(row.materialInventoryIdno ?? "").trim() === materialPackCode
-    const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(materialPackCode)
-    if (inMain) {
-      row.materialInventoryIdno = ""
-      row.correct = CORRECT_STATE.UNLOADED
-    }
-    if (inAppended) {
-      row.appendedMaterialInventoryIdno = removeMaterialCode(
-        row.appendedMaterialInventoryIdno,
-        materialPackCode,
-      )
-    }
+  function applyUnloadToRow(row: any, _materialPackCode: string) {
+    row.appendedMaterialInventoryIdno = ""
+    row.correct = CORRECT_STATE.UNLOADED
     updateRowInGrid(row)
   }
 
@@ -208,6 +198,8 @@ export function useMounterOperationFlowsCore(
     adapter.setColumnVisible("inspectMaterialPackCode", visible)
     adapter.setColumnVisible("inspectTime", visible)
     adapter.setColumnVisible("inspectCount", visible)
+    adapter.setColumnVisible("inspectorIdno", visible)
+    adapter.toggleNormalColumnsForIpqc?.(visible)
   }
 
   // ── Focus helpers ─────────────────────────────────────────────────────────
@@ -402,6 +394,7 @@ export function useMounterOperationFlowsCore(
     row.inspectMaterialPackCode = materialPackCode
     row.inspectTime  = new Date().toISOString()
     row.inspectCount = (row.inspectCount ?? 0) + 1
+    row.inspectorIdno = currentUsername.value || null
     updateRowInGrid(row)
 
     pendingIpqcRecords.value = [
@@ -458,8 +451,22 @@ export function useMounterOperationFlowsCore(
     return false
   }
 
+  function isBarcodeAlreadyInGrid(barcode: string): boolean {
+    return rowData.value.some((row: any) => {
+      if (String(row.materialInventoryIdno ?? "").trim() === barcode) return true
+      const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
+      return appended.split(",").some((c: string) => c.trim() === barcode)
+    })
+  }
+
   async function handleBeforeMaterialScan(barcode: string) {
-    return !handleModeTriggerFromNormalInput(barcode.trim().toUpperCase())
+    const normalized = barcode.trim().toUpperCase()
+    if (handleModeTriggerFromNormalInput(normalized)) return false
+    if (!isIpqcMode.value && isBarcodeAlreadyInGrid(normalized)) {
+      showError("重複掃描：此條碼已存在於目前站位資料")
+      return false
+    }
+    return true
   }
 
   async function handleBeforeSlotSubmit(raw: string) {
@@ -612,10 +619,10 @@ export function useMounterOperationFlowsCore(
       return
     }
 
-    row.materialInventoryIdno = replacementPackCode
-    row.correct               = correctState
+    row.appendedMaterialInventoryIdno = replacementPackCode
+    row.correct                       = correctState
     row.operatorIdno          = currentUsername.value || null
-    row.firstAppendTime       = row.firstAppendTime ?? new Date().toISOString()
+    row.operationTime         = new Date().toISOString()
     if (correctState === CORRECT_STATE.TESTING) {
       row.remark = "[測試模式綁定]"
     }

@@ -7,5 +7,6 @@ export type BaseProductionRow = {
   inspectMaterialPackCode?: string
   inspectTime?: string | null
   inspectCount?: number
+  inspectorIdno?: string | null
   remark?: string
 }

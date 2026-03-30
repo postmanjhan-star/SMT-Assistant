@@ -71,6 +71,13 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
       columnApi.value?.setColumnVisible(colId, visible)
     },
 
+    toggleNormalColumnsForIpqc(visible: boolean) {
+      const api = columnApi.value
+      if (!api) return
+      const normalCols = ["materialInventoryIdno", "operatorIdno", "operationTime"]
+      normalCols.forEach(col => { try { api.setColumnVisible(col, !visible) } catch { /* no-op */ } })
+    },
+
     // ── Slot parsing ────────────────────────────────────────────────────────
     findRowBySlotInput(slotIdno: string, rowData: any[]): any | null {
       const parsed = parsePanasonicSlotIdno(slotIdno)
