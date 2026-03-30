@@ -14,7 +14,7 @@ export type UnloadReplaceRowBase = {
   materialInventoryIdno: string | null
   appendedMaterialInventoryIdno?: string | null
   correct: string | null
-  firstAppendTime?: string | null
+  operationTime?: string | null
 }
 
 // ── Strategy: machine-specific slot resolution ───────────────────────────────
@@ -265,16 +265,10 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       const nextAppended = removeMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
       row.appendedMaterialInventoryIdno = nextAppended
       row.correct = 'UNLOADED_MATERIAL_PACK'
-      if (inMain) {
-        row.materialInventoryIdno = ''
-      }
 
       const gridUpdates: Record<string, unknown> = {
         appendedMaterialInventoryIdno: nextAppended,
         correct: 'UNLOADED_MATERIAL_PACK',
-      }
-      if (inMain) {
-        gridUpdates.materialInventoryIdno = ''
       }
       safeGridUpdate(rowId, gridUpdates)
 
@@ -367,13 +361,12 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
       row.appendedMaterialInventoryIdno = nextAppended
       row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-      const nextFirstAppendTime = row.firstAppendTime ?? now
-      row.firstAppendTime = nextFirstAppendTime
+      row.operationTime = now
 
       safeGridUpdate(rowId, {
         appendedMaterialInventoryIdno: nextAppended,
         correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
-        firstAppendTime: nextFirstAppendTime,
+        operationTime: now,
       })
 
       const api = getGridApi()

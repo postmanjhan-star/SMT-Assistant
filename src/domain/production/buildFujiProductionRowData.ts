@@ -49,7 +49,6 @@ export type FujiProductionRowModel = {
   remark?: string
   appendedMaterialInventoryIdno?: string
   operationTime?: string | null
-  firstAppendTime?: string | null
   inspectTime?: string | null
   inspectMaterialPackCode?: string | null
   inspectCount?: number | null
@@ -216,9 +215,11 @@ function normalizeValue(value: unknown): string {
 
 function resolveMainImportState(records: FujiFeedRecordLike[]): {
   activeImport: FujiFeedRecordLike | null
+  lastKnownImport: FujiFeedRecordLike | null
   lastMainOperation: MaterialOperationTypeEnum | null
 } {
   let activeImport: FujiFeedRecordLike | null = null
+  let lastKnownImport: FujiFeedRecordLike | null = null
   let lastMainOperation: MaterialOperationTypeEnum | null = null
 
   sortRecords(records).forEach((record) => {
@@ -232,6 +233,7 @@ function resolveMainImportState(records: FujiFeedRecordLike[]): {
       feedType === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
     ) {
       activeImport = record
+      lastKnownImport = record
       lastMainOperation = MaterialOperationTypeEnum.FEED
       return
     }
@@ -249,7 +251,7 @@ function resolveMainImportState(records: FujiFeedRecordLike[]): {
     }
   })
 
-  return { activeImport, lastMainOperation }
+  return { activeImport, lastKnownImport, lastMainOperation }
 }
 
 export function parseFujiProductionSlotIdno(
@@ -348,7 +350,7 @@ export function buildFujiProductionRowData(
         (a, b) => getRecordTimeNumber(b) - getRecordTimeNumber(a)
       )[0] ?? null
 
-    const { activeImport: activeImportedRecord, lastMainOperation } =
+    const { activeImport: activeImportedRecord, lastKnownImport: lastKnownImportedRecord, lastMainOperation } =
       resolveMainImportState(normalizedFeedRecords)
 
     const appendedCodes = buildAppendedCodes(normalizedFeedRecords)
@@ -390,7 +392,7 @@ export function buildFujiProductionRowData(
       slotIdno: String(stat.slot_idno),
       subSlotIdno: stage,
       materialIdno: String(stat.material_idno ?? ""),
-      materialInventoryIdno: activeImportedRecord?.material_pack_code ?? "",
+      materialInventoryIdno: lastKnownImportedRecord?.material_pack_code ?? "",
       operationTime: activeImportedRecord?.operation_time ?? null,
       operatorIdno: null,
       appendedMaterialInventoryIdno: appendedCodes,

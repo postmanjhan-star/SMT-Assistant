@@ -251,7 +251,7 @@ describe("buildFujiProductionRowData", () => {
 
     const [row] = buildFujiProductionRowData([stat], [])
 
-    expect(row.materialInventoryIdno).toBe("")
+    expect(row.materialInventoryIdno).toBe("PK-1")
     expect(row.correct).toBe("UNLOADED_MATERIAL_PACK")
   })
 

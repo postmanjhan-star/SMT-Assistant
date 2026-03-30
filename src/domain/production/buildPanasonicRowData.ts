@@ -15,7 +15,7 @@ export type ProductionRowModel = {
     appendedMaterialInventoryIdno: string
     total?: number | string
     correct: string | null
-    firstAppendTime?: string | null
+    operationTime?: string | null
     inspectMaterialPackCode?: string
     inspectTime?: string | null
     inspectCount?: number
@@ -259,6 +259,23 @@ const getActiveImportedRecord = (
     return activeImport
 }
 
+const getLastKnownImportedRecord = (
+    records: FeedRecordLike[]
+): IndexedRecord | undefined => {
+    let lastKnown: IndexedRecord | undefined
+
+    toSortedRecords(records).forEach((record) => {
+        if (
+            toOperationType(record.operation_type) === MaterialOperationTypeEnum.FEED &&
+            record.feed_material_pack_type === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK
+        ) {
+            lastKnown = record
+        }
+    })
+
+    return lastKnown
+}
+
 const getAppendedCodes = (records: FeedRecordLike[]) => {
     const appendedCodes = new Set<string>()
 
@@ -321,6 +338,7 @@ export const buildProductionRowData = (
         const latestInspection = getLatestInspection(feedRecords)
 
         const importRecord = getActiveImportedRecord(feedRecords)
+        const lastKnownImportRecord = getLastKnownImportedRecord(feedRecords)
         const operatorIdno = getLatestOperatorId(feedRecords)
 
         return {
@@ -329,10 +347,10 @@ export const buildProductionRowData = (
             subSlotIdno: stat.sub_slot_idno ?? null,
             materialIdno: stat.material_idno ?? "",
             operatorIdno,
-            materialInventoryIdno: importRecord?.material_pack_code ?? null,
+            materialInventoryIdno: lastKnownImportRecord?.material_pack_code ?? null,
             appendedMaterialInventoryIdno: getAppendedCodes(feedRecords),
             correct: getCorrectValue(feedRecords),
-            firstAppendTime: getFirstAppendTime(importRecord, feedRecords),
+            operationTime: getFirstAppendTime(importRecord, feedRecords),
             inspectMaterialPackCode: latestInspection?.material_pack_code ?? "",
             inspectTime: latestInspection?.operation_time ?? null,
             inspectCount: inspectionCount,

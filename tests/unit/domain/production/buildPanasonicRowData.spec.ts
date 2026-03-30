@@ -157,7 +157,7 @@ describe("buildProductionRowData", () => {
         const [row] = buildProductionRowData([stat], [])
 
         expect(row.correct).toBe(CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
-        expect(row.materialInventoryIdno).toBeNull()
+        expect(row.materialInventoryIdno).toBe("IMP-1")
     })
 
     it("returns UNLOADED_MATERIAL_PACK when last status is UNFEED", () => {
@@ -339,7 +339,7 @@ describe("buildProductionRowData", () => {
         expect(row.appendedMaterialInventoryIdno).toBe("APP-LEGACY")
     })
 
-    it("uses imported operation time as firstAppendTime when present", () => {
+    it("uses imported operation time as operationTime when present", () => {
         const stat = makeStat({
             feed_records: [
                 makeFeedRecord({
@@ -358,7 +358,7 @@ describe("buildProductionRowData", () => {
 
         const [row] = buildProductionRowData([stat], [])
 
-        expect(row.firstAppendTime).toBe("2024-01-02T00:00:00Z")
+        expect(row.operationTime).toBe("2024-01-02T00:00:00Z")
     })
 
     it("falls back to first record time when no imported record", () => {
@@ -379,16 +379,16 @@ describe("buildProductionRowData", () => {
 
         const [row] = buildProductionRowData([stat], [])
 
-        expect(row.firstAppendTime).toBe("2024-01-01T00:00:00Z")
+        expect(row.operationTime).toBe("2024-01-01T00:00:00Z")
     })
 
-    it("returns null firstAppendTime when no records", () => {
+    it("returns null operationTime when no records", () => {
         const stat = makeStat({
             feed_records: [],
         })
 
         const [row] = buildProductionRowData([stat], [])
 
-        expect(row.firstAppendTime).toBeNull()
+        expect(row.operationTime).toBeNull()
     })
 })
