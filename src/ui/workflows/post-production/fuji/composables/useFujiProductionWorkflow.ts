@@ -515,6 +515,7 @@ export function useFujiProductionWorkflow(
     onStopProduction,
     onMaterialQuery,
     showError,
+    showSuccess,
     mounterData,
     inspectionUpload,
     applyInspectionUpdate,

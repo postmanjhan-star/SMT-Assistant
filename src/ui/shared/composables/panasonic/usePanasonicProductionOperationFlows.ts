@@ -17,6 +17,7 @@ import {
 } from '@/domain/mounter/operationModes'
 import { parsePanasonicSlotIdno } from '@/domain/slot/PanasonicSlotParser'
 import { useOperationModeStateMachine } from '@/ui/shared/composables/useOperationModeStateMachine'
+import { msg } from '@/ui/shared/messageCatalog'
 import type { UnloadModeType } from '@/ui/shared/composables/useOperationModeStateMachine'
 
 // GridApi has private class members that break Ref<T> assignability, so we
@@ -36,6 +37,7 @@ export type PanasonicProductionOperationFlowsOptions = {
   isTestingMode:   Ref<boolean>
   isMockMode:      boolean
   showError:             (msg: string) => void
+  showSuccess:           (msg: string) => void
   handleUserSwitchTrigger: (code: string) => boolean
   clearNormalScanState:  () => void
   focusMaterialInput:    () => void
@@ -320,6 +322,7 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
     }
 
     ipqcMaterialValue.value = materialPackCode
+    options.showSuccess(msg.ipqc.materialScanned(materialPackCode))
     focusIpqcSlotInput()
   }
 
@@ -377,6 +380,7 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
       }
     }
 
+    options.showSuccess(msg.ipqc.inspectionSuccess(materialPackCode, slotIdno))
     ipqcSlotValue.value = ''
     ipqcMaterialValue.value = ''
     focusIpqcMaterialInput()

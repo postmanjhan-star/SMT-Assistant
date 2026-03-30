@@ -24,6 +24,7 @@ import { parseFujiSlotIdno } from '@/domain/slot/FujiSlotParser'
 import { isFujiStatSlotMatch } from '@/domain/production/buildFujiProductionRowData'
 import type { FujiProductionRowModel } from '@/domain/production/buildFujiProductionRowData'
 import { useOperationModeStateMachine } from '@/ui/shared/composables/useOperationModeStateMachine'
+import { msg } from '@/ui/shared/messageCatalog'
 import type { UnloadModeType } from '@/ui/shared/composables/useOperationModeStateMachine'
 
 // ────────────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ export type FujiOperationFlowsOptions = {
   currentUsername?: () => string | null
   // UI callbacks
   showError: (msg: string) => void
+  showSuccess: (msg: string) => void
   handleUserSwitchTrigger: (code: string) => boolean
   clearNormalScanState: () => void
   focusMaterialInput: () => void
@@ -344,6 +346,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
     }
 
     ipqcMaterialValue.value = materialPackCode
+    options.showSuccess(msg.ipqc.materialScanned(materialPackCode))
     focusIpqcSlotInput()
   }
 
@@ -410,6 +413,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
       gridApi.applyTransaction?.({ update: [row] })
     }
 
+    options.showSuccess(msg.ipqc.inspectionSuccess(materialPackCode, slotIdno))
     ipqcSlotValue.value = ""
     ipqcMaterialValue.value = ""
     focusIpqcMaterialInput()

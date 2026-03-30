@@ -59,6 +59,7 @@ const {
   onStopProduction,
   onMaterialQuery,
   showError,
+  showSuccess,
   mounterData,
   inspectionUpload,
   applyInspectionUpdate,
@@ -128,6 +129,7 @@ const {
   isTestingMode,
   isMockMode,
   showError,
+  showSuccess,
   handleUserSwitchTrigger,
   clearNormalScanState: () => {
     materialInventoryFromScan.value = null

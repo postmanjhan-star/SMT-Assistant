@@ -194,6 +194,7 @@ const {
   isTestingMode,
   isMockMode,
   showError: ui.error,
+  showSuccess: ui.success,
   handleUserSwitchTrigger,
   clearNormalScanState,
   focusMaterialInput: focusMaterialInventoryInput,
