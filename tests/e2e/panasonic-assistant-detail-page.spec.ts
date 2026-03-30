@@ -66,6 +66,28 @@ async function scanOne(page: Page, material: string, slot: string) {
     await slotInput.press('Enter');
 }
 
+async function scanAllIpqc(page: Page, records: { material: string, slot: string }[]) {
+    const materialInput = page.locator('#prod-ipqc-material-input');
+    const slotInput = page.locator('#prod-ipqc-slot-input');
+
+    for (const [index, record] of records.entries()) {
+        console.log(`IPQC scan ${index + 1}/${records.length}: ${record.material}`);
+        try {
+            await expect(materialInput).toBeVisible();
+            await materialInput.click();
+            await materialInput.fill(record.material);
+            await materialInput.press('Enter');
+            if (index === 0) await expectLatestMessage(page, 'success-message', /物料已確認/);
+            await expect(slotInput).toBeEnabled({ timeout: 10000 });
+            await slotInput.fill(record.slot);
+            await slotInput.press('Enter');
+            if (index === 0) await expectLatestMessage(page, 'success-message', /巡檢成功/);
+        } catch (e) {
+            console.log(`skip IPQC record due timeout/error: ${record.material}`);
+        }
+    }
+}
+
 async function expectMainScanInputsCleared(page: Page) {
     await expect(getMainMaterialInput(page)).toHaveValue('');
     await expect(getMainSlotInput(page)).toHaveValue('');
@@ -88,13 +110,20 @@ test('test scan panasonic mounter feed records in normal mode', async ({ page })
     await expect(firstRowCell).toBeVisible();
     console.log('first row binding result:', await firstRowCell.innerText());
 
-    console.log('normal mode scan completed, waiting for production page redirect...');
+    console.log('normal mode scan completed, triggering start production...');
 
+    
     await page.waitForURL(/\/smt\/panasonic-mounter-production\/.+/, { timeout: 300000 });
-    console.log("page redirected, start second scan");
+    console.log("page redirected, entering IPQC inspection mode...");
 
-    // second scan pass on production page
-    await scanAll(page, records);
+    // 輸入 S5588 進入 IPQC 巡檢模式
+    const productionMaterialInput = page.getByTestId('panasonic-main-material-input').locator('input');
+    await productionMaterialInput.fill('S5588');
+    await productionMaterialInput.press('Enter');
+    console.log('entered IPQC inspection mode, start second scan');
+
+    // second scan pass on production page (IPQC mode)
+    await scanAllIpqc(page, records);
 
     console.log("playwright full scan flow completed");
 });

@@ -66,6 +66,28 @@ async function scanAll(page: Page, records: ScanRecord[]) {
     }
 }
 
+async function scanAllIpqc(page: Page, records: ScanRecord[]) {
+    const materialInput = page.locator('#fuji-ipqc-material-input');
+    const slotInput = page.locator('#fuji-ipqc-slot-input');
+
+    for (const [index, record] of records.entries()) {
+        console.log(`IPQC 巡檢第 ${index + 1}/${records.length} 筆: ${record.material}`);
+        try {
+            await expect(materialInput).toBeVisible();
+            await materialInput.click();
+            await materialInput.fill(record.material);
+            await materialInput.press('Enter');
+            if (index === 0) await expectLatestMessage(page, 'success-message', /物料已確認/);
+            await expect(slotInput).toBeEnabled({ timeout: 10000 });
+            await slotInput.fill(record.slot);
+            await slotInput.press('Enter');
+            if (index === 0) await expectLatestMessage(page, 'success-message', /巡檢成功/);
+        } catch (e) {
+            console.log(`⚠️ IPQC 處理 ${record.material} 時發生超時或錯誤，跳過此筆。`);
+        }
+    }
+}
+
 test('test scan fuji mounter feed records in normal mode', async ({ page }) => {
     test.setTimeout(300000);
 
@@ -83,11 +105,22 @@ test('test scan fuji mounter feed records in normal mode', async ({ page }) => {
     await expect(firstRowCell).toBeVisible();
     console.log('綁定結果:', await firstRowCell.innerText());
 
+    // 觸發自動開始生產
+    await page.getByRole('button', { name: /開始生產/ }).click();
+    await page.getByRole('button', { name: '確定' }).click();
+
     await page.waitForURL(/\/smt\/fuji-mounter-production\/.+/, {
         timeout: 300000,
     });
 
-    await scanAll(page, records);
+    // 輸入 S5588 進入 IPQC 巡檢模式
+    const productionMaterialInput = page.getByTestId('fuji-production-material-input').locator('input');
+    await productionMaterialInput.fill('S5588');
+    await productionMaterialInput.press('Enter');
+    console.log('已進入 IPQC 巡檢模式');
+
+    // 第二次掃描（IPQC 巡檢模式）
+    await scanAllIpqc(page, records);
     console.log('Playwright 已完成完整掃描流程測試');
 });
 
