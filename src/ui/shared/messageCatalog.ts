@@ -49,6 +49,12 @@ export const msg = {
     addSuccess: "新增成功",
   },
 
+  // IPQC 巡檢類
+  ipqc: {
+    materialScanned: (packCode: string) => `物料已確認：${packCode}`,
+    inspectionSuccess: (packCode: string, slotIdno: string) => `巡檢成功：${packCode} @ ${slotIdno}`,
+  },
+
   // 生產生命週期類
   production: {
     startedAndUploaded: "開始生產，資料已上傳",
