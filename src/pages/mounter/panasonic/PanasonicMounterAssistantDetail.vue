@@ -4,7 +4,7 @@ import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
 import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
-import { computed, nextTick, onMounted, ref, watch } from "vue"
+import { computed, nextTick, onMounted, ref } from "vue"
 import { useMeta } from "vue-meta"
 import { useRoute } from "vue-router"
 
@@ -215,7 +215,6 @@ const {
   onIpqcUploaded,
   findRowBySlotIdno,
   updateRowInGrid,
-  appendMaterialCodeToRow,
 } = usePanasonicOperationFlows({
   rowData,
   gridApi,
@@ -257,6 +256,12 @@ async function onSlotSubmit(payload: {
   const existingMaterial = String(targetRow?.materialInventoryIdno ?? "").trim()
   const newPackCode = materialInventoryResult.value?.materialInventory?.idno?.trim()
 
+  if (targetRow && String(targetRow.appendedMaterialInventoryIdno ?? "").trim()) {
+    showError(`站位 ${payload.slotIdno} 已有接料，請先卸除當前料捲`)
+    resetInputsAfterSlotSubmit()
+    return
+  }
+
   if (targetRow && existingMaterial && newPackCode) {
     const isMatched = materialInventoryResult.value?.matchedRows?.some(
       (r) =>
@@ -274,12 +279,9 @@ async function onSlotSubmit(payload: {
       return
     }
 
-    targetRow.appendedMaterialInventoryIdno = appendMaterialCodeToRow(
-      targetRow.appendedMaterialInventoryIdno,
-      newPackCode
-    )
+    targetRow.appendedMaterialInventoryIdno = newPackCode
     targetRow.operatorIdno = currentUsername.value || null
-    targetRow.firstAppendTime = targetRow.firstAppendTime ?? new Date().toISOString()
+    targetRow.operationTime = new Date().toISOString()
     if (correctState === "TESTING_MATERIAL_PACK") targetRow.remark = "[測試模式接料]"
     updateRowInGrid(targetRow)
 
@@ -299,7 +301,13 @@ async function onSlotSubmit(payload: {
   }
 
   try {
-    return await handleSlotSubmitWithPolicy(payload)
+    const result = await handleSlotSubmitWithPolicy(payload)
+    const updatedRow = findRowBySlotIdno(payload.slotIdno)
+    if (updatedRow && newPackCode) {
+      updatedRow.appendedMaterialInventoryIdno = newPackCode
+      updateRowInGrid(updatedRow)
+    }
+    return result
   } finally {
     resetInputsAfterSlotSubmit()
     persistNow()
@@ -313,10 +321,6 @@ async function onSubmitShortageWithPersist() {
 
 // ─── Grid ─────────────────────────────────────────────────────────────────────
 
-function setAppendedColumnVisible(visible: boolean) {
-  columnApi.value?.setColumnVisible("appendedMaterialInventoryIdno", visible)
-}
-
 function onGridReadyWithCache(e: GridReadyEvent) {
   gridApi.value = e.api
   columnApi.value = e.columnApi
@@ -325,13 +329,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
     pendingGridSync.value = false
     syncGridRows(rowData.value)
   }
-  setAppendedColumnVisible(productionStarted.value)
 }
-
-watch(
-  () => productionStarted.value,
-  (started) => setAppendedColumnVisible(started)
-)
 </script>
 
 <template>

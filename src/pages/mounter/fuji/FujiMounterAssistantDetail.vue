@@ -16,7 +16,6 @@ import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
 import { parseFujiSlotIdno, parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiDetailPage } from "@/ui/workflows/preproduction/fuji/composables/useFujiDetailPage"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
-import { appendMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
 import { useAuthStore } from "@/stores/authStore"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
@@ -221,6 +220,12 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
   const currentMaterial = materialInventory.value
   const newPackCode = currentMaterial?.idno?.trim()
 
+  if (targetRow && String(targetRow.appendedMaterialInventoryIdno ?? "").trim()) {
+    showError(`站位 ${payload.slotIdno} 已有接料，請先卸除當前料捲`)
+    clearNormalScanState()
+    return
+  }
+
   if (targetRow && existingMaterial && newPackCode) {
     const scannedMaterialId = String(currentMaterial?.material_idno ?? "").trim()
     const expectedMaterialId = String(targetRow.materialIdno ?? "").trim()
@@ -242,11 +247,9 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
       return
     }
 
-    targetRow.appendedMaterialInventoryIdno = appendMaterialCode(
-      targetRow.appendedMaterialInventoryIdno,
-      newPackCode
-    )
+    targetRow.appendedMaterialInventoryIdno = newPackCode
     targetRow.operatorIdno = currentUsername.value || null
+    targetRow.operationTime = new Date().toISOString()
     updateRowInGrid(targetRow)
 
     pendingSpliceRecords.value = [
@@ -266,6 +269,11 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
   }
 
   const result = await handleSlotSubmit(payload)
+  const updatedRow = findRowBySlotIdno(payload.slotIdno)
+  if (updatedRow && newPackCode) {
+    updatedRow.appendedMaterialInventoryIdno = newPackCode
+    updateRowInGrid(updatedRow)
+  }
   persistNow()
   return result
 }

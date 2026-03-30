@@ -121,6 +121,8 @@ const {
   exitIpqcMode,
 } = useFujiOperationFlows({
   getGridApi: () => localGridApi.value,
+  getColumnApi: () => localColumnApi.value,
+  currentUsername: () => loginCurrentUsername.value,
   rowData,
   mounterData,
   isTestingMode,
