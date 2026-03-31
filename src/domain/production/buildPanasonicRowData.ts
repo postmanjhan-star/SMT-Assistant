@@ -291,6 +291,7 @@ const getAppendedCodes = (records: FeedRecordLike[]) => {
 
         const feedType = record.feed_material_pack_type
         if (
+            feedType === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK ||
             feedType === FeedMaterialTypeEnum.NEW_MATERIAL_PACK ||
             feedType === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK
         ) {

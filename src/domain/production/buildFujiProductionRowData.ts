@@ -199,6 +199,7 @@ function buildAppendedCodes(records: FujiFeedRecordLike[]): string {
 
     const feedType = getRecordType(record)
     if (
+      feedType === FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK ||
       feedType === FeedMaterialTypeEnum.NEW_MATERIAL_PACK ||
       feedType === FeedMaterialTypeEnum.REUSED_MATERIAL_PACK
     ) {

@@ -255,6 +255,48 @@ describe("buildProductionRowData", () => {
         expect(row.correct).toBe(CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK)
     })
 
+    it("includes IMPORTED pack in appendedMaterialInventoryIdno on initial load", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    material_pack_code: "IMP-1",
+                    check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+
+        expect(row.appendedMaterialInventoryIdno).toBe("IMP-1")
+    })
+
+    it("removes IMPORTED pack from appendedMaterialInventoryIdno when UNFEED matches", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    id: 1,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+                makeFeedRecord({
+                    id: 2,
+                    operation_time: "2024-01-01T00:01:00Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.UNFEED,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+
+        expect(row.appendedMaterialInventoryIdno).toBe("")
+    })
+
     it("builds appendedMaterialInventoryIdno from NEW/REUSED codes", () => {
         const stat = makeStat({
             feed_records: [

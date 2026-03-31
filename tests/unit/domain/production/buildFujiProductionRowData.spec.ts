@@ -140,7 +140,7 @@ describe("buildFujiProductionRowData", () => {
     expect(row.remark).toBe("[廠商測試新料]")
   })
 
-  it("builds appended codes from non-imported records and de-duplicates", () => {
+  it("builds appended codes including imported pack and de-duplicates", () => {
     const stat = makeStat({
       feed_records: [
         makeFeedRecord({
@@ -164,7 +164,49 @@ describe("buildFujiProductionRowData", () => {
 
     const [row] = buildFujiProductionRowData([stat], [])
 
-    expect(row.appendedMaterialInventoryIdno).toBe("APP-1, APP-2")
+    expect(row.appendedMaterialInventoryIdno).toBe("APP-1, APP-2, IMP-1")
+  })
+
+  it("includes IMPORTED pack in appendedMaterialInventoryIdno when no unfeed", () => {
+    const stat = makeStat({
+      feed_records: [
+        makeFeedRecord({
+          feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+          material_pack_code: "IMP-1",
+          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+        }),
+      ],
+    })
+
+    const [row] = buildFujiProductionRowData([stat], [])
+
+    expect(row.appendedMaterialInventoryIdno).toBe("IMP-1")
+  })
+
+  it("removes IMPORTED pack from appendedMaterialInventoryIdno when UNFEED matches", () => {
+    const stat = makeStat({
+      feed_records: [
+        makeFeedRecord({
+          id: 1,
+          operation_time: "2024-01-01T00:00:00Z",
+          material_pack_code: "IMP-1",
+          feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+        }),
+        makeFeedRecord({
+          id: 2,
+          operation_time: "2024-01-01T00:01:00Z",
+          material_pack_code: "IMP-1",
+          feed_material_pack_type: null,
+          operation_type: MaterialOperationTypeEnum.UNFEED,
+        }),
+      ],
+    })
+
+    const [row] = buildFujiProductionRowData([stat], [])
+
+    expect(row.appendedMaterialInventoryIdno).toBe("")
+    expect(row.correct).toBe("UNLOADED_MATERIAL_PACK")
   })
 
   it("removes appended code when UNFEED appears in later timeline", () => {
