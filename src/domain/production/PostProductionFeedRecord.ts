@@ -1,5 +1,16 @@
-// eslint-disable-next-line no-restricted-imports -- Phase-3 defer: buildPanasonicFeedRecordPayload 移到 application 時同步移除
-import type { PanasonicFeedRecordCreate } from "@/client"
+export type FeedRecordPayload = {
+    stat_item_id: number
+    operator_id: string | null
+    operation_time: string
+    slot_idno: string
+    sub_slot_idno: string | null
+    material_pack_code: string | null
+    operation_type?: string
+    feed_material_pack_type?: string | null
+    unfeed_material_pack_type?: string | null
+    unfeed_reason?: string | null
+    check_pack_code_match: string | null
+}
 
 export type PostProductionFeedRecordInput = {
     statId: number
@@ -46,7 +57,7 @@ export const toCheckMaterialMatch = (
 
 export const buildPanasonicFeedRecordPayload = (
     input: PostProductionFeedRecordInput
-): PanasonicFeedRecordCreate => {
+): FeedRecordPayload => {
     const operationType = toOperationType(input.operationType)
 
     return {
@@ -61,5 +72,5 @@ export const buildPanasonicFeedRecordPayload = (
         unfeed_material_pack_type: toUnfeedMaterialType(input.unfeedMaterialPackType),
         unfeed_reason: (input.unfeedReason ?? null),
         check_pack_code_match: toCheckMaterialMatch(input.checkPackCodeMatch),
-    } as unknown as PanasonicFeedRecordCreate
+    }
 }

@@ -3,13 +3,14 @@ import type {
     SmtMaterialInventory,
 } from "@/client"
 import { SmtService } from "@/client"
+import type { FeedRecordPayload } from "@/domain/production/PostProductionFeedRecord"
 
 export type SmtProductionRepository = {
     fetchMaterialInventory: (
         materialInventoryIdno: string
     ) => Promise<SmtMaterialInventory>
     addPanasonicMounterItemStatRoll: (
-        payload: PanasonicFeedRecordCreate
+        payload: FeedRecordPayload
     ) => Promise<unknown>
 }
 
@@ -23,10 +24,10 @@ export class ApiSmtProductionRepository implements SmtProductionRepository {
     }
 
     async addPanasonicMounterItemStatRoll(
-        payload: PanasonicFeedRecordCreate
+        payload: FeedRecordPayload
     ): Promise<unknown> {
         return SmtService.addPanasonicMounterItemStatRoll({
-            requestBody: payload,
+            requestBody: payload as unknown as PanasonicFeedRecordCreate,
         })
     }
 }

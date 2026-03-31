@@ -1,9 +1,9 @@
 import type {
-  PanasonicFeedRecordCreate,
   PanasonicMounterFileRead,
   PanasonicMounterItemStatCreate,
   SmtMaterialInventory,
 } from '@/client'
+import type { FeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
 import type { MaterialRepository } from '@/application/barcode-scan/BarcodeScanDeps'
 import type { RecordApiPort } from '@/application/post-production-feed/RecordApiPort'
 import type { PostProductionRecordUploader } from '@/application/post-production-feed/PostProductionRecordUploader'
@@ -23,7 +23,7 @@ import type {
 // Application 層的 Smt Repository Port（取代對 @/infrastructure 的直接依賴）
 export type SmtRepositoryPort = {
   fetchMaterialInventory(materialInventoryIdno: string): Promise<SmtMaterialInventory>
-  addPanasonicMounterItemStatRoll(payload: PanasonicFeedRecordCreate): Promise<unknown>
+  addPanasonicMounterItemStatRoll(payload: FeedRecordPayload): Promise<unknown>
 }
 
 // Panasonic 前段上料的 fetch slots params（不依賴 @/infra 層型別）

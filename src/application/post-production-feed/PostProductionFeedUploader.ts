@@ -33,7 +33,7 @@ export abstract class PostProductionFeedUploader {
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })
-    return this.doUpload(payload)
+    return this.doUpload(payload as unknown as PanasonicFeedRecordCreate)
   }
 
   async uploadAppend(params: {
@@ -56,7 +56,7 @@ export abstract class PostProductionFeedUploader {
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })
-    return this.doUpload(payload)
+    return this.doUpload(payload as unknown as PanasonicFeedRecordCreate)
   }
 
   async fetchMaterialInventory(materialInventoryIdno: string) {

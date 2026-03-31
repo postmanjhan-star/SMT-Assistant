@@ -1,6 +1,7 @@
 ﻿import {
     type CheckMaterialMatchEnum,
     type FeedMaterialTypeEnum,
+    type PanasonicFeedRecordCreate,
     type UnfeedMaterialTypeEnum,
     type UnfeedReasonEnum,
     SmtService,
@@ -53,7 +54,7 @@ export async function uploadPostProductionFeedRecord(
         operationTime: new Date().toISOString(),
     })
 
-    return SmtService.addPanasonicMounterItemStatRoll({ requestBody: payload })
+    return SmtService.addPanasonicMounterItemStatRoll({ requestBody: payload as unknown as PanasonicFeedRecordCreate })
 }
 
 export async function uploadInspectionRecord(input: InspectionRecordInput) {

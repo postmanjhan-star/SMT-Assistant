@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- Phase-3 defer: buildPanasonicFeedRecord 移到 application 時同步移除
-import type { PanasonicFeedRecordCreate } from "@/client"
+import type { FeedRecordPayload } from "@/domain/production/PostProductionFeedRecord"
 
 export type RollShortageInput = {
     materialInventoryIdno: string
@@ -82,7 +81,7 @@ export function toFeedMaterialType(
 
 export function buildPanasonicFeedRecord(
     input: RollShortagePayloadInput
-): PanasonicFeedRecordCreate {
+): FeedRecordPayload {
     return {
         stat_item_id: input.statId,
         operator_id: input.operatorId ?? "",
@@ -92,7 +91,7 @@ export function buildPanasonicFeedRecord(
         material_pack_code: input.materialPackCode,
         feed_material_pack_type: toFeedMaterialType(input.feedMaterialPackType),
         check_pack_code_match: toCheckMaterialMatch(input.checkPackCodeMatch),
-    } as unknown as PanasonicFeedRecordCreate
+    }
 }
 
 export const RollShortagePolicy = {
