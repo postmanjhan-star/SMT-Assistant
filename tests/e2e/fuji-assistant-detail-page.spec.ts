@@ -105,10 +105,6 @@ test('test scan fuji mounter feed records in normal mode', async ({ page }) => {
     await expect(firstRowCell).toBeVisible();
     console.log('綁定結果:', await firstRowCell.innerText());
 
-    // 觸發自動開始生產
-    await page.getByRole('button', { name: /開始生產/ }).click();
-    await page.getByRole('button', { name: '確定' }).click();
-
     await page.waitForURL(/\/smt\/fuji-mounter-production\/.+/, {
         timeout: 300000,
     });
