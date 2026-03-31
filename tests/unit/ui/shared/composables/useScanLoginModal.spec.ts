@@ -2,15 +2,14 @@ import { setActivePinia, createPinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 import { useAuthStore } from '@/stores/authStore'
 import { useScanLoginModal } from '@/ui/shared/composables/useScanLoginModal'
-import { SmtService } from '@/client'
+import type { SwitchUserResult } from '@/ui/di/shared/createScanLoginDeps'
 
-vi.mock('@/client', () => ({
-  SmtService: {
-    operatorSwitchUser: vi.fn(),
-  },
-}))
-
-const mockSmtService = SmtService as unknown as { operatorSwitchUser: ReturnType<typeof vi.fn> }
+function makeDeps(overrides: Partial<{ switchUser: (payload: { work_id: number; signature?: string }) => Promise<SwitchUserResult> }> = {}) {
+  return {
+    switchUser: vi.fn<[{ work_id: number; signature?: string }], Promise<SwitchUserResult>>(),
+    ...overrides,
+  }
+}
 
 function makeValidOAuth2(overrides: Record<string, unknown> = {}) {
   return {
@@ -33,7 +32,7 @@ describe('useScanLoginModal', () => {
       const authStore = useAuthStore()
       authStore.OAuth2PasswordBearer = null
 
-      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal()
+      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal(makeDeps())
       autoOpenIfUnauthenticated()
 
       expect(showLoginModal.value).toBe(true)
@@ -43,7 +42,7 @@ describe('useScanLoginModal', () => {
       const authStore = useAuthStore()
       authStore.OAuth2PasswordBearer = makeValidOAuth2({ employee: undefined }) as any
 
-      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal()
+      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal(makeDeps())
       autoOpenIfUnauthenticated()
 
       expect(showLoginModal.value).toBe(true)
@@ -54,7 +53,7 @@ describe('useScanLoginModal', () => {
       authStore.OAuth2PasswordBearer = makeValidOAuth2() as any
       authStore.tokenExpiresAt = Date.now() - 1000 // 1 秒前已過期
 
-      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal()
+      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal(makeDeps())
       autoOpenIfUnauthenticated()
 
       expect(showLoginModal.value).toBe(true)
@@ -65,7 +64,7 @@ describe('useScanLoginModal', () => {
       authStore.OAuth2PasswordBearer = makeValidOAuth2() as any
       authStore.tokenExpiresAt = Date.now() + 3_600_000 // 1 小時後
 
-      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal()
+      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal(makeDeps())
       autoOpenIfUnauthenticated()
 
       expect(showLoginModal.value).toBe(false)
@@ -76,7 +75,7 @@ describe('useScanLoginModal', () => {
       authStore.OAuth2PasswordBearer = makeValidOAuth2() as any
       authStore.tokenExpiresAt = null
 
-      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal()
+      const { showLoginModal, autoOpenIfUnauthenticated } = useScanLoginModal(makeDeps())
       autoOpenIfUnauthenticated()
 
       expect(showLoginModal.value).toBe(false)
@@ -86,14 +85,14 @@ describe('useScanLoginModal', () => {
   describe('handleLoginSubmit', () => {
     it('stores tokenExpiresAt when expires_in is provided', async () => {
       const authStore = useAuthStore()
-      mockSmtService.operatorSwitchUser.mockResolvedValue({
+      const mockSwitchUser = vi.fn().mockResolvedValue({
         access_token: 'new-token',
         token_type: 'bearer',
         expires_in: 3600,
         employee: { idno: '1001', full_name: 'Alice' },
       })
 
-      const { loginInput, handleLoginSubmit } = useScanLoginModal()
+      const { loginInput, handleLoginSubmit } = useScanLoginModal({ switchUser: mockSwitchUser })
       loginInput.value = '1001:mysig'
       const before = Date.now()
       await handleLoginSubmit()
@@ -107,13 +106,13 @@ describe('useScanLoginModal', () => {
 
     it('sets tokenExpiresAt to null when expires_in is absent', async () => {
       const authStore = useAuthStore()
-      mockSmtService.operatorSwitchUser.mockResolvedValue({
+      const mockSwitchUser = vi.fn().mockResolvedValue({
         access_token: 'new-token',
         token_type: 'bearer',
         employee: { idno: '1001', full_name: 'Alice' },
       })
 
-      const { loginInput, handleLoginSubmit } = useScanLoginModal()
+      const { loginInput, handleLoginSubmit } = useScanLoginModal({ switchUser: mockSwitchUser })
       loginInput.value = '1001:mysig'
       await handleLoginSubmit()
       await flushPromises()
@@ -124,14 +123,14 @@ describe('useScanLoginModal', () => {
 
     it('sets tokenExpiresAt to null when expires_in is null', async () => {
       const authStore = useAuthStore()
-      mockSmtService.operatorSwitchUser.mockResolvedValue({
+      const mockSwitchUser = vi.fn().mockResolvedValue({
         access_token: 'new-token',
         token_type: 'bearer',
         expires_in: null,
         employee: { idno: '1001', full_name: 'Alice' },
       })
 
-      const { loginInput, handleLoginSubmit } = useScanLoginModal()
+      const { loginInput, handleLoginSubmit } = useScanLoginModal({ switchUser: mockSwitchUser })
       loginInput.value = '1001:mysig'
       await handleLoginSubmit()
       await flushPromises()

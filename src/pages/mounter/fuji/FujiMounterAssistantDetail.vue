@@ -17,6 +17,7 @@ import { parseFujiSlotIdno, parseFujiSlotInput } from "@/domain/slot/FujiSlotPar
 import { useFujiDetailPage } from "@/ui/workflows/preproduction/fuji/composables/useFujiDetailPage"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
+import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
 import { useAuthStore } from "@/stores/authStore"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import { useFujiPreproductionOperationFlows } from "@/ui/shared/composables/fuji/useFujiPreproductionOperationFlows"
@@ -104,7 +105,7 @@ const {
   autoOpenIfUnauthenticated,
   handleLoginSubmit,
   handleUserSwitchTrigger,
-} = useScanLoginModal()
+} = useScanLoginModal(createDefaultScanLoginDeps())
 
 onMounted(() => {
   autoOpenIfUnauthenticated()

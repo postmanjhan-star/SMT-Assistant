@@ -21,6 +21,7 @@ import { useFujiProductionPage } from "@/ui/workflows/post-production/fuji/compo
 import { useFujiOperationFlows } from "@/ui/shared/composables/fuji/useFujiOperationFlows"
 import { createFujiProductionGridOptions } from "@/ui/workflows/post-production/fuji/createFujiProductionGridOptions"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
+import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
 import { useAuthStore } from "@/stores/authStore"
 
 useMeta({ title: "Fuji Mounter Production" })
@@ -87,7 +88,7 @@ const {
   handleLoginSubmit,
   handleUserSwitchTrigger,
   autoOpenIfUnauthenticated,
-} = useScanLoginModal()
+} = useScanLoginModal(createDefaultScanLoginDeps())
 
 const {
   isUnloadMode,

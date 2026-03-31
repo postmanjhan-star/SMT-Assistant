@@ -35,6 +35,7 @@ import type { InputComponentHandle, MaterialMatchedPayload } from "./types/produ
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { SmtService } from "@/client"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
+import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import { usePanasonicProductionOperationFlows } from "@/ui/shared/composables/panasonic/usePanasonicProductionOperationFlows"
 
@@ -151,7 +152,7 @@ const {
   handleLoginSubmit,
   handleUserSwitchTrigger,
   autoOpenIfUnauthenticated,
-} = useScanLoginModal()
+} = useScanLoginModal(createDefaultScanLoginDeps())
 
 onMounted(() => {
   autoOpenIfUnauthenticated()

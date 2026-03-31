@@ -1,9 +1,8 @@
 import { ref, computed } from "vue"
 import { useAuthStore } from "@/stores/authStore"
-// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] 既有違規，@/client 暫留
-import { SmtService } from "@/client"
+import type { ScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
 
-export function useScanLoginModal() {
+export function useScanLoginModal(deps: ScanLoginDeps) {
   const authStore = useAuthStore()
 
   const showLoginModal = ref(false)
@@ -63,9 +62,9 @@ export function useScanLoginModal() {
     isLoginLoading.value = true
     loginError.value = ""
     try {
-      const result = await SmtService.operatorSwitchUser({
-        requestBody: signature !== undefined ? { work_id: workId, signature } : { work_id: workId },
-      })
+      const result = await deps.switchUser(
+        signature !== undefined ? { work_id: workId, signature } : { work_id: workId }
+      )
       authStore.setToken({ access_token: result.access_token, token_type: result.token_type }, result.employee, result.expires_in)
       closeLoginModal()
     } catch {

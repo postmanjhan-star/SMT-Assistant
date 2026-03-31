@@ -27,6 +27,7 @@ import { usePanasonicDetailPage } from "@/ui/workflows/preproduction/panasonic/c
 import { PANASONIC_MODE_NAME_NORMAL, PANASONIC_MODE_NAME_TESTING } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
+import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import { usePanasonicDetailCache } from "@/ui/shared/composables/panasonic/usePanasonicDetailCache"
 import { usePanasonicOperationFlows } from "@/ui/shared/composables/panasonic/usePanasonicOperationFlows"
@@ -121,7 +122,7 @@ const {
   handleLoginSubmit,
   handleUserSwitchTrigger,
   autoOpenIfUnauthenticated,
-} = useScanLoginModal()
+} = useScanLoginModal(createDefaultScanLoginDeps())
 
 onMounted(() => {
   autoOpenIfUnauthenticated()
