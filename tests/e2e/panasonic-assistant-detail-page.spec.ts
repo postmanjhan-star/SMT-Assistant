@@ -1,5 +1,5 @@
 ﻿import { test, expect, Page, type TestInfo } from '@playwright/test';
-import { setupAuthToken } from './helpers/auth';
+import { setupAuthToken, setupExpiredAuthToken, setupFutureExpiryAuthToken } from './helpers/auth';
 import { readCsvRecords, expectLatestMessage } from './helpers/scan';
 import { mockSwitchUserApi } from './helpers/scanLogin';
 const HEADED_VISUAL_STEP_DELAY_MS = 450;
@@ -2045,6 +2045,41 @@ test('panasonic detail: 退出 IPQC 模式後欄位恢復原狀', async ({ page 
     await expect(page.locator('.ag-header-cell[col-id="inspectMaterialPackCode"]')).not.toBeVisible();
 });
 
+// ─── Production page: appendedMaterialInventoryIdno on initial load ────────────
+
+test('panasonic production: 生產頁面初次載入時，當前接料條碼顯示初始上料條碼', async ({ page }) => {
+    const productionUuid = 'appended-imported-pack-initial-load';
+    const now = new Date().toISOString();
+
+    const mockStats = [{
+        id: 1, work_order_no: 'ZZ9999', product_idno: '40Y85-010A-M3',
+        machine_idno: 'A1-NPM-W2', machine_side: 'FRONT', board_side: 'DUPLEX',
+        slot_idno: '10008', sub_slot_idno: 'L', material_idno: 'TEST-MAT',
+        production_end: null, produce_mode: 'NORMAL_PRODUCE_MODE',
+        feed_records: [
+            { id: 1000, feed_record_id: 1000, operation_time: now,
+                material_pack_code: 'IMP-INIT-1',
+                feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                operation_type: 'FEED',
+                check_pack_code_match: 'MATCHED_MATERIAL_PACK' },
+        ],
+    }];
+
+    await page.route(`**/smt/panasonic_mounter_item/stats/${productionUuid}`, route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/panasonic_mounter_item/stats/logs/${productionUuid}`, route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.goto(`http://localhost/smt/panasonic-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const row = page.locator('[row-id="10008-L"]');
+    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText('IMP-INIT-1');
+    await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText('IMP-INIT-1');
+});
+
 // ─── Production page: materialInventoryIdno preserved after unload ─────────────
 
 test('panasonic production: 生產頁面載入時，首次接料條碼在卸料後仍保留', async ({ page }) => {
@@ -2083,5 +2118,28 @@ test('panasonic production: 生產頁面載入時，首次接料條碼在卸料�
     const row = page.locator('[row-id="10008-L"]');
     await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText('PAN-FIRST-PACK');
     await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).not.toContainText('PAN-FIRST-PACK');
+});
+
+test('scan login: shows modal when token is expired on panasonic detail page load', async ({ page }) => {
+    await setupExpiredAuthToken(page);
+    await mockSwitchUserApi(page, 200, { idno: '2001', full_name: 'Switched PanUser' });
+    await page.goto(PANASONIC_DETAIL_URL);
+
+    await expect(page.getByTestId('scan-login-modal')).toBeVisible();
+
+    const loginInput = page.getByTestId('scan-login-input').locator('input');
+    await loginInput.fill('2001:mysignature');
+    await loginInput.press('Enter');
+
+    await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+});
+
+test('scan login: does not show modal when token has future expiry on panasonic detail page load', async ({ page }) => {
+    await setupFutureExpiryAuthToken(page);
+    await page.goto(PANASONIC_DETAIL_URL);
+
+    await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 });
 

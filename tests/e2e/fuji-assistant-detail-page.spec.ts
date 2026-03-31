@@ -1,5 +1,5 @@
 ﻿import { test, expect, Page, type TestInfo } from '@playwright/test';
-import { setupAuthToken } from './helpers/auth';
+import { setupAuthToken, setupExpiredAuthToken, setupFutureExpiryAuthToken } from './helpers/auth';
 import { readCsvRecords, expectLatestMessage, type ScanRecord } from './helpers/scan';
 import { mockSwitchUserApi } from './helpers/scanLogin';
 const HEADED_VISUAL_STEP_DELAY_MS = 450;
@@ -113,10 +113,19 @@ test('test scan fuji mounter feed records in normal mode', async ({ page }) => {
         timeout: 300000,
     });
 
+    // 確認 production 頁初次載入時「當前接料條碼」不為空（初始上料條碼應顯示）
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+    const firstProductionRow = page.locator('.ag-center-cols-container .ag-row').first();
+    await expect(firstProductionRow.locator('[col-id="appendedMaterialInventoryIdno"]')).not.toBeEmpty();
+
     // 輸入 S5588 進入 IPQC 巡檢模式
-    const productionMaterialInput = page.getByTestId('fuji-production-material-input').locator('input');
+    const productionMaterialInput = page.locator('.n-input input').first();
+    await expect(productionMaterialInput).toBeVisible();
+    await productionMaterialInput.click();
     await productionMaterialInput.fill('S5588');
+    await page.waitForTimeout(300);
     await productionMaterialInput.press('Enter');
+    await expect(page.locator('#fuji-ipqc-material-input')).toBeVisible({ timeout: 10000 });
     console.log('已進入 IPQC 巡檢模式');
 
     // 第二次掃描（IPQC 巡檢模式）
@@ -2100,5 +2109,28 @@ test('fuji production: 生產頁面載入時，首次接料條碼在卸料後仍
     const row = page.locator('[row-id="9-A"]');
     await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText('FUJI-FIRST-PACK');
     await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).not.toContainText('FUJI-FIRST-PACK');
+});
+
+test('scan login: shows modal when token is expired on fuji detail page load', async ({ page }) => {
+    await setupExpiredAuthToken(page);
+    await mockSwitchUserApi(page);
+    await page.goto(FUJI_NORMAL_URL);
+
+    await expect(page.getByTestId('scan-login-modal')).toBeVisible();
+
+    const loginInput = page.getByTestId('scan-login-input').locator('input');
+    await loginInput.fill('1001:mysignature');
+    await loginInput.press('Enter');
+
+    await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+});
+
+test('scan login: does not show modal when token has future expiry on fuji detail page load', async ({ page }) => {
+    await setupFutureExpiryAuthToken(page);
+    await page.goto(FUJI_NORMAL_URL);
+
+    await expect(page.getByTestId('scan-login-modal')).not.toBeVisible();
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 });
 

@@ -55,6 +55,7 @@ export const useAuthStore = defineStore('authorized', () => {
   // 改為扁平化結構以符合 localStorage 的儲存格式 (直接儲存 HTTPBasic 和 OAuth2PasswordBearer)
   const HTTPBasic = ref<HttpBasic | null>(null)
   const OAuth2PasswordBearer = ref<OAuth2PasswordBearer | null>(null)
+  const tokenExpiresAt = ref<number | null>(null) // ms timestamp，null = 無設定不過期
 
   // 為了相容性，保留 authState 作為 computed 屬性，讓外部依然可以透過 authStore.authState 存取
   const authState = computed<AuthState>(() => ({ HTTPBasic: HTTPBasic.value, OAuth2PasswordBearer: OAuth2PasswordBearer.value }))
@@ -62,6 +63,10 @@ export const useAuthStore = defineStore('authorized', () => {
   // --- Getters (Computed properties) ---
   const accessToken = computed(() => OAuth2PasswordBearer.value?.token?.access_token)
   const isLoggedIn = computed(() => !!accessToken.value)
+  const isTokenExpired = computed<boolean>(() => {
+    if (tokenExpiresAt.value === null) return false
+    return Date.now() > tokenExpiresAt.value
+  })
 
   // --- Actions ---
 
@@ -79,7 +84,7 @@ export const useAuthStore = defineStore('authorized', () => {
     OAuth2PasswordBearer.value = null
   }
 
-  function setToken(token: OAuth2Token, employee?: { idno: string; full_name: string }) {
+  function setToken(token: OAuth2Token, employee?: { idno: string; full_name: string }, expiresIn?: number | null) {
     if (!OAuth2PasswordBearer.value) {
       OAuth2PasswordBearer.value = {
         schema: {
@@ -100,7 +105,10 @@ export const useAuthStore = defineStore('authorized', () => {
     if (employee && OAuth2PasswordBearer.value) {
       OAuth2PasswordBearer.value.employee = employee
     }
+    tokenExpiresAt.value = (expiresIn != null && expiresIn > 0)
+      ? Date.now() + expiresIn * 1000
+      : null
   }
 
-  return { HTTPBasic, OAuth2PasswordBearer, authState, accessToken, isLoggedIn, setAuthState, clearAuth, setToken }
+  return { HTTPBasic, OAuth2PasswordBearer, authState, accessToken, isLoggedIn, isTokenExpired, tokenExpiresAt, setAuthState, clearAuth, setToken }
 })

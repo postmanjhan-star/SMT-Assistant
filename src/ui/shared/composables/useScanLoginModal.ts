@@ -66,7 +66,7 @@ export function useScanLoginModal() {
       const result = await SmtService.operatorSwitchUser({
         requestBody: signature !== undefined ? { work_id: workId, signature } : { work_id: workId },
       })
-      authStore.setToken({ access_token: result.access_token, token_type: result.token_type }, result.employee)
+      authStore.setToken({ access_token: result.access_token, token_type: result.token_type }, result.employee, result.expires_in)
       closeLoginModal()
     } catch {
       loginError.value = "登入失敗，請確認條碼是否正確"
@@ -92,7 +92,7 @@ export function useScanLoginModal() {
    */
   function autoOpenIfUnauthenticated() {
     const oauth2 = authStore.authState.OAuth2PasswordBearer
-    if (!oauth2 || !oauth2.employee) {
+    if (!oauth2 || !oauth2.employee || authStore.isTokenExpired) {
       openLoginModal(import.meta.env.PROD)
     }
   }
