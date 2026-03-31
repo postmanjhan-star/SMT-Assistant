@@ -13,7 +13,9 @@
     "generate": "openapi --input http://localhost/api/openapi.json --output ./src/client --exportSchemas true --useOptions",
     "test": "vitest",
     "test:unit": "vitest --environment jsdom",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "check:kpi": "bash scripts/check-kpi.sh",
+    "check:behavior-contract": "bash scripts/check-behavior-contract.sh"
   },
   "dependencies": {
     "ag-grid-community": "^30.0.2",

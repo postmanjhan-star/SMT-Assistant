@@ -38,7 +38,16 @@
 
 ## B3：卸料（Unload）流程
 
-**覆蓋測試：** `tests/unit/ui/shared/useUnloadModeController.spec.ts`
+**覆蓋測試：**
+
+Unit（Phase 4 重構後，由 state machine 測試覆蓋）：
+- `tests/unit/domain/mounter/operationModeStateMachine.spec.ts`（NORMAL→UNLOAD 狀態轉移、pack_auto_slot / force_single_slot 子流程）
+- `tests/unit/ui/shared/useOperationModeStateMachine.spec.ts`（enterUnloadMode、exitToNormal）
+- `tests/unit/ui/shared/fuji/useFujiOperationFlows.spec.ts`（pack_auto_slot / force_single_slot 卸除流程、handleExitUnloadMode）
+
+E2E：
+- `tests/e2e/fuji-assistant-detail-page.spec.ts`（fuji unload/replace 場景）
+- `tests/e2e/panasonic-assistant-detail-page.spec.ts`（panasonic unload/replace 場景）
 
 步驟：
 1. 進入卸料模式 → UI 切換至卸料狀態
@@ -54,7 +63,10 @@
 
 ## B4：IPQC 流程
 
-**覆蓋測試：** Panasonic detail page e2e（包含 IPQC 場景）
+**覆蓋測試：**
+- `tests/e2e/fuji-assistant-detail-page.spec.ts`（Fuji IPQC 場景）
+- `tests/e2e/panasonic-assistant-detail-page.spec.ts`（Panasonic IPQC 場景）
+- `tests/unit/ui/shared/composables/useMounterOperationFlowsCore.spec.ts`（IPQC 模式覆檢成功/料號不符警示/欄位顯示切換）
 
 步驟：
 1. IPQC 確認觸發 → 系統呼叫對應 API
