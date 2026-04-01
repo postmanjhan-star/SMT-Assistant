@@ -250,8 +250,38 @@ test('test scan fuji mounter feed records in testing mode and append after produ
 
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
+    // 槽位 9-A 已有 pre-production 接料（B4933598），必須先卸料再接料
+    const existingMaterialPack = 'B4933598';
     const testingSlot = 'XP2B1-A-9';
-    await scanOne(page, testingMaterialPack, testingSlot);
+
+    // Step 1: 進入卸料模式（掃 S5555 到物料條碼輸入框）
+    const materialInput = page.locator('.n-input input').first();
+    await expect(materialInput).toBeVisible();
+    await materialInput.fill('S5555');
+    await materialInput.press('Enter');
+
+    // Step 2: 等待卸料模式 UI 出現
+    const unloadMaterialInput = page.getByTestId('fuji-unload-material-input');
+    await expect(unloadMaterialInput).toBeVisible({ timeout: 5000 });
+
+    // Step 3: 掃描要卸除的捲號（自動定位站位 9-A）
+    await unloadMaterialInput.fill(existingMaterialPack);
+    await unloadMaterialInput.press('Enter');
+
+    // Step 4: 等待卸料 API 完成（輸入框清空 → 進入更換捲號階段）
+    await expect(unloadMaterialInput).toHaveValue('', { timeout: 10000 });
+
+    // Step 5: 掃描更換捲號（testing mode + mock_scan=1 跳過驗證）
+    await unloadMaterialInput.fill(testingMaterialPack);
+    await unloadMaterialInput.press('Enter');
+
+    // Step 6: 等待站位確認輸入框啟用（進入 replace_slot 階段）
+    const unloadSlotInput = page.getByTestId('fuji-unload-slot-input');
+    await expect(unloadSlotInput).toBeEnabled({ timeout: 5000 });
+
+    // Step 7: 確認更換站位
+    await unloadSlotInput.fill(testingSlot);
+    await unloadSlotInput.press('Enter');
 
     const row = page.locator('[row-id="9-A"]');
     await expect(
@@ -336,7 +366,39 @@ test('test testing mode quick virtual materials then append after production', a
     });
 
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
-    await scanOne(page, postProductionMaterial, 'XP2B1-A-9');
+
+    // 槽位 9-A 已有 pre-production 接料（virtual-pack-fuji-1），必須先卸料再接料
+    const targetSlot = 'XP2B1-A-9';
+    const existingPack = preProductionMaterials[0]; // 'virtual-pack-fuji-1'
+
+    // Step 1: 進入卸料模式
+    const materialInput = page.locator('.n-input input').first();
+    await expect(materialInput).toBeVisible();
+    await materialInput.fill('S5555');
+    await materialInput.press('Enter');
+
+    // Step 2: 等待卸料模式 UI 出現
+    const unloadMaterialInput = page.getByTestId('fuji-unload-material-input');
+    await expect(unloadMaterialInput).toBeVisible({ timeout: 5000 });
+
+    // Step 3: 掃描要卸除的捲號（自動定位站位 9-A）
+    await unloadMaterialInput.fill(existingPack);
+    await unloadMaterialInput.press('Enter');
+
+    // Step 4: 等待卸料 API 完成（輸入框清空 → 進入更換捲號階段）
+    await expect(unloadMaterialInput).toHaveValue('', { timeout: 10000 });
+
+    // Step 5: 掃描更換捲號（testing mode + mock_scan=1 跳過驗證）
+    await unloadMaterialInput.fill(postProductionMaterial);
+    await unloadMaterialInput.press('Enter');
+
+    // Step 6: 等待站位確認輸入框啟用（進入 replace_slot 階段）
+    const unloadSlotInput = page.getByTestId('fuji-unload-slot-input');
+    await expect(unloadSlotInput).toBeEnabled({ timeout: 5000 });
+
+    // Step 7: 確認更換站位
+    await unloadSlotInput.fill(targetSlot);
+    await unloadSlotInput.press('Enter');
 
     const row = page.locator('[row-id="9-A"]');
     await expect(
