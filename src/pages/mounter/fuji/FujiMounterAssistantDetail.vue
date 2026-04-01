@@ -270,9 +270,12 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
   }
 
   const result = await handleSlotSubmit(payload)
+  clearNormalScanState()
+  focusMaterialInput()
   const updatedRow = findRowBySlotIdno(payload.slotIdno)
   if (updatedRow && newPackCode) {
     updatedRow.appendedMaterialInventoryIdno = newPackCode
+    updatedRow.operationTime = new Date().toISOString()
     updateRowInGrid(updatedRow)
   }
   persistNow()

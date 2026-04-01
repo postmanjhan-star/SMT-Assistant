@@ -138,8 +138,6 @@ const {
     slotResetKey.value++
   },
   focusMaterialInput: () => materialInputRef.value?.focus(),
-  getUnloadMaterialInputRef: () => unloadMaterialInputRef.value,
-  getUnloadSlotInputRef: () => unloadSlotInputRef.value,
   submitUnload,
   submitForceUnloadBySlot,
   findUniqueUnloadSlotByPackCode,

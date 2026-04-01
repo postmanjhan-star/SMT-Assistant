@@ -61,6 +61,7 @@ export function useFujiDetailCache(options: FujiDetailCacheOptions) {
         operatorIdno: row.operatorIdno ?? null,
         materialInventoryIdno: row.materialInventoryIdno ?? null,
         appendedMaterialInventoryIdno: row.appendedMaterialInventoryIdno ?? undefined,
+        operationTime: row.operationTime ?? null,
         remark: row.remark ?? "",
       }
     },
@@ -92,6 +93,8 @@ export function useFujiDetailCache(options: FujiDetailCacheOptions) {
     hydrateExtraFields(next: any, cachedRow) {
       if ("appendedMaterialInventoryIdno" in cachedRow)
         next.appendedMaterialInventoryIdno = cachedRow.appendedMaterialInventoryIdno
+      if ("operationTime" in cachedRow)
+        next.operationTime = (cachedRow as any).operationTime ?? null
     },
 
     hydrateMaterial(payload: BaseCachePayload) {
