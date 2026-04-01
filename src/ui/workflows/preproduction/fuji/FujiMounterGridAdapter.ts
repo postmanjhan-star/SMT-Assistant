@@ -11,6 +11,7 @@ export class FujiMounterGridAdapter<
         mounterIdno?: string
         stage?: string
         slot?: string | number
+        operationTime?: string | null
     }
 > implements SlotSubmitGridPort {
     constructor(private api: any) {}
@@ -92,6 +93,7 @@ export class FujiMounterGridAdapter<
         if (!row) return false
         row.materialInventoryIdno = materialIdno
         row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+        row.operationTime = new Date().toISOString()
         if (remark) row.remark = remark
         this.updateRow(row)
         return true

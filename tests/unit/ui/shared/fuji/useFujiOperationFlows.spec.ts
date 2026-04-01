@@ -15,11 +15,10 @@ function makeOptions(overrides: Partial<FujiOperationFlowsOptions> = {}): FujiOp
     isTestingMode: ref(false),
     isMockMode: true, // skip real API validation by default
     showError: vi.fn(),
+    showSuccess: vi.fn(),
     handleUserSwitchTrigger: vi.fn().mockReturnValue(false),
     clearNormalScanState: vi.fn(),
     focusMaterialInput: vi.fn(),
-    getUnloadMaterialInputRef: () => null,
-    getUnloadSlotInputRef: () => null,
     submitUnload: vi.fn().mockResolvedValue(true),
     submitForceUnloadBySlot: vi.fn().mockResolvedValue({ ok: true, slotIdno: '25-A' }),
     findUniqueUnloadSlotByPackCode: vi.fn().mockReturnValue({ ok: true, slotIdno: '25-A' }),
