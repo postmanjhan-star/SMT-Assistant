@@ -1,4 +1,4 @@
-import { ref, computed } from "vue"
+import { ref, computed, watch } from "vue"
 import { useAuthStore } from "@/stores/authStore"
 import type { ScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
 
@@ -82,6 +82,17 @@ export function useScanLoginModal(deps: ScanLoginDeps) {
     }
     return false
   }
+
+  // 監聽 authStore.needsReauth，token 過期觸發 401 時自動彈出登入 Modal
+  watch(
+    () => authStore.needsReauth,
+    (needs) => {
+      if (needs) {
+        authStore.clearNeedsReauth()
+        openLoginModal(import.meta.env.PROD)
+      }
+    }
+  )
 
   /**
    * 頁面載入時使用。

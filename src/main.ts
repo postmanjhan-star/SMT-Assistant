@@ -26,6 +26,18 @@ OpenAPI.TOKEN = async () => {
     return authStore.accessToken || ''
 }
 
+// 攔截全域 401，強制彈出重新登入 Modal
+// request.ts 使用原生 fetch，在此包裝以偵測 token 過期
+const _originalFetch = window.fetch
+window.fetch = async (...args) => {
+    const response = await _originalFetch(...args)
+    if (response.status === 401) {
+        const authStore = useAuthStore()
+        authStore.markNeedsReauth()
+    }
+    return response
+}
+
 app.mount("#app")
 
 // 现在，应用已经启动了！

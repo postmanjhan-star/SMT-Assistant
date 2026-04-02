@@ -56,6 +56,7 @@ export const useAuthStore = defineStore('authorized', () => {
   const HTTPBasic = ref<HttpBasic | null>(null)
   const OAuth2PasswordBearer = ref<OAuth2PasswordBearer | null>(null)
   const tokenExpiresAt = ref<number | null>(null) // ms timestamp，null = 無設定不過期
+  const needsReauth = ref(false) // 401 攔截器觸發時設為 true，通知 useScanLoginModal 彈出登入
 
   // 為了相容性，保留 authState 作為 computed 屬性，讓外部依然可以透過 authStore.authState 存取
   const authState = computed<AuthState>(() => ({ HTTPBasic: HTTPBasic.value, OAuth2PasswordBearer: OAuth2PasswordBearer.value }))
@@ -84,6 +85,16 @@ export const useAuthStore = defineStore('authorized', () => {
     OAuth2PasswordBearer.value = null
   }
 
+  function markNeedsReauth() {
+    OAuth2PasswordBearer.value = null
+    tokenExpiresAt.value = null
+    needsReauth.value = true
+  }
+
+  function clearNeedsReauth() {
+    needsReauth.value = false
+  }
+
   function setToken(token: OAuth2Token, employee?: { idno: string; full_name: string }, expiresIn?: number | null) {
     if (!OAuth2PasswordBearer.value) {
       OAuth2PasswordBearer.value = {
@@ -110,5 +121,5 @@ export const useAuthStore = defineStore('authorized', () => {
       : null
   }
 
-  return { HTTPBasic, OAuth2PasswordBearer, authState, accessToken, isLoggedIn, isTokenExpired, tokenExpiresAt, setAuthState, clearAuth, setToken }
+  return { HTTPBasic, OAuth2PasswordBearer, authState, accessToken, isLoggedIn, isTokenExpired, tokenExpiresAt, needsReauth, setAuthState, clearAuth, setToken, markNeedsReauth, clearNeedsReauth }
 })
