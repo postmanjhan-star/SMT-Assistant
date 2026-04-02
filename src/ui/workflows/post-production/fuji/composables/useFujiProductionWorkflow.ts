@@ -251,6 +251,7 @@ export function useFujiProductionWorkflow(
       materialPackCode: material.idno,
       correctState: params.correctState ?? null,
       feedMaterialPackType: 'NEW_MATERIAL_PACK',
+      operatorId: currentUsername.value || null,
     })
 
     // Update correct + operationTime immediately (shared adapter handles appendedMaterialInventoryIdno)
@@ -281,6 +282,7 @@ export function useFujiProductionWorkflow(
       materialPackCode: params.materialInventory.idno,
       correctState: 'true',
       feedMaterialPackType: 'INSPECTION_MATERIAL_PACK',
+      operatorId: currentUsername.value || null,
     })
   }
 

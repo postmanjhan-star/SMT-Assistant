@@ -51,6 +51,7 @@ export type UseFujiPreproductionLifecycleOptions = {
   onIpqcUploaded?: (ok: boolean) => void
   startProduction: (payload: FujiMounterItemStatCreate[]) => Promise<FujiMounterItemStatRead[]>
   stopProduction: (uuid: string) => Promise<unknown>
+  getOperatorId?: () => string | null
 }
 
 type FujiStartStatPayload = FujiMounterItemStatCreate & {
@@ -110,7 +111,7 @@ export function useFujiPreproductionLifecycle(
           ? ProduceTypeEnum.TESTING_PRODUCE_MODE
           : ProduceTypeEnum.NORMAL_PRODUCE_MODE,
         check_pack_code_match: row.correct,
-        operator_id: null,
+        operator_id: row.operatorIdno ?? null,
         operation_time: now,
         production_start: now,
       }))
@@ -129,7 +130,7 @@ export function useFujiPreproductionLifecycle(
       await SmtService.addFujiMounterItemStatRoll({
         requestBody: {
           stat_item_id: id,
-          operator_id: null,
+          operator_id: options.getOperatorId?.() ?? null,
           operation_time: record.operationTime,
           slot_idno: String(record.slot),
           sub_slot_idno: record.stage,
@@ -147,7 +148,7 @@ export function useFujiPreproductionLifecycle(
       await SmtService.addFujiMounterItemStatRoll({
         requestBody: {
           stat_item_id: id,
-          operator_id: null,
+          operator_id: options.getOperatorId?.() ?? null,
           operation_time: record.operationTime,
           slot_idno: String(record.slot),
           sub_slot_idno: record.stage,

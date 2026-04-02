@@ -26,6 +26,7 @@ export type FujiFeedRecordLike = {
   feed_material_type?: string | null
   feedMaterialType?: string | null
   check_pack_code_match?: string | null
+  operator_id?: string | null
 }
 
 type FujiMounterProductionSlot = {
@@ -214,6 +215,23 @@ function normalizeValue(value: unknown): string {
   return String(value ?? "").trim()
 }
 
+function getLatestOperatorId(records: FujiFeedRecordLike[]): string | null {
+  const sorted = sortRecords(records)
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const record = sorted[i]
+    if (getRecordOperationType(record) !== MaterialOperationTypeEnum.FEED) continue
+    const feedType = getRecordType(record)
+    if (
+      feedType !== FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK &&
+      feedType !== FeedMaterialTypeEnum.NEW_MATERIAL_PACK &&
+      feedType !== FeedMaterialTypeEnum.REUSED_MATERIAL_PACK
+    ) continue
+    const operatorId = normalizeValue(record.operator_id)
+    if (operatorId) return operatorId
+  }
+  return null
+}
+
 function resolveMainImportState(records: FujiFeedRecordLike[]): {
   activeImport: FujiFeedRecordLike | null
   lastKnownImport: FujiFeedRecordLike | null
@@ -395,7 +413,7 @@ export function buildFujiProductionRowData(
       materialIdno: String(stat.material_idno ?? ""),
       materialInventoryIdno: lastKnownImportedRecord?.material_pack_code ?? "",
       operationTime: activeImportedRecord?.operation_time ?? null,
-      operatorIdno: null,
+      operatorIdno: getLatestOperatorId(normalizedFeedRecords),
       appendedMaterialInventoryIdno: appendedCodes,
       remark: remarkParts.join(" ").trim(),
     }

@@ -39,6 +39,7 @@ export interface FujiItemStatFeedLogInput {
     operation_type: string
     feed_material_pack_type: string | null
     check_pack_code_match: string | null
+    operator_id: string | null
 }
 
 export interface PanasonicMounterItemStatInput {

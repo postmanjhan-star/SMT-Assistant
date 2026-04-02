@@ -30,7 +30,7 @@ export function createFujiProductionGridOptions(): GridOptions<FujiProductionRow
       { field: 'stage', headerName: 'Stage', flex: 1, minWidth: 90 },
       { field: 'slot', headerName: '站位', flex: 1, minWidth: 90 },
       { field: 'boardSide', headerName: '板面', flex: 1, minWidth: 90 },
-      { field: 'operatorIdno', headerName: '作業員', flex: 2, minWidth: 80 },
+      { field: 'operatorIdno', headerName: '上料人員', flex: 2, minWidth: 80 },
       {
         field: 'operationTime',
         headerName: '作業時間',

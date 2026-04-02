@@ -53,6 +53,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     onIpqcUploaded: options.onIpqcUploaded,
     startProduction: fujiPreDeps.startProduction,
     stopProduction: fujiPreDeps.stopProduction,
+    getOperatorId: () => currentUsername.value || null,
   })
 
   const gridAdapter = shallowRef<SlotSubmitGridPort | null>(null)
