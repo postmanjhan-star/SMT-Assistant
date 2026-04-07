@@ -61,7 +61,7 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
       {
         field: 'appendedMaterialInventoryIdno',
         tooltipField: 'appendedMaterialInventoryIdno',
-        headerName: '當前接料條碼',
+        headerName: '當前上料條碼',
         flex: 5,
         minWidth: 140,
       },

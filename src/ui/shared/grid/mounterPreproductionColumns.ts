@@ -24,7 +24,11 @@ export function createMaterialInventoryIdnoColDef(overrides?: Partial<ColDef>): 
 }
 
 export function createAppendedMaterialInventoryIdnoColDef(overrides?: Partial<ColDef>): ColDef {
-  return { field: 'appendedMaterialInventoryIdno', tooltipField: 'appendedMaterialInventoryIdno', headerName: '當前接料條碼', flex: 5, minWidth: 140, ...overrides }
+  return { field: 'appendedMaterialInventoryIdno', tooltipField: 'appendedMaterialInventoryIdno', headerName: '當前上料條碼', flex: 5, minWidth: 140, ...overrides }
+}
+
+export function createSpliceMaterialInventoryIdnoColDef(overrides?: Partial<ColDef>): ColDef {
+  return { field: 'spliceMaterialInventoryIdno', tooltipField: 'spliceMaterialInventoryIdno', headerName: '當前接料條碼', flex: 5, minWidth: 140, ...overrides }
 }
 
 export const remarkColDef: ColDef = { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 }

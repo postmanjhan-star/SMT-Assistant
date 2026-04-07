@@ -71,6 +71,13 @@ export function createProductionGridOptions(
             {
                 field: 'appendedMaterialInventoryIdno',
                 tooltipField: 'appendedMaterialInventoryIdno',
+                headerName: '當前上料條碼',
+                flex: 5,
+                minWidth: 140,
+            },
+            {
+                field: 'spliceMaterialInventoryIdno',
+                tooltipField: 'spliceMaterialInventoryIdno',
                 headerName: '當前接料條碼',
                 flex: 5,
                 minWidth: 140,
