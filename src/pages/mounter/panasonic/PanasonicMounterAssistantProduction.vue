@@ -163,6 +163,11 @@ onMounted(() => {
 const {
   isUnloadMode,
   isIpqcMode,
+  isSpliceMode,
+  isSpliceIdlePhase,
+  isSpliceNewPhase,
+  isSpliceSlotPhase,
+  spliceSlotIdno,
   unloadModeType,
   operationModeName,
   unloadMaterialLabel,
@@ -181,6 +186,7 @@ const {
   ipqcSlotInput,
   exitUnloadMode,
   exitIpqcMode,
+  exitSpliceMode,
   handleBeforeMaterialScan,
   handleBeforeSlotSubmit,
   handleUnloadMaterialEnter,
@@ -318,6 +324,11 @@ function onRollShortageModalUpdate(value: boolean) {
                   退出🔍IPQC覆檢
                 </n-button>
               </template>
+              <template v-else-if="isSpliceMode">
+                <n-button type="warning" size="small" @click="exitSpliceMode">
+                  退出📥接料模式
+                </n-button>
+              </template>
               <template v-else>
                 <n-button
                   v-if="!productionStarted"
@@ -417,6 +428,43 @@ function onRollShortageModalUpdate(value: boolean) {
               @keydown.enter.prevent="handleIpqcSlotSubmit"
             />
           </div>
+        </n-gi>
+      </template>
+
+      <!-- 接料模式 inputs -->
+      <template v-else-if="isSpliceMode">
+        <n-gi>
+          <MaterialInventoryBarcodeInput
+            :disabled="!productionStarted"
+            :is-testing-mode="isTestingMode"
+            input-test-id="panasonic-splice-material-input"
+            :get-material-matched-rows="getMaterialMatchedRowArray"
+            :before-scan="handleBeforeMaterialScan"
+            :reset-key="inputs.resetKey.value"
+            :scan="mockScan"
+            :label="isSpliceNewPhase ? '接料捲號' : '已上料捲號'"
+            :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
+            ref="materialInventoryInput"
+            @matched="handleMaterialMatched"
+            @error="handleMaterialScanError"
+          />
+        </n-gi>
+        <n-gi>
+          <SlotIdnoInput
+            :disabled="!productionStarted || !isSpliceSlotPhase"
+            :is-testing-mode="isTestingMode"
+            :has-material="isSpliceSlotPhase"
+            :parse-slot-idno="parsePanasonicSlotIdno"
+            :reset-key="inputs.slotResetKey.value"
+            input-test-id="panasonic-splice-slot-input"
+            ref="slotIdnoInput"
+            :before-submit="handleBeforeSlotSubmit"
+            :label="'確認站位'"
+            :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
+            @submit="onNormalSlotSubmit"
+            @done="resetInputsAfterSlotSubmit"
+            @error="ui.error"
+          />
         </n-gi>
       </template>
 

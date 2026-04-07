@@ -45,6 +45,8 @@ const pendingUnloadRecords = ref<FujiPreproductionUnloadRecord[]>([])
 const pendingSpliceRecords = ref<FujiPreproductionSpliceRecord[]>([])
 const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
 
+const splicePreviewCorrectStates = ref(new Map<string, string | null>())
+
 const {
   workOrderIdno,
   productIdno,
@@ -118,6 +120,17 @@ function focusMaterialInput() {
 }
 
 function clearNormalScanState() {
+  if (splicePreviewCorrectStates.value.size > 0) {
+    for (const row of rowData.value) {
+      const rowKey = `${row.mounterIdno}-${row.stage}-${row.slot}`
+      const saved = splicePreviewCorrectStates.value.get(rowKey)
+      if (saved !== undefined) {
+        row.correct = saved as any
+        updateRowInGrid(row)
+      }
+    }
+    splicePreviewCorrectStates.value = new Map()
+  }
   materialInputValue.value = ""
   slotInputValue.value = ""
   resetMaterialState()
@@ -151,7 +164,10 @@ const { persistNow } = useFujiDetailCache({
 // ─── Operation flows composable ───────────────────────────────────────────────
 
 const {
-  isUnloadMode, isIpqcMode, unloadModeType,
+  isUnloadMode, isIpqcMode, isSpliceMode,
+  isSpliceIdlePhase, isSpliceNewPhase, isSpliceSlotPhase,
+  spliceSlotIdno,
+  unloadModeType,
   operationModeName,
   unloadMaterialLabel, unloadMaterialPlaceholder,
   isUnloadMaterialInputDisabled, isUnloadSlotInputDisabled,
@@ -159,8 +175,8 @@ const {
   unloadMaterialValue, unloadSlotValue,
   ipqcMaterialValue, ipqcSlotValue,
   unloadMaterialInput, unloadSlotInput, ipqcMaterialInput, ipqcSlotInput,
-  exitUnloadMode, exitIpqcMode,
-  handleBeforeMaterialScan,
+  exitUnloadMode, exitIpqcMode, exitSpliceMode,
+  handleBeforeMaterialScan, handleBeforeSlotSubmit,
   handleUnloadMaterialEnter, handleUnloadSlotSubmit,
   handleIpqcMaterialSubmit, handleIpqcSlotSubmit,
   findRowBySlotIdno, updateRowInGrid,
@@ -207,6 +223,28 @@ function onGridReadyWithCache(e: GridReadyEvent) {
 
 function onMaterialMatched(payload: Parameters<typeof handleMaterialMatched>[0]) {
   handleMaterialMatched(payload)
+
+  // 接料預覽：已有首次上料、尚未接料的匹配站位設為 ⛔
+  const scannedMaterialId = materialInventory.value?.material_idno
+  if (scannedMaterialId) {
+    const saved = new Map<string, string | null>()
+    for (const row of rowData.value) {
+      const hasFirst = String(row.materialInventoryIdno ?? "").trim()
+      const hasSplice = String(row.spliceMaterialInventoryIdno ?? "").trim()
+      if (
+        row.materialIdno === scannedMaterialId &&
+        hasFirst && !hasSplice &&
+        row.correct === "MATCHED_MATERIAL_PACK"
+      ) {
+        const rowKey = `${row.mounterIdno}-${row.stage}-${row.slot}`
+        saved.set(rowKey, row.correct)
+        row.correct = "UNLOADED"
+        updateRowInGrid(row)
+      }
+    }
+    splicePreviewCorrectStates.value = saved
+  }
+
   persistNow()
 }
 
@@ -221,7 +259,7 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
   const currentMaterial = materialInventory.value
   const newPackCode = currentMaterial?.idno?.trim()
 
-  if (targetRow && String(targetRow.appendedMaterialInventoryIdno ?? "").trim()) {
+  if (targetRow && String(targetRow.spliceMaterialInventoryIdno ?? "").trim()) {
     showError(`站位 ${payload.slotIdno} 已有接料，請先卸除當前料捲`)
     clearNormalScanState()
     return
@@ -248,9 +286,11 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
       return
     }
 
-    targetRow.appendedMaterialInventoryIdno = newPackCode
+    targetRow.spliceMaterialInventoryIdno = newPackCode
     targetRow.operatorIdno = currentUsername.value || null
     targetRow.operationTime = new Date().toISOString()
+    if (correctState === "TESTING_MATERIAL_PACK") targetRow.remark = "[測試模式接料]"
+    targetRow.correct = correctState
     updateRowInGrid(targetRow)
 
     pendingSpliceRecords.value = [
@@ -263,6 +303,7 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
         operationTime: new Date().toISOString(),
       },
     ]
+    splicePreviewCorrectStates.value = new Map()
     clearNormalScanState()
     focusMaterialInput()
     persistNow()
@@ -308,6 +349,11 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
           <template v-else-if="isIpqcMode">
             <n-button type="warning" size="small" @click="exitIpqcMode">
               退出🔍IPQC覆檢
+            </n-button>
+          </template>
+          <template v-else-if="isSpliceMode">
+            <n-button type="warning" size="small" @click="exitSpliceMode">
+              退出📥接料模式
             </n-button>
           </template>
           <template v-else>
@@ -395,6 +441,42 @@ async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
               @keydown.enter.prevent="handleIpqcSlotSubmit"
             />
           </div>
+        </n-gi>
+      </template>
+
+      <!-- 接料模式 inputs -->
+      <template v-else-if="isSpliceMode">
+        <n-gi>
+          <MaterialInventoryBarcodeInput
+            ref="materialInventoryInput"
+            v-model="materialInputValue"
+            :is-testing-mode="isTestingMode"
+            :get-material-matched-rows="getMaterialMatchedRows"
+            :reset-key="materialResetKey"
+            :scan="effectiveScan ?? scanMaterial"
+            :allow-no-match-in-testing="true"
+            :before-scan="handleBeforeMaterialScan"
+            :label="isSpliceNewPhase ? '接料捲號' : '已上料捲號'"
+            :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
+            input-test-id="fuji-detail-splice-material-input"
+            @matched="onMaterialMatched"
+            @error="onMaterialError"
+          />
+        </n-gi>
+        <n-gi>
+          <SlotIdnoInput
+            ref="slotIdnoInput"
+            v-model="slotInputValue"
+            :is-testing-mode="isTestingMode"
+            :has-material="isSpliceSlotPhase"
+            :disabled="!isSpliceSlotPhase"
+            :parse-slot-idno="parseFujiSlotInput"
+            :label="'確認站位'"
+            :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
+            input-test-id="fuji-detail-splice-slot-input"
+            @submit="(p) => handleBeforeSlotSubmit(p.slotIdno)"
+            @error="showError"
+          />
         </n-gi>
       </template>
 

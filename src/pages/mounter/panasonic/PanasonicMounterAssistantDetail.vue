@@ -18,7 +18,7 @@ import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import ScanLoginModal from "@/pages/components/shared/ScanLoginModal.vue"
 import MounterInfoBar from "@/pages/components/shared/MounterInfoBar.vue"
 
-import type { InputComponentHandle, MaterialMatchedPayload, SlotInputResult } from "./types/production"
+import type { InputComponentHandle, MaterialMatchedPayload, MaterialMatchedRow, SlotInputResult } from "./types/production"
 import { createProductionGridOptions } from "@/ui/workflows/preproduction/panasonic/createProductionGridOptions"
 import { useSlotInputSelection } from "@/ui/shared/composables/useSlotInputSelection"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
@@ -63,6 +63,7 @@ const inputs = useSlotInputSelection<SlotInputResult>({
 const { resetInputsAfterSlotSubmit } = usePanasonicInputReset({
   clearMaterialResult: () => {
     materialInventoryResult.value = null
+    restoreSplicePreview()
   },
   bumpResetKeys: () => inputs.bumpResetKeys(),
   materialInputRef: materialInventoryInput,
@@ -140,6 +141,8 @@ const pendingUnloadRecords = ref<PanasonicUnloadRecord[]>([])
 const pendingSpliceRecords = ref<PanasonicSpliceRecord[]>([])
 const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
 
+const splicePreviewCorrectStates = ref(new Map<string, string | null>())
+
 // ─── Shared Callbacks ────────────────────────────────────────────────────────
 
 function focusMaterialInput() {
@@ -148,7 +151,21 @@ function focusMaterialInput() {
   })
 }
 
+function restoreSplicePreview() {
+  if (splicePreviewCorrectStates.value.size === 0) return
+  for (const row of rowData.value) {
+    const rowKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+    const saved = splicePreviewCorrectStates.value.get(rowKey)
+    if (saved !== undefined) {
+      row.correct = saved as any
+      updateRowInGrid(row)
+    }
+  }
+  splicePreviewCorrectStates.value = new Map()
+}
+
 function clearNormalScanState() {
+  restoreSplicePreview()
   materialInventoryResult.value = null
   inputs.bumpResetKeys()
   materialInventoryInput.value?.clear?.()
@@ -188,6 +205,11 @@ const { persistNow } = usePanasonicDetailCache({
 const {
   isUnloadMode,
   isIpqcMode,
+  isSpliceMode,
+  isSpliceIdlePhase,
+  isSpliceNewPhase,
+  isSpliceSlotPhase,
+  spliceSlotIdno,
   unloadModeType,
   operationModeName,
   unloadMaterialValue,
@@ -206,6 +228,7 @@ const {
   ipqcSlotInput,
   exitUnloadMode,
   exitIpqcMode,
+  exitSpliceMode,
   handleBeforeMaterialScan,
   handleBeforeSlotSubmit,
   handleUnloadMaterialEnter,
@@ -246,6 +269,28 @@ function handleMaterialMatched(payload: {
     matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
   })
   persistNow()
+
+  // 接料預覽：使用 matchedRows 找候選站位，設為 ⛔
+  const matchedSlots = payload.matchedRows as MaterialMatchedRow[]
+  if (matchedSlots.length > 0) {
+    const saved = new Map<string, string | null>()
+    for (const matched of matchedSlots) {
+      const row = rowData.value.find(
+        r => r.slotIdno === matched.slotIdno &&
+             (r.subSlotIdno ?? "") === (matched.subSlotIdno ?? "")
+      )
+      if (!row) continue
+      const hasFirst = String(row.materialInventoryIdno ?? "").trim()
+      const hasSplice = String(row.spliceMaterialInventoryIdno ?? "").trim()
+      if (hasFirst && !hasSplice && (row.correct as string) === "MATCHED_MATERIAL_PACK") {
+        const rowKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
+        saved.set(rowKey, row.correct as string)
+        ;(row as any).correct = "UNLOADED"
+        updateRowInGrid(row)
+      }
+    }
+    splicePreviewCorrectStates.value = saved
+  }
 }
 
 async function onSlotSubmit(payload: {
@@ -257,7 +302,7 @@ async function onSlotSubmit(payload: {
   const existingMaterial = String(targetRow?.materialInventoryIdno ?? "").trim()
   const newPackCode = materialInventoryResult.value?.materialInventory?.idno?.trim()
 
-  if (targetRow && String(targetRow.appendedMaterialInventoryIdno ?? "").trim()) {
+  if (targetRow && String(targetRow.spliceMaterialInventoryIdno ?? "").trim()) {
     showError(`站位 ${payload.slotIdno} 已有接料，請先卸除當前料捲`)
     resetInputsAfterSlotSubmit()
     return
@@ -280,10 +325,11 @@ async function onSlotSubmit(payload: {
       return
     }
 
-    targetRow.appendedMaterialInventoryIdno = newPackCode
+    targetRow.spliceMaterialInventoryIdno = newPackCode
     targetRow.operatorIdno = currentUsername.value || null
     targetRow.operationTime = new Date().toISOString()
     if (correctState === "TESTING_MATERIAL_PACK") targetRow.remark = "[測試模式接料]"
+    ;(targetRow as any).correct = correctState
     updateRowInGrid(targetRow)
 
     pendingSpliceRecords.value = [
@@ -296,6 +342,7 @@ async function onSlotSubmit(payload: {
         operationTime: new Date().toISOString(),
       },
     ]
+    splicePreviewCorrectStates.value = new Map()
     resetInputsAfterSlotSubmit()
     persistNow()
     return
@@ -386,6 +433,11 @@ function onGridReadyWithCache(e: GridReadyEvent) {
               <template v-else-if="isIpqcMode">
                 <n-button type="warning" size="small" @click="exitIpqcMode">
                   退出🔍IPQC覆檢
+                </n-button>
+              </template>
+              <template v-else-if="isSpliceMode">
+                <n-button type="warning" size="small" @click="exitSpliceMode">
+                  退出📥接料模式
                 </n-button>
               </template>
               <template v-else>
@@ -497,6 +549,45 @@ function onGridReadyWithCache(e: GridReadyEvent) {
               @keydown.enter.prevent="handleIpqcSlotSubmit"
             />
           </div>
+        </n-gi>
+      </template>
+
+      <!-- 接料模式 inputs -->
+      <template v-else-if="isSpliceMode">
+        <n-gi>
+          <MaterialInventoryBarcodeInput
+            v-model="materialInputValue"
+            :is-testing-mode="isTestingMode"
+            :input-test-id="'panasonic-splice-material-input'"
+            ref="materialInventoryInput"
+            :get-material-matched-rows="getMaterialMatchedRows"
+            :scan="mockScan"
+            :before-scan="handleBeforeMaterialScan"
+            :label="isSpliceNewPhase ? '接料捲號' : '已上料捲號'"
+            :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
+            :reset-key="inputs.resetKey.value"
+            @matched="handleMaterialMatched"
+            @error="showError"
+          />
+        </n-gi>
+        <n-gi>
+          <SlotIdnoInput
+            v-model="slotInputValue"
+            :is-testing-mode="isTestingMode"
+            :has-material="isSpliceSlotPhase"
+            :disabled="!isSpliceSlotPhase"
+            :parse-slot-idno="parsePanasonicSlotIdno"
+            :reset-key="inputs.slotResetKey.value"
+            :key="inputs.slotResetKey.value"
+            :before-submit="handleBeforeSlotSubmit"
+            :label="'確認站位'"
+            :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
+            input-test-id="panasonic-splice-slot-input"
+            ref="slotIdnoInput"
+            @submit="onSlotSubmit"
+            @done="resetInputsAfterSlotSubmit"
+            @error="showError"
+          />
         </n-gi>
       </template>
 

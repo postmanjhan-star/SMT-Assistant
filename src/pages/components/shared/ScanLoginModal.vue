@@ -42,12 +42,15 @@ watch(() => props.show, (val) => {
       <n-input
         ref="inputRef"
         :value="loginInput"
-        placeholder="請掃描操作員條碼"
+        placeholder="請掃描操作員條碼（或輸入工號）"
         :disabled="isLoginLoading"
         data-testid="scan-login-input"
         @update:value="emit('update:loginInput', $event)"
         @keydown.enter.prevent="emit('submit')"
       />
+      <div>
+        無法登入？請先聯絡無紙化系統負責人員
+      </div>
       <div
         v-if="loginError"
         style="color: #e88080; margin-top: 6px; font-size: 13px"

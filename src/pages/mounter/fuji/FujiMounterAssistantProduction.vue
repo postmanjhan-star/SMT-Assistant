@@ -93,6 +93,11 @@ const {
 const {
   isUnloadMode,
   isIpqcMode,
+  isSpliceMode,
+  isSpliceIdlePhase,
+  isSpliceNewPhase,
+  isSpliceSlotPhase,
+  spliceSlotIdno,
   isUnloadScanPhase,
   isForceUnloadSlotPhase,
   isReplaceMaterialPhase,
@@ -121,6 +126,7 @@ const {
   handleIpqcSlotSubmit,
   handleExitUnloadMode,
   exitIpqcMode,
+  exitSpliceMode,
 } = useFujiOperationFlows({
   getGridApi: () => localGridApi.value,
   getColumnApi: () => localColumnApi.value,
@@ -219,6 +225,11 @@ async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; sub
               退出🔍IPQC覆檢
             </n-button>
           </template>
+          <template v-else-if="isSpliceMode">
+            <n-button type="warning" size="small" @click="exitSpliceMode">
+              退出📥接料模式
+            </n-button>
+          </template>
           <template v-else>
             <n-button v-if="productionStarted" type="error" size="small" @click="onStopProduction">
               🛑 結束生產
@@ -304,6 +315,43 @@ async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; sub
               @keydown.enter.prevent="handleIpqcSlotSubmit"
             />
           </div>
+        </n-gi>
+      </template>
+
+      <!-- 接料模式 inputs -->
+      <template v-else-if="isSpliceMode">
+        <n-gi>
+          <MaterialInventoryBarcodeInput
+            ref="materialInputRef"
+            :disabled="!productionStarted"
+            :is-testing-mode="isTestingMode"
+            :get-material-matched-rows="getMaterialMatchedRows"
+            :reset-key="materialResetKey"
+            :allow-no-match-in-testing="true"
+            :before-scan="handleBeforeMaterialScan"
+            :scan="mockScan ?? undefined"
+            :label="isSpliceNewPhase ? '接料捲號' : '已上料捲號'"
+            :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
+            input-test-id="fuji-production-splice-material-input"
+            @matched="onMaterialMatched"
+            @error="onMaterialError"
+          />
+        </n-gi>
+        <n-gi>
+          <SlotIdnoInput
+            ref="slotInputRef"
+            :disabled="!productionStarted || !isSpliceSlotPhase"
+            :is-testing-mode="isTestingMode"
+            :has-material="isSpliceSlotPhase"
+            :parse-slot-idno="parseFujiSlotInput"
+            :reset-key="slotResetKey"
+            :before-submit="handleBeforeSlotSubmit"
+            :label="'確認站位'"
+            :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
+            input-test-id="fuji-production-splice-slot-input"
+            @submit="onNormalSlotSubmit"
+            @error="showError"
+          />
         </n-gi>
       </template>
 
