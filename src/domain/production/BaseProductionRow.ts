@@ -4,6 +4,7 @@ export type BaseProductionRow = {
   operatorIdno: string | null
   materialInventoryIdno: string | null
   appendedMaterialInventoryIdno?: string
+  spliceMaterialInventoryIdno?: string | null
   inspectMaterialPackCode?: string
   inspectTime?: string | null
   inspectCount?: number

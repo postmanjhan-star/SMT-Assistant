@@ -10,16 +10,22 @@ export type OperationModeContext = {
   unloadModeType: UnloadModeType
   resolvedUnloadSlotIdno: string
   replacementMaterialPackCode: string
+  spliceSlotIdno: string
+  spliceNewPackCode: string
 }
 
 export type OperationModeEvent =
   | { type: "ENTER_UNLOAD"; modeType: UnloadModeType }
   | { type: "ENTER_IPQC" }
+  | { type: "ENTER_SPLICE" }
   | { type: "EXIT_TO_NORMAL" }
   | { type: "UNLOAD_SUBMITTED"; resolvedSlotIdno: string }
   | { type: "FORCE_UNLOAD_SUBMITTED"; resolvedSlotIdno: string }
   | { type: "REPLACEMENT_MATERIAL_SCANNED"; packCode: string }
   | { type: "REPLACE_SLOT_SUBMITTED" }
+  | { type: "SPLICE_CURRENT_SCANNED"; resolvedSlotIdno: string }
+  | { type: "SPLICE_NEW_SCANNED"; packCode: string }
+  | { type: "SPLICE_SLOT_SUBMITTED" }
 
 // ────────────────────────────────────────────────────────────────
 // Machine
@@ -35,6 +41,8 @@ export const operationModeStateMachine = setup({
       unloadModeType: "pack_auto_slot" as UnloadModeType,
       resolvedUnloadSlotIdno: "",
       replacementMaterialPackCode: "",
+      spliceSlotIdno: "",
+      spliceNewPackCode: "",
     }),
     assignEnterUnload: assign(({ event }) => {
       assertEvent(event, "ENTER_UNLOAD")
@@ -56,6 +64,17 @@ export const operationModeStateMachine = setup({
       assertEvent(event, "REPLACEMENT_MATERIAL_SCANNED")
       return { replacementMaterialPackCode: event.packCode }
     }),
+    assignSpliceCurrentScanned: assign(({ event }) => {
+      assertEvent(event, "SPLICE_CURRENT_SCANNED")
+      return { spliceSlotIdno: event.resolvedSlotIdno }
+    }),
+    assignSpliceNewScanned: assign(({ event }) => {
+      assertEvent(event, "SPLICE_NEW_SCANNED")
+      return { spliceNewPackCode: event.packCode }
+    }),
+    clearSpliceNewPackCode: assign({
+      spliceNewPackCode: "",
+    }),
   },
   guards: {
     isForceSlot: ({ context }) => context.unloadModeType === "force_single_slot",
@@ -67,14 +86,17 @@ export const operationModeStateMachine = setup({
     unloadModeType: "pack_auto_slot",
     resolvedUnloadSlotIdno: "",
     replacementMaterialPackCode: "",
+    spliceSlotIdno: "",
+    spliceNewPackCode: "",
   },
 
   states: {
-    // ── 正常上料模式 ──────────────────────────────────────────────
+    // ── 上料模式（預設） ─────────────────────────────────────────
     NORMAL: {
       on: {
         ENTER_UNLOAD: { target: "UNLOAD", actions: "assignEnterUnload" },
         ENTER_IPQC: { target: "IPQC" },
+        ENTER_SPLICE: { target: "SPLICE", actions: "resetContext" },
       },
     },
 
@@ -84,6 +106,43 @@ export const operationModeStateMachine = setup({
         ENTER_UNLOAD: { target: "UNLOAD", actions: "assignEnterUnload" },
         ENTER_IPQC: { target: "NORMAL", actions: "resetContext" }, // toggle off
         EXIT_TO_NORMAL: { target: "NORMAL", actions: "resetContext" },
+        ENTER_SPLICE: { target: "SPLICE", actions: "resetContext" },
+      },
+    },
+
+    // ── 接料模式（compound） ─────────────────────────────────────
+    SPLICE: {
+      initial: "SPLICE_IDLE",
+      on: {
+        EXIT_TO_NORMAL: { target: "NORMAL", actions: "resetContext" },
+        ENTER_UNLOAD: { target: "UNLOAD", actions: "assignEnterUnload" },
+        ENTER_IPQC: { target: "IPQC", actions: "resetContext" },
+      },
+      states: {
+        SPLICE_IDLE: {
+          on: {
+            SPLICE_CURRENT_SCANNED: {
+              target: "SPLICE_NEW_SCAN",
+              actions: "assignSpliceCurrentScanned",
+            },
+          },
+        },
+        SPLICE_NEW_SCAN: {
+          on: {
+            SPLICE_NEW_SCANNED: {
+              target: "SPLICE_SLOT_SCAN",
+              actions: "assignSpliceNewScanned",
+            },
+          },
+        },
+        SPLICE_SLOT_SCAN: {
+          on: {
+            SPLICE_SLOT_SUBMITTED: {
+              target: "SPLICE_IDLE",
+              actions: "clearSpliceNewPackCode",
+            },
+          },
+        },
       },
     },
 
@@ -95,6 +154,7 @@ export const operationModeStateMachine = setup({
         ENTER_IPQC: { target: "IPQC", actions: "resetContext" },
         EXIT_TO_NORMAL: { target: "NORMAL", actions: "resetContext" },
         ENTER_UNLOAD: { target: "UNLOAD", actions: "assignEnterUnload" },
+        ENTER_SPLICE: { target: "SPLICE", actions: "resetContext" },
       },
       states: {
         // 依 context.unloadModeType 路由到正確的掃描子狀態

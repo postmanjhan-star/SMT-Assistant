@@ -22,6 +22,7 @@ export function useOperationModeStateMachine() {
   const isNormal = computed(() => snapshot.value.matches("NORMAL"))
   const isIpqcMode = computed(() => snapshot.value.matches("IPQC"))
   const isUnloadMode = computed(() => snapshot.value.matches("UNLOAD"))
+  const isSpliceMode = computed(() => snapshot.value.matches("SPLICE"))
 
   // ── Unload sub-state computeds ────────────────────────────────
   const isUnloadScanPhase = computed(() =>
@@ -37,6 +38,17 @@ export function useOperationModeStateMachine() {
     snapshot.value.matches({ UNLOAD: "REPLACE_SLOT_SCAN" })
   )
 
+  // ── Splice sub-state computeds ────────────────────────────────
+  const isSpliceIdlePhase = computed(() =>
+    snapshot.value.matches({ SPLICE: "SPLICE_IDLE" })
+  )
+  const isSpliceNewPhase = computed(() =>
+    snapshot.value.matches({ SPLICE: "SPLICE_NEW_SCAN" })
+  )
+  const isSpliceSlotPhase = computed(() =>
+    snapshot.value.matches({ SPLICE: "SPLICE_SLOT_SCAN" })
+  )
+
   // ── Context accessors ─────────────────────────────────────────
   const unloadModeType = computed(() => snapshot.value.context.unloadModeType)
   const resolvedUnloadSlotIdno = computed(
@@ -45,6 +57,8 @@ export function useOperationModeStateMachine() {
   const replacementMaterialPackCode = computed(
     () => snapshot.value.context.replacementMaterialPackCode
   )
+  const spliceSlotIdno = computed(() => snapshot.value.context.spliceSlotIdno)
+  const spliceNewPackCode = computed(() => snapshot.value.context.spliceNewPackCode)
 
   // ── Send helpers ──────────────────────────────────────────────
   function enterUnloadMode(modeType: UnloadModeType) {
@@ -53,6 +67,10 @@ export function useOperationModeStateMachine() {
 
   function enterIpqcMode() {
     actor.send({ type: "ENTER_IPQC" })
+  }
+
+  function enterSpliceMode() {
+    actor.send({ type: "ENTER_SPLICE" })
   }
 
   function exitToNormal() {
@@ -75,28 +93,51 @@ export function useOperationModeStateMachine() {
     actor.send({ type: "REPLACE_SLOT_SUBMITTED" })
   }
 
+  function onSpliceCurrentScanned(resolvedSlotIdno: string) {
+    actor.send({ type: "SPLICE_CURRENT_SCANNED", resolvedSlotIdno })
+  }
+
+  function onSpliceNewScanned(packCode: string) {
+    actor.send({ type: "SPLICE_NEW_SCANNED", packCode })
+  }
+
+  function onSpliceSlotSubmitted() {
+    actor.send({ type: "SPLICE_SLOT_SUBMITTED" })
+  }
+
   return {
     // State
     isNormal,
     isIpqcMode,
     isUnloadMode,
+    isSpliceMode,
     // Unload phases
     isUnloadScanPhase,
     isForceUnloadSlotPhase,
     isReplaceMaterialPhase,
     isReplaceSlotPhase,
+    // Splice phases
+    isSpliceIdlePhase,
+    isSpliceNewPhase,
+    isSpliceSlotPhase,
     // Context
     unloadModeType,
     resolvedUnloadSlotIdno,
     replacementMaterialPackCode,
+    spliceSlotIdno,
+    spliceNewPackCode,
     // Transitions
     enterUnloadMode,
     enterIpqcMode,
+    enterSpliceMode,
     exitToNormal,
     onUnloadSubmitted,
     onForceUnloadSubmitted,
     onReplacementMaterialScanned,
     onReplaceSlotSubmitted,
+    onSpliceCurrentScanned,
+    onSpliceNewScanned,
+    onSpliceSlotSubmitted,
   }
 }
 

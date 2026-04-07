@@ -9,7 +9,7 @@ import type { ScanResultLike } from '@/domain/material/MaterialScanDecision'
 import type { SmtMaterialInventory } from '@/client'
 import {
     MATERIAL_UNLOAD_TRIGGER,
-    MATERIAL_EXIT_TRIGGER,
+    MATERIAL_SPLICE_TRIGGER,
     MATERIAL_FORCE_UNLOAD_TRIGGER,
     MATERIAL_IPQC_TRIGGER,
 } from '@/domain/mounter/operationModes'
@@ -18,7 +18,7 @@ type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 
 const MODE_TRIGGERS = new Set([
     MATERIAL_UNLOAD_TRIGGER,
-    MATERIAL_EXIT_TRIGGER,
+    MATERIAL_SPLICE_TRIGGER,
     MATERIAL_FORCE_UNLOAD_TRIGGER,
     MATERIAL_IPQC_TRIGGER,
 ])
