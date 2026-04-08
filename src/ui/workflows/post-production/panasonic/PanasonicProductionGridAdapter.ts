@@ -45,7 +45,7 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
       {
         field: 'operationTime',
         tooltipField: 'operationTime',
-        headerName: '首次接料時間',
+        headerName: '上料接料時間',
         flex: 3,
         minWidth: 180,
         valueFormatter: (params) => format(params.value),

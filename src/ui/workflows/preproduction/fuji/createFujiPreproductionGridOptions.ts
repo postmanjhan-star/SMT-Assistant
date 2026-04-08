@@ -28,7 +28,7 @@ export function createFujiPreproductionGridOptions(): GridOptions<FujiMounterRow
       { field: "boardSide", headerName: "PCB面", flex: 1, minWidth: 90 },
       createMaterialIdnoColDef({ headerName: "物料號", minWidth: 160 }),
       createOperatorIdnoColDef({ flex: 4, minWidth: 160 }),
-      { field: "operationTime", tooltipField: "operationTime", headerName: "上料時間", flex: 3, minWidth: 180, valueFormatter: (params) => format(params.value) },
+      { field: "operationTime", tooltipField: "operationTime", headerName: "上料接料時間", flex: 3, minWidth: 180, valueFormatter: (params) => format(params.value) },
       createMaterialInventoryIdnoColDef({ headerName: "首次上料條碼", minWidth: 180 }),
       createAppendedMaterialInventoryIdnoColDef({ minWidth: 180 }),
       createSpliceMaterialInventoryIdnoColDef({ minWidth: 180 }),
