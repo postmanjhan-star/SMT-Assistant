@@ -38,6 +38,7 @@ import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
 import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import { usePanasonicProductionOperationFlows } from "@/ui/shared/composables/panasonic/usePanasonicProductionOperationFlows"
+import PanasonicProductionInputSection from "@/pages/mounter/panasonic/components/PanasonicProductionInputSection.vue"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
 
@@ -269,6 +270,15 @@ async function onNormalSlotSubmit(payload: {
 function onRollShortageModalUpdate(value: boolean) {
   if (!value) closeRollShortage()
 }
+
+// ─── Input ref binders (for PanasonicProductionInputSection) ──────────────────
+
+const bindUnloadMaterialInput = (el: any) => { unloadMaterialInput.value = el as HTMLInputElement | null }
+const bindUnloadSlotInput     = (el: any) => { unloadSlotInput.value = el as HTMLInputElement | null }
+const bindIpqcMaterialInput   = (el: any) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
+const bindIpqcSlotInput       = (el: any) => { ipqcSlotInput.value = el as HTMLInputElement | null }
+const bindSpliceMaterialInput = (el: any) => { spliceMaterialInput.value = el as HTMLInputElement | null }
+const bindSpliceSlotInput     = (el: any) => { spliceSlotInput.value = el as HTMLInputElement | null }
 </script>
 
 <template>
@@ -365,122 +375,42 @@ function onRollShortageModalUpdate(value: boolean) {
     </template>
 
     <template #inputs>
-      <!-- 換料模式 inputs -->
-      <template v-if="isUnloadMode">
-        <n-gi>
-          <div class="unload-mode-input">
-            <label class="input-label" for="unload-material-input">{{ unloadMaterialLabel }}</label>
-            <input
-              id="unload-material-input"
-              data-testid="unload-material-input"
-              ref="unloadMaterialInput"
-              v-model="unloadMaterialValue"
-              class="material-input"
-              type="text"
-              :placeholder="unloadMaterialPlaceholder"
-              :disabled="isUnloadMaterialInputDisabled"
-              @keydown.enter.prevent="handleUnloadMaterialEnter"
-            />
-          </div>
-        </n-gi>
-
-        <n-gi>
-          <div class="unload-mode-input">
-            <label class="input-label" for="unload-slot-input">{{ unloadSlotLabel }}</label>
-            <input
-              id="unload-slot-input"
-              data-testid="unload-slot-input"
-              ref="unloadSlotInput"
-              v-model="unloadSlotValue"
-              class="slot-input"
-              type="text"
-              :placeholder="unloadSlotPlaceholder"
-              :disabled="isUnloadSlotInputDisabled"
-              @keydown.enter.prevent="handleUnloadSlotSubmit"
-            />
-          </div>
-        </n-gi>
-      </template>
-
-      <!-- IPQC 覆檢 inputs -->
-      <template v-else-if="isIpqcMode">
-        <n-gi>
-          <div class="ipqc-mode-input">
-            <label class="input-label" for="prod-ipqc-material-input">
-              覆檢物料條碼
-            </label>
-            <input
-              id="prod-ipqc-material-input"
-              ref="ipqcMaterialInput"
-              v-model="ipqcMaterialValue"
-              type="text"
-              class="material-input"
-              placeholder="請掃描物料條碼"
-              @keydown.enter.prevent="handleIpqcMaterialSubmit"
-            />
-          </div>
-        </n-gi>
-        <n-gi>
-          <div class="ipqc-mode-input">
-            <label class="input-label" for="prod-ipqc-slot-input">
-              覆檢站位
-            </label>
-            <input
-              id="prod-ipqc-slot-input"
-              ref="ipqcSlotInput"
-              v-model="ipqcSlotValue"
-              type="text"
-              class="slot-input"
-              placeholder="請掃描站位"
-              :disabled="!ipqcMaterialValue.trim()"
-              @keydown.enter.prevent="handleIpqcSlotSubmit"
-            />
-          </div>
-        </n-gi>
-      </template>
-
-      <!-- 接料模式 inputs -->
-      <template v-else-if="isSpliceMode">
-        <n-gi>
-          <div class="splice-mode-input">
-            <label class="input-label" for="panasonic-prod-splice-material-input">
-              {{ isSpliceNewPhase ? '接料捲號' : '已上料捲號' }}
-            </label>
-            <input
-              id="panasonic-prod-splice-material-input"
-              ref="spliceMaterialInput"
-              v-model="spliceMaterialValue"
-              type="text"
-              class="material-input"
-              data-testid="panasonic-splice-material-input"
-              :disabled="!productionStarted"
-              :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
-              @keydown.enter.prevent="handleSpliceMaterialEnter"
-            />
-          </div>
-        </n-gi>
-        <n-gi>
-          <div class="splice-mode-input">
-            <label class="input-label" for="panasonic-prod-splice-slot-input">
-              確認站位
-            </label>
-            <input
-              id="panasonic-prod-splice-slot-input"
-              ref="spliceSlotInput"
-              v-model="spliceSlotValue"
-              type="text"
-              class="slot-input"
-              data-testid="panasonic-splice-slot-input"
-              :disabled="!productionStarted || !isSpliceSlotPhase"
-              :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
-              @keydown.enter.prevent="handleSpliceSlotEnter"
-            />
-          </div>
-        </n-gi>
-      </template>
+      <PanasonicProductionInputSection
+        :is-unload-mode="isUnloadMode"
+        :is-ipqc-mode="isIpqcMode"
+        :is-splice-mode="isSpliceMode"
+        :production-started="productionStarted"
+        :unload-material-label="unloadMaterialLabel"
+        :unload-material-placeholder="unloadMaterialPlaceholder"
+        :is-unload-material-input-disabled="isUnloadMaterialInputDisabled"
+        :unload-slot-label="unloadSlotLabel"
+        :unload-slot-placeholder="unloadSlotPlaceholder"
+        :is-unload-slot-input-disabled="isUnloadSlotInputDisabled"
+        :is-splice-new-phase="isSpliceNewPhase"
+        :is-splice-slot-phase="isSpliceSlotPhase"
+        :splice-slot-idno="spliceSlotIdno"
+        v-model:unload-material-value="unloadMaterialValue"
+        v-model:unload-slot-value="unloadSlotValue"
+        v-model:ipqc-material-value="ipqcMaterialValue"
+        v-model:ipqc-slot-value="ipqcSlotValue"
+        v-model:splice-material-value="spliceMaterialValue"
+        v-model:splice-slot-value="spliceSlotValue"
+        :bind-unload-material-input="bindUnloadMaterialInput"
+        :bind-unload-slot-input="bindUnloadSlotInput"
+        :bind-ipqc-material-input="bindIpqcMaterialInput"
+        :bind-ipqc-slot-input="bindIpqcSlotInput"
+        :bind-splice-material-input="bindSpliceMaterialInput"
+        :bind-splice-slot-input="bindSpliceSlotInput"
+        @unload-material-enter="handleUnloadMaterialEnter"
+        @unload-slot-submit="handleUnloadSlotSubmit"
+        @ipqc-material-submit="handleIpqcMaterialSubmit"
+        @ipqc-slot-submit="handleIpqcSlotSubmit"
+        @splice-material-enter="handleSpliceMaterialEnter"
+        @splice-slot-enter="handleSpliceSlotEnter"
+      />
 
       <!-- 一般掃描 inputs -->
-      <template v-else>
+      <template v-if="!isUnloadMode && !isIpqcMode && !isSpliceMode">
         <n-gi>
           <MaterialInventoryBarcodeInput
             :disabled="!productionStarted"
@@ -555,82 +485,6 @@ function onRollShortageModalUpdate(value: boolean) {
 
 .grid-content {
   height: 100%;
-}
-
-.unload-mode-input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  border: 2px solid #1890ff;
-}
-
-.ipqc-mode-input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background-color: #fff7e6;
-  border-radius: 4px;
-  border: 2px solid #fa8c16;
-}
-
-.ipqc-mode-input .input-label {
-  color: #fa8c16;
-}
-
-.input-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #1890ff;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.material-input,
-.slot-input {
-  padding: 10px 12px;
-  font-size: 14px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  font-family: monospace;
-  transition: border-color 0.3s;
-}
-
-.material-input:focus,
-.slot-input:focus {
-  outline: none;
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
-.slot-input:disabled,
-.material-input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-  color: #bfbfbf;
-}
-
-.splice-mode-input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background-color: #fff0f6;
-  border-radius: 4px;
-  border: 2px solid #eb2f96;
-}
-
-.splice-mode-input .input-label {
-  color: #eb2f96;
-}
-
-.splice-mode-input .material-input:focus,
-.splice-mode-input .slot-input:focus {
-  border-color: #eb2f96;
-  box-shadow: 0 0 0 2px rgba(235, 47, 150, 0.2);
 }
 
 .splice-exit-btn {
