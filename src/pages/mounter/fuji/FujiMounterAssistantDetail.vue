@@ -27,6 +27,7 @@ import type {
   FujiPreproductionSpliceRecord,
 } from "@/ui/shared/composables/fuji/fujiPreproductionDetailTypes"
 import { useFujiDetailSlotSubmit } from "@/ui/shared/composables/fuji/useFujiDetailSlotSubmit"
+import FujiDetailInputSection from "@/pages/mounter/fuji/components/FujiDetailInputSection.vue"
 
 useMeta({ title: "Fuji Mounter Assistant" })
 
@@ -203,6 +204,15 @@ const {
   pendingIpqcRecords,
 })
 
+// ─── Input ref binders (for FujiDetailInputSection) ──────────────────────────
+
+const bindUnloadMaterialInput = (el: any) => { unloadMaterialInput.value = el as HTMLInputElement | null }
+const bindUnloadSlotInput     = (el: any) => { unloadSlotInput.value = el as HTMLInputElement | null }
+const bindIpqcMaterialInput   = (el: any) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
+const bindIpqcSlotInput       = (el: any) => { ipqcSlotInput.value = el as HTMLInputElement | null }
+const bindSpliceMaterialInput = (el: any) => { spliceMaterialInput.value = el as HTMLInputElement | null }
+const bindSpliceSlotInput     = (el: any) => { spliceSlotInput.value = el as HTMLInputElement | null }
+
 // ─── Grid helpers ─────────────────────────────────────────────────────────────
 
 function syncGridRows(rows: unknown[]) {
@@ -293,122 +303,41 @@ const { onMaterialMatched, onMaterialError, onSlotSubmit } = useFujiDetailSlotSu
     </template>
 
     <template #inputs>
-      <!-- Unload mode inputs -->
-      <template v-if="isUnloadMode">
-        <n-gi key="unload-material">
-          <div class="unload-mode-input">
-            <label class="input-label" for="detail-unload-material-input">
-              {{ unloadMaterialLabel }}
-            </label>
-            <input
-              id="detail-unload-material-input"
-              ref="unloadMaterialInput"
-              v-model="unloadMaterialValue"
-              type="text"
-              class="material-input"
-              :placeholder="unloadMaterialPlaceholder"
-              :disabled="isUnloadMaterialInputDisabled"
-              @keydown.enter.prevent="handleUnloadMaterialEnter"
-            />
-          </div>
-        </n-gi>
-        <n-gi key="unload-slot">
-          <div class="unload-mode-input">
-            <label class="input-label" for="detail-unload-slot-input">
-              {{ unloadSlotLabel }}
-            </label>
-            <input
-              id="detail-unload-slot-input"
-              ref="unloadSlotInput"
-              v-model="unloadSlotValue"
-              type="text"
-              class="slot-input"
-              :placeholder="unloadSlotPlaceholder"
-              :disabled="isUnloadSlotInputDisabled"
-              @keydown.enter.prevent="handleUnloadSlotSubmit"
-            />
-          </div>
-        </n-gi>
-      </template>
-
-      <!-- IPQC 覆檢 inputs -->
-      <template v-else-if="isIpqcMode">
-        <n-gi key="ipqc-material">
-          <div class="ipqc-mode-input">
-            <label class="input-label" for="detail-ipqc-material-input">
-              覆檢物料條碼
-            </label>
-            <input
-              id="detail-ipqc-material-input"
-              ref="ipqcMaterialInput"
-              v-model="ipqcMaterialValue"
-              type="text"
-              class="material-input"
-              placeholder="請掃描物料條碼"
-              @keydown.enter.prevent="handleIpqcMaterialSubmit"
-            />
-          </div>
-        </n-gi>
-        <n-gi key="ipqc-slot">
-          <div class="ipqc-mode-input">
-            <label class="input-label" for="detail-ipqc-slot-input">
-              覆檢站位
-            </label>
-            <input
-              id="detail-ipqc-slot-input"
-              ref="ipqcSlotInput"
-              v-model="ipqcSlotValue"
-              type="text"
-              class="slot-input"
-              placeholder="請掃描站位"
-              :disabled="!ipqcMaterialValue.trim()"
-              @keydown.enter.prevent="handleIpqcSlotSubmit"
-            />
-          </div>
-        </n-gi>
-      </template>
-
-      <!-- 接料模式 inputs -->
-      <template v-else-if="isSpliceMode">
-        <n-gi key="splice-material">
-          <div class="splice-mode-input">
-            <label class="input-label" for="fuji-detail-splice-material-input">
-              {{ isSpliceNewPhase ? '接料捲號' : '已上料捲號' }}
-            </label>
-            <input
-              id="fuji-detail-splice-material-input"
-              ref="spliceMaterialInput"
-              v-model="spliceMaterialValue"
-              type="text"
-              class="material-input"
-              data-testid="fuji-detail-splice-material-input"
-              :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
-              @keydown.enter.prevent="handleSpliceMaterialEnter"
-            />
-          </div>
-        </n-gi>
-        <n-gi key="splice-slot">
-          <div class="splice-mode-input">
-            <label class="input-label" for="fuji-detail-splice-slot-input">
-              確認站位
-            </label>
-            <input
-              id="fuji-detail-splice-slot-input"
-              ref="spliceSlotInput"
-              v-model="spliceSlotValue"
-              type="text"
-              class="slot-input"
-              data-testid="fuji-detail-splice-slot-input"
-              :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
-              :disabled="!isSpliceSlotPhase"
-              @keydown.enter.prevent="handleSpliceSlotEnter"
-            />
-          </div>
-        </n-gi>
-      </template>
+      <FujiDetailInputSection
+        :is-unload-mode="isUnloadMode"
+        :is-ipqc-mode="isIpqcMode"
+        :is-splice-mode="isSpliceMode"
+        :unload-material-label="unloadMaterialLabel"
+        :unload-material-placeholder="unloadMaterialPlaceholder"
+        :is-unload-material-input-disabled="isUnloadMaterialInputDisabled"
+        :unload-slot-label="unloadSlotLabel"
+        :unload-slot-placeholder="unloadSlotPlaceholder"
+        :is-unload-slot-input-disabled="isUnloadSlotInputDisabled"
+        :is-splice-new-phase="isSpliceNewPhase"
+        :is-splice-slot-phase="isSpliceSlotPhase"
+        :splice-slot-idno="spliceSlotIdno"
+        v-model:unload-material-value="unloadMaterialValue"
+        v-model:unload-slot-value="unloadSlotValue"
+        v-model:ipqc-material-value="ipqcMaterialValue"
+        v-model:ipqc-slot-value="ipqcSlotValue"
+        v-model:splice-material-value="spliceMaterialValue"
+        v-model:splice-slot-value="spliceSlotValue"
+        :bind-unload-material-input="bindUnloadMaterialInput"
+        :bind-unload-slot-input="bindUnloadSlotInput"
+        :bind-ipqc-material-input="bindIpqcMaterialInput"
+        :bind-ipqc-slot-input="bindIpqcSlotInput"
+        :bind-splice-material-input="bindSpliceMaterialInput"
+        :bind-splice-slot-input="bindSpliceSlotInput"
+        @unload-material-enter="handleUnloadMaterialEnter"
+        @unload-slot-submit="handleUnloadSlotSubmit"
+        @ipqc-material-submit="handleIpqcMaterialSubmit"
+        @ipqc-slot-submit="handleIpqcSlotSubmit"
+        @splice-material-enter="handleSpliceMaterialEnter"
+        @splice-slot-enter="handleSpliceSlotEnter"
+      />
 
       <!-- Normal scan inputs -->
-      <template v-else>
+      <template v-if="!isUnloadMode && !isIpqcMode && !isSpliceMode">
         <n-gi key="normal-material">
           <MaterialInventoryBarcodeInput
             ref="materialInventoryInput"
@@ -464,86 +393,6 @@ const { onMaterialMatched, onMaterialError, onSlotSubmit } = useFujiDetailSlotSu
 </template>
 
 <style scoped>
-.unload-mode-input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  border: 2px solid #1890ff;
-}
-
-.input-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #1890ff;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.material-input,
-.slot-input {
-  padding: 10px 12px;
-  font-size: 14px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  font-family: monospace;
-  background-color: #ffffff;
-  color: #333333;
-  transition: border-color 0.3s;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.material-input:focus,
-.slot-input:focus {
-  outline: none;
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
-.slot-input:disabled,
-.material-input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-  color: #bfbfbf;
-}
-
-.ipqc-mode-input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background-color: #fff7e6;
-  border-radius: 4px;
-  border: 2px solid #fa8c16;
-}
-
-.ipqc-mode-input .input-label {
-  color: #fa8c16;
-}
-
-.splice-mode-input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background-color: #fff0f6;
-  border-radius: 4px;
-  border: 2px solid #eb2f96;
-}
-
-.splice-mode-input .input-label {
-  color: #eb2f96;
-}
-
-.splice-mode-input .material-input:focus,
-.splice-mode-input .slot-input:focus {
-  border-color: #eb2f96;
-  box-shadow: 0 0 0 2px rgba(235, 47, 150, 0.2);
-}
-
 .splice-exit-btn {
   --n-color: #eb2f96;
   --n-color-hover: #f759ab;
