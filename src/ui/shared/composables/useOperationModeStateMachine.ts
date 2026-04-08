@@ -8,12 +8,14 @@ export type { UnloadModeType }
 export function useOperationModeStateMachine() {
   const actor = createActor(operationModeStateMachine).start()
   const snapshot = shallowRef(actor.getSnapshot())
+  let stopped = false
 
   const unsubscribe = actor.subscribe((s) => {
     snapshot.value = s
   })
 
   onUnmounted(() => {
+    stopped = true
     unsubscribe.unsubscribe()
     actor.stop()
   })
@@ -62,46 +64,57 @@ export function useOperationModeStateMachine() {
 
   // ── Send helpers ──────────────────────────────────────────────
   function enterUnloadMode(modeType: UnloadModeType) {
+    if (stopped) return
     actor.send({ type: "ENTER_UNLOAD", modeType })
   }
 
   function enterIpqcMode() {
+    if (stopped) return
     actor.send({ type: "ENTER_IPQC" })
   }
 
   function enterSpliceMode() {
+    if (stopped) return
     actor.send({ type: "ENTER_SPLICE" })
   }
 
   function exitToNormal() {
+    if (stopped) return
     actor.send({ type: "EXIT_TO_NORMAL" })
   }
 
   function onUnloadSubmitted(resolvedSlotIdno: string) {
+    if (stopped) return
     actor.send({ type: "UNLOAD_SUBMITTED", resolvedSlotIdno })
   }
 
   function onForceUnloadSubmitted(resolvedSlotIdno: string) {
+    if (stopped) return
     actor.send({ type: "FORCE_UNLOAD_SUBMITTED", resolvedSlotIdno })
   }
 
   function onReplacementMaterialScanned(packCode: string) {
+    if (stopped) return
     actor.send({ type: "REPLACEMENT_MATERIAL_SCANNED", packCode })
   }
 
   function onReplaceSlotSubmitted() {
+    if (stopped) return
     actor.send({ type: "REPLACE_SLOT_SUBMITTED" })
   }
 
   function onSpliceCurrentScanned(resolvedSlotIdno: string) {
+    if (stopped) return
     actor.send({ type: "SPLICE_CURRENT_SCANNED", resolvedSlotIdno })
   }
 
   function onSpliceNewScanned(packCode: string) {
+    if (stopped) return
     actor.send({ type: "SPLICE_NEW_SCANNED", packCode })
   }
 
   function onSpliceSlotSubmitted() {
+    if (stopped) return
     actor.send({ type: "SPLICE_SLOT_SUBMITTED" })
   }
 

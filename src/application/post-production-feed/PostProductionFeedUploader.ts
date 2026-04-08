@@ -1,12 +1,15 @@
 import { buildPanasonicFeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
-import type {
+import {
   CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
-  PanasonicFeedRecordCreate,
-  UnfeedReasonEnum,
+  type PanasonicFeedRecordCreate,
+  type UnfeedReasonEnum,
 } from '@/client'
 
-export type PostProductionCorrectState = 'true' | 'false' | 'warning'
+export type PostProductionCorrectState =
+  | 'MATCHED_MATERIAL_PACK'
+  | 'UNMATCHED_MATERIAL_PACK'
+  | 'TESTING_MATERIAL_PACK'
 
 export abstract class PostProductionFeedUploader {
   protected abstract doUpload(payload: PanasonicFeedRecordCreate): Promise<any>
@@ -28,7 +31,7 @@ export abstract class PostProductionFeedUploader {
       operationType: 'UNFEED',
       unfeedMaterialPackType: 'NORMAL_UNFEED',
       unfeedReason: params.unfeedReason ?? null,
-      checkPackCodeMatch: 'true',
+      checkPackCodeMatch: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
       feedMaterialPackType: null,
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
@@ -42,7 +45,7 @@ export abstract class PostProductionFeedUploader {
     subSlotIdno?: string | null
     materialPackCode: string
     correctState?: PostProductionCorrectState | null
-    feedMaterialPackType?: FeedMaterialTypeEnum | string | null
+    feedMaterialPackType?: FeedMaterialTypeEnum | null
     operatorId?: string | null
   }) {
     const payload = buildPanasonicFeedRecordPayload({
@@ -51,8 +54,10 @@ export abstract class PostProductionFeedUploader {
       subSlotIdno: params.subSlotIdno ?? null,
       materialPackCode: params.materialPackCode,
       operationType: 'FEED',
-      feedMaterialPackType: params.feedMaterialPackType ?? 'NEW_MATERIAL_PACK',
-      checkPackCodeMatch: (params.correctState !== undefined ? params.correctState : 'MATCHED_MATERIAL_PACK') as CheckMaterialMatchEnum | string | null,
+      feedMaterialPackType: params.feedMaterialPackType ?? FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+      checkPackCodeMatch: params.correctState !== undefined
+        ? params.correctState as CheckMaterialMatchEnum
+        : CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })

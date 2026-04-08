@@ -1,4 +1,4 @@
-import type { PanasonicFeedRecordCreate } from '@/client'
+import { CheckMaterialMatchEnum, FeedMaterialTypeEnum, type PanasonicFeedRecordCreate } from '@/client'
 import { PostProductionFeedUploader } from './PostProductionFeedUploader'
 import { buildPanasonicFeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
 import type { RecordApiPort } from './RecordApiPort'
@@ -32,8 +32,8 @@ export class PostProductionRecordUploader extends PostProductionFeedUploader {
       subSlotIdno: params.subSlotIdno ?? null,
       materialPackCode: params.materialPackCode,
       operationType: 'FEED',
-      feedMaterialPackType: 'inspect',
-      checkPackCodeMatch: 'true',
+      feedMaterialPackType: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
+      checkPackCodeMatch: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })

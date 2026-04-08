@@ -20,7 +20,7 @@ describe("FujiPostProductionRecordUploader", () => {
   })
 
   describe("uploadAppend", () => {
-    it("送出完整 FEED payload，固定 feedMaterialPackType=new / check_pack_code_match=true", async () => {
+    it("送出完整 FEED payload，固定 feedMaterialPackType=NEW_MATERIAL_PACK / check_pack_code_match=MATCHED_MATERIAL_PACK", async () => {
       const api = makeApi()
       const uploader = new FujiPostProductionRecordUploader(api as any)
 
@@ -39,8 +39,8 @@ describe("FujiPostProductionRecordUploader", () => {
         sub_slot_idno: "A",
         material_pack_code: "PACK-001",
         operation_type: "FEED",
-        feed_material_pack_type: "new",
-        check_pack_code_match: "true",
+        feed_material_pack_type: "NEW_MATERIAL_PACK",
+        check_pack_code_match: "MATCHED_MATERIAL_PACK",
         unfeed_material_pack_type: null,
         unfeed_reason: null,
         operator_id: "OP-99",
@@ -88,7 +88,7 @@ describe("FujiPostProductionRecordUploader", () => {
         feed_material_pack_type: null,
         unfeed_material_pack_type: "NORMAL_UNFEED",
         unfeed_reason: "MATERIAL_CHANGE",
-        check_pack_code_match: "true",
+        check_pack_code_match: "MATCHED_MATERIAL_PACK",
         operator_id: "OP-99",
         operation_time: FIXED_TIME,
       })

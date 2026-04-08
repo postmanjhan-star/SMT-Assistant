@@ -1,4 +1,4 @@
-import { ApiError } from "@/client"
+import { ApiError, CheckMaterialMatchEnum } from "@/client"
 import { RollShortagePolicy } from "@/domain/preproduction/RollShortagePolicy"
 
 export type PanasonicRollShortageInput = {
@@ -136,7 +136,7 @@ export class SubmitPanasonicRollShortageUseCase<
       }
     }
 
-    let correctState: string | null = null
+    let correctState: CheckMaterialMatchEnum | null = null
     let info: PanasonicRollShortageInfo | undefined
 
     try {
@@ -153,7 +153,7 @@ export class SubmitPanasonicRollShortageUseCase<
         return { ok: false, error: SIMPLE_ERROR_MAP.no_material_in_grid }
       }
 
-      correctState = "true"
+      correctState = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 404 && this.deps.isTestingMode()) {
@@ -161,7 +161,7 @@ export class SubmitPanasonicRollShortageUseCase<
             code: "testing_virtual_material",
             idno: materialInventoryIdno,
           }
-          correctState = "warning"
+          correctState = CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
         } else {
           return {
             ok: false,

@@ -4,6 +4,7 @@ import { type GridApi, type GridReadyEvent } from "ag-grid-community"
 import { useDialog } from "naive-ui"
 // eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] @/client type imports，Phase 3 移除目標
 import {
+  CheckMaterialMatchEnum,
   type BoardSideEnum,
   type FujiMounterItemStatRead,
   type SmtMaterialInventory,
@@ -245,12 +246,18 @@ export function useFujiProductionWorkflow(
     if (!material) throw new Error("materialInventory is required")
 
     const now = new Date().toISOString()
+    const enumCorrectState =
+        params.correctState === 'true' ? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+      : params.correctState === 'false' ? CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK
+      : params.correctState === 'warning' ? CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
+      : null
+
     await fujiUploader.uploadAppend({
       statId: params.stat_id,
       slotIdno: params.inputSlot,
       subSlotIdno: params.inputSubSlot ?? null,
       materialPackCode: material.idno,
-      correctState: params.correctState ?? null,
+      correctState: enumCorrectState,
       feedMaterialPackType: 'NEW_MATERIAL_PACK',
       operatorId: currentUsername.value || null,
     })
@@ -281,7 +288,7 @@ export function useFujiProductionWorkflow(
       slotIdno: params.inputSlot,
       subSlotIdno: params.inputSubSlot ?? null,
       materialPackCode: params.materialInventory.idno,
-      correctState: 'true',
+      correctState: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
       feedMaterialPackType: 'INSPECTION_MATERIAL_PACK',
       operatorId: currentUsername.value || null,
     })

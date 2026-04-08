@@ -1,5 +1,5 @@
-import type { PanasonicFeedRecordCreate } from '@/client'
-import { PostProductionFeedUploader } from './PostProductionFeedUploader'
+import { CheckMaterialMatchEnum, type PanasonicFeedRecordCreate } from '@/client'
+import { PostProductionFeedUploader, type PostProductionCorrectState } from './PostProductionFeedUploader'
 import type { FujiRecordApiPort } from './FujiRecordApiPort'
 
 export class FujiPostProductionRecordUploader extends PostProductionFeedUploader {
@@ -19,21 +19,19 @@ export class FujiPostProductionRecordUploader extends PostProductionFeedUploader
   fetchFeedLogs(uuid: string) { return this.api.fetchFeedLogs(uuid) }
   stopProduction(uuid: string) { return this.api.stopProduction(uuid) }
 
-  // Preserve existing public interface: no correctState/feedMaterialPackType params,
-  // always hardcode feedMaterialPackType='new' and checkPackCodeMatch='true'
+  // Default uploadAppend to NEW_MATERIAL_PACK and MATCHED_MATERIAL_PACK when not specified
   override async uploadAppend(params: {
     statId: number
     slotIdno: string
     subSlotIdno?: string | null
     materialPackCode: string
-    correctState?: 'true' | 'false' | 'warning' | null
+    correctState?: PostProductionCorrectState | null
     feedMaterialPackType?: string | null
     operatorId?: string | null
   }) {
     return super.uploadAppend({
       ...params,
-      correctState: params.correctState ?? 'true',
-      feedMaterialPackType: params.feedMaterialPackType ?? 'NEW_MATERIAL_PACK',
+      correctState: params.correctState ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
     })
   }
 }

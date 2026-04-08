@@ -9,6 +9,7 @@ import {
 import {
   fetchMaterialInventoryForSmt,
   uploadAppendRecord,
+  type PostProductionCorrectState,
 } from "@/application/post-production-feed/PostProductionFeedRecordUseCase"
 import { parseSlotIdno } from "@/domain/production/PostProductionFeedRecord"
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore"
@@ -111,8 +112,7 @@ export function useRollShortageForm<
         subSlotIdno: input.subSlotIdno ?? null,
         materialPackCode: input.materialPackCode,
         feedMaterialPackType: input.feedMaterialPackType,
-        correctState: (input.checkPackCodeMatch ??
-          null) as "true" | "false" | "warning" | null,
+        correctState: (input.checkPackCodeMatch ?? null) as PostProductionCorrectState | null,
         operatorId: input.operatorId ?? "",
       }),
     isTestingMode: () => options.isTestingMode(),

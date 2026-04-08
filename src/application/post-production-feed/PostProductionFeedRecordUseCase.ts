@@ -1,6 +1,6 @@
 ﻿import {
-    type CheckMaterialMatchEnum,
-    type FeedMaterialTypeEnum,
+    CheckMaterialMatchEnum,
+    FeedMaterialTypeEnum,
     type PanasonicFeedRecordCreate,
     type UnfeedMaterialTypeEnum,
     type UnfeedReasonEnum,
@@ -11,7 +11,10 @@ import {
     type PostProductionFeedRecordInput,
 } from "@/domain/production/PostProductionFeedRecord"
 
-export type PostProductionCorrectState = "true" | "false" | "warning"
+export type PostProductionCorrectState =
+    | "MATCHED_MATERIAL_PACK"
+    | "UNMATCHED_MATERIAL_PACK"
+    | "TESTING_MATERIAL_PACK"
 
 export type PostProductionFeedRecordUpload = Omit<
     PostProductionFeedRecordInput,
@@ -32,7 +35,7 @@ export type AppendRecordInput = {
     subSlotIdno?: string | null
     materialPackCode: string
     correctState?: PostProductionCorrectState | null
-    feedMaterialPackType?: FeedMaterialTypeEnum | string | null
+    feedMaterialPackType?: FeedMaterialTypeEnum | null
     operatorId?: string | null
 }
 
@@ -64,8 +67,8 @@ export async function uploadInspectionRecord(input: InspectionRecordInput) {
         subSlotIdno: input.subSlotIdno ?? null,
         materialPackCode: input.materialPackCode,
         operationType: "FEED",
-        feedMaterialPackType: "inspect",
-        checkPackCodeMatch: "true",
+        feedMaterialPackType: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
+        checkPackCodeMatch: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
         operatorId: input.operatorId ?? "",
     })
 }
@@ -77,11 +80,8 @@ export async function uploadAppendRecord(input: AppendRecordInput) {
         subSlotIdno: input.subSlotIdno ?? null,
         materialPackCode: input.materialPackCode,
         operationType: "FEED",
-        feedMaterialPackType: input.feedMaterialPackType ?? "new",
-        checkPackCodeMatch: (input.correctState ?? null) as
-            | CheckMaterialMatchEnum
-            | string
-            | null,
+        feedMaterialPackType: input.feedMaterialPackType ?? FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+        checkPackCodeMatch: (input.correctState ?? null) as CheckMaterialMatchEnum | null,
         operatorId: input.operatorId ?? "",
     })
 }
@@ -96,7 +96,7 @@ export async function uploadUnfeedRecord(input: UnfeedRecordInput) {
         feedMaterialPackType: null,
         unfeedMaterialPackType: input.unfeedMaterialPackType ?? "NORMAL_UNFEED",
         unfeedReason: input.unfeedReason ?? null,
-        checkPackCodeMatch: "true",
+        checkPackCodeMatch: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
         operatorId: input.operatorId ?? "",
     })
 }

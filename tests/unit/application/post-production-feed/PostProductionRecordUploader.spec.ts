@@ -39,8 +39,8 @@ describe("PostProductionRecordUploader", () => {
         sub_slot_idno: "L",
         material_pack_code: "PACK-001",
         operation_type: "FEED",
-        feed_material_pack_type: "new",
-        check_pack_code_match: null,
+        feed_material_pack_type: "NEW_MATERIAL_PACK",
+        check_pack_code_match: "MATCHED_MATERIAL_PACK",
         unfeed_material_pack_type: null,
         unfeed_reason: null,
         operator_id: "OP-99",
@@ -57,16 +57,16 @@ describe("PostProductionRecordUploader", () => {
         slotIdno: "10008",
         subSlotIdno: null,
         materialPackCode: "PACK-002",
-        correctState: "warning",
+        correctState: "TESTING_MATERIAL_PACK",
       })
 
       const payload = api.uploadFeedRecord.mock.calls[0][0]
-      expect(payload.check_pack_code_match).toBe("warning")
+      expect(payload.check_pack_code_match).toBe("TESTING_MATERIAL_PACK")
       expect(payload.sub_slot_idno).toBeNull()
       expect(payload.operator_id).toBe("")
     })
 
-    it("feedMaterialPackType 可自訂（e.g. 'inspect'）", async () => {
+    it("feedMaterialPackType 可自訂（e.g. 'INSPECTION_MATERIAL_PACK'）", async () => {
       const api = makeApi()
       const uploader = new PostProductionRecordUploader(api as any)
 
@@ -75,13 +75,13 @@ describe("PostProductionRecordUploader", () => {
         slotIdno: "10008",
         subSlotIdno: "L",
         materialPackCode: "PACK-003",
-        feedMaterialPackType: "inspect",
-        correctState: "true",
+        feedMaterialPackType: "INSPECTION_MATERIAL_PACK" as any,
+        correctState: "MATCHED_MATERIAL_PACK",
       })
 
       const payload = api.uploadFeedRecord.mock.calls[0][0]
-      expect(payload.feed_material_pack_type).toBe("inspect")
-      expect(payload.check_pack_code_match).toBe("true")
+      expect(payload.feed_material_pack_type).toBe("INSPECTION_MATERIAL_PACK")
+      expect(payload.check_pack_code_match).toBe("MATCHED_MATERIAL_PACK")
     })
   })
 
@@ -109,7 +109,7 @@ describe("PostProductionRecordUploader", () => {
         feed_material_pack_type: null,
         unfeed_material_pack_type: "NORMAL_UNFEED",
         unfeed_reason: "MATERIAL_CHANGE",
-        check_pack_code_match: "true",
+        check_pack_code_match: "MATCHED_MATERIAL_PACK",
         operator_id: "OP-99",
         operation_time: FIXED_TIME,
       })
@@ -151,8 +151,8 @@ describe("PostProductionRecordUploader", () => {
         sub_slot_idno: "L",
         material_pack_code: "PACK-INSPECT",
         operation_type: "FEED",
-        feed_material_pack_type: "inspect",
-        check_pack_code_match: "true",
+        feed_material_pack_type: "INSPECTION_MATERIAL_PACK",
+        check_pack_code_match: "MATCHED_MATERIAL_PACK",
         unfeed_material_pack_type: null,
         unfeed_reason: null,
         operator_id: "OP-99",

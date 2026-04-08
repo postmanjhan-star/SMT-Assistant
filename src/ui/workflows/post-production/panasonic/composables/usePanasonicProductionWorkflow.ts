@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router"
 import {
   ApiError,
   CheckMaterialMatchEnum,
+  FeedMaterialTypeEnum,
   MachineSideEnum,
   PanasonicMounterItemStatCreate,
   ProduceTypeEnum,
@@ -116,13 +117,19 @@ export function usePanasonicProductionWorkflow(
       throw new Error("materialInventory is required")
     }
 
+    const enumCorrectState =
+        params.correctState === 'true' ? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+      : params.correctState === 'false' ? CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK
+      : params.correctState === 'warning' ? CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
+      : null
+
     return recordUploader.uploadAppend({
       statId: params.stat_id,
       slotIdno: params.inputSlot,
       subSlotIdno: params.inputSubSlot,
       materialPackCode,
-      correctState: params.correctState ?? null,
-      feedMaterialPackType: "new",
+      correctState: enumCorrectState,
+      feedMaterialPackType: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
       operatorId: currentUsername.value || null,
     })
   }

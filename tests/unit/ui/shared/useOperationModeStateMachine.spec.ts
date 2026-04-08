@@ -137,5 +137,22 @@ describe('useOperationModeStateMachine', () => {
       // 送事件不應拋出（actor 已停止，事件被靜默忽略）
       expect(() => machine.enterUnloadMode('pack_auto_slot')).not.toThrow()
     })
+
+    it('unmount 後 send helper 是真正的 no-op（snapshot 不變）', async () => {
+      const { wrapper, machine } = setupComposable()
+      wrapper.unmount()
+      await nextTick()
+
+      machine.enterUnloadMode('pack_auto_slot')
+      machine.enterIpqcMode()
+      machine.enterSpliceMode()
+      machine.exitToNormal()
+      await nextTick()
+
+      // guard 生效：actor 未收到任何事件，state 維持 NORMAL
+      expect(machine.isNormal.value).toBe(true)
+      expect(machine.isUnloadMode.value).toBe(false)
+      expect(machine.isIpqcMode.value).toBe(false)
+    })
   })
 })
