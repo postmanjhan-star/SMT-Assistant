@@ -59,6 +59,7 @@ export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
         operatorIdno: row.operatorIdno ?? null,
         materialInventoryIdno: row.materialInventoryIdno ?? null,
         appendedMaterialInventoryIdno: row.appendedMaterialInventoryIdno ?? null,
+        spliceMaterialInventoryIdno: row.spliceMaterialInventoryIdno ?? null,
         operationTime: row.operationTime ?? null,
         remark: row.remark ?? "",
       }
@@ -92,6 +93,8 @@ export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
     hydrateExtraFields(next: any, cachedRow) {
       if ("appendedMaterialInventoryIdno" in cachedRow)
         next.appendedMaterialInventoryIdno = (cachedRow.appendedMaterialInventoryIdno as string | null | undefined) ?? ""
+      if ("spliceMaterialInventoryIdno" in cachedRow)
+        next.spliceMaterialInventoryIdno = (cachedRow.spliceMaterialInventoryIdno as string | null | undefined) ?? ""
       if ("operationTime" in cachedRow)
         next.operationTime = (cachedRow.operationTime as string | null | undefined) ?? null
     },

@@ -46,6 +46,7 @@ export type MounterProductionFlowsCoreOptions = {
   validateUnloadMaterialPackCode(code: string): Promise<boolean>
   validateReplacementMaterialForSlot(params: { materialPackCode: string; slotIdno: string }): Promise<boolean>
   submitReplace(params: { materialPackCode: string; slotIdno: string }): Promise<boolean>
+  submitSplice(params: { materialPackCode: string; slotIdno: string }): Promise<boolean>
   /**
    * IPQC 物料驗證（可選）。若未提供，複用 validateUnloadMaterialPackCode。
    * Panasonic 需要在 testing mode 下仍驗證 ERP，故注入不同實作；
@@ -94,10 +95,12 @@ export function useMounterProductionOperationFlowsCore(
 
   // ── Input values（v-model） ────────────────────────────────────────────────
 
-  const unloadMaterialValue = ref("")
-  const unloadSlotValue     = ref("")
-  const ipqcMaterialValue   = ref("")
-  const ipqcSlotValue       = ref("")
+  const unloadMaterialValue  = ref("")
+  const unloadSlotValue      = ref("")
+  const ipqcMaterialValue    = ref("")
+  const ipqcSlotValue        = ref("")
+  const spliceMaterialValue  = ref("")
+  const spliceSlotValue      = ref("")
 
   // ── Input DOM refs（:ref binding） ─────────────────────────────────────────
 
@@ -105,6 +108,8 @@ export function useMounterProductionOperationFlowsCore(
   const unloadSlotInput     = ref<HTMLInputElement | null>(null)
   const ipqcMaterialInput   = ref<HTMLInputElement | null>(null)
   const ipqcSlotInput       = ref<HTMLInputElement | null>(null)
+  const spliceMaterialInput = ref<HTMLInputElement | null>(null)
+  const spliceSlotInput     = ref<HTMLInputElement | null>(null)
 
   const ipqcSavedCorrectStates = ref<Map<string, unknown>>(new Map())
   const spliceSavedCorrectState = ref<{ rowKey: string; correct: unknown } | null>(null)
@@ -186,6 +191,14 @@ export function useMounterProductionOperationFlowsCore(
     nextTick(() => { ipqcSlotInput.value?.focus() })
   }
 
+  function focusSpliceMaterialInput() {
+    nextTick(() => { spliceMaterialInput.value?.focus() })
+  }
+
+  function focusSpliceSlotInput() {
+    nextTick(() => { spliceSlotInput.value?.focus() })
+  }
+
   // ── Grid helpers ───────────────────────────────────────────────────────────
 
   function updateRowInGrid(row: any) {
@@ -202,13 +215,27 @@ export function useMounterProductionOperationFlowsCore(
     return adapter.findRowBySlotInput(slotIdno, rowData.value)
   }
 
+  function getLoadedPackCode(row: any): string {
+    const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
+    if (appended) return appended
+    if (!isIpqcMode.value && row.correct === PRODUCTION_CORRECT.UNLOADED) return ""
+    return String(row.materialInventoryIdno ?? "").trim()
+  }
+
+  function getSplicePackCode(row: any): string {
+    return String(row.spliceMaterialInventoryIdno ?? "").trim()
+  }
+
+  function getCurrentPackCode(row: any): string {
+    return getSplicePackCode(row) || getLoadedPackCode(row)
+  }
+
   // ── Duplicate detection ────────────────────────────────────────────────────
 
   function isBarcodeAlreadyInGrid(barcode: string): boolean {
     return rowData.value.some((row: any) => {
-      if (String(row.materialInventoryIdno ?? "").trim() === barcode) return true
-      const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
-      return appended.split(",").some((c: string) => c.trim() === barcode)
+      if (getLoadedPackCode(row) === barcode) return true
+      return getSplicePackCode(row) === barcode
     })
   }
 
@@ -293,8 +320,10 @@ export function useMounterProductionOperationFlowsCore(
   function enterSpliceMode() {
     machine.enterSpliceMode()
     spliceSavedCorrectState.value = null
+    spliceMaterialValue.value = ""
+    spliceSlotValue.value = ""
     clearNormalScanState()
-    nextTick(() => focusMaterialInput())
+    nextTick(() => focusSpliceMaterialInput())
   }
 
   function exitSpliceMode() {
@@ -307,6 +336,8 @@ export function useMounterProductionOperationFlowsCore(
       }
       spliceSavedCorrectState.value = null
     }
+    spliceMaterialValue.value = ""
+    spliceSlotValue.value = ""
     machine.exitToNormal()
     focusMaterialInput()
   }
@@ -339,6 +370,24 @@ export function useMounterProductionOperationFlowsCore(
   }
 
   function handleModeTriggerFromUnloadInput(code: string): boolean {
+    if (code === MATERIAL_UNLOAD_TRIGGER) {
+      if (unloadModeType.value === "pack_auto_slot") {
+        exitUnloadMode()
+      } else {
+        exitUnloadMode()
+        enterUnloadMode("pack_auto_slot")
+      }
+      return true
+    }
+    if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+      if (unloadModeType.value === "force_single_slot") {
+        exitUnloadMode()
+      } else {
+        exitUnloadMode()
+        enterUnloadMode("force_single_slot")
+      }
+      return true
+    }
     if (code === MATERIAL_IPQC_TRIGGER) {
       exitUnloadMode()
       enterIpqcMode()
@@ -349,15 +398,15 @@ export function useMounterProductionOperationFlowsCore(
       enterSpliceMode()
       return true
     }
-    if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-      exitUnloadMode()
-      return true
-    }
     return false
   }
 
   function handleModeTriggerFromSpliceInput(code: string): boolean {
     if (handleUserSwitchTrigger(code)) { exitSpliceMode(); return true }
+    if (code === MATERIAL_SPLICE_TRIGGER) {
+      exitSpliceMode()
+      return true
+    }
     if (code === MATERIAL_UNLOAD_TRIGGER) {
       exitSpliceMode(); enterUnloadMode("pack_auto_slot"); return true
     }
@@ -374,15 +423,18 @@ export function useMounterProductionOperationFlowsCore(
     const resolved = options.findUniqueUnloadSlotByPackCode(barcode)
     if (resolved.ok === false) {
       showError(resolved.error)
+      focusSpliceMaterialInput()
       return
     }
     const row = findRowBySlotIdno(resolved.slotIdno)
     if (!row) {
       showError(`找不到槽位 ${resolved.slotIdno}`)
+      focusSpliceMaterialInput()
       return
     }
     if (row.spliceMaterialInventoryIdno) {
       showError(`此站位已有接料條碼，請先卸料後再接料`)
+      focusSpliceMaterialInput()
       return
     }
 
@@ -390,16 +442,17 @@ export function useMounterProductionOperationFlowsCore(
     row.correct = PRODUCTION_CORRECT.UNLOADED
     updateRowInGrid(row)
     machine.onSpliceCurrentScanned(resolved.slotIdno)
-    focusMaterialInput()
+    focusSpliceMaterialInput()
   }
 
   async function handleSpliceNewScan(barcode: string) {
-    const isValid = await options.validateUnloadMaterialPackCode(barcode)
+    const isValid = isMockMode || await options.validateUnloadMaterialPackCode(barcode)
     if (!isValid) {
-      focusMaterialInput()
+      focusSpliceMaterialInput()
       return
     }
     machine.onSpliceNewScanned(barcode)
+    focusSpliceSlotInput()
   }
 
   async function handleSpliceSlotSubmit(slotIdno: string) {
@@ -408,6 +461,7 @@ export function useMounterProductionOperationFlowsCore(
 
     if (!adapter.slotsMatch(slotIdno, targetSlotIdno)) {
       showError(`請掃描原接料站位 ${targetSlotIdno}`)
+      focusSpliceSlotInput()
       return
     }
 
@@ -415,17 +469,32 @@ export function useMounterProductionOperationFlowsCore(
       materialPackCode: newPackCode,
       slotIdno: targetSlotIdno,
     })
-    if (!canReplace) return
+    if (!canReplace) { focusSpliceSlotInput(); return }
 
-    const success = await options.submitReplace({
+    const success = await options.submitSplice({
       materialPackCode: newPackCode,
       slotIdno: targetSlotIdno,
     })
-    if (!success) return
+    if (!success) { focusSpliceSlotInput(); return }
 
     machine.onSpliceSlotSubmitted()
     spliceSavedCorrectState.value = null
-    focusMaterialInput()
+    spliceSlotValue.value = ""
+    focusSpliceMaterialInput()
+  }
+
+  function handleSpliceMaterialEnter() {
+    const barcode = spliceMaterialValue.value.trim()
+    spliceMaterialValue.value = ""
+    if (!barcode) return
+    void handleBeforeMaterialScan(barcode)
+  }
+
+  function handleSpliceSlotEnter() {
+    const slotIdno = spliceSlotValue.value.trim()
+    spliceSlotValue.value = ""
+    if (!slotIdno) return
+    void handleBeforeSlotSubmit(slotIdno)
   }
 
   function handleBeforeMaterialScan(barcode: string): boolean {
@@ -435,6 +504,7 @@ export function useMounterProductionOperationFlowsCore(
       if (handleModeTriggerFromSpliceInput(code)) return false
       if (!isBarcodeAlreadyInGrid(barcode.trim())) {
         showError("請先掃描已上料的捲號進行接料")
+        focusSpliceMaterialInput()
         return false
       }
       void handleSpliceCurrentScan(barcode.trim())
@@ -466,8 +536,8 @@ export function useMounterProductionOperationFlowsCore(
     }
     if (handleModeTriggerFromNormalInput(normalized)) return false
     const row = findRowBySlotIdno(raw.trim())
-    if (row && String(row.appendedMaterialInventoryIdno ?? "").trim()) {
-      showError(`站位 ${raw.trim()} 已有接料，請先卸除當前料捲`)
+    if (row && (getLoadedPackCode(row) || getSplicePackCode(row))) {
+      showError(`站位 ${raw.trim()} 已有上料條碼，若要接料請先輸入 S5566`)
       return false
     }
     return true
@@ -529,12 +599,7 @@ export function useMounterProductionOperationFlowsCore(
       return
     }
 
-    // 確認料號符合槽位
-    const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
-    const appendedCodes = appended ? appended.split(",").map((s: string) => s.trim()).filter(Boolean) : []
-    const currentPackCode = appendedCodes.length > 0
-      ? appendedCodes[appendedCodes.length - 1]
-      : String(row.materialInventoryIdno ?? "").trim()
+    const currentPackCode = getCurrentPackCode(row)
 
     if (materialPackCode !== currentPackCode) {
       showError(`料號不符：掃描 ${materialPackCode}，槽位應為 ${currentPackCode}`)
@@ -746,11 +811,15 @@ export function useMounterProductionOperationFlowsCore(
     unloadSlotValue,
     ipqcMaterialValue,
     ipqcSlotValue,
+    spliceMaterialValue,
+    spliceSlotValue,
     // Input DOM refs
     unloadMaterialInput,
     unloadSlotInput,
     ipqcMaterialInput,
     ipqcSlotInput,
+    spliceMaterialInput,
+    spliceSlotInput,
     // Mode control
     enterUnloadMode,
     exitUnloadMode,
@@ -766,6 +835,8 @@ export function useMounterProductionOperationFlowsCore(
     handleUnloadSlotSubmit,
     handleIpqcMaterialSubmit,
     handleIpqcSlotSubmit,
+    handleSpliceMaterialEnter,
+    handleSpliceSlotEnter,
     // Helpers exposed for .vue
     findRowBySlotIdno,
   }

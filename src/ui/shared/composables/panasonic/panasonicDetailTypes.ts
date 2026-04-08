@@ -24,6 +24,7 @@ export type PanasonicCacheRow = {
   operatorIdno?: string | null
   materialInventoryIdno?: string | null
   appendedMaterialInventoryIdno?: string | null
+  spliceMaterialInventoryIdno?: string | null
   operationTime?: string | null
   remark?: string
 }

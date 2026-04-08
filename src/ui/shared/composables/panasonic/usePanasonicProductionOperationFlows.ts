@@ -32,6 +32,7 @@ export type PanasonicProductionOperationFlowsOptions = {
   validateUnloadMaterialPackCode: (code: string) => Promise<boolean>
   validateReplacementMaterialForSlot: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   submitReplace: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
+  submitSplice: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   inspectionUpload: (params: {
     statId: number
     slotIdno: string
@@ -142,7 +143,7 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
     findUniqueUnloadSlotByPackCode,
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
-    submitReplace, inspectionUpload,
+    submitReplace, submitSplice, inspectionUpload,
   } = options
 
   const adapter = buildPanasonicProductionAdapter(gridApi, columnApi, inspectionUpload)
@@ -164,6 +165,7 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
       validateUnloadMaterialPackCode,
       validateReplacementMaterialForSlot,
       submitReplace,
+      submitSplice,
       // 原行為：Panasonic IPQC 驗證跳過 mock mode，但不跳過 testing mode
       validateIpqcMaterialPackCode: async (code: string) => {
         if (isMockMode) return true

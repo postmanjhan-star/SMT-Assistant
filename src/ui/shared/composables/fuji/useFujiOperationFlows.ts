@@ -41,6 +41,7 @@ export type FujiOperationFlowsOptions = {
   validateUnloadMaterialPackCode: (code: string) => Promise<boolean>
   validateReplacementMaterialForSlot: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   submitReplace:    (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
+  submitSplice:     (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   inspectionUpload: (params: {
     stat_id: number
     inputSlot: string
@@ -136,7 +137,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
     findUniqueUnloadSlotByPackCode,
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
-    submitReplace, inspectionUpload, applyInspectionUpdate,
+    submitReplace, submitSplice, inspectionUpload, applyInspectionUpdate,
   } = options
 
   const adapter = buildFujiProductionAdapter(
@@ -166,6 +167,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
       validateUnloadMaterialPackCode,
       validateReplacementMaterialForSlot,
       submitReplace,
+      submitSplice,
       validateIpqcMaterialPackCode,
     },
     adapter,

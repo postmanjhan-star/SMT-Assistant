@@ -68,10 +68,12 @@ export function useMounterOperationFlowsCore(
 
   // ── Input values（v-model） ──────────────────────────────────────────────
 
-  const unloadMaterialValue = ref("")
-  const unloadSlotValue    = ref("")
-  const ipqcMaterialValue  = ref("")
-  const ipqcSlotValue      = ref("")
+  const unloadMaterialValue  = ref("")
+  const unloadSlotValue      = ref("")
+  const ipqcMaterialValue    = ref("")
+  const ipqcSlotValue        = ref("")
+  const spliceMaterialValue  = ref("")
+  const spliceSlotValue      = ref("")
 
   // ── Input DOM refs（:ref binding） ──────────────────────────────────────
 
@@ -79,6 +81,8 @@ export function useMounterOperationFlowsCore(
   const unloadSlotInput     = ref<HTMLInputElement | null>(null)
   const ipqcMaterialInput   = ref<HTMLInputElement | null>(null)
   const ipqcSlotInput       = ref<HTMLInputElement | null>(null)
+  const spliceMaterialInput = ref<HTMLInputElement | null>(null)
+  const spliceSlotInput     = ref<HTMLInputElement | null>(null)
 
   const ipqcSavedCorrectStates = ref<Map<string, unknown>>(new Map())
 
@@ -133,32 +137,31 @@ export function useMounterOperationFlowsCore(
     return "請先掃描更換捲號"
   })
 
-  // ── 共用 appended codes helpers ───────────────────────────────────────────
-
-  function parseAppendedCodes(value: string | null | undefined): string[] {
-    const raw = String(value ?? "").trim()
-    if (!raw) return []
-    return raw.split(",").map((code) => code.trim()).filter((code) => code.length > 0)
-  }
-
-  function getCurrentPackCode(row: any): string {
-    const appended = parseAppendedCodes(row.appendedMaterialInventoryIdno)
-    if (appended.length > 0) return appended[appended.length - 1]
+  function getLoadedPackCode(row: any): string {
+    const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
+    if (appended) return appended
+    if (!isIpqcMode.value && row.correct === CORRECT_STATE.UNLOADED) return ""
     return String(row.materialInventoryIdno ?? "").trim()
   }
 
+  function getSplicePackCode(row: any): string {
+    return String(row.spliceMaterialInventoryIdno ?? "").trim()
+  }
+
+  function getCurrentPackCode(row: any): string {
+    return getSplicePackCode(row) || getLoadedPackCode(row)
+  }
+
   function getForceUnloadPackCode(row: any): string | null {
-    const appendedCodes = parseAppendedCodes(row.appendedMaterialInventoryIdno)
-    const preferred = appendedCodes[appendedCodes.length - 1]
-    const main = String(row.materialInventoryIdno ?? "").trim()
-    const code = String(preferred ?? main).trim()
+    const code =
+      getSplicePackCode(row) ||
+      getLoadedPackCode(row) ||
+      String(row.materialInventoryIdno ?? "").trim()
     return code || null
   }
 
   function rowMatchesPackCode(row: any, targetPackCode: string): boolean {
-    const inMain     = String(row.materialInventoryIdno ?? "").trim() === targetPackCode
-    const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(targetPackCode)
-    return inMain || inAppended
+    return getLoadedPackCode(row) === targetPackCode || getSplicePackCode(row) === targetPackCode
   }
 
   // ── Grid helpers ──────────────────────────────────────────────────────────
@@ -171,8 +174,14 @@ export function useMounterOperationFlowsCore(
     }
   }
 
-  function applyUnloadToRow(row: any, _materialPackCode: string) {
-    if (row.spliceMaterialInventoryIdno) {
+  function applyUnloadToRow(row: any, materialPackCode: string) {
+    const loadedPackCode = getLoadedPackCode(row)
+    const splicePackCode = getSplicePackCode(row)
+
+    if (splicePackCode && splicePackCode === materialPackCode) {
+      row.spliceMaterialInventoryIdno = ""
+      row.correct = loadedPackCode ? CORRECT_STATE.MATCHED : CORRECT_STATE.UNLOADED
+    } else if (splicePackCode) {
       row.appendedMaterialInventoryIdno = row.spliceMaterialInventoryIdno
       row.spliceMaterialInventoryIdno = ""
       row.correct = CORRECT_STATE.MATCHED
@@ -243,6 +252,14 @@ export function useMounterOperationFlowsCore(
     nextTick(() => { ipqcSlotInput.value?.focus() })
   }
 
+  function focusSpliceMaterialInput() {
+    nextTick(() => { spliceMaterialInput.value?.focus() })
+  }
+
+  function focusSpliceSlotInput() {
+    nextTick(() => { spliceSlotInput.value?.focus() })
+  }
+
   // ── Mode control ──────────────────────────────────────────────────────────
 
   function enterUnloadMode(modeType: Parameters<typeof machine.enterUnloadMode>[0]) {
@@ -306,8 +323,10 @@ export function useMounterOperationFlowsCore(
   function enterSpliceMode() {
     machine.enterSpliceMode()
     spliceSavedCorrectState.value = null
+    spliceMaterialValue.value = ""
+    spliceSlotValue.value = ""
     clearNormalScanState()
-    nextTick(() => focusMaterialInput())
+    nextTick(() => focusSpliceMaterialInput())
   }
 
   function exitSpliceMode() {
@@ -320,6 +339,8 @@ export function useMounterOperationFlowsCore(
       }
       spliceSavedCorrectState.value = null
     }
+    spliceMaterialValue.value = ""
+    spliceSlotValue.value = ""
     machine.exitToNormal()
     focusMaterialInput()
   }
@@ -483,6 +504,24 @@ export function useMounterOperationFlowsCore(
   }
 
   function handleModeTriggerFromUnloadInput(code: string): boolean {
+    if (code === MATERIAL_UNLOAD_TRIGGER) {
+      if (unloadModeType.value === "pack_auto_slot") {
+        exitUnloadMode()
+      } else {
+        exitUnloadMode()
+        enterUnloadMode("pack_auto_slot")
+      }
+      return true
+    }
+    if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
+      if (unloadModeType.value === "force_single_slot") {
+        exitUnloadMode()
+      } else {
+        exitUnloadMode()
+        enterUnloadMode("force_single_slot")
+      }
+      return true
+    }
     if (code === MATERIAL_IPQC_TRIGGER) {
       exitUnloadMode()
       enterIpqcMode()
@@ -493,15 +532,15 @@ export function useMounterOperationFlowsCore(
       enterSpliceMode()
       return true
     }
-    if (code === MATERIAL_UNLOAD_TRIGGER || code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-      exitUnloadMode()
-      return true
-    }
     return false
   }
 
   function handleModeTriggerFromSpliceInput(code: string): boolean {
     if (handleUserSwitchTrigger(code)) { exitSpliceMode(); return true }
+    if (code === MATERIAL_SPLICE_TRIGGER) {
+      exitSpliceMode()
+      return true
+    }
     if (code === MATERIAL_UNLOAD_TRIGGER) {
       exitSpliceMode(); enterUnloadMode("pack_auto_slot"); return true
     }
@@ -516,9 +555,8 @@ export function useMounterOperationFlowsCore(
 
   function isBarcodeAlreadyInGrid(barcode: string): boolean {
     return rowData.value.some((row: any) => {
-      if (String(row.materialInventoryIdno ?? "").trim() === barcode) return true
-      const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
-      return appended.split(",").some((c: string) => c.trim() === barcode)
+      if (getLoadedPackCode(row) === barcode) return true
+      return getSplicePackCode(row) === barcode
     })
   }
 
@@ -526,6 +564,7 @@ export function useMounterOperationFlowsCore(
     const resolved = findUniqueUnloadSlotByPackCode(barcode)
     if (!resolved.ok || !resolved.row) {
       showError(resolved.error ?? "找不到對應槽位")
+      focusSpliceMaterialInput()
       return
     }
     const row = resolved.row
@@ -533,6 +572,7 @@ export function useMounterOperationFlowsCore(
 
     if (row.spliceMaterialInventoryIdno) {
       showError(`此站位已有接料條碼，請先卸料後再接料`)
+      focusSpliceMaterialInput()
       return
     }
 
@@ -540,16 +580,17 @@ export function useMounterOperationFlowsCore(
     row.correct = CORRECT_STATE.UNLOADED
     updateRowInGrid(row)
     machine.onSpliceCurrentScanned(slotIdno)
-    focusMaterialInput()
+    focusSpliceMaterialInput()
   }
 
   async function handleSpliceNewScan(barcode: string) {
     const isValid = await validateUnloadMaterialPackCode(barcode)
     if (!isValid) {
-      focusMaterialInput()
+      focusSpliceMaterialInput()
       return
     }
     machine.onSpliceNewScanned(barcode)
+    focusSpliceSlotInput()
   }
 
   async function handleBeforeMaterialScan(barcode: string) {
@@ -560,6 +601,7 @@ export function useMounterOperationFlowsCore(
       if (handleModeTriggerFromSpliceInput(normalized)) return false
       if (!isBarcodeAlreadyInGrid(normalized)) {
         showError("請先掃描已上料的捲號進行接料")
+        focusSpliceMaterialInput()
         return false
       }
       void handleSpliceCurrentScan(normalized)
@@ -599,7 +641,7 @@ export function useMounterOperationFlowsCore(
       return
     }
 
-    row.appendedMaterialInventoryIdno = newPackCode
+    row.spliceMaterialInventoryIdno = newPackCode
     row.correct = correctState
     row.operatorIdno = currentUsername.value || null
     row.operationTime = new Date().toISOString()
@@ -614,7 +656,22 @@ export function useMounterOperationFlowsCore(
 
     machine.onSpliceSlotSubmitted()
     spliceSavedCorrectState.value = null
-    focusMaterialInput()
+    spliceSlotValue.value = ""
+    focusSpliceMaterialInput()
+  }
+
+  function handleSpliceMaterialEnter() {
+    const barcode = spliceMaterialValue.value.trim()
+    spliceMaterialValue.value = ""
+    if (!barcode) return
+    void handleBeforeMaterialScan(barcode)
+  }
+
+  function handleSpliceSlotEnter() {
+    const slotIdno = spliceSlotValue.value.trim()
+    spliceSlotValue.value = ""
+    if (!slotIdno) return
+    void handleBeforeSlotSubmit(slotIdno)
   }
 
   async function handleBeforeSlotSubmit(raw: string) {
@@ -846,11 +903,15 @@ export function useMounterOperationFlowsCore(
     unloadSlotValue,
     ipqcMaterialValue,
     ipqcSlotValue,
+    spliceMaterialValue,
+    spliceSlotValue,
     // Input DOM refs
     unloadMaterialInput,
     unloadSlotInput,
     ipqcMaterialInput,
     ipqcSlotInput,
+    spliceMaterialInput,
+    spliceSlotInput,
     // Mode control
     enterUnloadMode,
     exitUnloadMode,
@@ -865,6 +926,8 @@ export function useMounterOperationFlowsCore(
     handleUnloadSlotSubmit,
     handleIpqcMaterialSubmit,
     handleIpqcSlotSubmit,
+    handleSpliceMaterialEnter,
+    handleSpliceSlotEnter,
     handleModeTriggerFromNormalInput,
     handleModeTriggerFromSpliceInput,
     // Upload callbacks

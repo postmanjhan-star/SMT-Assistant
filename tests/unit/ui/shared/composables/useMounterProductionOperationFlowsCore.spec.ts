@@ -18,6 +18,7 @@ function makeRow(overrides: Record<string, unknown> = {}): any {
     materialIdno: 'MAT-001',
     materialInventoryIdno: 'BARCODE-001',
     appendedMaterialInventoryIdno: '',
+    spliceMaterialInventoryIdno: '',
     correct: 'MATCHED_MATERIAL_PACK',
     inspectCount: 0,
     inspectorIdno: null,
@@ -57,6 +58,7 @@ function makeOptions(
     validateUnloadMaterialPackCode: vi.fn().mockResolvedValue(true),
     validateReplacementMaterialForSlot: vi.fn().mockResolvedValue(true),
     submitReplace: vi.fn().mockResolvedValue(true),
+    submitSplice: vi.fn().mockResolvedValue(true),
     ...overrides,
   }
 }
@@ -95,9 +97,17 @@ describe('useMounterProductionOperationFlowsCore', () => {
     })
 
     it('條碼已存在於 appendedMaterialInventoryIdno → showError，回傳 false', async () => {
-      const row = makeRow({ appendedMaterialInventoryIdno: 'BARCODE-X,BARCODE-Y' })
+      const row = makeRow({ appendedMaterialInventoryIdno: 'BARCODE-Y' })
       const { core, opts } = setupCore({ rowData: ref([row]) })
       const result = core.handleBeforeMaterialScan('BARCODE-Y')
+      expect(result).toBe(false)
+      expect(opts.showError).toHaveBeenCalledWith(expect.stringContaining('重複掃描'))
+    })
+
+    it('條碼已存在於 spliceMaterialInventoryIdno → showError，回傳 false', async () => {
+      const row = makeRow({ spliceMaterialInventoryIdno: 'BARCODE-S' })
+      const { core, opts } = setupCore({ rowData: ref([row]) })
+      const result = core.handleBeforeMaterialScan('BARCODE-S')
       expect(result).toBe(false)
       expect(opts.showError).toHaveBeenCalledWith(expect.stringContaining('重複掃描'))
     })
@@ -128,11 +138,11 @@ describe('useMounterProductionOperationFlowsCore', () => {
       const { core, opts } = setupCore({ rowData: ref([row]) })
       const result = core.handleBeforeSlotSubmit('1')
       expect(result).toBe(false)
-      expect(opts.showError).toHaveBeenCalledWith(expect.stringContaining('已有接料'))
+      expect(opts.showError).toHaveBeenCalledWith(expect.stringContaining('S5566'))
     })
 
     it('站位 appendedMaterialInventoryIdno 為空 → 回傳 true', () => {
-      const row = makeRow({ appendedMaterialInventoryIdno: '' })
+      const row = makeRow({ materialInventoryIdno: null, appendedMaterialInventoryIdno: '' })
       const { core, opts } = setupCore({ rowData: ref([row]) })
       const result = core.handleBeforeSlotSubmit('1')
       expect(result).toBe(true)
@@ -294,7 +304,7 @@ describe('useMounterProductionOperationFlowsCore', () => {
 
   describe('IPQC 模式 — 巡檢成功', () => {
     it('料號一致 → 更新 row.correct、呼叫 adapter.submitIpqcRow', async () => {
-      const row = makeRow({ materialInventoryIdno: 'BARCODE-001' })
+      const row = makeRow({ materialInventoryIdno: 'BARCODE-001', appendedMaterialInventoryIdno: 'BARCODE-001' })
       const submitIpqcRow = vi.fn().mockResolvedValue(undefined)
       const findRowBySlotInput = vi.fn().mockReturnValue(row)
 
@@ -317,7 +327,7 @@ describe('useMounterProductionOperationFlowsCore', () => {
     })
 
     it('afterIpqcRowUpdate 被呼叫（Panasonic remark 類似邏輯）', async () => {
-      const row = makeRow({ materialInventoryIdno: 'BARCODE-001' })
+      const row = makeRow({ materialInventoryIdno: 'BARCODE-001', appendedMaterialInventoryIdno: 'BARCODE-001' })
       const afterIpqcRowUpdate = vi.fn()
       const findRowBySlotInput = vi.fn().mockReturnValue(row)
 
@@ -335,7 +345,7 @@ describe('useMounterProductionOperationFlowsCore', () => {
     })
 
     it('料號不符 → showError，不呼叫 submitIpqcRow', async () => {
-      const row = makeRow({ materialInventoryIdno: 'BARCODE-CORRECT' })
+      const row = makeRow({ materialInventoryIdno: 'BARCODE-CORRECT', appendedMaterialInventoryIdno: 'BARCODE-CORRECT' })
       const submitIpqcRow = vi.fn()
       const findRowBySlotInput = vi.fn().mockReturnValue(row)
 
@@ -448,6 +458,64 @@ describe('useMounterProductionOperationFlowsCore', () => {
       expect(core.isIpqcMode.value).toBe(true)
       core.toggleIpqcMode()
       expect(core.isIpqcMode.value).toBe(false)
+    })
+  })
+
+  describe('模式觸發碼 toggle', () => {
+    it('S5566 再掃一次 → 退出接料模式', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      core.handleBeforeMaterialScan('S5566')
+      expect(core.isSpliceMode.value).toBe(true)
+
+      core.spliceMaterialValue.value = 'S5566'
+      core.handleSpliceMaterialEnter()
+      await flushPromises()
+
+      expect(core.isSpliceMode.value).toBe(false)
+    })
+
+    it('S5555 再掃一次 → 退出換料卸除模式', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      core.handleBeforeMaterialScan('S5555')
+      expect(core.isUnloadScanPhase.value).toBe(true)
+
+      core.unloadMaterialValue.value = 'S5555'
+      core.handleUnloadMaterialEnter()
+      await flushPromises()
+
+      expect(core.isUnloadMode.value).toBe(false)
+    })
+
+    it('S5577 再掃一次 → 退出單站卸除模式', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      core.handleBeforeMaterialScan('S5577')
+      expect(core.isForceUnloadSlotPhase.value).toBe(true)
+
+      core.unloadSlotValue.value = 'S5577'
+      await core.handleUnloadSlotSubmit()
+      await flushPromises()
+
+      expect(core.isUnloadMode.value).toBe(false)
+    })
+
+    it('S5555 與 S5577 可在卸料子模式間切換', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      core.handleBeforeMaterialScan('S5555')
+      expect(core.isUnloadScanPhase.value).toBe(true)
+
+      core.unloadMaterialValue.value = 'S5577'
+      core.handleUnloadMaterialEnter()
+      await flushPromises()
+      expect(core.isForceUnloadSlotPhase.value).toBe(true)
+
+      core.unloadSlotValue.value = 'S5555'
+      await core.handleUnloadSlotSubmit()
+      await flushPromises()
+      expect(core.isUnloadScanPhase.value).toBe(true)
     })
   })
 })

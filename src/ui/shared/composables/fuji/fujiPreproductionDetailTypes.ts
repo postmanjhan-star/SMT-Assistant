@@ -23,6 +23,7 @@ export type FujiPreproductionCacheRow = {
   operatorIdno?: string | null
   materialInventoryIdno?: string | null
   appendedMaterialInventoryIdno?: string
+  spliceMaterialInventoryIdno?: string | null
   remark?: string
 }
 

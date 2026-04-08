@@ -1,5 +1,5 @@
-import { defineComponent, ref } from 'vue'
-import { mount } from '@vue/test-utils'
+import { defineComponent, nextTick, ref } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
 import { useMounterOperationFlowsCore } from '@/ui/shared/composables/core/useMounterOperationFlowsCore'
 import type {
   MounterOperationFlowsAdapter,
@@ -19,6 +19,7 @@ function makeRow(overrides: Record<string, unknown> = {}): any {
     materialIdno: 'MAT-001',
     materialInventoryIdno: 'BARCODE-001',
     appendedMaterialInventoryIdno: '',
+    spliceMaterialInventoryIdno: '',
     correct: 'MATCHED_MATERIAL_PACK',
     inspectCount: 0,
     inspectorIdno: null,
@@ -102,9 +103,17 @@ describe('useMounterOperationFlowsCore', () => {
     })
 
     it('條碼已存在於 appendedMaterialInventoryIdno → showError，回傳 false', async () => {
-      const row = makeRow({ appendedMaterialInventoryIdno: 'BARCODE-X,BARCODE-Y' })
+      const row = makeRow({ appendedMaterialInventoryIdno: 'BARCODE-Y' })
       const { core, opts } = setupCore({ rowData: ref([row]) })
       const result = await core.handleBeforeMaterialScan('BARCODE-Y')
+      expect(result).toBe(false)
+      expect(opts.showError).toHaveBeenCalledWith(expect.stringContaining('重複掃描'))
+    })
+
+    it('條碼已存在於 spliceMaterialInventoryIdno → showError，回傳 false', async () => {
+      const row = makeRow({ spliceMaterialInventoryIdno: 'BARCODE-S' })
+      const { core, opts } = setupCore({ rowData: ref([row]) })
+      const result = await core.handleBeforeMaterialScan('BARCODE-S')
       expect(result).toBe(false)
       expect(opts.showError).toHaveBeenCalledWith(expect.stringContaining('重複掃描'))
     })
@@ -246,6 +255,63 @@ describe('useMounterOperationFlowsCore', () => {
       expect(setColumnVisible).toHaveBeenCalledWith('inspectTime', false)
       expect(setColumnVisible).toHaveBeenCalledWith('inspectorIdno', false)
       expect(toggleNormalColumnsForIpqc).toHaveBeenCalledWith(false)
+    })
+  })
+
+  describe('模式觸發碼 toggle', () => {
+    it('S5566 再掃一次 → 退出接料模式', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      await core.handleBeforeMaterialScan('S5566')
+      expect(core.isSpliceMode.value).toBe(true)
+
+      core.spliceMaterialValue.value = 'S5566'
+      core.handleSpliceMaterialEnter()
+      await nextTick()
+
+      expect(core.isSpliceMode.value).toBe(false)
+    })
+
+    it('S5555 再掃一次 → 退出換料卸除模式', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      await core.handleBeforeMaterialScan('S5555')
+      expect(core.isUnloadMode.value).toBe(true)
+      expect(core.isUnloadScanPhase.value).toBe(true)
+
+      core.unloadMaterialValue.value = 'S5555'
+      core.handleUnloadMaterialEnter()
+      await flushPromises()
+
+      expect(core.isUnloadMode.value).toBe(false)
+    })
+
+    it('S5577 再掃一次 → 退出單站卸除模式', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      await core.handleBeforeMaterialScan('S5577')
+      expect(core.isUnloadMode.value).toBe(true)
+      expect(core.isForceUnloadSlotPhase.value).toBe(true)
+
+      core.unloadSlotValue.value = 'S5577'
+      await core.handleUnloadSlotSubmit()
+      await flushPromises()
+
+      expect(core.isUnloadMode.value).toBe(false)
+    })
+
+    it('S5577 於 pack_auto_slot 中掃描 → 切換到 force_single_slot', async () => {
+      const { core } = setupCore({ rowData: ref([makeRow()]) })
+
+      await core.handleBeforeMaterialScan('S5555')
+      expect(core.isUnloadScanPhase.value).toBe(true)
+
+      core.unloadMaterialValue.value = 'S5577'
+      core.handleUnloadMaterialEnter()
+      await flushPromises()
+
+      expect(core.isUnloadMode.value).toBe(true)
+      expect(core.isForceUnloadSlotPhase.value).toBe(true)
     })
   })
 })

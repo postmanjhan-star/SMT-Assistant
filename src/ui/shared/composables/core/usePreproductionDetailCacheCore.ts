@@ -19,6 +19,7 @@ export function usePreproductionDetailCacheCore(
   const cacheEnabled = ref(true)
   const hydratedKey = ref<string | null>(null)
   const readyToPersist = ref(false)
+  const writesSuspended = ref(false)
 
   function readCache(key: string): BaseCachePayload | null {
     if (typeof window === "undefined") return null
@@ -61,8 +62,12 @@ export function usePreproductionDetailCacheCore(
   function persistNow() {
     if (!readyToPersist.value) return
     if (!cacheEnabled.value) return
+    if (writesSuspended.value) return
     writeCache()
   }
+
+  function suspendWrite() { writesSuspended.value = true }
+  function resumeWrite()  { writesSuspended.value = false }
 
   function hydrateFromCache(key: string) {
     const cached = readCache(key)
@@ -147,5 +152,5 @@ export function usePreproductionDetailCacheCore(
     { deep: true },
   )
 
-  return { cacheEnabled, persistNow, clearCache }
+  return { cacheEnabled, persistNow, clearCache, suspendWrite, resumeWrite }
 }

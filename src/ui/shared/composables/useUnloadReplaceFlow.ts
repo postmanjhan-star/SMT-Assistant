@@ -13,6 +13,7 @@ export type UnloadReplaceRowBase = {
   materialIdno: string
   materialInventoryIdno: string | null
   appendedMaterialInventoryIdno?: string | null
+  spliceMaterialInventoryIdno?: string | null
   correct: string | null
   operationTime?: string | null
 }
@@ -112,13 +113,12 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
 
   // ── Utilities ──────────────────────────────────────────────────────────────
 
-  function parseAppendedCodes(value: string | null | undefined): string[] {
-    const raw = String(value ?? '').trim()
-    if (!raw) return []
-    return raw
-      .split(',')
-      .map((code) => code.trim())
-      .filter((code) => code.length > 0)
+  function getCurrentLoadedPackCode(row: TRow): string {
+    return String(row.appendedMaterialInventoryIdno ?? '').trim()
+  }
+
+  function getCurrentSplicePackCode(row: TRow): string {
+    return String(row.spliceMaterialInventoryIdno ?? '').trim()
   }
 
   function safeGridUpdate(rowId: string, updates: Record<string, unknown>) {
@@ -146,9 +146,9 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     }
 
     const matchedRows = slotStrategy.getRowData().filter((row) => {
-      const inMain = String(row.materialInventoryIdno ?? '').trim() === targetPackCode
-      const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(targetPackCode)
-      return inMain || inAppended
+      const inLoaded = getCurrentLoadedPackCode(row) === targetPackCode
+      const inSplice = getCurrentSplicePackCode(row) === targetPackCode
+      return inLoaded || inSplice
     })
 
     if (matchedRows.length === 0) {
@@ -244,10 +244,12 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
 
     const { row, statId, uploadSlotIdno, uploadSubSlotIdno, displaySlotIdno, rowId } = resolved
 
-    const inMain = String(row.materialInventoryIdno ?? '').trim() === materialPackCode
-    const inAppended = parseAppendedCodes(row.appendedMaterialInventoryIdno).includes(materialPackCode)
+    const currentLoadedPackCode = getCurrentLoadedPackCode(row)
+    const currentSplicePackCode = getCurrentSplicePackCode(row)
+    const unloadsLoadedPack = currentLoadedPackCode === materialPackCode
+    const unloadsSplicePack = currentSplicePackCode === materialPackCode
 
-    if (!inMain && !inAppended) {
+    if (!unloadsLoadedPack && !unloadsSplicePack) {
       ui.error(msg.material.packCodeNotInSlotList(materialPackCode, displaySlotIdno))
       return false
     }
@@ -262,13 +264,29 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
         operatorId: getOperatorId(),
       })
 
-      const nextAppended = removeMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
+      let nextAppended = currentLoadedPackCode
+      let nextSplice = currentSplicePackCode
+      let nextCorrect = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK as string
+
+      if (unloadsSplicePack) {
+        nextSplice = ''
+        if (!nextAppended) nextCorrect = 'UNLOADED_MATERIAL_PACK'
+      } else if (currentSplicePackCode) {
+        nextAppended = currentSplicePackCode
+        nextSplice = ''
+      } else {
+        nextAppended = removeMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
+        nextCorrect = 'UNLOADED_MATERIAL_PACK'
+      }
+
       row.appendedMaterialInventoryIdno = nextAppended
-      row.correct = 'UNLOADED_MATERIAL_PACK'
+      row.spliceMaterialInventoryIdno = nextSplice || null
+      row.correct = nextCorrect
 
       const gridUpdates: Record<string, unknown> = {
         appendedMaterialInventoryIdno: nextAppended,
-        correct: 'UNLOADED_MATERIAL_PACK',
+        spliceMaterialInventoryIdno: nextSplice || null,
+        correct: nextCorrect,
       }
       safeGridUpdate(rowId, gridUpdates)
 
@@ -300,10 +318,10 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     }
 
     const { row } = resolved
-    const appendedCodes = parseAppendedCodes(row.appendedMaterialInventoryIdno)
-    const preferredPackCode = appendedCodes[appendedCodes.length - 1]
-    const mainPackCode = String(row.materialInventoryIdno ?? '').trim()
-    const materialPackCode = String(preferredPackCode ?? mainPackCode).trim()
+    const splicePackCode = getCurrentSplicePackCode(row)
+    const loadedPackCode = getCurrentLoadedPackCode(row)
+    const legacyMainPackCode = String(row.materialInventoryIdno ?? '').trim()
+    const materialPackCode = splicePackCode || loadedPackCode || legacyMainPackCode
 
     if (!materialPackCode) {
       ui.error(msg.slot.noMaterialToUnload(slotIdno))
@@ -360,11 +378,66 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       const now = new Date().toISOString()
       const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
       row.appendedMaterialInventoryIdno = nextAppended
+      row.spliceMaterialInventoryIdno = null
       row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
       row.operationTime = now
 
       safeGridUpdate(rowId, {
         appendedMaterialInventoryIdno: nextAppended,
+        spliceMaterialInventoryIdno: null,
+        correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+        operationTime: now,
+      })
+
+      const api = getGridApi()
+      if (options.onAfterReplaceGridUpdate && api) {
+        options.onAfterReplaceGridUpdate(rowId, api, now)
+      }
+
+      ui.success(msg.feed.success(materialPackCode, displaySlotIdno))
+      return true
+    } catch (error) {
+      ui.error(msg.feed.uploadFailed)
+      console.error(error)
+      return false
+    }
+  }
+
+  async function submitSplice(params: {
+    materialPackCode: string
+    slotIdno: string
+  }): Promise<boolean> {
+    const materialPackCode = params.materialPackCode.trim()
+    const slotIdno = params.slotIdno.trim()
+    if (!materialPackCode) {
+      ui.error(msg.input.materialRequired)
+      return false
+    }
+
+    const resolved = slotStrategy.resolveSlot(slotIdno)
+    if (isSlotResolveFailure(resolved)) {
+      ui.error(resolved.error)
+      return false
+    }
+
+    const { row, statId, uploadSlotIdno, uploadSubSlotIdno, displaySlotIdno, rowId } = resolved
+
+    try {
+      await uploader.uploadAppend({
+        statId,
+        slotIdno: uploadSlotIdno,
+        subSlotIdno: uploadSubSlotIdno,
+        materialPackCode,
+        operatorId: getOperatorId(),
+      })
+
+      const now = new Date().toISOString()
+      row.spliceMaterialInventoryIdno = materialPackCode
+      row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+      row.operationTime = now
+
+      safeGridUpdate(rowId, {
+        spliceMaterialInventoryIdno: materialPackCode,
         correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
         operationTime: now,
       })
@@ -390,12 +463,12 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     enterUnloadMode,
     exitUnloadMode,
     toggleUnloadMode,
-    parseAppendedCodes,
     findUniqueUnloadSlotByPackCode,
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
     submitUnload,
     submitForceUnloadBySlot,
     submitReplace,
+    submitSplice,
   }
 }

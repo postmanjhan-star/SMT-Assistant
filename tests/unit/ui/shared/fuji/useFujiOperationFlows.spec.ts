@@ -25,6 +25,7 @@ function makeOptions(overrides: Partial<FujiOperationFlowsOptions> = {}): FujiOp
     validateUnloadMaterialPackCode: vi.fn().mockResolvedValue(true),
     validateReplacementMaterialForSlot: vi.fn().mockResolvedValue(true),
     submitReplace: vi.fn().mockResolvedValue(true),
+    submitSplice: vi.fn().mockResolvedValue(true),
     inspectionUpload: vi.fn().mockResolvedValue(undefined),
     applyInspectionUpdate: vi.fn(),
     ...overrides,
@@ -59,7 +60,7 @@ describe('useFujiOperationFlows', () => {
 
     it('operationModeName 初始為上料接料', () => {
       const { flows } = setupComposable()
-      expect(flows.operationModeName.value).toContain('上料接料')
+      expect(flows.operationModeName.value).toContain('上料模式')
     })
   })
 
@@ -88,6 +89,14 @@ describe('useFujiOperationFlows', () => {
       await nextTick()
       expect(result).toBe(false)
       expect(flows.isIpqcMode.value).toBe(true)
+    })
+
+    it('S5566 → 進入接料模式，回傳 false', async () => {
+      const { flows } = setupComposable()
+      const result = flows.handleBeforeMaterialScan('S5566')
+      await nextTick()
+      expect(result).toBe(false)
+      expect(flows.isSpliceMode.value).toBe(true)
     })
 
     it('S5588 (已在 IPQC) → 退出 IPQC 模式', async () => {
@@ -261,6 +270,50 @@ describe('useFujiOperationFlows', () => {
     })
   })
 
+  describe('模式 trigger toggle', () => {
+    it('S5566 再掃一次 → 退出接料模式', async () => {
+      const { flows } = setupComposable()
+
+      flows.handleBeforeMaterialScan('S5566')
+      await nextTick()
+      expect(flows.isSpliceMode.value).toBe(true)
+
+      flows.spliceMaterialValue.value = 'S5566'
+      flows.handleSpliceMaterialEnter()
+      await flushPromises()
+
+      expect(flows.isSpliceMode.value).toBe(false)
+    })
+
+    it('S5555 再掃一次 → 退出換料卸除模式', async () => {
+      const { flows } = setupComposable()
+
+      flows.handleBeforeMaterialScan('S5555')
+      await nextTick()
+      expect(flows.isUnloadScanPhase.value).toBe(true)
+
+      flows.unloadMaterialValue.value = 'S5555'
+      flows.handleUnloadMaterialEnter()
+      await flushPromises()
+
+      expect(flows.isUnloadMode.value).toBe(false)
+    })
+
+    it('S5577 再掃一次 → 退出單站卸除模式', async () => {
+      const { flows } = setupComposable()
+
+      flows.handleBeforeMaterialScan('S5577')
+      await nextTick()
+      expect(flows.isForceUnloadSlotPhase.value).toBe(true)
+
+      flows.unloadSlotValue.value = 'S5577'
+      await flows.handleUnloadSlotSubmit()
+      await flushPromises()
+
+      expect(flows.isUnloadMode.value).toBe(false)
+    })
+  })
+
   describe('operationModeName', () => {
     it('UNLOAD pack_auto_slot → 顯示換料卸除', async () => {
       const { flows } = setupComposable()
@@ -281,6 +334,13 @@ describe('useFujiOperationFlows', () => {
       flows.handleBeforeMaterialScan('S5588')
       await nextTick()
       expect(flows.operationModeName.value).toContain('IPQC覆檢')
+    })
+
+    it('SPLICE → 顯示接料模式', async () => {
+      const { flows } = setupComposable()
+      flows.handleBeforeMaterialScan('S5566')
+      await nextTick()
+      expect(flows.operationModeName.value).toContain('接料模式')
     })
   })
 })
