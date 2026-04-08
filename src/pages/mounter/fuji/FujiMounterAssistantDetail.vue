@@ -13,7 +13,7 @@ import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
 import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import ScanLoginModal from "@/pages/components/shared/ScanLoginModal.vue"
 import FujiMounterHeader from "@/pages/components/fuji/FujiMounterHeader.vue"
-import { parseFujiSlotIdno, parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
+import { parseFujiSlotInput } from "@/domain/slot/FujiSlotParser"
 import { useFujiDetailPage } from "@/ui/workflows/preproduction/fuji/composables/useFujiDetailPage"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
@@ -26,6 +26,7 @@ import type {
   FujiPreproductionUnloadRecord,
   FujiPreproductionSpliceRecord,
 } from "@/ui/shared/composables/fuji/fujiPreproductionDetailTypes"
+import { useFujiDetailSlotSubmit } from "@/ui/shared/composables/fuji/useFujiDetailSlotSubmit"
 
 useMeta({ title: "Fuji Mounter Assistant" })
 
@@ -222,118 +223,29 @@ function onGridReadyWithCache(e: GridReadyEvent) {
   }
 }
 
-// ─── Normal scan handlers ─────────────────────────────────────────────────────
+// ─── Slot submit composable ───────────────────────────────────────────────────
 
-function onMaterialMatched(payload: Parameters<typeof handleMaterialMatched>[0]) {
-  handleMaterialMatched(payload)
-  persistNow()   // 先同步寫入正確狀態（預覽前）
-  suspendWrite() // 暫停 watcher 寫入，防止預覽狀態被快取
-
-  // 接料預覽：已有首次上料、尚未接料的匹配站位設為 ⛔
-  const scannedMaterialId = materialInventory.value?.material_idno
-  if (scannedMaterialId) {
-    const saved = new Map<string, string | null>()
-    for (const row of rowData.value) {
-      const hasFirst = String(row.materialInventoryIdno ?? "").trim()
-      const hasSplice = String(row.spliceMaterialInventoryIdno ?? "").trim()
-      if (
-        row.materialIdno === scannedMaterialId &&
-        hasFirst && !hasSplice &&
-        row.correct === "MATCHED_MATERIAL_PACK"
-      ) {
-        const rowKey = `${row.mounterIdno}-${row.stage}-${row.slot}`
-        saved.set(rowKey, row.correct)
-        row.correct = "UNLOADED"
-        updateRowInGrid(row)
-      }
-    }
-    splicePreviewCorrectStates.value = saved
-  }
-
-  nextTick(() => resumeWrite()) // Vue watcher flush 後恢復寫入
-}
-
-function onMaterialError(message: string) {
-  handleMaterialError(message)
-  persistNow()
-}
-
-async function onSlotSubmit(payload: Parameters<typeof handleSlotSubmit>[0]) {
-  const targetRow = findRowBySlotIdno(payload.slotIdno)
-  const currentLoadedPackCode = String(targetRow?.appendedMaterialInventoryIdno ?? "").trim()
-  const currentMaterial = materialInventory.value
-  const newPackCode = currentMaterial?.idno?.trim()
-  const currentSplicePackCode = String(targetRow?.spliceMaterialInventoryIdno ?? "").trim()
-
-  if (targetRow && !isSpliceMode.value && (currentLoadedPackCode || currentSplicePackCode)) {
-    showError(`站位 ${payload.slotIdno} 已有上料條碼，若要接料請先輸入 S5566`)
-    clearNormalScanState()
-    return
-  }
-
-  if (targetRow && currentSplicePackCode) {
-    showError(`站位 ${payload.slotIdno} 已有接料，請先卸除當前料捲`)
-    clearNormalScanState()
-    return
-  }
-
-  if (targetRow && isSpliceMode.value && currentLoadedPackCode && newPackCode) {
-    const scannedMaterialId = String(currentMaterial?.material_idno ?? "").trim()
-    const expectedMaterialId = String(targetRow.materialIdno ?? "").trim()
-
-    let correctState: "MATCHED_MATERIAL_PACK" | "TESTING_MATERIAL_PACK"
-    if ((scannedMaterialId && scannedMaterialId === expectedMaterialId) || (isMockMode && !isTestingMode.value)) {
-      correctState = "MATCHED_MATERIAL_PACK"
-    } else if (isTestingMode.value) {
-      correctState = "TESTING_MATERIAL_PACK"
-    } else {
-      showError(`料號不符：無法對站位 ${payload.slotIdno} 進行接料`)
-      clearNormalScanState()
-      return
-    }
-
-    const parsed = parseFujiSlotIdno(payload.slotIdno)
-    if (!parsed) {
-      showError(`無法解析站位 ${payload.slotIdno}`)
-      return
-    }
-
-    targetRow.spliceMaterialInventoryIdno = newPackCode
-    targetRow.operatorIdno = currentUsername.value || null
-    targetRow.operationTime = new Date().toISOString()
-    if (correctState === "TESTING_MATERIAL_PACK") targetRow.remark = "[測試模式接料]"
-    targetRow.correct = correctState
-    updateRowInGrid(targetRow)
-
-    pendingSpliceRecords.value = [
-      ...pendingSpliceRecords.value,
-      {
-        slot: parsed.slot,
-        stage: parsed.stage,
-        materialPackCode: newPackCode,
-        correctState,
-        operationTime: new Date().toISOString(),
-      },
-    ]
-    splicePreviewCorrectStates.value = new Map()
-    clearNormalScanState()
-    focusMaterialInput()
-    persistNow()
-    return
-  }
-
-  const result = await handleSlotSubmit(payload)
-  clearNormalScanState()
-  focusMaterialInput()
-  const updatedRow = findRowBySlotIdno(payload.slotIdno)
-  if (updatedRow && newPackCode) {
-    updatedRow.appendedMaterialInventoryIdno = newPackCode
-    updatedRow.operationTime = new Date().toISOString()
-    updateRowInGrid(updatedRow)
-  }
-  persistNow()
-  return result
-}
+const { onMaterialMatched, onMaterialError, onSlotSubmit } = useFujiDetailSlotSubmit({
+  splicePreviewCorrectStates,
+  rowData,
+  isSpliceMode,
+  isTestingMode,
+  isMockMode,
+  getMaterialInventory: () => materialInventory.value,
+  getCurrentUsername: () => currentUsername.value || null,
+  findRowBySlotIdno,
+  updateRowInGrid,
+  handleMaterialMatched,
+  handleMaterialError,
+  handleSlotSubmit,
+  persistNow,
+  suspendWrite,
+  resumeWrite,
+  clearNormalScanState: () => clearNormalScanState(),
+  focusMaterialInput,
+  showError,
+  pendingSpliceRecords,
+})
 </script>
 
 <template>

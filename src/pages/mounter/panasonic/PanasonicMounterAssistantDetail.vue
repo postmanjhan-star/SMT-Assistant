@@ -18,7 +18,7 @@ import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import ScanLoginModal from "@/pages/components/shared/ScanLoginModal.vue"
 import MounterInfoBar from "@/pages/components/shared/MounterInfoBar.vue"
 
-import type { InputComponentHandle, MaterialMatchedPayload, MaterialMatchedRow, SlotInputResult } from "./types/production"
+import type { InputComponentHandle, MaterialMatchedPayload, SlotInputResult } from "./types/production"
 import { createProductionGridOptions } from "@/ui/workflows/preproduction/panasonic/createProductionGridOptions"
 import { useSlotInputSelection } from "@/ui/shared/composables/useSlotInputSelection"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
@@ -32,6 +32,7 @@ import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import { usePanasonicDetailCache } from "@/ui/shared/composables/panasonic/usePanasonicDetailCache"
 import { usePanasonicOperationFlows } from "@/ui/shared/composables/panasonic/usePanasonicOperationFlows"
 import type { PanasonicUnloadRecord, PanasonicSpliceRecord } from "@/ui/shared/composables/panasonic/panasonicDetailTypes"
+import { usePanasonicDetailSlotSubmit } from "@/ui/shared/composables/panasonic/usePanasonicDetailSlotSubmit"
 
 useMeta({ title: "Panasonic Mounter Assistant" })
 
@@ -265,118 +266,31 @@ const {
 
 // ─── Material + Slot Submit ───────────────────────────────────────────────────
 
-function handleMaterialMatched(payload: {
-  materialInventory: MaterialMatchedPayload["materialInventory"]
-  matchedRows: unknown[]
-}) {
-  inputs.onMaterialMatched({
-    success: true,
-    materialInventory: payload.materialInventory,
-    matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
-  })
-  persistNow()   // 先同步寫入正確狀態（預覽前）
-  suspendWrite() // 暫停 watcher 寫入，防止預覽狀態被快取
-
-  // 接料預覽：使用 matchedRows 找候選站位，設為 ⛔
-  const matchedSlots = payload.matchedRows as MaterialMatchedRow[]
-  if (matchedSlots.length > 0) {
-    const saved = new Map<string, string | null>()
-    for (const matched of matchedSlots) {
-      const row = rowData.value.find(
-        r => r.slotIdno === matched.slotIdno &&
-             (r.subSlotIdno ?? "") === (matched.subSlotIdno ?? "")
-      )
-      if (!row) continue
-      const hasFirst = String(row.materialInventoryIdno ?? "").trim()
-      const hasSplice = String(row.spliceMaterialInventoryIdno ?? "").trim()
-      if (hasFirst && !hasSplice && (row.correct as string) === "MATCHED_MATERIAL_PACK") {
-        const rowKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
-        saved.set(rowKey, row.correct as string)
-        ;(row as any).correct = "UNLOADED"
-        updateRowInGrid(row)
-      }
-    }
-    splicePreviewCorrectStates.value = saved
-  }
-
-  nextTick(() => resumeWrite()) // Vue watcher flush 後恢復寫入
-}
-
-async function onSlotSubmit(payload: {
-  slotIdno: string
-  slot: string
-  subSlot: string
-}) {
-  const targetRow = findRowBySlotIdno(payload.slotIdno)
-  const currentLoadedPackCode = String(targetRow?.appendedMaterialInventoryIdno ?? "").trim()
-  const currentSplicePackCode = String(targetRow?.spliceMaterialInventoryIdno ?? "").trim()
-  const newPackCode = materialInventoryResult.value?.materialInventory?.idno?.trim()
-
-  if (targetRow && !isSpliceMode.value && (currentLoadedPackCode || currentSplicePackCode)) {
-    showError(`站位 ${payload.slotIdno} 已有上料條碼，若要接料請先輸入 S5566`)
-    resetInputsAfterSlotSubmit()
-    return
-  }
-
-  if (targetRow && currentSplicePackCode) {
-    showError(`站位 ${payload.slotIdno} 已有接料，請先卸除當前料捲`)
-    resetInputsAfterSlotSubmit()
-    return
-  }
-
-  if (targetRow && isSpliceMode.value && currentLoadedPackCode && newPackCode) {
-    const isMatched = materialInventoryResult.value?.matchedRows?.some(
-      (r) =>
-        r.slotIdno === payload.slot &&
-        (r.subSlotIdno ?? "") === (payload.subSlot ?? "")
-    )
-    let correctState: "MATCHED_MATERIAL_PACK" | "TESTING_MATERIAL_PACK"
-    if (isMatched || (isMockMode && !isTestingMode)) {
-      correctState = "MATCHED_MATERIAL_PACK"
-    } else if (isTestingMode) {
-      correctState = "TESTING_MATERIAL_PACK"
-    } else {
-      showError(`料號不符：無法對站位 ${payload.slotIdno} 進行接料`)
-      resetInputsAfterSlotSubmit()
-      return
-    }
-
-    targetRow.spliceMaterialInventoryIdno = newPackCode
-    targetRow.operatorIdno = currentUsername.value || null
-    targetRow.operationTime = new Date().toISOString()
-    if (correctState === "TESTING_MATERIAL_PACK") targetRow.remark = "[測試模式接料]"
-    ;(targetRow as any).correct = correctState
-    updateRowInGrid(targetRow)
-
-    pendingSpliceRecords.value = [
-      ...pendingSpliceRecords.value,
-      {
-        slotIdno: targetRow.slotIdno,
-        subSlotIdno: targetRow.subSlotIdno ?? null,
-        materialPackCode: newPackCode,
-        correctState,
-        operationTime: new Date().toISOString(),
-      },
-    ]
-    splicePreviewCorrectStates.value = new Map()
-    resetInputsAfterSlotSubmit()
-    persistNow()
-    return
-  }
-
-  try {
-    const result = await handleSlotSubmitWithPolicy(payload)
-    const updatedRow = findRowBySlotIdno(payload.slotIdno)
-    if (updatedRow && newPackCode) {
-      updatedRow.appendedMaterialInventoryIdno = newPackCode
-      updateRowInGrid(updatedRow)
-    }
-    return result
-  } finally {
-    resetInputsAfterSlotSubmit()
-    persistNow()
-  }
-}
+const { handleMaterialMatched, onSlotSubmit } = usePanasonicDetailSlotSubmit({
+  splicePreviewCorrectStates,
+  rowData,
+  isSpliceMode,
+  isTestingMode,
+  isMockMode,
+  getMaterialInventoryResult: () => materialInventoryResult.value,
+  getCurrentUsername: () => currentUsername.value || null,
+  findRowBySlotIdno,
+  updateRowInGrid,
+  onMaterialMatchedBase: (payload) => {
+    inputs.onMaterialMatched({
+      success: true,
+      materialInventory: payload.materialInventory,
+      matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
+    })
+  },
+  handleSlotSubmitWithPolicy,
+  persistNow,
+  suspendWrite,
+  resumeWrite,
+  resetInputsAfterSlotSubmit,
+  showError,
+  pendingSpliceRecords,
+})
 
 async function onSubmitShortageWithPersist() {
   await onSubmitShortage()
