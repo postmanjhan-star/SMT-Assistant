@@ -182,7 +182,7 @@ function syncGridRows(rows: unknown[]) {
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
-const { persistNow } = usePanasonicDetailCache({
+const { persistNow, suspendWrite, resumeWrite } = usePanasonicDetailCache({
   isTestingMode,
   workOrderIdno,
   productIdno,
@@ -224,8 +224,12 @@ const {
   unloadSlotInput,
   ipqcMaterialValue,
   ipqcSlotValue,
+  spliceMaterialValue,
+  spliceSlotValue,
   ipqcMaterialInput,
   ipqcSlotInput,
+  spliceMaterialInput,
+  spliceSlotInput,
   exitUnloadMode,
   exitIpqcMode,
   exitSpliceMode,
@@ -235,6 +239,8 @@ const {
   handleUnloadSlotSubmit,
   handleIpqcMaterialSubmit,
   handleIpqcSlotSubmit,
+  handleSpliceMaterialEnter,
+  handleSpliceSlotEnter,
   onUnloadUploaded,
   onIpqcUploaded,
   findRowBySlotIdno,
@@ -268,7 +274,8 @@ function handleMaterialMatched(payload: {
     materialInventory: payload.materialInventory,
     matchedRows: payload.matchedRows as MaterialMatchedPayload["matchedRows"],
   })
-  persistNow()
+  persistNow()   // 先同步寫入正確狀態（預覽前）
+  suspendWrite() // 暫停 watcher 寫入，防止預覽狀態被快取
 
   // 接料預覽：使用 matchedRows 找候選站位，設為 ⛔
   const matchedSlots = payload.matchedRows as MaterialMatchedRow[]
@@ -291,6 +298,8 @@ function handleMaterialMatched(payload: {
     }
     splicePreviewCorrectStates.value = saved
   }
+
+  nextTick(() => resumeWrite()) // Vue watcher flush 後恢復寫入
 }
 
 async function onSlotSubmit(payload: {
@@ -299,16 +308,23 @@ async function onSlotSubmit(payload: {
   subSlot: string
 }) {
   const targetRow = findRowBySlotIdno(payload.slotIdno)
-  const existingMaterial = String(targetRow?.materialInventoryIdno ?? "").trim()
+  const currentLoadedPackCode = String(targetRow?.appendedMaterialInventoryIdno ?? "").trim()
+  const currentSplicePackCode = String(targetRow?.spliceMaterialInventoryIdno ?? "").trim()
   const newPackCode = materialInventoryResult.value?.materialInventory?.idno?.trim()
 
-  if (targetRow && String(targetRow.spliceMaterialInventoryIdno ?? "").trim()) {
+  if (targetRow && !isSpliceMode.value && (currentLoadedPackCode || currentSplicePackCode)) {
+    showError(`站位 ${payload.slotIdno} 已有上料條碼，若要接料請先輸入 S5566`)
+    resetInputsAfterSlotSubmit()
+    return
+  }
+
+  if (targetRow && currentSplicePackCode) {
     showError(`站位 ${payload.slotIdno} 已有接料，請先卸除當前料捲`)
     resetInputsAfterSlotSubmit()
     return
   }
 
-  if (targetRow && existingMaterial && newPackCode) {
+  if (targetRow && isSpliceMode.value && currentLoadedPackCode && newPackCode) {
     const isMatched = materialInventoryResult.value?.matchedRows?.some(
       (r) =>
         r.slotIdno === payload.slot &&
@@ -436,7 +452,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
                 </n-button>
               </template>
               <template v-else-if="isSpliceMode">
-                <n-button type="warning" size="small" @click="exitSpliceMode">
+                <n-button class="splice-exit-btn" size="small" @click="exitSpliceMode">
                   退出📥接料模式
                 </n-button>
               </template>
@@ -479,7 +495,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
     <template #inputs>
       <!-- 換料模式 inputs -->
       <template v-if="isUnloadMode">
-        <n-gi>
+        <n-gi key="unload-material">
           <div class="unload-mode-input">
             <label class="input-label" for="detail-unload-material-input">
               {{ unloadMaterialLabel }}
@@ -496,7 +512,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
             />
           </div>
         </n-gi>
-        <n-gi>
+        <n-gi key="unload-slot">
           <div class="unload-mode-input">
             <label class="input-label" for="detail-unload-slot-input">
               {{ unloadSlotLabel }}
@@ -517,7 +533,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
 
       <!-- IPQC 覆檢 inputs -->
       <template v-else-if="isIpqcMode">
-        <n-gi>
+        <n-gi key="ipqc-material">
           <div class="ipqc-mode-input">
             <label class="input-label" for="detail-ipqc-material-input">
               覆檢物料條碼
@@ -533,7 +549,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
             />
           </div>
         </n-gi>
-        <n-gi>
+        <n-gi key="ipqc-slot">
           <div class="ipqc-mode-input">
             <label class="input-label" for="detail-ipqc-slot-input">
               覆檢站位
@@ -554,46 +570,46 @@ function onGridReadyWithCache(e: GridReadyEvent) {
 
       <!-- 接料模式 inputs -->
       <template v-else-if="isSpliceMode">
-        <n-gi>
-          <MaterialInventoryBarcodeInput
-            v-model="materialInputValue"
-            :is-testing-mode="isTestingMode"
-            :input-test-id="'panasonic-splice-material-input'"
-            ref="materialInventoryInput"
-            :get-material-matched-rows="getMaterialMatchedRows"
-            :scan="mockScan"
-            :before-scan="handleBeforeMaterialScan"
-            :label="isSpliceNewPhase ? '接料捲號' : '已上料捲號'"
-            :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
-            :reset-key="inputs.resetKey.value"
-            @matched="handleMaterialMatched"
-            @error="showError"
-          />
+        <n-gi key="splice-material">
+          <div class="splice-mode-input">
+            <label class="input-label" for="panasonic-detail-splice-material-input">
+              {{ isSpliceNewPhase ? '接料捲號' : '已上料捲號' }}
+            </label>
+            <input
+              id="panasonic-detail-splice-material-input"
+              ref="spliceMaterialInput"
+              v-model="spliceMaterialValue"
+              type="text"
+              class="material-input"
+              data-testid="panasonic-splice-material-input"
+              :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
+              @keydown.enter.prevent="handleSpliceMaterialEnter"
+            />
+          </div>
         </n-gi>
-        <n-gi>
-          <SlotIdnoInput
-            v-model="slotInputValue"
-            :is-testing-mode="isTestingMode"
-            :has-material="isSpliceSlotPhase"
-            :disabled="!isSpliceSlotPhase"
-            :parse-slot-idno="parsePanasonicSlotIdno"
-            :reset-key="inputs.slotResetKey.value"
-            :key="inputs.slotResetKey.value"
-            :before-submit="handleBeforeSlotSubmit"
-            :label="'確認站位'"
-            :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
-            input-test-id="panasonic-splice-slot-input"
-            ref="slotIdnoInput"
-            @submit="onSlotSubmit"
-            @done="resetInputsAfterSlotSubmit"
-            @error="showError"
-          />
+        <n-gi key="splice-slot">
+          <div class="splice-mode-input">
+            <label class="input-label" for="panasonic-detail-splice-slot-input">
+              確認站位
+            </label>
+            <input
+              id="panasonic-detail-splice-slot-input"
+              ref="spliceSlotInput"
+              v-model="spliceSlotValue"
+              type="text"
+              class="slot-input"
+              data-testid="panasonic-splice-slot-input"
+              :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
+              :disabled="!isSpliceSlotPhase"
+              @keydown.enter.prevent="handleSpliceSlotEnter"
+            />
+          </div>
         </n-gi>
       </template>
 
       <!-- 一般掃描 inputs -->
       <template v-else>
-        <n-gi>
+        <n-gi key="normal-material">
           <MaterialInventoryBarcodeInput
             v-model="materialInputValue"
             :is-testing-mode="isTestingMode"
@@ -608,7 +624,7 @@ function onGridReadyWithCache(e: GridReadyEvent) {
           />
         </n-gi>
 
-        <n-gi>
+        <n-gi key="normal-slot">
           <SlotIdnoInput
             v-model="slotInputValue"
             :is-testing-mode="isTestingMode"
@@ -728,6 +744,41 @@ function onGridReadyWithCache(e: GridReadyEvent) {
   background-color: #f5f5f5;
   cursor: not-allowed;
   color: #bfbfbf;
+}
+
+.splice-mode-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #fff0f6;
+  border-radius: 4px;
+  border: 2px solid #eb2f96;
+}
+
+.splice-mode-input .input-label {
+  color: #eb2f96;
+}
+
+.splice-mode-input .material-input:focus,
+.splice-mode-input .slot-input:focus {
+  border-color: #eb2f96;
+  box-shadow: 0 0 0 2px rgba(235, 47, 150, 0.2);
+}
+
+.splice-exit-btn {
+  --n-color: #eb2f96;
+  --n-color-hover: #f759ab;
+  --n-color-pressed: #c21875;
+  --n-color-focus: #f759ab;
+  --n-border: 1px solid #eb2f96;
+  --n-border-hover: 1px solid #f759ab;
+  --n-border-pressed: 1px solid #c21875;
+  --n-border-focus: 1px solid #f759ab;
+  --n-text-color: #fff;
+  --n-text-color-hover: #fff;
+  --n-text-color-pressed: #fff;
+  --n-text-color-focus: #fff;
 }
 </style>
 

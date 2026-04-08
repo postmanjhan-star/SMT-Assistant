@@ -57,6 +57,7 @@ const {
   validateUnloadMaterialPackCode,
   validateReplacementMaterialForSlot,
   submitReplace,
+  submitSplice,
   onStopProduction,
   onMaterialQuery,
   showError,
@@ -114,16 +115,22 @@ const {
   unloadSlotValue,
   ipqcMaterialValue,
   ipqcSlotValue,
+  spliceMaterialValue,
+  spliceSlotValue,
   unloadMaterialInput: unloadMaterialInputRef,
   unloadSlotInput: unloadSlotInputRef,
   ipqcMaterialInput,
   ipqcSlotInput,
+  spliceMaterialInput,
+  spliceSlotInput,
   handleBeforeMaterialScan,
   handleBeforeSlotSubmit,
   handleUnloadMaterialEnter,
   handleUnloadSlotSubmit,
   handleIpqcMaterialSubmit,
   handleIpqcSlotSubmit,
+  handleSpliceMaterialEnter,
+  handleSpliceSlotEnter,
   handleExitUnloadMode,
   exitIpqcMode,
   exitSpliceMode,
@@ -150,6 +157,7 @@ const {
   validateUnloadMaterialPackCode,
   validateReplacementMaterialForSlot,
   submitReplace,
+  submitSplice,
   inspectionUpload,
   applyInspectionUpdate,
 })
@@ -226,7 +234,7 @@ async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; sub
             </n-button>
           </template>
           <template v-else-if="isSpliceMode">
-            <n-button type="warning" size="small" @click="exitSpliceMode">
+            <n-button class="splice-exit-btn" size="small" @click="exitSpliceMode">
               退出📥接料模式
             </n-button>
           </template>
@@ -321,37 +329,40 @@ async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; sub
       <!-- 接料模式 inputs -->
       <template v-else-if="isSpliceMode">
         <n-gi>
-          <MaterialInventoryBarcodeInput
-            ref="materialInputRef"
-            :disabled="!productionStarted"
-            :is-testing-mode="isTestingMode"
-            :get-material-matched-rows="getMaterialMatchedRows"
-            :reset-key="materialResetKey"
-            :allow-no-match-in-testing="true"
-            :before-scan="handleBeforeMaterialScan"
-            :scan="mockScan ?? undefined"
-            :label="isSpliceNewPhase ? '接料捲號' : '已上料捲號'"
-            :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
-            input-test-id="fuji-production-splice-material-input"
-            @matched="onMaterialMatched"
-            @error="onMaterialError"
-          />
+          <div class="splice-mode-input">
+            <label class="input-label" for="fuji-prod-splice-material-input">
+              {{ isSpliceNewPhase ? '接料捲號' : '已上料捲號' }}
+            </label>
+            <input
+              id="fuji-prod-splice-material-input"
+              ref="spliceMaterialInput"
+              v-model="spliceMaterialValue"
+              type="text"
+              class="material-input"
+              data-testid="fuji-production-splice-material-input"
+              :disabled="!productionStarted"
+              :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
+              @keydown.enter.prevent="handleSpliceMaterialEnter"
+            />
+          </div>
         </n-gi>
         <n-gi>
-          <SlotIdnoInput
-            ref="slotInputRef"
-            :disabled="!productionStarted || !isSpliceSlotPhase"
-            :is-testing-mode="isTestingMode"
-            :has-material="isSpliceSlotPhase"
-            :parse-slot-idno="parseFujiSlotInput"
-            :reset-key="slotResetKey"
-            :before-submit="handleBeforeSlotSubmit"
-            :label="'確認站位'"
-            :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
-            input-test-id="fuji-production-splice-slot-input"
-            @submit="onNormalSlotSubmit"
-            @error="showError"
-          />
+          <div class="splice-mode-input">
+            <label class="input-label" for="fuji-prod-splice-slot-input">
+              確認站位
+            </label>
+            <input
+              id="fuji-prod-splice-slot-input"
+              ref="spliceSlotInput"
+              v-model="spliceSlotValue"
+              type="text"
+              class="slot-input"
+              data-testid="fuji-production-splice-slot-input"
+              :disabled="!productionStarted || !isSpliceSlotPhase"
+              :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
+              @keydown.enter.prevent="handleSpliceSlotEnter"
+            />
+          </div>
         </n-gi>
       </template>
 
@@ -469,5 +480,40 @@ async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; sub
 
 .ipqc-mode-input .input-label {
   color: #fa8c16;
+}
+
+.splice-mode-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #fff0f6;
+  border-radius: 4px;
+  border: 2px solid #eb2f96;
+}
+
+.splice-mode-input .input-label {
+  color: #eb2f96;
+}
+
+.splice-mode-input .material-input:focus,
+.splice-mode-input .slot-input:focus {
+  border-color: #eb2f96;
+  box-shadow: 0 0 0 2px rgba(235, 47, 150, 0.2);
+}
+
+.splice-exit-btn {
+  --n-color: #eb2f96;
+  --n-color-hover: #f759ab;
+  --n-color-pressed: #c21875;
+  --n-color-focus: #f759ab;
+  --n-border: 1px solid #eb2f96;
+  --n-border-hover: 1px solid #f759ab;
+  --n-border-pressed: 1px solid #c21875;
+  --n-border-focus: 1px solid #f759ab;
+  --n-text-color: #fff;
+  --n-text-color-hover: #fff;
+  --n-text-color-pressed: #fff;
+  --n-text-color-focus: #fff;
 }
 </style>
