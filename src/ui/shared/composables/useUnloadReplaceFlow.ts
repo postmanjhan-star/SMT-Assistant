@@ -376,18 +376,31 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       })
 
       const now = new Date().toISOString()
-      const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
-      row.appendedMaterialInventoryIdno = nextAppended
-      row.spliceMaterialInventoryIdno = null
+      const currentLoadedPackCode = getCurrentLoadedPackCode(row)
+
       row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
       row.operationTime = now
 
-      safeGridUpdate(rowId, {
-        appendedMaterialInventoryIdno: nextAppended,
-        spliceMaterialInventoryIdno: null,
-        correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
-        operationTime: now,
-      })
+      if (currentLoadedPackCode) {
+        // 站位仍有上料（卸除的是接料條碼或接料晉升後仍有上料）→ 新捲號填入接料位置
+        row.spliceMaterialInventoryIdno = materialPackCode
+        safeGridUpdate(rowId, {
+          spliceMaterialInventoryIdno: materialPackCode,
+          correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+          operationTime: now,
+        })
+      } else {
+        // 站位已空（卸除的是上料且無接料）→ 新捲號填入上料位置
+        const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
+        row.appendedMaterialInventoryIdno = nextAppended
+        row.spliceMaterialInventoryIdno = null
+        safeGridUpdate(rowId, {
+          appendedMaterialInventoryIdno: nextAppended,
+          spliceMaterialInventoryIdno: null,
+          correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+          operationTime: now,
+        })
+      }
 
       const api = getGridApi()
       if (options.onAfterReplaceGridUpdate && api) {

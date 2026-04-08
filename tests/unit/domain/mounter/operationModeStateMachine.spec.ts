@@ -1,13 +1,20 @@
 import { createActor } from 'xstate'
 import { operationModeStateMachine } from '@/domain/mounter/operationModeStateMachine'
 
-// 建立一個 actor 並回傳 snapshot 的快捷函式
+// 建立一個已登入的 actor（跳過 UNAUTHENTICATED，直接進入 AUTHENTICATED.NORMAL）
 function makeActor() {
-  return createActor(operationModeStateMachine).start()
+  const actor = createActor(operationModeStateMachine).start()
+  actor.send({ type: 'LOGGED_IN' })
+  return actor
 }
 
+// 取出 AUTHENTICATED 內層的 state value，讓測試斷言不需感知外層 auth 包裝
 function stateValue(actor: ReturnType<typeof makeActor>) {
-  return actor.getSnapshot().value
+  const val = actor.getSnapshot().value
+  if (typeof val === 'object' && 'AUTHENTICATED' in val) {
+    return val.AUTHENTICATED
+  }
+  return val
 }
 
 function context(actor: ReturnType<typeof makeActor>) {
