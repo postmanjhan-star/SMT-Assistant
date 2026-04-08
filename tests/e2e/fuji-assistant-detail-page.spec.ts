@@ -5,6 +5,10 @@ import { mockSwitchUserApi } from './helpers/scanLogin';
 const HEADED_VISUAL_STEP_DELAY_MS = 450;
 
 test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+    });
     await setupAuthToken(page);
 });
 
@@ -668,6 +672,14 @@ test('fuji unload/replace flow keeps grid visible and auto exits after successfu
                 {
                     id: 1001,
                     feed_record_id: 1001,
+                    operation_time: new Date(Date.now() + 500).toISOString(),
+                    material_pack_code: 'MAIN-1',
+                    operation_type: 'UNFEED',
+                    feed_material_pack_type: null,
+                },
+                {
+                    id: 1002,
+                    feed_record_id: 1002,
                     operation_time: new Date(Date.now() + 1_000).toISOString(),
                     material_pack_code: 'APP-1',
                     feed_material_pack_type: 'NEW_MATERIAL_PACK',
@@ -849,6 +861,14 @@ test('fuji force unload flow by slot (S5577) uses WRONG_MATERIAL and completes r
                 {
                     id: 1001,
                     feed_record_id: 1001,
+                    operation_time: new Date(Date.now() + 500).toISOString(),
+                    material_pack_code: 'MAIN-1',
+                    operation_type: 'UNFEED',
+                    feed_material_pack_type: null,
+                },
+                {
+                    id: 1002,
+                    feed_record_id: 1002,
                     operation_time: new Date(Date.now() + 1_000).toISOString(),
                     material_pack_code: 'APP-1',
                     feed_material_pack_type: 'NEW_MATERIAL_PACK',
@@ -1127,6 +1147,14 @@ test('fuji unload flow by pack (S5555) uses MATERIAL_FINISHED and completes repl
                 {
                     id: 1001,
                     feed_record_id: 1001,
+                    operation_time: new Date(Date.now() + 500).toISOString(),
+                    material_pack_code: 'MAIN-1',
+                    operation_type: 'UNFEED',
+                    feed_material_pack_type: null,
+                },
+                {
+                    id: 1002,
+                    feed_record_id: 1002,
                     operation_time: new Date(Date.now() + 1_000).toISOString(),
                     material_pack_code: 'APP-1',
                     feed_material_pack_type: 'NEW_MATERIAL_PACK',
@@ -1982,7 +2010,7 @@ test('fuji detail: blocks second load when 當前上料條碼 already set', asyn
     await slotInput.fill('XP2B1-A-9');
     await slotInput.press('Enter');
 
-    await expectLatestMessage(page, 'error-message', /已有接料/);
+    await expectLatestMessage(page, 'error-message', /已有上料條碼.*S5566/);
 
     const row = page.locator('[row-id="XP2B1-A-9"]');
     await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText('FUJI-INIT-PACK');
@@ -2167,6 +2195,81 @@ test('fuji production: 生產頁面載入時，首次接料條碼在卸料後仍
     const row = page.locator('[row-id="9-A"]');
     await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText('FUJI-FIRST-PACK');
     await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).not.toContainText('FUJI-FIRST-PACK');
+    await expect(row.locator('[col-id="spliceMaterialInventoryIdno"]')).toBeEmpty();
+});
+
+test('fuji production: 生產頁面初次載入時，當前上料條碼顯示初始上料條碼且接料欄位為空', async ({ page }) => {
+    const productionUuid = 'fuji-imported-pack-initial-load';
+    const now = new Date().toISOString();
+
+    const mockStats = [{
+        id: 1, work_order_no: 'ZZ9999', product_idno: '40X85-009B-TEST_SCAN',
+        machine_idno: 'XP2B1', machine_side: 'FRONT', board_side: 'TOP',
+        slot_idno: '9', sub_slot_idno: 'A', material_idno: 'MAT-1',
+        production_end: null, produce_mode: 'NORMAL_PRODUCE_MODE',
+        feed_records: [
+            { id: 1000, feed_record_id: 1000, operation_time: now,
+                material_pack_code: 'FUJI-INIT-PACK',
+                feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                operation_type: 'FEED',
+                check_pack_code_match: 'MATCHED_MATERIAL_PACK' },
+        ],
+    }];
+
+    await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.goto(`http://localhost/smt/fuji-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const row = page.locator('[row-id="9-A"]');
+    await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText('FUJI-INIT-PACK');
+    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText('FUJI-INIT-PACK');
+    await expect(row.locator('[col-id="spliceMaterialInventoryIdno"]')).toBeEmpty();
+});
+
+test('fuji production: 生產頁面載入時，主料與接料條碼分欄顯示', async ({ page }) => {
+    const productionUuid = 'fuji-active-splice-production-row';
+    const now = new Date().toISOString();
+    const later = new Date(Date.now() + 1_000).toISOString();
+
+    const mockStats = [{
+        id: 1, work_order_no: 'ZZ9999', product_idno: '40X85-009B-TEST_SCAN',
+        machine_idno: 'XP2B1', machine_side: 'FRONT', board_side: 'TOP',
+        slot_idno: '9', sub_slot_idno: 'A', material_idno: 'MAT-1',
+        production_end: null, produce_mode: 'NORMAL_PRODUCE_MODE',
+        feed_records: [
+            { id: 1000, feed_record_id: 1000, operation_time: now,
+                material_pack_code: 'FUJI-FIRST-PACK',
+                feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+                operation_type: 'FEED',
+                check_pack_code_match: 'MATCHED_MATERIAL_PACK' },
+            { id: 1001, feed_record_id: 1001, operation_time: later,
+                material_pack_code: 'FUJI-SPLICE-PACK',
+                feed_material_pack_type: 'NEW_MATERIAL_PACK',
+                operation_type: 'FEED',
+                check_pack_code_match: 'MATCHED_MATERIAL_PACK' },
+        ],
+    }];
+
+    await page.route(`**/smt/fuji_mounter_item/stats/${productionUuid}`, route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockStats) })
+    );
+    await page.route(`**/smt/fuji_mounter_item/stats/logs/${productionUuid}`, route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+
+    await page.goto(`http://localhost/smt/fuji-mounter-production/${productionUuid}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+
+    const row = page.locator('[row-id="9-A"]');
+    await expect(row.locator('[col-id="materialInventoryIdno"]')).toContainText('FUJI-FIRST-PACK');
+    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText('FUJI-FIRST-PACK');
+    await expect(row.locator('[col-id="spliceMaterialInventoryIdno"]')).toContainText('FUJI-SPLICE-PACK');
 });
 
 test('scan login: shows modal when token is expired on fuji detail page load', async ({ page }) => {
@@ -2233,12 +2336,12 @@ test('fuji detail: 掃 S5566 進入接料模式，接料輸入框出現', async 
     await materialInput.fill('S5566');
     await materialInput.press('Enter');
 
-    await expect(page.getByTestId('fuji-detail-splice-material-input').locator('input')).toBeVisible();
+    await expect(page.getByTestId('fuji-detail-splice-material-input')).toBeVisible();
     await expect(page.getByTestId('fuji-detail-material-input').locator('input')).not.toBeVisible();
     await expect(page.getByRole('button', { name: '退出📥接料模式' })).toBeVisible();
 });
 
-test('fuji detail: 接料完整流程 舊料→新料→站位 更新 appendedMaterialInventoryIdno', async ({ page }) => {
+test('fuji detail: 接料完整流程 舊料→新料→站位 保留 appended 並更新 spliceMaterialInventoryIdno', async ({ page }) => {
     await setupFujiSplicePage(page);
     await fujiFirstLoad(page);
 
@@ -2250,8 +2353,8 @@ test('fuji detail: 接料完整流程 舊料→新料→站位 更新 appendedMa
     await materialInput.fill('S5566');
     await materialInput.press('Enter');
 
-    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input').locator('input');
-    const spliceSlotInput = page.getByTestId('fuji-detail-splice-slot-input').locator('input');
+    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input');
+    const spliceSlotInput = page.getByTestId('fuji-detail-splice-slot-input');
 
     // SPLICE_IDLE：掃舊料
     await spliceMaterialInput.fill('PACK-OLD');
@@ -2269,7 +2372,8 @@ test('fuji detail: 接料完整流程 舊料→新料→站位 更新 appendedMa
     await spliceSlotInput.press('Enter');
 
     await expect(row.locator('[col-id="correct"]')).toContainText('✅');
-    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText('PACK-NEW');
+    await expect(row.locator('[col-id="appendedMaterialInventoryIdno"]')).toContainText('PACK-OLD');
+    await expect(row.locator('[col-id="spliceMaterialInventoryIdno"]')).toContainText('PACK-NEW');
     // 完成後回 SPLICE_IDLE，仍在接料模式
     await expect(spliceMaterialInput).toBeVisible();
 });
@@ -2284,7 +2388,7 @@ test('fuji detail: 接料 IDLE 掃不在格線中的捲號顯示錯誤', async (
     await materialInput.fill('S5566');
     await materialInput.press('Enter');
 
-    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input').locator('input');
+    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input');
     await spliceMaterialInput.fill('PACK-NOT-EXIST');
     await spliceMaterialInput.press('Enter');
 
@@ -2305,7 +2409,7 @@ test('fuji detail: 接料進行中退出接料模式，correct 狀態還原為 �
     await materialInput.press('Enter');
 
     // SPLICE_IDLE：掃舊料 → row 轉 ⛔
-    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input').locator('input');
+    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input');
     await spliceMaterialInput.fill('PACK-OLD');
     await spliceMaterialInput.press('Enter');
     await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
@@ -2314,7 +2418,7 @@ test('fuji detail: 接料進行中退出接料模式，correct 狀態還原為 �
     await page.getByText('退出📥接料模式').click();
 
     await expect(row.locator('[col-id="correct"]')).toContainText('✅');
-    await expect(page.getByTestId('fuji-detail-splice-material-input').locator('input')).not.toBeVisible();
+    await expect(page.getByTestId('fuji-detail-splice-material-input')).not.toBeVisible();
     await expect(page.getByTestId('fuji-detail-material-input').locator('input')).toBeVisible();
 });
 
@@ -2326,13 +2430,118 @@ test('fuji detail: 接料模式掃 S5555 切換至換料卸除模式', async ({ 
     const materialInput = page.getByTestId('fuji-detail-material-input').locator('input');
     await materialInput.fill('S5566');
     await materialInput.press('Enter');
-    await expect(page.getByTestId('fuji-detail-splice-material-input').locator('input')).toBeVisible();
+    await expect(page.getByTestId('fuji-detail-splice-material-input')).toBeVisible();
 
     // 在接料模式下掃 S5555 → 切至換料卸除
-    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input').locator('input');
+    const spliceMaterialInput = page.getByTestId('fuji-detail-splice-material-input');
     await spliceMaterialInput.fill('S5555');
     await spliceMaterialInput.press('Enter');
 
-    await expect(page.getByTestId('fuji-detail-splice-material-input').locator('input')).not.toBeVisible();
+    await expect(page.getByTestId('fuji-detail-splice-material-input')).not.toBeVisible();
     await expect(page.locator('#detail-unload-material-input')).toBeVisible();
+});
+
+// ─── 生產頁面接料模式 (Production Splice Mode) ────────────────────────────────
+
+const FUJI_PROD_SPLICE_UUID = 'fuji-prod-splice-test';
+
+const fujiProdSpliceMockStats = [{
+    id: 1, work_order_no: 'ZZ9999', product_idno: '40X85-009B-TEST_SCAN',
+    machine_idno: 'XP2B1', machine_side: 'FRONT', board_side: 'TOP',
+    slot_idno: '9', sub_slot_idno: 'A', material_idno: 'MAT-1',
+    production_end: null, produce_mode: 'NORMAL_PRODUCE_MODE',
+    feed_records: [{
+        id: 1000, feed_record_id: 1000, operation_time: '2024-01-01T00:00:00Z',
+        material_pack_code: 'FUJI-PROD-OLD',
+        feed_material_pack_type: 'IMPORTED_MATERIAL_PACK',
+        operation_type: 'FEED',
+        check_pack_code_match: 'MATCHED_MATERIAL_PACK',
+    }],
+}];
+
+async function setupFujiProductionSplicePage(page: any) {
+    await page.route(`**/smt/fuji_mounter_item/stats/${FUJI_PROD_SPLICE_UUID}`, (route: any) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fujiProdSpliceMockStats) })
+    );
+    await page.route(`**/smt/fuji_mounter_item/stats/logs/${FUJI_PROD_SPLICE_UUID}`, (route: any) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    );
+    await page.goto(`http://localhost/smt/fuji-mounter-production/${FUJI_PROD_SPLICE_UUID}`);
+    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
+}
+
+test('fuji production: 掃 S5566 進入接料模式，接料輸入框出現', async ({ page }) => {
+    await setupFujiProductionSplicePage(page);
+
+    const materialInput = page.getByTestId('fuji-production-material-input').locator('input');
+    await materialInput.fill('S5566');
+    await materialInput.press('Enter');
+
+    await expect(page.getByTestId('fuji-production-splice-material-input')).toBeVisible();
+    await expect(page.getByTestId('fuji-production-material-input').locator('input')).not.toBeVisible();
+    await expect(page.getByRole('button', { name: '退出📥接料模式' })).toBeVisible();
+});
+
+test('fuji production: 接料完整流程 舊料→新料→站位 更新 spliceMaterialInventoryIdno', async ({ page }) => {
+    await page.route('**/smt/material_inventory/**', (route: any) =>
+        route.fulfill({ status: 200, contentType: 'application/json',
+            body: JSON.stringify({ idno: 'FUJI-PROD-NEW', material_idno: 'MAT-1' }) })
+    );
+    await page.route('**/smt/fuji_mounter_item/stat/roll', (route: any) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) })
+    );
+    await setupFujiProductionSplicePage(page);
+
+    // 進入接料模式
+    const materialInput = page.getByTestId('fuji-production-material-input').locator('input');
+    await materialInput.fill('S5566');
+    await materialInput.press('Enter');
+
+    const spliceMaterialInput = page.getByTestId('fuji-production-splice-material-input');
+    const spliceSlotInput = page.getByTestId('fuji-production-splice-slot-input');
+    const row = page.locator('[row-id="9-A"]');
+
+    // SPLICE_IDLE：掃舊料
+    await spliceMaterialInput.fill('FUJI-PROD-OLD');
+    await spliceMaterialInput.press('Enter');
+    await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
+
+    // SPLICE_NEW_SCAN：掃新料
+    await spliceMaterialInput.fill('FUJI-PROD-NEW');
+    await spliceMaterialInput.press('Enter');
+
+    // SPLICE_SLOT_SCAN：等 slot input 可用後確認站位
+    await expect(spliceSlotInput).toBeEnabled({ timeout: 5000 });
+    await spliceSlotInput.click();
+    await spliceSlotInput.fill('XP2B1-A-9');
+    await spliceSlotInput.press('Enter');
+
+    await expect(row.locator('[col-id="correct"]')).toContainText('✅');
+    await expect(row.locator('[col-id="spliceMaterialInventoryIdno"]')).toContainText('FUJI-PROD-NEW');
+    // 完成後仍在接料模式
+    await expect(spliceMaterialInput).toBeVisible();
+});
+
+test('fuji production: 接料進行中退出接料模式，correct 狀態還原為 ✅', async ({ page }) => {
+    await setupFujiProductionSplicePage(page);
+
+    // 進入接料模式
+    const materialInput = page.getByTestId('fuji-production-material-input').locator('input');
+    await materialInput.fill('S5566');
+    await materialInput.press('Enter');
+
+    // SPLICE_IDLE：掃舊料 → row 轉 ⛔
+    const spliceMaterialInput = page.getByTestId('fuji-production-splice-material-input');
+    await spliceMaterialInput.fill('FUJI-PROD-OLD');
+    await spliceMaterialInput.press('Enter');
+
+    const row = page.locator('[row-id="9-A"]');
+    await expect(row.locator('[col-id="correct"]')).toContainText('⛔');
+
+    // 退出接料模式
+    await page.getByText('退出📥接料模式').click();
+
+    await expect(row.locator('[col-id="correct"]')).toContainText('✅');
+    await expect(page.getByTestId('fuji-production-splice-material-input')).not.toBeVisible();
+    await expect(page.getByTestId('fuji-production-material-input').locator('input')).toBeVisible();
 });
