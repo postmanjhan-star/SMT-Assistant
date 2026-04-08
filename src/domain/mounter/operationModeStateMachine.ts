@@ -78,6 +78,10 @@ export const operationModeStateMachine = setup({
   },
   guards: {
     isForceSlot: ({ context }) => context.unloadModeType === "force_single_slot",
+    isSameUnloadMode: ({ context, event }) => {
+      assertEvent(event, "ENTER_UNLOAD")
+      return context.unloadModeType === event.modeType
+    },
   },
 }).createMachine({
   id: "operationMode",
@@ -114,6 +118,7 @@ export const operationModeStateMachine = setup({
     SPLICE: {
       initial: "SPLICE_IDLE",
       on: {
+        ENTER_SPLICE: { target: "NORMAL", actions: "resetContext" },
         EXIT_TO_NORMAL: { target: "NORMAL", actions: "resetContext" },
         ENTER_UNLOAD: { target: "UNLOAD", actions: "assignEnterUnload" },
         ENTER_IPQC: { target: "IPQC", actions: "resetContext" },
@@ -153,7 +158,10 @@ export const operationModeStateMachine = setup({
       on: {
         ENTER_IPQC: { target: "IPQC", actions: "resetContext" },
         EXIT_TO_NORMAL: { target: "NORMAL", actions: "resetContext" },
-        ENTER_UNLOAD: { target: "UNLOAD", actions: "assignEnterUnload" },
+        ENTER_UNLOAD: [
+          { guard: "isSameUnloadMode", target: "NORMAL", actions: "resetContext" },
+          { target: "UNLOAD", actions: "assignEnterUnload" },
+        ],
         ENTER_SPLICE: { target: "SPLICE", actions: "resetContext" },
       },
       states: {

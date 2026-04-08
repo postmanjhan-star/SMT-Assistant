@@ -69,16 +69,9 @@ export const appendMaterialCode = (
     existing: string | null | undefined,
     newCode?: string | null
 ): string => {
-    const oldValue = existing?.trim() || ""
-    const currentCodes = oldValue
-        ? oldValue.split(",").map(s => s.trim())
-        : []
-
-    if (newCode && !currentCodes.includes(newCode)) {
-        currentCodes.push(newCode)
-    }
-
-    return currentCodes.join(", ")
+    const normalizedNewCode = newCode?.trim()
+    if (normalizedNewCode) return normalizedNewCode
+    return existing?.trim() || ""
 }
 
 export const removeMaterialCode = (
@@ -87,15 +80,9 @@ export const removeMaterialCode = (
 ): string => {
     const oldValue = existing?.trim() || ""
     if (!oldValue) return ""
-
     const normalizedTarget = targetCode?.trim()
     if (!normalizedTarget) return oldValue
-
-    return oldValue
-        .split(",")
-        .map((code) => code.trim())
-        .filter((code) => code && code !== normalizedTarget)
-        .join(", ")
+    return oldValue === normalizedTarget ? "" : oldValue
 }
 
 export const formatSlotId = (slot: SlotId): string => formatSlotIdno(slot)

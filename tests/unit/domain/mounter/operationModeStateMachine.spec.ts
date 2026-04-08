@@ -27,6 +27,8 @@ describe('operationModeStateMachine', () => {
         unloadModeType: 'pack_auto_slot',
         resolvedUnloadSlotIdno: '',
         replacementMaterialPackCode: '',
+        spliceSlotIdno: '',
+        spliceNewPackCode: '',
       })
     })
   })
@@ -155,7 +157,7 @@ describe('operationModeStateMachine', () => {
   })
 
   describe('ENTER_UNLOAD 連續觸發', () => {
-    it('在 UNLOAD 中再次 ENTER_UNLOAD(force_single_slot) → 重置到 FORCE_SLOT_SCAN', () => {
+    it('在 UNLOAD 中再次 ENTER_UNLOAD(force_single_slot) → 切換到 FORCE_SLOT_SCAN', () => {
       const actor = makeActor()
       actor.send({ type: 'ENTER_UNLOAD', modeType: 'pack_auto_slot' })
       actor.send({ type: 'UNLOAD_SUBMITTED', resolvedSlotIdno: '25-A' })
@@ -163,6 +165,15 @@ describe('operationModeStateMachine', () => {
       actor.send({ type: 'ENTER_UNLOAD', modeType: 'force_single_slot' })
       expect(stateValue(actor)).toEqual({ UNLOAD: 'FORCE_SLOT_SCAN' })
       expect(context(actor).resolvedUnloadSlotIdno).toBe('')
+    })
+
+    it('在 UNLOAD 中再次 ENTER_UNLOAD(相同 modeType) → 回到 NORMAL', () => {
+      const actor = makeActor()
+      actor.send({ type: 'ENTER_UNLOAD', modeType: 'pack_auto_slot' })
+      actor.send({ type: 'ENTER_UNLOAD', modeType: 'pack_auto_slot' })
+      expect(stateValue(actor)).toBe('NORMAL')
+      expect(context(actor).resolvedUnloadSlotIdno).toBe('')
+      expect(context(actor).replacementMaterialPackCode).toBe('')
     })
   })
 
@@ -172,6 +183,17 @@ describe('operationModeStateMachine', () => {
       actor.send({ type: 'ENTER_IPQC' })
       actor.send({ type: 'ENTER_IPQC' })
       expect(stateValue(actor)).toBe('NORMAL')
+    })
+  })
+
+  describe('SPLICE toggle', () => {
+    it('在 SPLICE 中再次 ENTER_SPLICE → 回到 NORMAL（toggle off）', () => {
+      const actor = makeActor()
+      actor.send({ type: 'ENTER_SPLICE' })
+      actor.send({ type: 'ENTER_SPLICE' })
+      expect(stateValue(actor)).toBe('NORMAL')
+      expect(context(actor).spliceSlotIdno).toBe('')
+      expect(context(actor).spliceNewPackCode).toBe('')
     })
   })
 })

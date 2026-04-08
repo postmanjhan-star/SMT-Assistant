@@ -100,8 +100,8 @@ describe('PostProductionFeedRules', () => {
             expect(appendMaterialCode('PK1', 'PK1')).toBe('PK1')
         })
 
-        it('appends new code with comma and trim', () => {
-            expect(appendMaterialCode('PK1, PK2', 'PK3')).toBe('PK1, PK2, PK3')
+        it('replaces existing code with the new current code', () => {
+            expect(appendMaterialCode('PK1', 'PK3')).toBe('PK3')
         })
     })
 
