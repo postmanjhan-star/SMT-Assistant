@@ -140,22 +140,26 @@ describe("buildFujiProductionRowData", () => {
     expect(row.remark).toBe("[廠商測試新料]")
   })
 
-  it("builds appended codes including imported pack and de-duplicates", () => {
+  it("splits current loaded and current splice pack codes", () => {
     const stat = makeStat({
       feed_records: [
         makeFeedRecord({
+          id: 1,
           feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
           material_pack_code: "APP-1",
         }),
         makeFeedRecord({
+          id: 2,
           feed_material_pack_type: FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
           material_pack_code: "APP-2",
         }),
         makeFeedRecord({
+          id: 3,
           feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
           material_pack_code: "APP-1",
         }),
         makeFeedRecord({
+          id: 4,
           feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
           material_pack_code: "IMP-1",
         }),
@@ -164,7 +168,9 @@ describe("buildFujiProductionRowData", () => {
 
     const [row] = buildFujiProductionRowData([stat], [])
 
-    expect(row.appendedMaterialInventoryIdno).toBe("APP-1, APP-2, IMP-1")
+    expect(row.materialInventoryIdno).toBe("IMP-1")
+    expect(row.appendedMaterialInventoryIdno).toBe("APP-1")
+    expect(row.spliceMaterialInventoryIdno).toBe("IMP-1")
   })
 
   it("includes IMPORTED pack in appendedMaterialInventoryIdno when no unfeed", () => {
@@ -206,6 +212,7 @@ describe("buildFujiProductionRowData", () => {
     const [row] = buildFujiProductionRowData([stat], [])
 
     expect(row.appendedMaterialInventoryIdno).toBe("")
+    expect(row.spliceMaterialInventoryIdno).toBeNull()
     expect(row.correct).toBe("UNLOADED_MATERIAL_PACK")
   })
 
@@ -238,6 +245,7 @@ describe("buildFujiProductionRowData", () => {
 
     const [row] = buildFujiProductionRowData([stat], [])
     expect(row.appendedMaterialInventoryIdno).toBe("APP-2")
+    expect(row.spliceMaterialInventoryIdno).toBeNull()
   })
 
   it("keeps order stable with same operation_time by feed_record_id", () => {
@@ -352,7 +360,8 @@ describe("buildFujiProductionRowData", () => {
 
     const [row] = buildFujiProductionRowData([stat], [])
 
-    expect(row.materialInventoryIdno).toBe("PK-2")
+    expect(row.materialInventoryIdno).toBe("PK-1")
+    expect(row.appendedMaterialInventoryIdno).toBe("PK-2")
     expect(row.correct).toBe(CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
   })
 })

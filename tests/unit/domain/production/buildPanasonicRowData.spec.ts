@@ -297,30 +297,35 @@ describe("buildProductionRowData", () => {
         expect(row.appendedMaterialInventoryIdno).toBe("")
     })
 
-    it("builds appendedMaterialInventoryIdno from NEW/REUSED codes", () => {
+    it("splits current loaded and current splice pack codes", () => {
         const stat = makeStat({
             feed_records: [
                 makeFeedRecord({
+                    id: 1,
                     feed_material_pack_type:
                         FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
                     material_pack_code: "APP-1",
                 }),
                 makeFeedRecord({
+                    id: 2,
                     feed_material_pack_type:
                         FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
                     material_pack_code: "APP-2",
                 }),
                 makeFeedRecord({
+                    id: 3,
                     feed_material_pack_type:
                         FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
                     material_pack_code: "APP-1",
                 }),
                 makeFeedRecord({
+                    id: 4,
                     feed_material_pack_type:
                         FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
                     material_pack_code: " ",
                 }),
                 makeFeedRecord({
+                    id: 5,
                     feed_material_pack_type:
                         FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
                     material_pack_code: null,
@@ -330,7 +335,8 @@ describe("buildProductionRowData", () => {
 
         const [row] = buildProductionRowData([stat], [])
 
-        expect(row.appendedMaterialInventoryIdno).toBe("APP-1, APP-2")
+        expect(row.appendedMaterialInventoryIdno).toBe("APP-1")
+        expect(row.spliceMaterialInventoryIdno).toBe("APP-2")
     })
 
     it("removes appended code when UNFEED record appears later", () => {
@@ -362,6 +368,7 @@ describe("buildProductionRowData", () => {
 
         const [row] = buildProductionRowData([stat], [])
         expect(row.appendedMaterialInventoryIdno).toBe("APP-2")
+        expect(row.spliceMaterialInventoryIdno).toBeNull()
     })
 
     it("treats missing operation_type as FEED for backward compatibility", () => {
@@ -381,7 +388,7 @@ describe("buildProductionRowData", () => {
         expect(row.appendedMaterialInventoryIdno).toBe("APP-LEGACY")
     })
 
-    it("uses imported operation time as operationTime when present", () => {
+    it("uses current loaded pack time as operationTime", () => {
         const stat = makeStat({
             feed_records: [
                 makeFeedRecord({
@@ -400,18 +407,20 @@ describe("buildProductionRowData", () => {
 
         const [row] = buildProductionRowData([stat], [])
 
-        expect(row.operationTime).toBe("2024-01-02T00:00:00Z")
+        expect(row.operationTime).toBe("2024-01-01T00:00:00Z")
     })
 
-    it("falls back to first record time when no imported record", () => {
+    it("keeps main pack time when a later splice record exists", () => {
         const stat = makeStat({
             feed_records: [
                 makeFeedRecord({
+                    material_pack_code: "PK-1",
                     feed_material_pack_type:
                         FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
                     operation_time: "2024-01-01T00:00:00Z",
                 }),
                 makeFeedRecord({
+                    material_pack_code: "PK-2",
                     feed_material_pack_type:
                         FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
                     operation_time: "2024-01-02T00:00:00Z",
@@ -422,6 +431,42 @@ describe("buildProductionRowData", () => {
         const [row] = buildProductionRowData([stat], [])
 
         expect(row.operationTime).toBe("2024-01-01T00:00:00Z")
+    })
+
+    it("promotes splice pack to current loaded after main pack unfeed", () => {
+        const stat = makeStat({
+            feed_records: [
+                makeFeedRecord({
+                    id: 1,
+                    operation_time: "2024-01-01T00:00:00Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.IMPORTED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                }),
+                makeFeedRecord({
+                    id: 2,
+                    operation_time: "2024-01-01T00:00:01Z",
+                    material_pack_code: "SPL-1",
+                    feed_material_pack_type: FeedMaterialTypeEnum.REUSED_MATERIAL_PACK,
+                    operation_type: MaterialOperationTypeEnum.FEED,
+                    check_pack_code_match: CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK,
+                }),
+                makeFeedRecord({
+                    id: 3,
+                    operation_time: "2024-01-01T00:00:02Z",
+                    material_pack_code: "IMP-1",
+                    feed_material_pack_type: null,
+                    operation_type: MaterialOperationTypeEnum.UNFEED,
+                }),
+            ],
+        })
+
+        const [row] = buildProductionRowData([stat], [])
+
+        expect(row.materialInventoryIdno).toBe("IMP-1")
+        expect(row.appendedMaterialInventoryIdno).toBe("SPL-1")
+        expect(row.spliceMaterialInventoryIdno).toBeNull()
+        expect(row.correct).toBe(CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK)
     })
 
     it("returns null operationTime when no records", () => {

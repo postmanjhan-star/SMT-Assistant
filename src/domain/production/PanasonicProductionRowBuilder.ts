@@ -7,6 +7,7 @@ export type PanasonicProductionRow = BaseProductionRow & {
   subSlotIdno: string | null
   operationTime: string | null
   appendedMaterialInventoryIdno: string
+  spliceMaterialInventoryIdno: string | null
 }
 
 export class PanasonicProductionRowBuilder {
@@ -20,6 +21,7 @@ export class PanasonicProductionRowBuilder {
       materialIdno: i.smd_model_idno,
       operatorIdno: null,
       appendedMaterialInventoryIdno: '',
+      spliceMaterialInventoryIdno: null,
       materialInventoryIdno: null,
     }))
   }
