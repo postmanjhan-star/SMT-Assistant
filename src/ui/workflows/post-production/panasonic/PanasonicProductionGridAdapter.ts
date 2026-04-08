@@ -65,6 +65,13 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
         flex: 5,
         minWidth: 140,
       },
+      {
+        field: 'spliceMaterialInventoryIdno',
+        tooltipField: 'spliceMaterialInventoryIdno',
+        headerName: '當前接料條碼',
+        flex: 5,
+        minWidth: 140,
+      },
       { field: 'total', headerName: '總數', flex: 3, minWidth: 120 },
       { field: 'inspectCount', headerName: '巡檢次數', flex: 1, minWidth: 80, hide: true },
       createInspectMaterialPackCodeColDef(),

@@ -41,6 +41,7 @@ export function createFujiProductionGridOptions(): GridOptions<FujiProductionRow
       { field: 'materialIdno', headerName: '料號', flex: 4, minWidth: 160 },
       { field: 'materialInventoryIdno', headerName: '首次上料條碼', flex: 5, minWidth: 180 },
       { field: 'appendedMaterialInventoryIdno', headerName: '當前上料條碼', flex: 5, minWidth: 180 },
+      { field: 'spliceMaterialInventoryIdno', headerName: '當前接料條碼', flex: 5, minWidth: 180 },
       { field: 'inspectCount', headerName: '巡檢次數', flex: 1, minWidth: 80, hide: true },
       createInspectMaterialPackCodeColDef(),
       createInspectTimeColDef(format),

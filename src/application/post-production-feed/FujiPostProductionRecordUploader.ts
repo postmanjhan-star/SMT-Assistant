@@ -26,12 +26,14 @@ export class FujiPostProductionRecordUploader extends PostProductionFeedUploader
     slotIdno: string
     subSlotIdno?: string | null
     materialPackCode: string
+    correctState?: 'true' | 'false' | 'warning' | null
+    feedMaterialPackType?: string | null
     operatorId?: string | null
   }) {
     return super.uploadAppend({
       ...params,
-      correctState: 'true',
-      feedMaterialPackType: 'new',
+      correctState: params.correctState ?? 'true',
+      feedMaterialPackType: params.feedMaterialPackType ?? 'NEW_MATERIAL_PACK',
     })
   }
 }

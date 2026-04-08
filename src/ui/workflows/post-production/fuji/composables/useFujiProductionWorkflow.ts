@@ -219,6 +219,7 @@ export function useFujiProductionWorkflow(
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
     submitReplace,
+    submitSplice,
   } = useUnloadReplaceFlow({
     getGridApi: () => gridApi.value as GridApi | null,
     slotStrategy: fujiSlotStrategy,
@@ -512,6 +513,7 @@ export function useFujiProductionWorkflow(
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
     submitReplace,
+    submitSplice,
     enterUnloadMode,
     exitUnloadMode,
     onStopProduction,

@@ -54,10 +54,13 @@ export class SlotSubmitFeedGridAdapter implements SlotSubmitGridPort {
         if (!rowNode) return false
 
         const operatorIdno = this.getOperatorIdno()
+        const firstLoadedPackCode = String(rowNode.data?.materialInventoryIdno ?? "").trim()
         if (operatorIdno) {
             rowNode.setDataValue("operatorIdno", operatorIdno)
         }
-        rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
+        if (!firstLoadedPackCode) {
+            rowNode.setDataValue('materialInventoryIdno', materialInventoryIdno ?? '')
+        }
         rowNode.setDataValue('remark', remark ?? '')
         rowNode.setDataValue('correct', 'true')
         rowNode.setDataValue('operationTime', new Date().toISOString())

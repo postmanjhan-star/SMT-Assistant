@@ -268,6 +268,7 @@ export function usePanasonicProductionWorkflow(
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
     submitReplace,
+    submitSplice,
   } = useUnloadReplaceFlow({
     getGridApi: () => gridApi.value as GridApi | null,
     slotStrategy: panasonicSlotStrategy,
@@ -473,6 +474,7 @@ export function usePanasonicProductionWorkflow(
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
     submitReplace,
+    submitSplice,
     rollShortageFormRef,
     rollShortageFormValue,
     showRollShortageModal,

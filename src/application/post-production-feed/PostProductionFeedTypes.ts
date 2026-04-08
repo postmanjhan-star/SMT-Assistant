@@ -4,6 +4,7 @@ export type RowModelBase = {
     slotIdno: string
     subSlotIdno: string
     appendedMaterialInventoryIdno?: string | null
+    spliceMaterialInventoryIdno?: string | null
     operatorIdno?: string | null
     inspectMaterialPackCode?: string
     inspectTime?: string | null

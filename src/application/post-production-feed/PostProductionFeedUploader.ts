@@ -51,8 +51,8 @@ export abstract class PostProductionFeedUploader {
       subSlotIdno: params.subSlotIdno ?? null,
       materialPackCode: params.materialPackCode,
       operationType: 'FEED',
-      feedMaterialPackType: params.feedMaterialPackType ?? 'new',
-      checkPackCodeMatch: (params.correctState ?? null) as CheckMaterialMatchEnum | string | null,
+      feedMaterialPackType: params.feedMaterialPackType ?? 'NEW_MATERIAL_PACK',
+      checkPackCodeMatch: (params.correctState !== undefined ? params.correctState : 'MATCHED_MATERIAL_PACK') as CheckMaterialMatchEnum | string | null,
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })

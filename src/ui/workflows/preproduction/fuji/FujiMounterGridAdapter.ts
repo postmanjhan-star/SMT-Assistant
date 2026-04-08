@@ -7,6 +7,7 @@ export class FujiMounterGridAdapter<
     Row extends {
         correct: CheckMaterialMatchEnum | null
         materialInventoryIdno: string | null
+        appendedMaterialInventoryIdno?: string
         remark?: string
         mounterIdno?: string
         stage?: string
@@ -20,8 +21,13 @@ export class FujiMounterGridAdapter<
         this.api.applyTransaction({ update: [row] })
     }
 
-    private markTesting(row: Row, inventoryIdno: string) {
+    private setFirstLoadedPackCode(row: Row, inventoryIdno: string) {
+        if (String(row.materialInventoryIdno ?? '').trim()) return
         row.materialInventoryIdno = inventoryIdno
+    }
+
+    private markTesting(row: Row, inventoryIdno: string) {
+        this.setFirstLoadedPackCode(row, inventoryIdno)
         row.correct = CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
         row.remark = '[廠商測試新料]'
         this.updateRow(row)
@@ -91,7 +97,7 @@ export class FujiMounterGridAdapter<
     applyBindingSuccess(slotIdno: string, materialIdno: string, remark: string): boolean {
         const row = this.findRow(slotIdno)
         if (!row) return false
-        row.materialInventoryIdno = materialIdno
+        this.setFirstLoadedPackCode(row, materialIdno)
         row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
         row.operationTime = new Date().toISOString()
         if (remark) row.remark = remark
