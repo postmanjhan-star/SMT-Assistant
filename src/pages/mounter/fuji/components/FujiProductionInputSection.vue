@@ -1,28 +1,31 @@
 <script setup lang="ts">
-import { NGi } from "naive-ui"
-
 type RefBinder = (el: any) => void
 
 const props = defineProps<{
+  column: "material" | "slot"
   isUnloadMode: boolean
   isIpqcMode: boolean
   isSpliceMode: boolean
   productionStarted: boolean
-  unloadMaterialLabel: string
-  unloadMaterialPlaceholder: string
-  isUnloadMaterialInputDisabled: boolean
-  unloadSlotLabel: string
-  unloadSlotPlaceholder: string
-  isUnloadSlotInputDisabled: boolean
-  isSpliceNewPhase: boolean
-  isSpliceSlotPhase: boolean
-  spliceSlotIdno: string
-  unloadMaterialValue: string
-  unloadSlotValue: string
-  ipqcMaterialValue: string
-  ipqcSlotValue: string
-  spliceMaterialValue: string
-  spliceSlotValue: string
+  // unload
+  unloadMaterialLabel?: string
+  unloadMaterialPlaceholder?: string
+  isUnloadMaterialInputDisabled?: boolean
+  unloadSlotLabel?: string
+  unloadSlotPlaceholder?: string
+  isUnloadSlotInputDisabled?: boolean
+  // splice
+  isSpliceNewPhase?: boolean
+  isSpliceSlotPhase?: boolean
+  spliceSlotIdno?: string
+  // values
+  unloadMaterialValue?: string
+  unloadSlotValue?: string
+  ipqcMaterialValue?: string
+  ipqcSlotValue?: string
+  spliceMaterialValue?: string
+  spliceSlotValue?: string
+  // ref binders
   bindUnloadMaterialInput?: RefBinder
   bindUnloadSlotInput?: RefBinder
   bindIpqcMaterialInput?: RefBinder
@@ -48,117 +51,101 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <!-- 換料模式 inputs -->
-  <template v-if="isUnloadMode">
-    <n-gi>
-      <div class="unload-mode-input">
-        <label class="input-label" for="fuji-unload-material-input">{{ unloadMaterialLabel }}</label>
-        <input
-          id="fuji-unload-material-input"
-          data-testid="fuji-unload-material-input"
-          :ref="bindUnloadMaterialInput"
-          :value="unloadMaterialValue"
-          type="text"
-          class="material-input"
-          :placeholder="unloadMaterialPlaceholder"
-          :disabled="isUnloadMaterialInputDisabled"
-          @input="emit('update:unloadMaterialValue', ($event.target as HTMLInputElement).value)"
-          @keydown.enter.prevent="emit('unloadMaterialEnter')"
-        />
-      </div>
-    </n-gi>
-    <n-gi>
-      <div class="unload-mode-input">
-        <label class="input-label" for="fuji-unload-slot-input">{{ unloadSlotLabel }}</label>
-        <input
-          id="fuji-unload-slot-input"
-          data-testid="fuji-unload-slot-input"
-          :ref="bindUnloadSlotInput"
-          :value="unloadSlotValue"
-          type="text"
-          class="slot-input"
-          :placeholder="unloadSlotPlaceholder"
-          :disabled="isUnloadSlotInputDisabled"
-          @input="emit('update:unloadSlotValue', ($event.target as HTMLInputElement).value)"
-          @keydown.enter.prevent="emit('unloadSlotSubmit')"
-        />
-      </div>
-    </n-gi>
+  <!-- ── Material column ─────────────────────────────────────────────────── -->
+  <template v-if="column === 'material'">
+    <div v-if="isUnloadMode" class="unload-mode-input">
+      <label class="input-label" for="fuji-prod-unload-material-input">{{ unloadMaterialLabel }}</label>
+      <input
+        id="fuji-prod-unload-material-input"
+        data-testid="fuji-unload-material-input"
+        :ref="bindUnloadMaterialInput"
+        :value="unloadMaterialValue"
+        type="text"
+        class="material-input"
+        :placeholder="unloadMaterialPlaceholder"
+        :disabled="isUnloadMaterialInputDisabled"
+        @input="emit('update:unloadMaterialValue', ($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="emit('unloadMaterialEnter')"
+      />
+    </div>
+    <div v-else-if="isIpqcMode" class="ipqc-mode-input">
+      <label class="input-label" for="fuji-prod-ipqc-material-input">覆檢物料條碼</label>
+      <input
+        id="fuji-ipqc-material-input"
+        :ref="bindIpqcMaterialInput"
+        :value="ipqcMaterialValue"
+        type="text"
+        class="material-input"
+        placeholder="請掃描物料條碼"
+        @input="emit('update:ipqcMaterialValue', ($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="emit('ipqcMaterialSubmit')"
+      />
+    </div>
+    <div v-else-if="isSpliceMode" class="splice-mode-input">
+      <label class="input-label" for="fuji-prod-splice-material-input">
+        {{ isSpliceNewPhase ? '接料捲號' : '已上料捲號' }}
+      </label>
+      <input
+        id="fuji-prod-splice-material-input"
+        :ref="bindSpliceMaterialInput"
+        :value="spliceMaterialValue"
+        type="text"
+        class="material-input"
+        data-testid="fuji-production-splice-material-input"
+        :disabled="!productionStarted"
+        :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
+        @input="emit('update:spliceMaterialValue', ($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="emit('spliceMaterialEnter')"
+      />
+    </div>
   </template>
 
-  <!-- IPQC 覆檢 inputs -->
-  <template v-else-if="isIpqcMode">
-    <n-gi>
-      <div class="ipqc-mode-input">
-        <label class="input-label" for="fuji-ipqc-material-input">覆檢物料條碼</label>
-        <input
-          id="fuji-ipqc-material-input"
-          :ref="bindIpqcMaterialInput"
-          :value="ipqcMaterialValue"
-          type="text"
-          class="material-input"
-          placeholder="請掃描物料條碼"
-          @input="emit('update:ipqcMaterialValue', ($event.target as HTMLInputElement).value)"
-          @keydown.enter.prevent="emit('ipqcMaterialSubmit')"
-        />
-      </div>
-    </n-gi>
-    <n-gi>
-      <div class="ipqc-mode-input">
-        <label class="input-label" for="fuji-ipqc-slot-input">覆檢站位</label>
-        <input
-          id="fuji-ipqc-slot-input"
-          :ref="bindIpqcSlotInput"
-          :value="ipqcSlotValue"
-          type="text"
-          class="slot-input"
-          placeholder="請掃描站位"
-          :disabled="!ipqcMaterialValue.trim()"
-          @input="emit('update:ipqcSlotValue', ($event.target as HTMLInputElement).value)"
-          @keydown.enter.prevent="emit('ipqcSlotSubmit')"
-        />
-      </div>
-    </n-gi>
-  </template>
-
-  <!-- 接料模式 inputs -->
-  <template v-else-if="isSpliceMode">
-    <n-gi>
-      <div class="splice-mode-input">
-        <label class="input-label" for="fuji-prod-splice-material-input">
-          {{ isSpliceNewPhase ? '接料捲號' : '已上料捲號' }}
-        </label>
-        <input
-          id="fuji-prod-splice-material-input"
-          :ref="bindSpliceMaterialInput"
-          :value="spliceMaterialValue"
-          type="text"
-          class="material-input"
-          data-testid="fuji-production-splice-material-input"
-          :disabled="!productionStarted"
-          :placeholder="isSpliceNewPhase ? '請掃描要接料的新捲號' : '請掃描已上料的舊捲號'"
-          @input="emit('update:spliceMaterialValue', ($event.target as HTMLInputElement).value)"
-          @keydown.enter.prevent="emit('spliceMaterialEnter')"
-        />
-      </div>
-    </n-gi>
-    <n-gi>
-      <div class="splice-mode-input">
-        <label class="input-label" for="fuji-prod-splice-slot-input">確認站位</label>
-        <input
-          id="fuji-prod-splice-slot-input"
-          :ref="bindSpliceSlotInput"
-          :value="spliceSlotValue"
-          type="text"
-          class="slot-input"
-          data-testid="fuji-production-splice-slot-input"
-          :disabled="!productionStarted || !isSpliceSlotPhase"
-          :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
-          @input="emit('update:spliceSlotValue', ($event.target as HTMLInputElement).value)"
-          @keydown.enter.prevent="emit('spliceSlotEnter')"
-        />
-      </div>
-    </n-gi>
+  <!-- ── Slot column ────────────────────────────────────────────────────── -->
+  <template v-else>
+    <div v-if="isUnloadMode" class="unload-mode-input">
+      <label class="input-label" for="fuji-prod-unload-slot-input">{{ unloadSlotLabel }}</label>
+      <input
+        id="fuji-prod-unload-slot-input"
+        data-testid="fuji-unload-slot-input"
+        :ref="bindUnloadSlotInput"
+        :value="unloadSlotValue"
+        type="text"
+        class="slot-input"
+        :placeholder="unloadSlotPlaceholder"
+        :disabled="isUnloadSlotInputDisabled"
+        @input="emit('update:unloadSlotValue', ($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="emit('unloadSlotSubmit')"
+      />
+    </div>
+    <div v-else-if="isIpqcMode" class="ipqc-mode-input">
+      <label class="input-label" for="fuji-prod-ipqc-slot-input">覆檢站位</label>
+      <input
+        id="fuji-ipqc-slot-input"
+        :ref="bindIpqcSlotInput"
+        :value="ipqcSlotValue"
+        type="text"
+        class="slot-input"
+        placeholder="請掃描站位"
+        :disabled="!(ipqcMaterialValue ?? '').trim()"
+        @input="emit('update:ipqcSlotValue', ($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="emit('ipqcSlotSubmit')"
+      />
+    </div>
+    <div v-else-if="isSpliceMode" class="splice-mode-input">
+      <label class="input-label" for="fuji-prod-splice-slot-input">確認站位</label>
+      <input
+        id="fuji-prod-splice-slot-input"
+        :ref="bindSpliceSlotInput"
+        :value="spliceSlotValue"
+        type="text"
+        class="slot-input"
+        data-testid="fuji-production-splice-slot-input"
+        :disabled="!productionStarted || !isSpliceSlotPhase"
+        :placeholder="isSpliceSlotPhase ? `請掃描站位 ${spliceSlotIdno}` : '請先掃描舊料捲號'"
+        @input="emit('update:spliceSlotValue', ($event.target as HTMLInputElement).value)"
+        @keydown.enter.prevent="emit('spliceSlotEnter')"
+      />
+    </div>
   </template>
 </template>
 

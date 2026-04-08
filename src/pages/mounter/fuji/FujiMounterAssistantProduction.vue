@@ -260,72 +260,84 @@ async function onNormalSlotSubmit(payload: { slotIdno: string; slot: string; sub
     </template>
 
     <template #inputs>
-      <FujiProductionInputSection
-        :is-unload-mode="isUnloadMode"
-        :is-ipqc-mode="isIpqcMode"
-        :is-splice-mode="isSpliceMode"
-        :production-started="productionStarted"
-        :unload-material-label="unloadMaterialLabel"
-        :unload-material-placeholder="unloadMaterialPlaceholder"
-        :is-unload-material-input-disabled="isUnloadMaterialInputDisabled"
-        :unload-slot-label="unloadSlotLabel"
-        :unload-slot-placeholder="unloadSlotPlaceholder"
-        :is-unload-slot-input-disabled="isUnloadSlotInputDisabled"
-        :is-splice-new-phase="isSpliceNewPhase"
-        :is-splice-slot-phase="isSpliceSlotPhase"
-        :splice-slot-idno="spliceSlotIdno"
-        v-model:unload-material-value="unloadMaterialValue"
-        v-model:unload-slot-value="unloadSlotValue"
-        v-model:ipqc-material-value="ipqcMaterialValue"
-        v-model:ipqc-slot-value="ipqcSlotValue"
-        v-model:splice-material-value="spliceMaterialValue"
-        v-model:splice-slot-value="spliceSlotValue"
-        :bind-unload-material-input="bindUnloadMaterialInput"
-        :bind-unload-slot-input="bindUnloadSlotInput"
-        :bind-ipqc-material-input="bindIpqcMaterialInput"
-        :bind-ipqc-slot-input="bindIpqcSlotInput"
-        :bind-splice-material-input="bindSpliceMaterialInput"
-        :bind-splice-slot-input="bindSpliceSlotInput"
-        @unload-material-enter="handleUnloadMaterialEnter"
-        @unload-slot-submit="handleUnloadSlotSubmit"
-        @ipqc-material-submit="handleIpqcMaterialSubmit"
-        @ipqc-slot-submit="handleIpqcSlotSubmit"
-        @splice-material-enter="handleSpliceMaterialEnter"
-        @splice-slot-enter="handleSpliceSlotEnter"
-      />
+      <n-gi key="col-material">
+        <FujiProductionInputSection
+          v-if="isUnloadMode || isIpqcMode || isSpliceMode"
+          column="material"
+          :is-unload-mode="isUnloadMode"
+          :is-ipqc-mode="isIpqcMode"
+          :is-splice-mode="isSpliceMode"
+          :production-started="productionStarted"
+          :unload-material-label="unloadMaterialLabel"
+          :unload-material-placeholder="unloadMaterialPlaceholder"
+          :is-unload-material-input-disabled="isUnloadMaterialInputDisabled"
+          :is-splice-new-phase="isSpliceNewPhase"
+          :is-splice-slot-phase="isSpliceSlotPhase"
+          :splice-slot-idno="spliceSlotIdno"
+          v-model:unload-material-value="unloadMaterialValue"
+          v-model:ipqc-material-value="ipqcMaterialValue"
+          v-model:splice-material-value="spliceMaterialValue"
+          :bind-unload-material-input="bindUnloadMaterialInput"
+          :bind-ipqc-material-input="bindIpqcMaterialInput"
+          :bind-splice-material-input="bindSpliceMaterialInput"
+          @unload-material-enter="handleUnloadMaterialEnter"
+          @ipqc-material-submit="handleIpqcMaterialSubmit"
+          @splice-material-enter="handleSpliceMaterialEnter"
+        />
+        <MaterialInventoryBarcodeInput
+          v-else
+          ref="materialInputRef"
+          :disabled="!productionStarted"
+          :is-testing-mode="isTestingMode"
+          :get-material-matched-rows="getMaterialMatchedRows"
+          :reset-key="materialResetKey"
+          :allow-no-match-in-testing="true"
+          :before-scan="handleBeforeMaterialScan"
+          :scan="mockScan ?? undefined"
+          input-test-id="fuji-production-material-input"
+          @matched="onMaterialMatched"
+          @error="onMaterialError"
+        />
+      </n-gi>
 
-      <!-- Normal scan inputs -->
-      <template v-if="!isUnloadMode && !isIpqcMode && !isSpliceMode">
-        <n-gi>
-          <MaterialInventoryBarcodeInput
-            ref="materialInputRef"
-            :disabled="!productionStarted"
-            :is-testing-mode="isTestingMode"
-            :get-material-matched-rows="getMaterialMatchedRows"
-            :reset-key="materialResetKey"
-            :allow-no-match-in-testing="true"
-            :before-scan="handleBeforeMaterialScan"
-            :scan="mockScan ?? undefined"
-            input-test-id="fuji-production-material-input"
-            @matched="onMaterialMatched"
-            @error="onMaterialError"
-          />
-        </n-gi>
-        <n-gi>
-          <SlotIdnoInput
-            ref="slotInputRef"
-            :disabled="!productionStarted"
-            :is-testing-mode="isTestingMode"
-            :has-material="!!materialInventoryFromScan"
-            :parse-slot-idno="parseFujiSlotInput"
-            :reset-key="slotResetKey"
-            :before-submit="handleBeforeSlotSubmit"
-            input-test-id="fuji-production-slot-input"
-            @submit="onNormalSlotSubmit"
-            @error="showError"
-          />
-        </n-gi>
-      </template>
+      <n-gi key="col-slot">
+        <FujiProductionInputSection
+          v-if="isUnloadMode || isIpqcMode || isSpliceMode"
+          column="slot"
+          :is-unload-mode="isUnloadMode"
+          :is-ipqc-mode="isIpqcMode"
+          :is-splice-mode="isSpliceMode"
+          :production-started="productionStarted"
+          :unload-slot-label="unloadSlotLabel"
+          :unload-slot-placeholder="unloadSlotPlaceholder"
+          :is-unload-slot-input-disabled="isUnloadSlotInputDisabled"
+          :is-splice-slot-phase="isSpliceSlotPhase"
+          :splice-slot-idno="spliceSlotIdno"
+          :ipqc-material-value="ipqcMaterialValue"
+          v-model:unload-slot-value="unloadSlotValue"
+          v-model:ipqc-slot-value="ipqcSlotValue"
+          v-model:splice-slot-value="spliceSlotValue"
+          :bind-unload-slot-input="bindUnloadSlotInput"
+          :bind-ipqc-slot-input="bindIpqcSlotInput"
+          :bind-splice-slot-input="bindSpliceSlotInput"
+          @unload-slot-submit="handleUnloadSlotSubmit"
+          @ipqc-slot-submit="handleIpqcSlotSubmit"
+          @splice-slot-enter="handleSpliceSlotEnter"
+        />
+        <SlotIdnoInput
+          v-else
+          ref="slotInputRef"
+          :disabled="!productionStarted"
+          :is-testing-mode="isTestingMode"
+          :has-material="!!materialInventoryFromScan"
+          :parse-slot-idno="parseFujiSlotInput"
+          :reset-key="slotResetKey"
+          :before-submit="handleBeforeSlotSubmit"
+          input-test-id="fuji-production-slot-input"
+          @submit="onNormalSlotSubmit"
+          @error="showError"
+        />
+      </n-gi>
     </template>
 
     <ag-grid-vue
