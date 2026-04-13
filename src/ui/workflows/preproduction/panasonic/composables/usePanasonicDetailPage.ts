@@ -1,12 +1,10 @@
-﻿import { computed, ref } from "vue"
+import { computed, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
-import { useProductionLifecycleUi } from "@/ui/shared/composables/useProductionLifecycleUi"
 
 import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { useSlotResultNotifier } from "@/ui/shared/composables/useSlotResultNotifier"
-import { useProductionState } from "@/ui/workflows/preproduction/panasonic/composables/useProductionState"
 import { useRollShortageForm } from "@/ui/workflows/preproduction/panasonic/composables/useRollShortageForm"
 import { usePanasonicProductionData } from "@/ui/workflows/preproduction/panasonic/composables/usePanasonicProductionData"
 import { usePanasonicSlotFlow } from "@/ui/workflows/preproduction/panasonic/composables/usePanasonicSlotFlow"
@@ -32,11 +30,23 @@ import type {
   SlotInputResult,
 } from "@/pages/mounter/panasonic/types/production"
 import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
+import {
+  usePanasonicPreproductionLifecycle,
+  type PanasonicUnloadRecord,
+  type PanasonicSpliceRecord,
+} from "@/ui/workflows/preproduction/panasonic/composables/usePanasonicPreproductionLifecycle"
+import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
+
+export type { PanasonicUnloadRecord, PanasonicSpliceRecord }
 
 export type PanasonicDetailPageOptions = {
   onResetInputs: () => void
   getSlotInputResult: () => SlotInputResult | null
-  autoUploadRows?: (rows: unknown[]) => void
+  getPendingUnloadRecords?: () => PanasonicUnloadRecord[]
+  onUnloadUploaded?: (ok: boolean) => void
+  getPendingSpliceRecords?: () => PanasonicSpliceRecord[]
+  getPendingIpqcRecords?: () => IpqcInspectionRecord[]
+  onIpqcUploaded?: (ok: boolean) => void
   deps?: Partial<PreproductionPanasonicDeps>
   isMockMode?: boolean
 }
@@ -103,22 +113,22 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     parseSlotIdno: parsePanasonicSlotIdno,
   })
 
-  const {
-    productionStarted,
-    productionUuid,
-    start: startProduction,
-    stop: stopProduction,
-  } = useProductionState(deps.stopProduction)
-
-  const productionLifecycleUseCase = deps.createProductionLifecycleUseCase({
-    start: startProduction,
-    stop: stopProduction,
-    buildProductionPath: (uuid) => `/smt/panasonic-mounter-production/${uuid}`,
-  })
-
-  const { handleProductionStarted, onStopProduction } = useProductionLifecycleUi({
-    lifecycleUseCase: productionLifecycleUseCase,
-    productionUuid,
+  const lifecycle = usePanasonicPreproductionLifecycle({
+    rowData,
+    isTestingMode,
+    workOrderIdno,
+    productIdno,
+    mounterIdno,
+    machineSideQuery,
+    workSheetSideQuery,
+    getOperatorId: () => currentUsername.value || null,
+    getPendingUnloadRecords: options.getPendingUnloadRecords,
+    onUnloadUploaded: options.onUnloadUploaded,
+    getPendingSpliceRecords: options.getPendingSpliceRecords,
+    getPendingIpqcRecords: options.getPendingIpqcRecords,
+    onIpqcUploaded: options.onIpqcUploaded,
+    startProduction: deps.startProduction,
+    stopProduction: deps.stopProduction,
   })
 
   const {
@@ -142,9 +152,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     isTestingMode,
     isMockMode: options.isMockMode,
     getResult: options.getSlotInputResult,
-    autoUpload: (rows) => {
-      options.autoUploadRows?.(rows)
-    },
+    autoUpload: (rows) => lifecycle.startProductionUpload(rows as ProductionRowModel[]),
     onResetInputs: options.onResetInputs,
   })
 
@@ -256,8 +264,9 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     currentUsername,
     currentOperatorIdno,
     rowData,
-    productionStarted,
-    productionUuid,
+    productionStarted: lifecycle.productionStarted,
+    productionUuid: lifecycle.productionUuid,
+    productionLoading: lifecycle.productionLoading,
     showRollShortageModal,
     rollShortageFormRef,
     rollShortageFormValue,
@@ -266,8 +275,8 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     showMaterialQueryModal,
     onGridReady,
     onClickBackArrow,
-    onStopProduction,
-    handleProductionStarted,
+    onStopProduction: lifecycle.onStopProduction,
+    onProduction: lifecycle.onProduction,
     onRollShortage,
     onSubmitShortage,
     closeRollShortage,

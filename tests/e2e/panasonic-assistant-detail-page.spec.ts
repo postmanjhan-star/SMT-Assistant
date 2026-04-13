@@ -1,5 +1,5 @@
 ﻿import { test, expect, Page } from '@playwright/test';
-import { setupFutureExpiryAuthToken } from './helpers/auth';
+import { setupAuthToken } from './helpers/auth';
 import { readCsvRecords, expectLatestMessage, type ScanRecord } from './helpers/scan';
 import { waitVisualStepIfNeeded } from './helpers/pageActions';
 import { DetailPage } from './pages/DetailPage';
@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
         localStorage.clear();
         sessionStorage.clear();
     });
-    await setupFutureExpiryAuthToken(page);
+    await setupAuthToken(page);
 });
 
 const getMainMaterialInput = (page: Page) => new DetailPage(page, 'panasonic').materialInput;

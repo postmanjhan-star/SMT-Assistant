@@ -28,6 +28,8 @@ export function createPreproductionPanasonicDeps(
     stopProduction: (uuid) =>
       stopPanasonicProductionStats({ uuid, endTime: new Date().toISOString() }),
     fetchSlots: fetchPanasonicMounterMaterialSlotPairs,
+    startProduction: (payload) =>
+      startPanasonicProductionStats(payload) as Promise<import('@/client').PanasonicMounterItemStatRead[]>,
     ...overrides,
   }
 }

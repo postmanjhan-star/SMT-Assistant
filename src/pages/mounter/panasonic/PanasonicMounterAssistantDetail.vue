@@ -10,7 +10,6 @@ import { useRoute } from "vue-router"
 
 import MaterialInventoryBarcodeInput from "@/pages/components/MaterialInventoryBarcodeInput.vue"
 import SlotIdnoInput from "@/pages/components/SlotIdnoInput.vue"
-import StartProductionButton from "./components/StartProductionButton.vue"
 import MounterMaterialQueryModal, { type MaterialQueryRowModel } from "@/pages/components/shared/MounterMaterialQueryModal.vue"
 import { usePanasonicMaterialQueryState } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicMaterialQueryState"
 import PanasonicRollShortageModal from "@/pages/components/panasonic/PanasonicRollShortageModal.vue"
@@ -42,13 +41,8 @@ const isMockMode =
   import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === "1")
 const mockScan = isMockMode ? createMockScan() : undefined
 
-type StartProductionButtonHandle = {
-  submit: (rows?: unknown[]) => Promise<void> | void
-}
-
 const slotIdnoInput = ref<InputComponentHandle | null>(null)
 const materialInventoryInput = ref<InputComponentHandle | null>(null)
-const startProductionBtnRef = ref<StartProductionButtonHandle | null>(null)
 const materialInputValue = ref("")
 const slotInputValue = ref("")
 const gridApi = ref<GridApi | null>(null)
@@ -72,6 +66,16 @@ const { resetInputsAfterSlotSubmit } = usePanasonicInputReset({
   slotInputRef: slotIdnoInput,
 })
 
+// ─── Pending Records ─────────────────────────────────────────────────────────
+
+const pendingUnloadRecords = ref<PanasonicUnloadRecord[]>([])
+const pendingSpliceRecords = ref<PanasonicSpliceRecord[]>([])
+const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
+
+const splicePreviewCorrectStates = ref(new Map<string, string | null>())
+
+// ─── Detail Page ─────────────────────────────────────────────────────────────
+
 const {
   isTestingMode,
   workOrderIdno,
@@ -84,6 +88,7 @@ const {
   rowData,
   productionStarted,
   productionUuid,
+  productionLoading,
   showRollShortageModal,
   rollShortageFormRef,
   rollShortageFormValue,
@@ -93,7 +98,7 @@ const {
   onGridReady,
   onClickBackArrow,
   onStopProduction,
-  handleProductionStarted,
+  onProduction,
   onRollShortage,
   onSubmitShortage,
   closeRollShortage,
@@ -106,8 +111,20 @@ const {
 } = usePanasonicDetailPage({
   onResetInputs: resetInputsAfterSlotSubmit,
   getSlotInputResult: () => materialInventoryResult.value,
-  autoUploadRows: (rows) => {
-    startProductionBtnRef.value?.submit(rows)
+  getPendingUnloadRecords: () => pendingUnloadRecords.value,
+  onUnloadUploaded: (ok) => {
+    if (ok) {
+      pendingUnloadRecords.value = []
+      persistNow()
+    }
+  },
+  getPendingSpliceRecords: () => pendingSpliceRecords.value,
+  getPendingIpqcRecords: () => pendingIpqcRecords.value,
+  onIpqcUploaded: (ok) => {
+    if (ok) {
+      pendingIpqcRecords.value = []
+      persistNow()
+    }
   },
   isMockMode,
 })
@@ -136,14 +153,6 @@ const materialQueryRows = computed(() => materialQueryRawData.value as MaterialQ
 
 const gridOptions = createProductionGridOptions(rowData)
 const rollShortageBindings = { formRef: rollShortageFormRef }
-
-// ─── Pending Records ─────────────────────────────────────────────────────────
-
-const pendingUnloadRecords = ref<PanasonicUnloadRecord[]>([])
-const pendingSpliceRecords = ref<PanasonicSpliceRecord[]>([])
-const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
-
-const splicePreviewCorrectStates = ref(new Map<string, string | null>())
 
 // ─── Shared Callbacks ────────────────────────────────────────────────────────
 
@@ -208,7 +217,6 @@ const {
   isUnloadMode,
   isIpqcMode,
   isSpliceMode,
-  isSpliceIdlePhase,
   isSpliceNewPhase,
   isSpliceSlotPhase,
   spliceSlotIdno,
@@ -243,8 +251,6 @@ const {
   handleIpqcSlotSubmit,
   handleSpliceMaterialEnter,
   handleSpliceSlotEnter,
-  onUnloadUploaded,
-  onIpqcUploaded,
   findRowBySlotIdno,
   updateRowInGrid,
 } = usePanasonicOperationFlows({
@@ -381,25 +387,16 @@ function onGridReadyWithCache(e: GridReadyEvent) {
                 </n-button>
               </template>
               <template v-else>
-                <StartProductionButton
-                  ref="startProductionBtnRef"
+                <n-button
                   v-if="!productionStarted"
-                  :is-testing-mode="isTestingMode"
-                  :row-data="rowData"
-                  :operator_id="currentUsername"
-                  :work-order-idno="workOrderIdno"
-                  :product-idno="productIdno"
-                  :mounter-idno="mounterIdno"
-                  :machine-side-query="machineSideQuery"
-                  :work-sheet-side-query="workSheetSideQuery"
-                  :pending-unload-records="pendingUnloadRecords"
-                  :pending-splice-records="pendingSpliceRecords"
-                  :pending-ipqc-records="pendingIpqcRecords"
-                  @started="handleProductionStarted"
-                  @unload-uploaded="onUnloadUploaded"
-                  @ipqc-uploaded="onIpqcUploaded"
-                  @error="showError"
-                />
+                  type="success"
+                  size="small"
+                  :loading="productionLoading"
+                  :disabled="productionLoading"
+                  @click="onProduction"
+                >
+                  🚀 開始生產
+                </n-button>
                 <n-button v-else type="error" size="small" @click="onStopProduction">
                   🛑 結束生產
                 </n-button>

@@ -1,6 +1,7 @@
 import type {
   PanasonicMounterFileRead,
   PanasonicMounterItemStatCreate,
+  PanasonicMounterItemStatRead,
   SmtMaterialInventory,
 } from '@/client'
 import type { FeedRecordPayload } from '@/domain/production/PostProductionFeedRecord'
@@ -46,6 +47,7 @@ export type PreproductionPanasonicDeps = {
   createMaterialRepository: () => MaterialRepository
   stopProduction: (uuid: string) => Promise<unknown>
   fetchSlots: (params: PanasonicFetchSlotsParams) => Promise<PanasonicMounterFileRead>
+  startProduction: (payload: PanasonicMounterItemStatCreate[]) => Promise<PanasonicMounterItemStatRead[]>
 }
 
 export type PostproductionPanasonicDeps = {

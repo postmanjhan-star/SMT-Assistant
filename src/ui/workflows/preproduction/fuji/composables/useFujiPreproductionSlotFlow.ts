@@ -11,6 +11,8 @@ import type { MaterialRepository } from "@/application/barcode-scan/BarcodeScanD
 import type { SlotSubmitGridPort } from "@/application/slot-submit/SlotSubmitDeps"
 import type { FujiMounterRowModel } from "@/ui/workflows/preproduction/fuji/composables/useFujiProductionState"
 import { msg as uiMsg } from "@/ui/shared/messageCatalog"
+import { SlotUploadScheduler } from "@/application/slot-submit/SlotUploadScheduler"
+import { useSlotUploadScheduler } from "@/ui/shared/composables/useSlotUploadScheduler"
 
 export type UseFujiPreproductionSlotFlowOptions = {
   getMaterialMatchedRows: (materialIdno: string) => FujiMounterRowModel[]
@@ -19,6 +21,7 @@ export type UseFujiPreproductionSlotFlowOptions = {
   gridAdapter: ShallowRef<SlotSubmitGridPort | null>
   focusSlotInput?: () => void
   onAfterSuccess?: () => void | Promise<void>
+  autoUpload?: (rows: unknown[]) => void
   materialRepository: MaterialRepository
 }
 
@@ -28,6 +31,19 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
   const store = useSlotSubmitStore()
   store.setTestingMode(options.isTestingMode.value)
   watch(options.isTestingMode, val => store.setTestingMode(val))
+
+  const scheduler = new SlotUploadScheduler({
+    checkShouldUpload: () => {
+      const { shouldAutoUpload } = store.checkAutoUpload()
+      return { shouldUpload: shouldAutoUpload, rows: store.pendingAutoUpload }
+    },
+    onUpload: (rows) => {
+      options.autoUpload?.(rows)
+      store.clearPendingAutoUpload()
+    },
+  })
+
+  const { scheduleCheck } = useSlotUploadScheduler(scheduler)
 
   const materialInventory = ref<SmtMaterialInventory | null>(null)
   const materialResetKey = ref(0)
@@ -112,7 +128,11 @@ export function useFujiPreproductionSlotFlow(options: UseFujiPreproductionSlotFl
     },
     afterSuccess: async () => {
       resetMaterialState()
-      await options.onAfterSuccess?.()
+      if (!store.isTestingMode && options.autoUpload) {
+        scheduleCheck()
+      } else {
+        await options.onAfterSuccess?.()
+      }
     },
   })
 

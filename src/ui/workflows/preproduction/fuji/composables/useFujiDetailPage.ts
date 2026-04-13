@@ -69,6 +69,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     gridAdapter,
     focusSlotInput: options.focusSlotInput,
     onAfterSuccess: lifecycle.checkAndStartProduction,
+    autoUpload: () => lifecycle.startProductionUpload(),
     materialRepository: fujiPreDeps.createMaterialRepository(),
   })
 

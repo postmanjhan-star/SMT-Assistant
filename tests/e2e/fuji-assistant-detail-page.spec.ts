@@ -347,13 +347,46 @@ test('test testing mode quick virtual materials then append after production', a
 });
 
 test('test wrong slot scan in normal mode', async ({ page }) => {
-    await page.goto(FUJI_NORMAL_URL + '&mock_scan=1');
+    // mock_scan=1 uses MockNormalModeStrategy which bypasses matchedRows and accepts any slot as ✅.
+    // Instead, mock the mounter and material APIs so NormalModeStrategy runs with real slot matching.
+    await page.route('**/smt/fuji_mounter/ZZ9999**', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([{
+                mounter_idno: 'XP2B1',
+                board_side: 'TOP',
+                fuji_mounter_file_items: [
+                    { stage: 'A', slot: 9,  part_number: 'TEST-MAT-B4933598' },
+                    { stage: 'A', slot: 11, part_number: 'OTHER-MAT' },
+                ],
+            }]),
+        })
+    );
+    await page.route('**/smt/material_inventory/B4933598**', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                id: 1,
+                idno: 'B4933598',
+                material_id: 1,
+                material_idno: 'TEST-MAT-B4933598',
+                material_name: 'Test Material B4933598',
+            }),
+        })
+    );
+
+    await page.goto(FUJI_NORMAL_URL);
     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
     const materialPackCode = 'B4933598';
     const correctSlot = 'XP2B1-A-9';
     const wrongSlot = 'XP2B1-A-11';
 
+    const materialInput = page.getByTestId('fuji-detail-material-input').locator('input');
+
+    // 1. scan material → wrong slot → ❌
     await scanOne(page, materialPackCode, wrongSlot);
 
     const wrongRow = page.locator(`[row-id="${wrongSlot}"]`);
@@ -362,9 +395,23 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
         wrongRow.locator('[col-id="materialInventoryIdno"]')
     ).toContainText(materialPackCode);
 
+    // 2. S5577 force-unload to clear the duplicate-scan guard
+    //    (re-scanning directly is blocked because the barcode is still "in grid")
+    await materialInput.fill('S5577');
+    await materialInput.press('Enter');
+    const unloadSlotInput = page.locator('#detail-unload-slot-input');
+    await expect(unloadSlotInput).toBeFocused({ timeout: 5000 });
+    await unloadSlotInput.fill(wrongSlot);
+    await unloadSlotInput.press('Enter');
+    const unloadMaterialInput = page.locator('#detail-unload-material-input');
+    await expect(unloadMaterialInput).toBeFocused({ timeout: 5000 });
+    await unloadMaterialInput.fill('S5577');
+    await unloadMaterialInput.press('Enter');
+
+    // 3. re-scan to correct slot
     await scanOne(page, materialPackCode, correctSlot);
 
-    // Verify wrong row is cleared
+    // Verify wrong row is cleared, correct row updated
     await expect(
         wrongRow.locator('[col-id="materialInventoryIdno"]')
     ).not.toContainText(materialPackCode);
