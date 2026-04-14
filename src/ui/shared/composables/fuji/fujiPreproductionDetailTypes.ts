@@ -1,3 +1,4 @@
+import type { CheckMaterialMatchEnum } from "@/client"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 
 export type FujiPreproductionUnloadRecord = {
@@ -6,6 +7,7 @@ export type FujiPreproductionUnloadRecord = {
   materialPackCode: string
   unfeedReason?: string | null
   operationTime: string
+  checkPackCodeMatch?: CheckMaterialMatchEnum | null
 }
 
 export type FujiPreproductionSpliceRecord = {

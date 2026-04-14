@@ -64,9 +64,12 @@ const {
   showError,
   showSuccess,
   mounterData,
+  fetchMaterialInventory,
   inspectionUpload,
   applyInspectionUpdate,
-} = useFujiProductionPage()
+} = useFujiProductionPage({
+  isMockMode,
+})
 
 const materialResetKey = ref(0)
 const slotResetKey = ref(0)
@@ -159,6 +162,7 @@ const {
   validateReplacementMaterialForSlot,
   submitReplace,
   submitSplice,
+  fetchMaterialInventory,
   inspectionUpload,
   applyInspectionUpdate,
 })

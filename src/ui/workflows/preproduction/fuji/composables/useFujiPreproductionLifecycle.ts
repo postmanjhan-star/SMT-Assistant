@@ -28,6 +28,7 @@ export type FujiUnloadRecord = {
   materialPackCode: string
   unfeedReason?: string | null
   operationTime: string
+  checkPackCodeMatch?: CheckMaterialMatchEnum | null
 }
 
 export type FujiSpliceRecord = {
@@ -110,7 +111,7 @@ export function useFujiPreproductionLifecycle(
         produce_mode: options.isTestingMode.value
           ? ProduceTypeEnum.TESTING_PRODUCE_MODE
           : ProduceTypeEnum.NORMAL_PRODUCE_MODE,
-        check_pack_code_match: row.correct,
+        check_pack_code_match: row.correct as CheckMaterialMatchEnum | null,
         operator_id: row.operatorIdno ?? null,
         operation_time: now,
         production_start: now,
@@ -138,7 +139,7 @@ export function useFujiPreproductionLifecycle(
           operation_type: MaterialOperationTypeEnum.UNFEED,
           unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
           unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
-          check_pack_code_match: null,
+          check_pack_code_match: record.checkPackCodeMatch ?? null,
         },
       })
     },
@@ -173,7 +174,7 @@ export function useFujiPreproductionLifecycle(
           material_pack_code: record.materialPackCode,
           operation_type: MaterialOperationTypeEnum.FEED,
           feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
-          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+          check_pack_code_match: record.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
           unfeed_reason: null,
         },
       })

@@ -1,4 +1,5 @@
 import type { ComputedRef, Ref } from "vue"
+import type { CheckMaterialMatchEnum } from "@/client"
 import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 
@@ -30,7 +31,7 @@ export interface MounterOperationFlowsAdapter {
   // ── Record 組裝 ────────────────────────────────────────────────────
   buildUnloadRecord(
     row: any,
-    params: { materialPackCode: string; unfeedReason: string; operationTime: string },
+    params: { materialPackCode: string; unfeedReason: string; operationTime: string; checkPackCodeMatch?: CheckMaterialMatchEnum | null },
   ): unknown
 
   buildSpliceRecord(
@@ -40,8 +41,9 @@ export interface MounterOperationFlowsAdapter {
 
   buildIpqcRecord(
     row: any,
-    params: { slotIdno: string; materialPackCode: string; inspectorIdno: string; inspectionTime: string },
+    params: { slotIdno: string; materialPackCode: string; inspectorIdno: string; inspectionTime: string; checkPackCodeMatch?: CheckMaterialMatchEnum | null },
   ): IpqcInspectionRecord
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ function makeOptions(overrides: Partial<FujiOperationFlowsOptions> = {}): FujiOp
     validateReplacementMaterialForSlot: vi.fn().mockResolvedValue(true),
     submitReplace: vi.fn().mockResolvedValue(true),
     submitSplice: vi.fn().mockResolvedValue(true),
+    fetchMaterialInventory: vi.fn().mockResolvedValue({}),
     inspectionUpload: vi.fn().mockResolvedValue(undefined),
     applyInspectionUpdate: vi.fn(),
     ...overrides,

@@ -1,5 +1,6 @@
 import type { ComputedRef, Ref } from "vue"
 import type { ColumnApi, GridApi } from "ag-grid-community"
+import { type CheckMaterialMatchEnum } from "@/client"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import type { MounterProductionOperationFlowsAdapter } from "@/ui/shared/composables/core/MounterProductionOperationFlowsAdapter"
 import { useMounterProductionOperationFlowsCore } from "@/ui/shared/composables/core/useMounterProductionOperationFlowsCore"
@@ -33,12 +34,14 @@ export type PanasonicProductionOperationFlowsOptions = {
   validateReplacementMaterialForSlot: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   submitReplace: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   submitSplice: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
+  fetchMaterialInventory: (code: string) => Promise<unknown>
   inspectionUpload: (params: {
     statId: number
     slotIdno: string
     subSlotIdno: string | null
     materialPackCode: string
     operatorIdno: string | null
+    checkPackCodeMatch?: CheckMaterialMatchEnum | null
   }) => Promise<void>
 }
 
@@ -107,7 +110,7 @@ function buildPanasonicProductionAdapter(
     },
 
     // ── IPQC 即時上傳 ────────────────────────────────────────────────────
-    async submitIpqcRow(row: any, materialPackCode: string, operatorIdno: string | null) {
+    async submitIpqcRow(row: any, materialPackCode: string, operatorIdno: string | null, checkPackCodeMatch?: CheckMaterialMatchEnum | null) {
       if (!row.id) return
       try {
         await inspectionUpload({
@@ -116,6 +119,7 @@ function buildPanasonicProductionAdapter(
           subSlotIdno: row.subSlotIdno ?? null,
           materialPackCode,
           operatorIdno,
+          checkPackCodeMatch,
         })
       } catch {
         // 失敗靜默處理（UI 已更新，與原實作一致）
@@ -143,7 +147,7 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
     findUniqueUnloadSlotByPackCode,
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
-    submitReplace, submitSplice, inspectionUpload,
+    submitReplace, submitSplice, fetchMaterialInventory, inspectionUpload,
   } = options
 
   const adapter = buildPanasonicProductionAdapter(gridApi, columnApi, inspectionUpload)
@@ -159,6 +163,7 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
       handleUserSwitchTrigger,
       clearNormalScanState,
       focusMaterialInput,
+      fetchMaterialInventory,
       submitUnload,
       submitForceUnloadBySlot,
       findUniqueUnloadSlotByPackCode,
@@ -166,11 +171,6 @@ export function usePanasonicProductionOperationFlows(options: PanasonicProductio
       validateReplacementMaterialForSlot,
       submitReplace,
       submitSplice,
-      // 原行為：Panasonic IPQC 驗證跳過 mock mode，但不跳過 testing mode
-      validateIpqcMaterialPackCode: async (code: string) => {
-        if (isMockMode) return true
-        return validateUnloadMaterialPackCode(code)
-      },
     },
     adapter,
   )

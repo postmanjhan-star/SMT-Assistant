@@ -31,7 +31,7 @@ export type MounterProductionOperationFlowsAdapter = {
    * 即時上傳 IPQC 巡檢記錄（品牌專屬 API params 在實作內處理）。
    * 實作需自行 try/catch，決定是否 showError 或靜默失敗。
    */
-  submitIpqcRow(row: any, materialPackCode: string, operatorIdno: string | null): Promise<void>
+  submitIpqcRow(row: any, materialPackCode: string, operatorIdno: string | null, checkPackCodeMatch?: import("@/client").CheckMaterialMatchEnum | null): Promise<void>
 
   /**
    * IPQC slot 送出後的品牌額外欄位更新（可選）。

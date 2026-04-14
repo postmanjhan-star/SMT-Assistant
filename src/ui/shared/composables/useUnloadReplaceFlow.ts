@@ -55,6 +55,7 @@ export type UnloadReplaceUploader = {
     materialPackCode: string
     unfeedReason?: string | null
     operatorId?: string | null
+    checkPackCodeMatch?: CheckMaterialMatchEnum | null
   }) => Promise<void>
   uploadAppend: (params: {
     statId: number
@@ -62,6 +63,7 @@ export type UnloadReplaceUploader = {
     subSlotIdno: string | null
     materialPackCode: string
     operatorId?: string | null
+    correctState?: CheckMaterialMatchEnum | null  // CheckMaterialMatchEnum matches PostProductionFeedUploader's param type
   }) => Promise<void>
   fetchMaterialInventory: (code: string) => Promise<{ material_idno?: string }>
 }
@@ -73,6 +75,8 @@ export type UseUnloadReplaceFlowOptions<TRow extends UnloadReplaceRowBase> = {
   slotStrategy: UnloadReplaceSlotStrategy<TRow>
   uploader: UnloadReplaceUploader
   getOperatorId: () => string | null
+  isTestingMode: () => boolean
+  isMockMode?: () => boolean
   ui: {
     success: (msg: string) => void
     error: (msg: string) => void
@@ -89,6 +93,24 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
   options: UseUnloadReplaceFlowOptions<TRow>
 ) {
   const { getGridApi, slotStrategy, uploader, getOperatorId, ui } = options
+
+  // ── ERP 查詢分類（FEED 類：S5566 接料使用） ────────────────────────────────
+
+  async function resolveExistenceCorrectState(
+    materialPackCode: string,
+  ): Promise<CheckMaterialMatchEnum | null> {
+    if (options.isMockMode?.() && !options.isTestingMode()) {
+      return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    }
+    try {
+      await uploader.fetchMaterialInventory(materialPackCode.trim())
+      return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    } catch (error) {
+      if (options.isTestingMode()) return CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
+      ui.error(resolveMaterialLookupError(error))
+      return null
+    }
+  }
 
   // ── Unload mode state ──────────────────────────────────────────────────────
 
@@ -227,6 +249,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     materialPackCode: string
     slotIdno: string
     unfeedReason?: string | null
+    checkPackCodeMatch?: CheckMaterialMatchEnum | null
   }): Promise<boolean> {
     const materialPackCode = params.materialPackCode.trim()
     const slotIdno = params.slotIdno.trim()
@@ -254,6 +277,9 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       return false
     }
 
+    // UNFEED 不查 ERP：沿用呼叫端傳入的 checkPackCodeMatch（來自 row.correct）
+    const checkPackCodeMatch = params.checkPackCodeMatch ?? (row.correct as CheckMaterialMatchEnum | null)
+
     try {
       await uploader.uploadUnfeed({
         statId,
@@ -262,6 +288,7 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
         materialPackCode,
         unfeedReason: params.unfeedReason ?? 'MATERIAL_FINISHED',
         operatorId: getOperatorId(),
+        checkPackCodeMatch,
       })
 
       let nextAppended = currentLoadedPackCode
@@ -328,10 +355,14 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       return { ok: false }
     }
 
+    // UNFEED 不查 ERP：直接用 row.correct（與同 barcode 的上料/接料紀錄一致）
+    const checkPackCodeMatch = row.correct as CheckMaterialMatchEnum | null
+
     const success = await submitUnload({
       materialPackCode,
       slotIdno,
       unfeedReason: params.unfeedReason ?? 'WRONG_MATERIAL',
+      checkPackCodeMatch,
     })
 
     if (!success) {
@@ -435,6 +466,10 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
 
     const { row, statId, uploadSlotIdno, uploadSubSlotIdno, displaySlotIdno, rowId } = resolved
 
+    // S5566 FEED：查 ERP 決定 check_pack_code_match
+    const checkPackCodeMatch = await resolveExistenceCorrectState(materialPackCode)
+    if (checkPackCodeMatch === null) return false
+
     try {
       await uploader.uploadAppend({
         statId,
@@ -442,16 +477,17 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
         subSlotIdno: uploadSubSlotIdno,
         materialPackCode,
         operatorId: getOperatorId(),
+        correctState: checkPackCodeMatch,
       })
 
       const now = new Date().toISOString()
       row.spliceMaterialInventoryIdno = materialPackCode
-      row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+      row.correct = checkPackCodeMatch
       row.operationTime = now
 
       safeGridUpdate(rowId, {
         spliceMaterialInventoryIdno: materialPackCode,
-        correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+        correct: checkPackCodeMatch,
         operationTime: now,
       })
 

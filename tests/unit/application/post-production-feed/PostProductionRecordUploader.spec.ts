@@ -1,4 +1,5 @@
 import { PostProductionRecordUploader } from "@/application/post-production-feed/PostProductionRecordUploader"
+import { CheckMaterialMatchEnum } from "@/client"
 
 const FIXED_TIME = "2024-06-01T00:00:00.000Z"
 
@@ -57,7 +58,7 @@ describe("PostProductionRecordUploader", () => {
         slotIdno: "10008",
         subSlotIdno: null,
         materialPackCode: "PACK-002",
-        correctState: "TESTING_MATERIAL_PACK",
+        correctState: CheckMaterialMatchEnum.TESTING_MATERIAL_PACK,
       })
 
       const payload = api.uploadFeedRecord.mock.calls[0][0]
@@ -76,7 +77,7 @@ describe("PostProductionRecordUploader", () => {
         subSlotIdno: "L",
         materialPackCode: "PACK-003",
         feedMaterialPackType: "INSPECTION_MATERIAL_PACK" as any,
-        correctState: "MATCHED_MATERIAL_PACK",
+        correctState: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
       })
 
       const payload = api.uploadFeedRecord.mock.calls[0][0]
@@ -109,7 +110,7 @@ describe("PostProductionRecordUploader", () => {
         feed_material_pack_type: null,
         unfeed_material_pack_type: "NORMAL_UNFEED",
         unfeed_reason: "MATERIAL_CHANGE",
-        check_pack_code_match: "MATCHED_MATERIAL_PACK",
+        check_pack_code_match: null,
         operator_id: "OP-99",
         operation_time: FIXED_TIME,
       })
@@ -128,6 +129,22 @@ describe("PostProductionRecordUploader", () => {
 
       const payload = api.uploadFeedRecord.mock.calls[0][0]
       expect(payload.unfeed_reason).toBeNull()
+    })
+
+    it("checkPackCodeMatch 傳入時會帶入 payload", async () => {
+      const api = makeApi()
+      const uploader = new PostProductionRecordUploader(api as any)
+
+      await uploader.uploadUnfeed({
+        statId: 1,
+        slotIdno: "10008",
+        subSlotIdno: "L",
+        materialPackCode: "PACK-OUT",
+        checkPackCodeMatch: CheckMaterialMatchEnum.TESTING_MATERIAL_PACK,
+      })
+
+      const payload = api.uploadFeedRecord.mock.calls[0][0]
+      expect(payload.check_pack_code_match).toBe("TESTING_MATERIAL_PACK")
     })
   })
 

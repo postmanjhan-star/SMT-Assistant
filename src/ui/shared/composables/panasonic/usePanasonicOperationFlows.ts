@@ -96,13 +96,14 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
     },
 
     // ── Record builders ─────────────────────────────────────────────────────
-    buildUnloadRecord(row: any, { materialPackCode, unfeedReason, operationTime }): PanasonicUnloadRecord {
+    buildUnloadRecord(row: any, { materialPackCode, unfeedReason, operationTime, checkPackCodeMatch }): PanasonicUnloadRecord {
       return {
         slotIdno:     row.slotIdno,
         subSlotIdno:  row.subSlotIdno ?? null,
         materialPackCode,
         unfeedReason,
         operationTime,
+        checkPackCodeMatch: checkPackCodeMatch ?? null,
       }
     },
 
@@ -116,13 +117,14 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
       }
     },
 
-    buildIpqcRecord(_row: any, { slotIdno, materialPackCode, inspectorIdno, inspectionTime }): IpqcInspectionRecord {
+    buildIpqcRecord(_row: any, { slotIdno, materialPackCode, inspectorIdno, inspectionTime, checkPackCodeMatch }): IpqcInspectionRecord {
       return {
         slotIdno:      _row.slotIdno,
         subSlotIdno:   _row.subSlotIdno ?? null,
         materialPackCode,
         inspectorIdno,
         inspectionTime,
+        checkPackCodeMatch: checkPackCodeMatch ?? null,
       }
     },
   }

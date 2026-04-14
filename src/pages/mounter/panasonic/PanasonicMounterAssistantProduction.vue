@@ -87,6 +87,7 @@ const {
   validateReplacementMaterialForSlot,
   submitReplace,
   submitSplice,
+  fetchMaterialInventory,
   rollShortageFormRef,
   rollShortageFormValue,
   showRollShortageModal,
@@ -102,6 +103,7 @@ const {
   ui,
 } = usePanasonicProductionPage({
   onResetInputs: resetInputsAfterSlotSubmit,
+  isMockMode,
 })
 
 const { rowData: materialQueryRawData, load: loadMaterialQuery } = usePanasonicMaterialQueryState(productionUuid)
@@ -220,7 +222,8 @@ const {
   validateReplacementMaterialForSlot,
   submitReplace,
   submitSplice,
-  inspectionUpload: async ({ statId, slotIdno, subSlotIdno, materialPackCode, operatorIdno }) => {
+  fetchMaterialInventory,
+  inspectionUpload: async ({ statId, slotIdno, subSlotIdno, materialPackCode, operatorIdno, checkPackCodeMatch }) => {
     await SmtService.addPanasonicMounterItemStatRoll({
       requestBody: {
         stat_item_id: statId,
@@ -231,7 +234,7 @@ const {
         material_pack_code: materialPackCode,
         operation_type: "FEED" as any,
         feed_material_pack_type: "INSPECTION_MATERIAL_PACK" as any,
-        check_pack_code_match: "MATCHED_MATERIAL_PACK" as any,
+        check_pack_code_match: (checkPackCodeMatch ?? "MATCHED_MATERIAL_PACK") as any,
         unfeed_reason: null,
       },
     })

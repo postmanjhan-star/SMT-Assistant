@@ -97,13 +97,14 @@ function buildFujiPreproductionAdapter(
     },
 
     // ── Record 組裝 ───────────────────────────────────────────────────────
-    buildUnloadRecord(row: any, { materialPackCode, unfeedReason, operationTime }): FujiPreproductionUnloadRecord {
+    buildUnloadRecord(row: any, { materialPackCode, unfeedReason, operationTime, checkPackCodeMatch }): FujiPreproductionUnloadRecord {
       return {
         slot:  row.slot  as number,
         stage: row.stage as string,
         materialPackCode,
         unfeedReason,
         operationTime,
+        checkPackCodeMatch: checkPackCodeMatch ?? null,
       }
     },
 
@@ -117,7 +118,7 @@ function buildFujiPreproductionAdapter(
       }
     },
 
-    buildIpqcRecord(_row: any, { slotIdno, materialPackCode, inspectorIdno, inspectionTime }): IpqcInspectionRecord {
+    buildIpqcRecord(_row: any, { slotIdno, materialPackCode, inspectorIdno, inspectionTime, checkPackCodeMatch }): IpqcInspectionRecord {
       const parsed = parseFujiSlotIdno(slotIdno)
       return {
         slotIdno,
@@ -126,8 +127,10 @@ function buildFujiPreproductionAdapter(
         materialPackCode,
         inspectorIdno,
         inspectionTime,
+        checkPackCodeMatch: checkPackCodeMatch ?? null,
       }
     },
+
   }
 }
 

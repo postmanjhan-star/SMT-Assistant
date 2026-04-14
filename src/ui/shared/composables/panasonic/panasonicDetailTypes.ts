@@ -1,3 +1,4 @@
+import type { CheckMaterialMatchEnum } from "@/client"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 
 export type PanasonicUnloadRecord = {
@@ -6,6 +7,7 @@ export type PanasonicUnloadRecord = {
   materialPackCode: string
   unfeedReason?: string | null
   operationTime: string
+  checkPackCodeMatch?: CheckMaterialMatchEnum | null
 }
 
 export type PanasonicSpliceRecord = {

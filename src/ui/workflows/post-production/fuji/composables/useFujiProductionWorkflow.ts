@@ -56,10 +56,15 @@ function toUploadSubSlotIdno(value: unknown): string | null {
 }
 
 
+export type FujiProductionWorkflowOptions = {
+  isMockMode?: boolean
+  deps?: Partial<FujiPostproductionDeps>
+}
+
 export function useFujiProductionWorkflow(
-  deps: Partial<FujiPostproductionDeps> = {}
+  options: FujiProductionWorkflowOptions = {}
 ) {
-  const { createUploader } = createFujiPostproductionDeps(deps)
+  const { createUploader } = createFujiPostproductionDeps(options.deps)
   const route = useRoute()
   const router = useRouter()
   const dialog = useDialog()
@@ -226,6 +231,8 @@ export function useFujiProductionWorkflow(
     slotStrategy: fujiSlotStrategy,
     uploader: fujiUploader,
     getOperatorId: () => currentUsername.value || null,
+    isTestingMode: () => isTestingMode.value,
+    isMockMode: () => options.isMockMode === true,
     ui: { success: showSuccess, error: showError },
     onEnterUnloadMode: resetForms,
     onAfterReplaceGridUpdate: (rowId, api, now) => {
@@ -282,16 +289,21 @@ export function useFujiProductionWorkflow(
     inputSlot: string
     inputSubSlot: string
     materialInventory: { idno: string }
+    checkPackCodeMatch?: CheckMaterialMatchEnum | null
   }) {
     await fujiUploader.uploadAppend({
       statId: params.stat_id,
       slotIdno: params.inputSlot,
       subSlotIdno: params.inputSubSlot ?? null,
       materialPackCode: params.materialInventory.idno,
-      correctState: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+      correctState: params.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
       feedMaterialPackType: 'INSPECTION_MATERIAL_PACK',
       operatorId: currentUsername.value || null,
     })
+  }
+
+  function fetchMaterialInventory(code: string): Promise<unknown> {
+    return fujiUploader.fetchMaterialInventory(code)
   }
 
   // ── Inspection update ──────────────────────────────────────────────────────
@@ -528,6 +540,7 @@ export function useFujiProductionWorkflow(
     showError,
     showSuccess,
     mounterData,
+    fetchMaterialInventory,
     inspectionUpload,
     applyInspectionUpdate,
   }

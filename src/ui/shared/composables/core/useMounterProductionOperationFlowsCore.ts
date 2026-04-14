@@ -1,5 +1,7 @@
 import { computed, nextTick, ref } from "vue"
 import type { ComputedRef, Ref } from "vue"
+import { CheckMaterialMatchEnum } from "@/client"
+import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import {
   MATERIAL_UNLOAD_TRIGGER,
   MATERIAL_FORCE_UNLOAD_TRIGGER,
@@ -39,6 +41,8 @@ export type MounterProductionFlowsCoreOptions = {
   handleUserSwitchTrigger: (code: string) => boolean
   clearNormalScanState: () => void
   focusMaterialInput: () => void
+  // ERP 查詢（供 IPQC 使用，throws on error）
+  fetchMaterialInventory: (code: string) => Promise<unknown>
   // 即時 API（從 workflow/page 層注入）
   submitUnload(params: { materialPackCode: string; slotIdno: string }): Promise<boolean>
   submitForceUnloadBySlot(params: { slotIdno: string; unfeedReason?: string | null }): Promise<{ ok: boolean; slotIdno?: string }>
@@ -47,12 +51,6 @@ export type MounterProductionFlowsCoreOptions = {
   validateReplacementMaterialForSlot(params: { materialPackCode: string; slotIdno: string }): Promise<boolean>
   submitReplace(params: { materialPackCode: string; slotIdno: string }): Promise<boolean>
   submitSplice(params: { materialPackCode: string; slotIdno: string }): Promise<boolean>
-  /**
-   * IPQC 物料驗證（可選）。若未提供，複用 validateUnloadMaterialPackCode。
-   * Panasonic 需要在 testing mode 下仍驗證 ERP，故注入不同實作；
-   * Fuji 直接複用 validateUnloadMaterialPackCode（testing mode 跳過驗證）。
-   */
-  validateIpqcMaterialPackCode?: (code: string) => Promise<boolean>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,7 +67,23 @@ export function useMounterProductionOperationFlowsCore(
     clearNormalScanState, focusMaterialInput,
   } = options
 
-  const doIpqcValidation = options.validateIpqcMaterialPackCode ?? options.validateUnloadMaterialPackCode
+  // ── IPQC ERP 分類 ─────────────────────────────────────────────────────────
+
+  async function resolveIpqcCorrectState(
+    materialPackCode: string,
+  ): Promise<CheckMaterialMatchEnum | null> {
+    if (isMockMode && !isTestingMode.value) return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    try {
+      await options.fetchMaterialInventory(materialPackCode.trim())
+      return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    } catch (error) {
+      if (isTestingMode.value) return CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
+      showError(resolveMaterialLookupError(error))
+      return null
+    }
+  }
+
+  const ipqcCheckPackCodeMatch = ref<CheckMaterialMatchEnum | null>(null)
 
   // ── State machine ──────────────────────────────────────────────────────────
 
@@ -275,6 +289,7 @@ export function useMounterProductionOperationFlowsCore(
 
   function enterIpqcMode() {
     machine.enterIpqcMode()
+    ipqcCheckPackCodeMatch.value = null
     clearNormalScanState()
 
     const saved = new Map<string, unknown>()
@@ -292,6 +307,7 @@ export function useMounterProductionOperationFlowsCore(
 
   function exitIpqcMode() {
     machine.exitToNormal()
+    ipqcCheckPackCodeMatch.value = null
     for (const row of rowData.value) {
       const key = adapter.toRowKey(row)
       const saved = ipqcSavedCorrectStates.value.get(key)
@@ -566,13 +582,14 @@ export function useMounterProductionOperationFlowsCore(
       return
     }
 
-    const isValid = await doIpqcValidation(materialPackCode)
-    if (!isValid) {
+    const checkPackCodeMatch = await resolveIpqcCorrectState(materialPackCode)
+    if (!checkPackCodeMatch) {
       ipqcMaterialValue.value = ""
       focusIpqcMaterialInput()
       return
     }
 
+    ipqcCheckPackCodeMatch.value = checkPackCodeMatch
     ipqcMaterialValue.value = materialPackCode
     showSuccess(msg.ipqc.materialScanned(materialPackCode))
     focusIpqcSlotInput()
@@ -610,7 +627,7 @@ export function useMounterProductionOperationFlowsCore(
     }
 
     // 更新 row 欄位
-    row.correct = PRODUCTION_CORRECT.MATCHED
+    row.correct = ipqcCheckPackCodeMatch.value ?? PRODUCTION_CORRECT.MATCHED
     row.inspectMaterialPackCode = materialPackCode
     row.inspectTime  = new Date().toISOString()
     row.inspectCount = (row.inspectCount ?? 0) + 1
@@ -622,8 +639,9 @@ export function useMounterProductionOperationFlowsCore(
     updateRowInGrid(row)
 
     // 品牌專屬即時上傳（try/catch 在 adapter 內處理）
-    await adapter.submitIpqcRow(row, materialPackCode, currentUsername.value)
+    await adapter.submitIpqcRow(row, materialPackCode, currentUsername.value, ipqcCheckPackCodeMatch.value)
 
+    ipqcCheckPackCodeMatch.value = null
     showSuccess(msg.ipqc.inspectionSuccess(materialPackCode, slotIdno))
     ipqcSlotValue.value = ""
     ipqcMaterialValue.value = ""
@@ -641,13 +659,7 @@ export function useMounterProductionOperationFlowsCore(
       return
     }
 
-    const isValid = isMockMode || await options.validateUnloadMaterialPackCode(materialPackCode)
-    if (!isValid) {
-      unloadMaterialValue.value = ""
-      focusUnloadMaterialInput()
-      return
-    }
-
+    // UNFEED (S5555) 不查 ERP：checkPackCodeMatch 由 submitUnload 內部從 row.correct 取得
     const success = await options.submitUnload({
       materialPackCode,
       slotIdno: resolved.slotIdno,

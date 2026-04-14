@@ -52,6 +52,7 @@ function makeOptions(
     handleUserSwitchTrigger: vi.fn().mockReturnValue(false),
     clearNormalScanState: vi.fn(),
     focusMaterialInput: vi.fn(),
+    fetchMaterialInventory: vi.fn().mockResolvedValue({}),
     submitUnload: vi.fn().mockResolvedValue(true),
     submitForceUnloadBySlot: vi.fn().mockResolvedValue({ ok: true, slotIdno: '1' }),
     findUniqueUnloadSlotByPackCode: vi.fn().mockReturnValue({ ok: true, slotIdno: '1' }),
@@ -317,13 +318,19 @@ describe('useMounterProductionOperationFlowsCore', () => {
       expect(core.isIpqcMode.value).toBe(true)
 
       core.ipqcMaterialValue.value = 'BARCODE-001'
+      await core.handleIpqcMaterialSubmit()
       core.ipqcSlotValue.value = '1'
       await core.handleIpqcSlotSubmit()
 
       expect(row.correct).toBe('MATCHED_MATERIAL_PACK')
       expect(row.inspectorIdno).toBe('INSPECTOR-01')
       expect(row.inspectCount).toBe(1)
-      expect(submitIpqcRow).toHaveBeenCalledWith(row, 'BARCODE-001', 'INSPECTOR-01')
+      expect(submitIpqcRow).toHaveBeenCalledWith(
+        row,
+        'BARCODE-001',
+        'INSPECTOR-01',
+        'MATCHED_MATERIAL_PACK',
+      )
     })
 
     it('afterIpqcRowUpdate 被呼叫（Panasonic remark 類似邏輯）', async () => {
@@ -361,6 +368,37 @@ describe('useMounterProductionOperationFlowsCore', () => {
 
       expect(opts.showError).toHaveBeenCalledWith(expect.stringContaining('料號不符'))
       expect(submitIpqcRow).not.toHaveBeenCalled()
+    })
+
+    it('testing mode + ERP 查無 → 以 TESTING_MATERIAL_PACK 呼叫 submitIpqcRow', async () => {
+      const row = makeRow({ materialInventoryIdno: 'BARCODE-001', appendedMaterialInventoryIdno: 'BARCODE-001' })
+      const submitIpqcRow = vi.fn().mockResolvedValue(undefined)
+      const findRowBySlotInput = vi.fn().mockReturnValue(row)
+      const fetchMaterialInventory = vi.fn().mockRejectedValue(new Error('Not Found'))
+
+      const { core } = setupCore(
+        {
+          rowData: ref([row]),
+          isTestingMode: ref(true),
+          isMockMode: false,
+          fetchMaterialInventory,
+        },
+        { findRowBySlotInput, submitIpqcRow },
+      )
+
+      core.handleBeforeMaterialScan('S5588')
+      core.ipqcMaterialValue.value = 'BARCODE-001'
+      await core.handleIpqcMaterialSubmit()
+      core.ipqcSlotValue.value = '1'
+      await core.handleIpqcSlotSubmit()
+
+      expect(row.correct).toBe('TESTING_MATERIAL_PACK')
+      expect(submitIpqcRow).toHaveBeenCalledWith(
+        row,
+        'BARCODE-001',
+        'INSPECTOR-01',
+        'TESTING_MATERIAL_PACK',
+      )
     })
   })
 
@@ -401,14 +439,14 @@ describe('useMounterProductionOperationFlowsCore', () => {
     })
   })
 
-  describe('validateIpqcMaterialPackCode', () => {
-    it('未提供 validateIpqcMaterialPackCode 時，複用 validateUnloadMaterialPackCode（isMockMode=false）', async () => {
+  describe('IPQC ERP validation (fetchMaterialInventory)', () => {
+    it('isMockMode=false 時，IPQC 物料掃描呼叫 fetchMaterialInventory', async () => {
       const row = makeRow({ materialInventoryIdno: 'BARCODE-001' })
-      const validateUnloadMaterialPackCode = vi.fn().mockResolvedValue(true)
+      const fetchMaterialInventory = vi.fn().mockResolvedValue({})
       const findRowBySlotInput = vi.fn().mockReturnValue(row)
 
       const { core } = setupCore(
-        { rowData: ref([row]), validateUnloadMaterialPackCode, isMockMode: false },
+        { rowData: ref([row]), fetchMaterialInventory, isMockMode: false },
         { findRowBySlotInput },
       )
 
@@ -416,22 +454,16 @@ describe('useMounterProductionOperationFlowsCore', () => {
       core.ipqcMaterialValue.value = 'BARCODE-001'
       await core.handleIpqcMaterialSubmit()
 
-      expect(validateUnloadMaterialPackCode).toHaveBeenCalledWith('BARCODE-001')
+      expect(fetchMaterialInventory).toHaveBeenCalledWith('BARCODE-001')
     })
 
-    it('提供 validateIpqcMaterialPackCode 時，使用獨立的驗證函數', async () => {
+    it('isMockMode=true 且非試產時，IPQC 跳過 ERP 查詢', async () => {
       const row = makeRow({ materialInventoryIdno: 'BARCODE-001' })
-      const validateUnloadMaterialPackCode = vi.fn().mockResolvedValue(true)
-      const validateIpqcMaterialPackCode = vi.fn().mockResolvedValue(true)
+      const fetchMaterialInventory = vi.fn().mockResolvedValue({})
       const findRowBySlotInput = vi.fn().mockReturnValue(row)
 
       const { core } = setupCore(
-        {
-          rowData: ref([row]),
-          validateUnloadMaterialPackCode,
-          validateIpqcMaterialPackCode,
-          isMockMode: false,
-        },
+        { rowData: ref([row]), fetchMaterialInventory, isMockMode: true, isTestingMode: ref(false) },
         { findRowBySlotInput },
       )
 
@@ -439,8 +471,7 @@ describe('useMounterProductionOperationFlowsCore', () => {
       core.ipqcMaterialValue.value = 'BARCODE-001'
       await core.handleIpqcMaterialSubmit()
 
-      expect(validateIpqcMaterialPackCode).toHaveBeenCalledWith('BARCODE-001')
-      expect(validateUnloadMaterialPackCode).not.toHaveBeenCalled()
+      expect(fetchMaterialInventory).not.toHaveBeenCalled()
     })
   })
 

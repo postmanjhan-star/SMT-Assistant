@@ -1,7 +1,7 @@
 import { computed } from "vue"
 import type { ComputedRef, Ref } from "vue"
 import type { ColumnApi, GridApi } from "ag-grid-community"
-import type { FujiMounterItemStatRead } from "@/client"
+import { type CheckMaterialMatchEnum, type FujiMounterItemStatRead } from "@/client"
 import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
 import { isFujiStatSlotMatch } from "@/domain/production/buildFujiProductionRowData"
 import type { FujiProductionRowModel } from "@/domain/production/buildFujiProductionRowData"
@@ -42,11 +42,13 @@ export type FujiOperationFlowsOptions = {
   validateReplacementMaterialForSlot: (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   submitReplace:    (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
   submitSplice:     (params: { materialPackCode: string; slotIdno: string }) => Promise<boolean>
+  fetchMaterialInventory: (code: string) => Promise<unknown>
   inspectionUpload: (params: {
     stat_id: number
     inputSlot: string
     inputSubSlot: string
     materialInventory: { idno: string }
+    checkPackCodeMatch?: CheckMaterialMatchEnum | null
   }) => Promise<void>
   applyInspectionUpdate: (mounter: string, stage: string | null, slot: number | null, materialIdno: string) => void
 }
@@ -101,7 +103,7 @@ function buildFujiProductionAdapter(
     },
 
     // ── IPQC 即時上傳 ────────────────────────────────────────────────────
-    async submitIpqcRow(row: any, materialPackCode: string, _operatorIdno: string | null) {
+    async submitIpqcRow(row: any, materialPackCode: string, _operatorIdno: string | null, checkPackCodeMatch?: CheckMaterialMatchEnum | null) {
       const statItem = mounterData.value.find((s) =>
         isFujiStatSlotMatch(s, row.slot, row.stage)
       )
@@ -112,6 +114,7 @@ function buildFujiProductionAdapter(
           inputSlot: String(row.slot),
           inputSubSlot: row.stage,
           materialInventory: { idno: materialPackCode },
+          checkPackCodeMatch,
         })
         applyInspectionUpdate(row.mounterIdno, row.stage, row.slot, materialPackCode)
       } catch (error) {
@@ -137,18 +140,13 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
     findUniqueUnloadSlotByPackCode,
     validateUnloadMaterialPackCode,
     validateReplacementMaterialForSlot,
-    submitReplace, submitSplice, inspectionUpload, applyInspectionUpdate,
+    submitReplace, submitSplice, fetchMaterialInventory,
+    inspectionUpload, applyInspectionUpdate,
   } = options
 
   const adapter = buildFujiProductionAdapter(
     getGridApi, getColumnApi, mounterData, inspectionUpload, applyInspectionUpdate,
   )
-
-  // 原始行為：IPQC 物料驗證在 testing mode 跳過（不同於 unload 驗證）
-  const validateIpqcMaterialPackCode = async (code: string): Promise<boolean> => {
-    if (isTestingMode.value || isMockMode) return true
-    return validateUnloadMaterialPackCode(code)
-  }
 
   const core = useMounterProductionOperationFlowsCore(
     {
@@ -161,6 +159,7 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
       handleUserSwitchTrigger,
       clearNormalScanState,
       focusMaterialInput,
+      fetchMaterialInventory,
       submitUnload,
       submitForceUnloadBySlot,
       findUniqueUnloadSlotByPackCode,
@@ -168,7 +167,6 @@ export function useFujiOperationFlows(options: FujiOperationFlowsOptions) {
       validateReplacementMaterialForSlot,
       submitReplace,
       submitSplice,
-      validateIpqcMaterialPackCode,
     },
     adapter,
   )

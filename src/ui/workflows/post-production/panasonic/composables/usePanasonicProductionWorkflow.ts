@@ -33,7 +33,17 @@ import { msg } from "@/ui/shared/messageCatalog"
 
 export type PanasonicProductionWorkflowOptions = {
   onResetInputs: () => void
+  isMockMode?: boolean
   deps?: Partial<PostproductionPanasonicDeps>
+}
+
+export const mapTestingModeToProduceType = (
+  value: boolean | null
+): ProduceTypeEnum | null => {
+  if (value == null) return null
+  return value
+    ? ProduceTypeEnum.TESTING_PRODUCE_MODE
+    : ProduceTypeEnum.NORMAL_PRODUCE_MODE
 }
 
 export function usePanasonicProductionWorkflow(
@@ -91,19 +101,26 @@ export function usePanasonicProductionWorkflow(
   const recordApi = deps.createRecordApi()
   const recordUploader = deps.createRecordUploader(recordApi)
 
-  const inspectionUpload = (params: {
+  const inspectionUpload = async (params: {
     stat_id: number
     inputSlot: string
     inputSubSlot: string
     materialInventory: { idno: string }
-  }) =>
-    recordUploader.uploadInspection({
+    checkPackCodeMatch?: CheckMaterialMatchEnum | null
+  }): Promise<void> => {
+    await recordUploader.uploadInspection({
       statId: params.stat_id,
       slotIdno: params.inputSlot,
       subSlotIdno: params.inputSubSlot,
       materialPackCode: params.materialInventory.idno,
       operatorId: currentUsername.value || null,
+      checkPackCodeMatch: params.checkPackCodeMatch,
     })
+  }
+
+  function fetchMaterialInventory(code: string): Promise<unknown> {
+    return recordUploader.fetchMaterialInventory(code)
+  }
 
   const appendedMaterialUpload = (params: {
     stat_id: number
@@ -281,6 +298,8 @@ export function usePanasonicProductionWorkflow(
     slotStrategy: panasonicSlotStrategy,
     uploader: recordUploader,
     getOperatorId: () => currentUsername.value || null,
+    isTestingMode: () => isTestingMode.value,
+    isMockMode: () => options.isMockMode === true,
     ui: { success: ui.success, error: ui.error },
     onAfterReplaceGridUpdate: (rowId, api) => {
       api.getRowNode(rowId)?.setDataValue("operatorIdno", currentUsername.value || "")
@@ -343,9 +362,6 @@ export function usePanasonicProductionWorkflow(
 
   // ── Production start/stop ──────────────────────────────────────────────────
 
-  const convertProduceMode = (value: boolean | null): ProduceTypeEnum | null =>
-    value as unknown as ProduceTypeEnum
-
   const convertBoardSide = (value: string | null): BoardSideEnum | null =>
     value as unknown as BoardSideEnum
 
@@ -400,7 +416,7 @@ export function usePanasonicProductionWorkflow(
         sub_slot_idno: row.subSlotIdno ?? null,
         material_idno: row.materialIdno ?? null,
         material_pack_code: row.materialInventoryIdno ?? null,
-        produce_mode: convertProduceMode(testing),
+        produce_mode: mapTestingModeToProduceType(testing),
         check_pack_code_match:
           row.correct === "UNLOADED_MATERIAL_PACK" ? null : row.correct,
       }))
@@ -482,6 +498,7 @@ export function usePanasonicProductionWorkflow(
     validateReplacementMaterialForSlot,
     submitReplace,
     submitSplice,
+    fetchMaterialInventory,
     rollShortageFormRef,
     rollShortageFormValue,
     showRollShortageModal,

@@ -1,4 +1,5 @@
 import { computed, nextTick, ref } from "vue"
+import { CheckMaterialMatchEnum } from "@/client"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import {
@@ -65,6 +66,7 @@ export function useMounterOperationFlowsCore(
 
   const replacementCorrectState = ref<string | null>(null)
   const spliceSavedCorrectState = ref<{ rowKey: string; correct: unknown } | null>(null)
+  const ipqcCheckPackCodeMatch  = ref<CheckMaterialMatchEnum | null>(null)
 
   // ── Input values（v-model） ──────────────────────────────────────────────
 
@@ -288,6 +290,7 @@ export function useMounterOperationFlowsCore(
 
   function enterIpqcMode() {
     machine.enterIpqcMode()
+    ipqcCheckPackCodeMatch.value = null
     clearNormalScanState()
 
     const saved = new Map<string, unknown>()
@@ -305,6 +308,7 @@ export function useMounterOperationFlowsCore(
 
   function exitIpqcMode() {
     machine.exitToNormal()
+    ipqcCheckPackCodeMatch.value = null
     for (const row of rowData.value) {
       const key = adapter.toRowKey(row)
       const saved = ipqcSavedCorrectStates.value.get(key)
@@ -347,6 +351,26 @@ export function useMounterOperationFlowsCore(
 
   // ── Validation ────────────────────────────────────────────────────────────
 
+  /**
+   * FEED 類（S5566 接料、S5588 IPQC）：查詢 ERP，決定 check_pack_code_match。
+   * - mockMode & !testing → MATCHED（不查 ERP）
+   * - ERP 查到 → MATCHED
+   * - ERP 查無 + testing → TESTING
+   * - ERP 查無 + 正式 → showError, return null（阻斷操作）
+   */
+  async function resolveExistenceBasedCorrectState(
+    materialPackCode: string,
+  ): Promise<CheckMaterialMatchEnum | null> {
+    const trimmed = materialPackCode.trim()
+    if (!trimmed) { showError("請先輸入物料條碼"); return null }
+    if (isMockMode && !isTestingMode.value) return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    const result = await fetchMaterialInventory(trimmed)
+    if (result.kind === "ok") return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
+    if (isTestingMode.value) return CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
+    showError(resolveMaterialLookupError(result.error))
+    return null
+  }
+
   async function validateUnloadMaterialPackCode(materialPackCode: string): Promise<boolean> {
     const trimmed = materialPackCode.trim()
     if (!trimmed) {
@@ -373,16 +397,16 @@ export function useMounterOperationFlowsCore(
     if (!row) { showError(`找不到槽位 ${targetSlotIdno}`); return null }
 
     if (isMockMode && !isTestingMode.value) return CORRECT_STATE.MATCHED
-    if (isTestingMode.value) return CORRECT_STATE.TESTING
 
     const fetchResult = await fetchMaterialInventory(packCode)
     if (fetchResult.kind !== "ok") {
+      if (isTestingMode.value) return CORRECT_STATE.TESTING
       showError(resolveMaterialLookupError(fetchResult.error))
       return null
     }
     const scannedMaterialId  = String(fetchResult.materialInventory.material_idno ?? "").trim()
     const expectedMaterialId = String(row.materialIdno ?? "").trim()
-    if (!scannedMaterialId || scannedMaterialId !== expectedMaterialId) {
+    if (!isTestingMode.value && (!scannedMaterialId || scannedMaterialId !== expectedMaterialId)) {
       showError(`料號不符：站位 ${targetSlotIdno} 應為 ${expectedMaterialId}`)
       return null
     }
@@ -412,13 +436,14 @@ export function useMounterOperationFlowsCore(
       exitIpqcMode(); enterUnloadMode("force_single_slot"); ipqcMaterialValue.value = ""; return
     }
 
-    const isValid = await validateUnloadMaterialPackCode(materialPackCode)
-    if (!isValid) {
+    const checkPackCodeMatch = await resolveExistenceBasedCorrectState(materialPackCode)
+    if (!checkPackCodeMatch) {
       ipqcMaterialValue.value = ""
       focusIpqcMaterialInput()
       return
     }
 
+    ipqcCheckPackCodeMatch.value = checkPackCodeMatch
     ipqcMaterialValue.value = materialPackCode
     focusIpqcSlotInput()
   }
@@ -453,7 +478,7 @@ export function useMounterOperationFlowsCore(
       return
     }
 
-    row.correct = CORRECT_STATE.MATCHED
+    row.correct = (ipqcCheckPackCodeMatch.value ?? CORRECT_STATE.MATCHED) as string
     row.inspectMaterialPackCode = materialPackCode
     row.inspectTime  = new Date().toISOString()
     row.inspectCount = (row.inspectCount ?? 0) + 1
@@ -467,9 +492,11 @@ export function useMounterOperationFlowsCore(
         materialPackCode,
         inspectorIdno:  currentUsername.value || "",
         inspectionTime: new Date().toISOString(),
+        checkPackCodeMatch: ipqcCheckPackCodeMatch.value,
       }),
     ]
 
+    ipqcCheckPackCodeMatch.value = null
     ipqcSlotValue.value = ""
     ipqcMaterialValue.value = ""
     focusIpqcMaterialInput()
@@ -699,17 +726,23 @@ export function useMounterOperationFlowsCore(
   }
 
   async function handleUnloadMaterialSubmit(materialPackCode: string) {
-    // 統一流程：先 validate，再 find
-    const isValid = await validateUnloadMaterialPackCode(materialPackCode)
-    if (!isValid) {
+    const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
+    if (!resolved.ok || !resolved.row) {
+      showError(resolved.error ?? "找不到對應槽位")
       unloadMaterialValue.value = ""
       focusUnloadMaterialInput()
       return
     }
 
-    const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
-    if (!resolved.ok || !resolved.row) {
-      showError(resolved.error ?? "找不到對應槽位")
+    // UNFEED 不查 ERP：沿用同 barcode 的 splice record correctState，否則用 row.correct
+    const spliceRecord = (pendingSpliceRecords.value as Array<{ materialPackCode: string; correctState: string }>)
+      .find((r) => r.materialPackCode === materialPackCode)
+    const checkPackCodeMatch = (
+      spliceRecord ? spliceRecord.correctState : resolved.row.correct
+    ) as CheckMaterialMatchEnum | null
+
+    if (!checkPackCodeMatch) {
+      showError("找不到對應物料驗證狀態，請重新確認")
       unloadMaterialValue.value = ""
       focusUnloadMaterialInput()
       return
@@ -719,6 +752,7 @@ export function useMounterOperationFlowsCore(
       materialPackCode,
       unfeedReason:  "MATERIAL_FINISHED",
       operationTime: new Date().toISOString(),
+      checkPackCodeMatch,
     }))
 
     applyUnloadToRow(resolved.row, materialPackCode)
@@ -745,10 +779,25 @@ export function useMounterOperationFlowsCore(
       return
     }
 
+    // UNFEED 不查 ERP：沿用同 barcode 的 splice record correctState，否則用 row.correct
+    const spliceRecord = (pendingSpliceRecords.value as Array<{ materialPackCode: string; correctState: string }>)
+      .find((r) => r.materialPackCode === materialPackCode)
+    const checkPackCodeMatch = (
+      spliceRecord ? spliceRecord.correctState : row.correct
+    ) as CheckMaterialMatchEnum | null
+
+    if (!checkPackCodeMatch) {
+      showError("找不到對應物料驗證狀態，請重新確認")
+      unloadSlotValue.value = ""
+      focusUnloadSlotInput()
+      return
+    }
+
     pushUnloadRecord(adapter.buildUnloadRecord(row, {
       materialPackCode,
       unfeedReason:  "WRONG_MATERIAL",
       operationTime: new Date().toISOString(),
+      checkPackCodeMatch,
     }))
 
     applyUnloadToRow(row, materialPackCode)

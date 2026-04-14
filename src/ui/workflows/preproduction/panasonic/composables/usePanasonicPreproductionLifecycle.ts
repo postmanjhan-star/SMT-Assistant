@@ -146,7 +146,7 @@ export function usePanasonicPreproductionLifecycle(
           operation_type: MaterialOperationTypeEnum.UNFEED,
           unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
           unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
-          check_pack_code_match: null,
+          check_pack_code_match: record.checkPackCodeMatch ?? null,
         },
       })
     },
@@ -181,7 +181,7 @@ export function usePanasonicPreproductionLifecycle(
           material_pack_code: record.materialPackCode,
           operation_type: MaterialOperationTypeEnum.FEED,
           feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
-          check_pack_code_match: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+          check_pack_code_match: record.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
           unfeed_reason: null,
         },
       })

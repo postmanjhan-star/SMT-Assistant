@@ -1,5 +1,6 @@
 import { defineComponent, nextTick, ref } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
+import { CheckMaterialMatchEnum } from '@/client'
 import { useMounterOperationFlowsCore } from '@/ui/shared/composables/core/useMounterOperationFlowsCore'
 import type {
   MounterOperationFlowsAdapter,
@@ -43,6 +44,7 @@ function makeAdapter(overrides: Partial<MounterOperationFlowsAdapter> = {}): Mou
       materialPackCode: params.materialPackCode,
       inspectorIdno: params.inspectorIdno,
       inspectionTime: params.inspectionTime,
+      checkPackCodeMatch: params.checkPackCodeMatch ?? null,
     } as IpqcInspectionRecord),
     ...overrides,
   }
@@ -193,6 +195,39 @@ describe('useMounterOperationFlowsCore', () => {
       core.ipqcSlotValue.value = '2'
       await core.handleIpqcSlotSubmit()
       expect(row2.correct).toBe('MATCHED_MATERIAL_PACK')
+    })
+
+    it('testing mode + ERP 查無 → row.correct 與 pending record 皆為 TESTING_MATERIAL_PACK', async () => {
+      const row = makeRow({
+        materialInventoryIdno: 'BARCODE-001',
+        appendedMaterialInventoryIdno: '',
+      })
+      const findRowBySlotInput = vi.fn().mockReturnValue(row)
+      const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
+      const { core } = setupCore(
+        {
+          rowData: ref([row]),
+          isTestingMode: ref(true),
+          isMockMode: false,
+          fetchMaterialInventory: vi.fn().mockResolvedValue({
+            kind: 'error',
+            error: new Error('Not Found'),
+          }),
+          pendingIpqcRecords,
+        },
+        { findRowBySlotInput },
+      )
+
+      await core.handleBeforeMaterialScan('S5588')
+      core.ipqcMaterialValue.value = 'BARCODE-001'
+      await core.handleIpqcMaterialSubmit()
+      core.ipqcSlotValue.value = '1'
+      await core.handleIpqcSlotSubmit()
+
+      expect(row.correct).toBe(CheckMaterialMatchEnum.TESTING_MATERIAL_PACK)
+      expect(pendingIpqcRecords.value[0]?.checkPackCodeMatch).toBe(
+        CheckMaterialMatchEnum.TESTING_MATERIAL_PACK,
+      )
     })
   })
 

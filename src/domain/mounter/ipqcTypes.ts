@@ -1,3 +1,5 @@
+import type { CheckMaterialMatchEnum } from "@/client"
+
 export type IpqcInspectionRecord = {
   slotIdno: string
   subSlotIdno?: string | null
@@ -6,4 +8,5 @@ export type IpqcInspectionRecord = {
   materialPackCode: string
   inspectorIdno: string
   inspectionTime: string
+  checkPackCodeMatch?: CheckMaterialMatchEnum | null
 }

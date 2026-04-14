@@ -1,5 +1,6 @@
 import { defineComponent, ref } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
+import { CheckMaterialMatchEnum } from '@/client'
 import {
   useUnloadReplaceFlow,
   type UseUnloadReplaceFlowOptions,
@@ -52,6 +53,7 @@ function makeOptions(
       fetchMaterialInventory: vi.fn().mockResolvedValue({ material_idno: 'MAT-001' }),
     },
     getOperatorId: () => null,
+    isTestingMode: () => false,
     ui: {
       success: vi.fn(),
       error: vi.fn(),
@@ -146,5 +148,56 @@ describe('useUnloadReplaceFlow — submitReplace', () => {
       expect(row.appendedMaterialInventoryIdno).toBe('C')
       expect(row.spliceMaterialInventoryIdno).toBe(null)
     })
+  })
+})
+
+describe('useUnloadReplaceFlow — check_pack_code_match', () => {
+  it('submitUnfeed 未傳 checkPackCodeMatch 時沿用 row.correct', async () => {
+    const row = makeRow({
+      appendedMaterialInventoryIdno: 'A',
+      correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+    })
+    const uploadUnfeed = vi.fn().mockResolvedValue(undefined)
+    const { flow } = setupComposable([row], {
+      uploader: {
+        uploadUnfeed,
+        uploadAppend: vi.fn().mockResolvedValue(undefined),
+        fetchMaterialInventory: vi.fn().mockResolvedValue({ material_idno: 'MAT-001' }),
+      },
+    })
+
+    await flow.submitUnload({ materialPackCode: 'A', slotIdno: '1' })
+
+    expect(uploadUnfeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        checkPackCodeMatch: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+      }),
+    )
+  })
+
+  it('submitSplice 在 testing mode + ERP 查無 時帶 TESTING_MATERIAL_PACK，並同步 row.correct', async () => {
+    const row = makeRow({
+      appendedMaterialInventoryIdno: 'A',
+      correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+    })
+    const uploadAppend = vi.fn().mockResolvedValue(undefined)
+    const { flow } = setupComposable([row], {
+      isTestingMode: () => true,
+      uploader: {
+        uploadUnfeed: vi.fn().mockResolvedValue(undefined),
+        uploadAppend,
+        fetchMaterialInventory: vi.fn().mockRejectedValue(new Error('Not Found')),
+      },
+    })
+
+    const ok = await flow.submitSplice({ materialPackCode: 'NEW-PACK', slotIdno: '1' })
+
+    expect(ok).toBe(true)
+    expect(uploadAppend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correctState: CheckMaterialMatchEnum.TESTING_MATERIAL_PACK,
+      }),
+    )
+    expect(row.correct).toBe(CheckMaterialMatchEnum.TESTING_MATERIAL_PACK)
   })
 })

@@ -1,3 +1,4 @@
+import { CheckMaterialMatchEnum } from "@/client"
 import { FujiPostProductionRecordUploader } from "@/application/post-production-feed/FujiPostProductionRecordUploader"
 
 const FIXED_TIME = "2024-06-01T00:00:00.000Z"
@@ -88,7 +89,7 @@ describe("FujiPostProductionRecordUploader", () => {
         feed_material_pack_type: null,
         unfeed_material_pack_type: "NORMAL_UNFEED",
         unfeed_reason: "MATERIAL_CHANGE",
-        check_pack_code_match: "MATCHED_MATERIAL_PACK",
+        check_pack_code_match: null,
         operator_id: "OP-99",
         operation_time: FIXED_TIME,
       })
@@ -107,6 +108,22 @@ describe("FujiPostProductionRecordUploader", () => {
 
       const payload = api.uploadFeedRecord.mock.calls[0][0]
       expect(payload.unfeed_reason).toBeNull()
+    })
+
+    it("checkPackCodeMatch 傳入時會帶入 payload", async () => {
+      const api = makeApi()
+      const uploader = new FujiPostProductionRecordUploader(api as any)
+
+      await uploader.uploadUnfeed({
+        statId: 1,
+        slotIdno: "25",
+        subSlotIdno: "A",
+        materialPackCode: "PACK-OUT",
+        checkPackCodeMatch: CheckMaterialMatchEnum.TESTING_MATERIAL_PACK,
+      })
+
+      const payload = api.uploadFeedRecord.mock.calls[0][0]
+      expect(payload.check_pack_code_match).toBe("TESTING_MATERIAL_PACK")
     })
   })
 

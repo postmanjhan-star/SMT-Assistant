@@ -25,6 +25,7 @@ export class PostProductionRecordUploader extends PostProductionFeedUploader {
     subSlotIdno?: string | null
     materialPackCode: string
     operatorId?: string | null
+    checkPackCodeMatch?: CheckMaterialMatchEnum | null
   }) {
     const payload = buildPanasonicFeedRecordPayload({
       statId: params.statId,
@@ -33,7 +34,7 @@ export class PostProductionRecordUploader extends PostProductionFeedUploader {
       materialPackCode: params.materialPackCode,
       operationType: 'FEED',
       feedMaterialPackType: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
-      checkPackCodeMatch: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
+      checkPackCodeMatch: params.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
       operationTime: new Date().toISOString(),
       operatorId: params.operatorId ?? '',
     })

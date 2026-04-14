@@ -24,6 +24,26 @@ test('test scan panasonic mounter feed records in normal mode', async ({ page })
 
     test.setTimeout(300000);
 
+    const startProductionRequests: any[] = [];
+
+    await page.route('**/smt/panasonic_mounter_item/stats', async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST') return route.continue();
+
+        let body: any = null;
+        try {
+            body = request.postDataJSON();
+        } catch {
+            body = null;
+        }
+
+        if (body) {
+            startProductionRequests.push(body);
+        }
+
+        return route.continue();
+    });
+
     const records = readCsvRecords('tests/e2e/data/panasonic_mounter_feed_records.csv');
     console.log(`loaded ${records.length} records`);
 
@@ -37,6 +57,21 @@ test('test scan panasonic mounter feed records in normal mode', async ({ page })
     console.log('first row binding result:', await firstRowCell.innerText());
 
     console.log('normal mode scan completed, triggering start production...');
+
+    await expect
+        .poll(() => startProductionRequests.length)
+        .toBeGreaterThan(0);
+    const startPayload = startProductionRequests[startProductionRequests.length - 1];
+    expect(Array.isArray(startPayload)).toBe(true);
+    expect(startPayload.length).toBeGreaterThan(0);
+    expect(
+        startPayload.every(
+            (item: any) =>
+                item?.feed_material_pack_type === 'IMPORTED_MATERIAL_PACK' &&
+                item?.operation_type === 'FEED' &&
+                item?.produce_mode === 'NORMAL_PRODUCE_MODE'
+        )
+    ).toBe(true);
 
     
     await page.waitForURL(/\/smt\/panasonic-mounter-production\/.+/, { timeout: 300000 });
@@ -142,7 +177,8 @@ test('test scan panasonic mounter feed records in testing mode', async ({ page }
         startPayload.every(
             (item: any) =>
                 item?.feed_material_pack_type === 'IMPORTED_MATERIAL_PACK' &&
-                item?.operation_type === 'FEED'
+                item?.operation_type === 'FEED' &&
+                item?.produce_mode === 'TESTING_PRODUCE_MODE'
         )
     ).toBe(true);
 

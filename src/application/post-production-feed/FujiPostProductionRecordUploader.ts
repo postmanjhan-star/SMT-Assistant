@@ -1,5 +1,5 @@
 import { CheckMaterialMatchEnum, type PanasonicFeedRecordCreate } from '@/client'
-import { PostProductionFeedUploader, type PostProductionCorrectState } from './PostProductionFeedUploader'
+import { PostProductionFeedUploader } from './PostProductionFeedUploader'
 import type { FujiRecordApiPort } from './FujiRecordApiPort'
 
 export class FujiPostProductionRecordUploader extends PostProductionFeedUploader {
@@ -25,7 +25,7 @@ export class FujiPostProductionRecordUploader extends PostProductionFeedUploader
     slotIdno: string
     subSlotIdno?: string | null
     materialPackCode: string
-    correctState?: PostProductionCorrectState | null
+    correctState?: CheckMaterialMatchEnum | null
     feedMaterialPackType?: string | null
     operatorId?: string | null
   }) {
