@@ -1,6 +1,5 @@
 import { computed, nextTick, ref } from "vue"
 import { CheckMaterialMatchEnum } from "@/client"
-import { removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import {
   MATERIAL_SPLICE_TRIGGER,
   MATERIAL_FORCE_UNLOAD_TRIGGER,
@@ -11,12 +10,12 @@ import {
   MATERIAL_IPQC_MODE_NAME,
   MATERIAL_LOAD_MODE_NAME,
   MATERIAL_SPLICE_MODE_NAME,
-  USER_SWITCH_TRIGGER,
 } from "@/domain/mounter/operationModes"
 import { useOperationModeStateMachine } from "@/ui/shared/composables/useOperationModeStateMachine"
 import type { MounterOperationFlowsAdapter, MounterOperationFlowsCoreOptions } from "./MounterOperationFlowsAdapter"
 import { CORRECT_STATE, createMaterialPackCodeHelpers } from "./flows/materialPackCodeHelpers"
 import { createMaterialValidator } from "./flows/materialValidator"
+import { createIpqcCoordinator } from "./flows/ipqcCoordinator"
 
 export { CORRECT_STATE }
 
@@ -59,14 +58,11 @@ export function useMounterOperationFlowsCore(
 
   const replacementCorrectState = ref<string | null>(null)
   const spliceSavedCorrectState = ref<{ rowKey: string; correct: unknown } | null>(null)
-  const ipqcCheckPackCodeMatch  = ref<CheckMaterialMatchEnum | null>(null)
 
   // ── Input values（v-model） ──────────────────────────────────────────────
 
   const unloadMaterialValue  = ref("")
   const unloadSlotValue      = ref("")
-  const ipqcMaterialValue    = ref("")
-  const ipqcSlotValue        = ref("")
   const spliceMaterialValue  = ref("")
   const spliceSlotValue      = ref("")
 
@@ -74,12 +70,8 @@ export function useMounterOperationFlowsCore(
 
   const unloadMaterialInput = ref<HTMLInputElement | null>(null)
   const unloadSlotInput     = ref<HTMLInputElement | null>(null)
-  const ipqcMaterialInput   = ref<HTMLInputElement | null>(null)
-  const ipqcSlotInput       = ref<HTMLInputElement | null>(null)
   const spliceMaterialInput = ref<HTMLInputElement | null>(null)
   const spliceSlotInput     = ref<HTMLInputElement | null>(null)
-
-  const ipqcSavedCorrectStates = ref<Map<string, unknown>>(new Map())
 
   // ── Material pack code helpers ────────────────────────────────────────────
 
@@ -181,16 +173,6 @@ export function useMounterOperationFlowsCore(
     return adapter.findRowBySlotInput(slotIdno, rowData.value)
   }
 
-  // ── IPQC columns ──────────────────────────────────────────────────────────
-
-  function showIpqcColumns(visible: boolean) {
-    adapter.setColumnVisible("inspectMaterialPackCode", visible)
-    adapter.setColumnVisible("inspectTime", visible)
-    adapter.setColumnVisible("inspectCount", visible)
-    adapter.setColumnVisible("inspectorIdno", visible)
-    adapter.toggleNormalColumnsForIpqc?.(visible)
-  }
-
   // ── Focus helpers ─────────────────────────────────────────────────────────
 
   function focusUnloadMaterialInput() {
@@ -207,14 +189,6 @@ export function useMounterOperationFlowsCore(
     } else {
       focusUnloadMaterialInput()
     }
-  }
-
-  function focusIpqcMaterialInput() {
-    nextTick(() => { ipqcMaterialInput.value?.focus() })
-  }
-
-  function focusIpqcSlotInput() {
-    nextTick(() => { ipqcSlotInput.value?.focus() })
   }
 
   function focusSpliceMaterialInput() {
@@ -248,42 +222,6 @@ export function useMounterOperationFlowsCore(
     unloadMaterialValue.value = ""
     unloadSlotValue.value = ""
     clearNormalScanState()
-    focusMaterialInput()
-  }
-
-  function enterIpqcMode() {
-    machine.enterIpqcMode()
-    ipqcCheckPackCodeMatch.value = null
-    clearNormalScanState()
-
-    const saved = new Map<string, unknown>()
-    for (const row of rowData.value) {
-      const key = adapter.toRowKey(row)
-      saved.set(key, row.correct)
-      row.correct = CORRECT_STATE.UNLOADED
-      updateRowInGrid(row)
-    }
-    ipqcSavedCorrectStates.value = saved
-
-    showIpqcColumns(true)
-    focusIpqcMaterialInput()
-  }
-
-  function exitIpqcMode() {
-    machine.exitToNormal()
-    ipqcCheckPackCodeMatch.value = null
-    for (const row of rowData.value) {
-      const key = adapter.toRowKey(row)
-      const saved = ipqcSavedCorrectStates.value.get(key)
-      if (saved !== undefined) {
-        row.correct = saved
-        updateRowInGrid(row)
-      }
-    }
-    ipqcSavedCorrectStates.value.clear()
-    showIpqcColumns(false)
-    ipqcMaterialValue.value = ""
-    ipqcSlotValue.value = ""
     focusMaterialInput()
   }
 
@@ -326,95 +264,38 @@ export function useMounterOperationFlowsCore(
     findRowBySlotIdno,
   })
 
-  // ── IPQC handlers ─────────────────────────────────────────────────────────
+  // ── IPQC coordinator ──────────────────────────────────────────────────────
 
-  async function handleIpqcMaterialSubmit() {
-    const materialPackCode = ipqcMaterialValue.value.trim()
-    if (!materialPackCode) return
+  const ipqc = createIpqcCoordinator({
+    machine,
+    adapter,
+    rowData,
+    currentUsername,
+    pendingIpqcRecords,
+    resolveExistenceBasedCorrectState,
+    getCurrentPackCode,
+    findRowBySlotIdno,
+    updateRowInGrid,
+    showError,
+    clearNormalScanState,
+    focusMaterialInput,
+    persistNow,
+    handleUserSwitchTrigger,
+    enterSpliceMode: () => enterSpliceMode(),
+    enterUnloadMode: (type) => enterUnloadMode(type),
+  })
 
-    const code = materialPackCode.toUpperCase()
-    if (code === MATERIAL_IPQC_TRIGGER) {
-      exitIpqcMode(); ipqcMaterialValue.value = ""; return
-    }
-    if (code === MATERIAL_SPLICE_TRIGGER) {
-      exitIpqcMode(); enterSpliceMode(); ipqcMaterialValue.value = ""; return
-    }
-    if (code === USER_SWITCH_TRIGGER) {
-      exitIpqcMode(); handleUserSwitchTrigger(code); ipqcMaterialValue.value = ""; return
-    }
-    if (code === MATERIAL_UNLOAD_TRIGGER) {
-      exitIpqcMode(); enterUnloadMode("pack_auto_slot"); ipqcMaterialValue.value = ""; return
-    }
-    if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-      exitIpqcMode(); enterUnloadMode("force_single_slot"); ipqcMaterialValue.value = ""; return
-    }
-
-    const checkPackCodeMatch = await resolveExistenceBasedCorrectState(materialPackCode)
-    if (!checkPackCodeMatch) {
-      ipqcMaterialValue.value = ""
-      focusIpqcMaterialInput()
-      return
-    }
-
-    ipqcCheckPackCodeMatch.value = checkPackCodeMatch
-    ipqcMaterialValue.value = materialPackCode
-    focusIpqcSlotInput()
-  }
-
-  function handleIpqcSlotSubmit() {
-    const slotIdno = ipqcSlotValue.value.trim()
-    if (!slotIdno) return
-
-    const code = slotIdno.toUpperCase()
-    if (code === MATERIAL_IPQC_TRIGGER) {
-      exitIpqcMode(); ipqcSlotValue.value = ""; return
-    }
-    if (code === MATERIAL_SPLICE_TRIGGER) {
-      exitIpqcMode(); enterSpliceMode(); ipqcSlotValue.value = ""; return
-    }
-
-    const materialPackCode = ipqcMaterialValue.value.trim()
-    const row = findRowBySlotIdno(slotIdno)
-    if (!row) {
-      showError(`找不到槽位 ${slotIdno}`)
-      ipqcSlotValue.value = ""
-      focusIpqcSlotInput()
-      return
-    }
-
-    const currentPackCode = getCurrentPackCode(row)
-    if (materialPackCode !== currentPackCode) {
-      showError(`料號不符：掃描 ${materialPackCode}，槽位應為 ${currentPackCode}`)
-      ipqcSlotValue.value = ""
-      ipqcMaterialValue.value = ""
-      focusIpqcMaterialInput()
-      return
-    }
-
-    row.correct = (ipqcCheckPackCodeMatch.value ?? CORRECT_STATE.MATCHED) as string
-    row.inspectMaterialPackCode = materialPackCode
-    row.inspectTime  = new Date().toISOString()
-    row.inspectCount = (row.inspectCount ?? 0) + 1
-    row.inspectorIdno = currentUsername.value || null
-    updateRowInGrid(row)
-
-    pendingIpqcRecords.value = [
-      ...pendingIpqcRecords.value,
-      adapter.buildIpqcRecord(row, {
-        slotIdno,
-        materialPackCode,
-        inspectorIdno:  currentUsername.value || "",
-        inspectionTime: new Date().toISOString(),
-        checkPackCodeMatch: ipqcCheckPackCodeMatch.value,
-      }),
-    ]
-
-    ipqcCheckPackCodeMatch.value = null
-    ipqcSlotValue.value = ""
-    ipqcMaterialValue.value = ""
-    focusIpqcMaterialInput()
-    persistNow()
-  }
+  const {
+    ipqcMaterialValue,
+    ipqcSlotValue,
+    ipqcMaterialInput,
+    ipqcSlotInput,
+    enterIpqcMode,
+    exitIpqcMode,
+    handleIpqcMaterialSubmit,
+    handleIpqcSlotSubmit,
+    onIpqcUploaded,
+  } = ipqc
 
   // ── Mode transition dispatch ──────────────────────────────────────────────
 
@@ -815,12 +696,6 @@ export function useMounterOperationFlowsCore(
   function onUnloadUploaded(ok: boolean) {
     if (!ok) return
     pendingUnloadRecords.value = []
-    persistNow()
-  }
-
-  function onIpqcUploaded(ok: boolean) {
-    if (!ok) return
-    pendingIpqcRecords.value = []
     persistNow()
   }
 
