@@ -1,6 +1,5 @@
 import { computed, nextTick, ref } from "vue"
 import { CheckMaterialMatchEnum } from "@/client"
-import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { removeMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import {
   MATERIAL_SPLICE_TRIGGER,
@@ -17,6 +16,7 @@ import {
 import { useOperationModeStateMachine } from "@/ui/shared/composables/useOperationModeStateMachine"
 import type { MounterOperationFlowsAdapter, MounterOperationFlowsCoreOptions } from "./MounterOperationFlowsAdapter"
 import { CORRECT_STATE, createMaterialPackCodeHelpers } from "./flows/materialPackCodeHelpers"
+import { createMaterialValidator } from "./flows/materialValidator"
 
 export { CORRECT_STATE }
 
@@ -314,67 +314,17 @@ export function useMounterOperationFlowsCore(
 
   // ── Validation ────────────────────────────────────────────────────────────
 
-  /**
-   * FEED 類（S5566 接料、S5588 IPQC）：查詢 ERP，決定 check_pack_code_match。
-   * - mockMode & !testing → MATCHED（不查 ERP）
-   * - ERP 查到 → MATCHED
-   * - ERP 查無 + testing → TESTING
-   * - ERP 查無 + 正式 → showError, return null（阻斷操作）
-   */
-  async function resolveExistenceBasedCorrectState(
-    materialPackCode: string,
-  ): Promise<CheckMaterialMatchEnum | null> {
-    const trimmed = materialPackCode.trim()
-    if (!trimmed) { showError("請先輸入物料條碼"); return null }
-    if (isMockMode && !isTestingMode.value) return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-    const result = await fetchMaterialInventory(trimmed)
-    if (result.kind === "ok") return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-    if (isTestingMode.value) return CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
-    showError(resolveMaterialLookupError(result.error))
-    return null
-  }
-
-  async function validateUnloadMaterialPackCode(materialPackCode: string): Promise<boolean> {
-    const trimmed = materialPackCode.trim()
-    if (!trimmed) {
-      showError("請先輸入物料條碼")
-      return false
-    }
-    if (isTestingMode.value || isMockMode) return true
-    const result = await fetchMaterialInventory(trimmed)
-    if (result.kind !== "ok") {
-      showError(resolveMaterialLookupError(result.error))
-      return false
-    }
-    return true
-  }
-
-  async function resolveReplacementCorrectState(
-    materialPackCode: string,
-    targetSlotIdno: string,
-  ): Promise<string | null> {
-    const packCode = materialPackCode.trim()
-    if (!packCode) { showError("請先輸入物料條碼"); return null }
-
-    const row = findRowBySlotIdno(targetSlotIdno)
-    if (!row) { showError(`找不到槽位 ${targetSlotIdno}`); return null }
-
-    if (isMockMode && !isTestingMode.value) return CORRECT_STATE.MATCHED
-
-    const fetchResult = await fetchMaterialInventory(packCode)
-    if (fetchResult.kind !== "ok") {
-      if (isTestingMode.value) return CORRECT_STATE.TESTING
-      showError(resolveMaterialLookupError(fetchResult.error))
-      return null
-    }
-    const scannedMaterialId  = String(fetchResult.materialInventory.material_idno ?? "").trim()
-    const expectedMaterialId = String(row.materialIdno ?? "").trim()
-    if (!isTestingMode.value && (!scannedMaterialId || scannedMaterialId !== expectedMaterialId)) {
-      showError(`料號不符：站位 ${targetSlotIdno} 應為 ${expectedMaterialId}`)
-      return null
-    }
-    return CORRECT_STATE.MATCHED
-  }
+  const {
+    resolveExistenceBasedCorrectState,
+    validateUnloadMaterialPackCode,
+    resolveReplacementCorrectState,
+  } = createMaterialValidator({
+    isTestingMode,
+    isMockMode,
+    fetchMaterialInventory,
+    showError,
+    findRowBySlotIdno,
+  })
 
   // ── IPQC handlers ─────────────────────────────────────────────────────────
 
