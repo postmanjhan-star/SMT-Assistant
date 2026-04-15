@@ -1,9 +1,5 @@
 import { computed } from "vue"
 import {
-  MATERIAL_SPLICE_TRIGGER,
-  MATERIAL_FORCE_UNLOAD_TRIGGER,
-  MATERIAL_IPQC_TRIGGER,
-  MATERIAL_UNLOAD_TRIGGER,
   MATERIAL_UNLOAD_MODE_NAME,
   MATERIAL_FORCE_UNLOAD_MODE_NAME,
   MATERIAL_IPQC_MODE_NAME,
@@ -17,6 +13,7 @@ import { createMaterialValidator } from "./flows/materialValidator"
 import { createIpqcCoordinator } from "./flows/ipqcCoordinator"
 import { createSpliceCoordinator } from "./flows/spliceCoordinator"
 import { createUnloadReplaceCoordinator } from "./flows/unloadReplaceCoordinator"
+import { createScanDispatcher } from "./flows/scanDispatcher"
 
 export { CORRECT_STATE }
 
@@ -238,88 +235,25 @@ export function useMounterOperationFlowsCore(
     handleSpliceSlotSubmit,
   } = splice
 
-  // ── Mode transition dispatch ──────────────────────────────────────────────
+  // ── Scan dispatcher ───────────────────────────────────────────────────────
 
-  function handleModeTriggerFromNormalInput(code: string): boolean {
-    if (handleUserSwitchTrigger(code)) return true
-    if (code === MATERIAL_UNLOAD_TRIGGER) {
-      if (isIpqcMode.value) exitIpqcMode()
-      enterUnloadMode("pack_auto_slot")
-      return true
-    }
-    if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-      if (isIpqcMode.value) exitIpqcMode()
-      enterUnloadMode("force_single_slot")
-      return true
-    }
-    if (code === MATERIAL_IPQC_TRIGGER) {
-      isIpqcMode.value ? exitIpqcMode() : enterIpqcMode()
-      return true
-    }
-    if (code === MATERIAL_SPLICE_TRIGGER) {
-      if (isIpqcMode.value) exitIpqcMode()
-      if (isUnloadMode.value) exitUnloadMode()
-      enterSpliceMode()
-      return true
-    }
-    return false
-  }
-
-  async function handleBeforeMaterialScan(barcode: string) {
-    const normalized = barcode.trim().toUpperCase()
-
-    // 接料模式 IDLE：只接受已存在捲號（舊料）
-    if (isSpliceMode.value && isSpliceIdlePhase.value) {
-      if (handleModeTriggerFromSpliceInput(normalized)) return false
-      if (!isBarcodeAlreadyInGrid(normalized)) {
-        showError("請先掃描已上料的捲號進行接料")
-        focusSpliceMaterialInput()
-        return false
-      }
-      void handleSpliceCurrentScan(normalized)
-      return false
-    }
-    // 接料模式 NEW_SCAN：接受新捲號
-    if (isSpliceMode.value && isSpliceNewPhase.value) {
-      if (handleModeTriggerFromSpliceInput(normalized)) return false
-      void handleSpliceNewScan(normalized)
-      return false
-    }
-
-    if (handleModeTriggerFromNormalInput(normalized)) return false
-    if (!isIpqcMode.value && isBarcodeAlreadyInGrid(normalized)) {
-      showError("重複掃描：此條碼已存在於目前站位資料")
-      return false
-    }
-    return true
-  }
-
-  function handleSpliceMaterialEnter() {
-    const barcode = spliceMaterialValue.value.trim()
-    spliceMaterialValue.value = ""
-    if (!barcode) return
-    void handleBeforeMaterialScan(barcode)
-  }
-
-  function handleSpliceSlotEnter() {
-    const slotIdno = spliceSlotValue.value.trim()
-    spliceSlotValue.value = ""
-    if (!slotIdno) return
-    void handleBeforeSlotSubmit(slotIdno)
-  }
-
-  async function handleBeforeSlotSubmit(raw: string) {
-    const normalized = raw.trim().toUpperCase()
-    if (isSpliceMode.value) {
-      if (handleModeTriggerFromSpliceInput(normalized)) return false
-      if (isSpliceSlotPhase.value) {
-        void handleSpliceSlotSubmit(raw.trim())
-        return false
-      }
-      return false
-    }
-    return !handleModeTriggerFromNormalInput(normalized)
-  }
+  const {
+    handleModeTriggerFromNormalInput,
+    handleBeforeMaterialScan,
+    handleBeforeSlotSubmit,
+    handleSpliceMaterialEnter,
+    handleSpliceSlotEnter,
+  } = createScanDispatcher({
+    isIpqcMode, isUnloadMode, isSpliceMode,
+    isSpliceIdlePhase, isSpliceNewPhase, isSpliceSlotPhase,
+    spliceMaterialValue, spliceSlotValue,
+    handleUserSwitchTrigger, isBarcodeAlreadyInGrid, showError, focusSpliceMaterialInput,
+    enterIpqcMode, exitIpqcMode,
+    enterUnloadMode, exitUnloadMode,
+    enterSpliceMode,
+    handleModeTriggerFromSpliceInput,
+    handleSpliceCurrentScan, handleSpliceNewScan, handleSpliceSlotSubmit,
+  })
 
   // ── Return ────────────────────────────────────────────────────────────────
 
