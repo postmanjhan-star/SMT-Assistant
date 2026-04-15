@@ -16,6 +16,7 @@ import type { MounterOperationFlowsAdapter, MounterOperationFlowsCoreOptions } f
 import { CORRECT_STATE, createMaterialPackCodeHelpers } from "./flows/materialPackCodeHelpers"
 import { createMaterialValidator } from "./flows/materialValidator"
 import { createIpqcCoordinator } from "./flows/ipqcCoordinator"
+import { createSpliceCoordinator } from "./flows/spliceCoordinator"
 
 export { CORRECT_STATE }
 
@@ -57,21 +58,16 @@ export function useMounterOperationFlowsCore(
   } = machine
 
   const replacementCorrectState = ref<string | null>(null)
-  const spliceSavedCorrectState = ref<{ rowKey: string; correct: unknown } | null>(null)
 
   // ── Input values（v-model） ──────────────────────────────────────────────
 
   const unloadMaterialValue  = ref("")
   const unloadSlotValue      = ref("")
-  const spliceMaterialValue  = ref("")
-  const spliceSlotValue      = ref("")
 
   // ── Input DOM refs（:ref binding） ──────────────────────────────────────
 
   const unloadMaterialInput = ref<HTMLInputElement | null>(null)
   const unloadSlotInput     = ref<HTMLInputElement | null>(null)
-  const spliceMaterialInput = ref<HTMLInputElement | null>(null)
-  const spliceSlotInput     = ref<HTMLInputElement | null>(null)
 
   // ── Material pack code helpers ────────────────────────────────────────────
 
@@ -191,14 +187,6 @@ export function useMounterOperationFlowsCore(
     }
   }
 
-  function focusSpliceMaterialInput() {
-    nextTick(() => { spliceMaterialInput.value?.focus() })
-  }
-
-  function focusSpliceSlotInput() {
-    nextTick(() => { spliceSlotInput.value?.focus() })
-  }
-
   // ── Mode control ──────────────────────────────────────────────────────────
 
   function enterUnloadMode(modeType: Parameters<typeof machine.enterUnloadMode>[0]) {
@@ -222,31 +210,6 @@ export function useMounterOperationFlowsCore(
     unloadMaterialValue.value = ""
     unloadSlotValue.value = ""
     clearNormalScanState()
-    focusMaterialInput()
-  }
-
-  function enterSpliceMode() {
-    machine.enterSpliceMode()
-    spliceSavedCorrectState.value = null
-    spliceMaterialValue.value = ""
-    spliceSlotValue.value = ""
-    clearNormalScanState()
-    nextTick(() => focusSpliceMaterialInput())
-  }
-
-  function exitSpliceMode() {
-    if (spliceSavedCorrectState.value) {
-      const saved = spliceSavedCorrectState.value
-      const row = (rowData.value ?? []).find((r: any) => adapter.toRowKey(r) === saved.rowKey)
-      if (row) {
-        row.correct = saved.correct
-        updateRowInGrid(row)
-      }
-      spliceSavedCorrectState.value = null
-    }
-    spliceMaterialValue.value = ""
-    spliceSlotValue.value = ""
-    machine.exitToNormal()
     focusMaterialInput()
   }
 
@@ -296,6 +259,44 @@ export function useMounterOperationFlowsCore(
     handleIpqcSlotSubmit,
     onIpqcUploaded,
   } = ipqc
+
+  // ── Splice coordinator ───────────────────────────────────────────────────
+
+  const splice = createSpliceCoordinator({
+    machine,
+    adapter,
+    rowData,
+    currentUsername,
+    pendingSpliceRecords,
+    spliceSlotIdno,
+    spliceNewPackCode,
+    findUniqueUnloadSlotByPackCode,
+    validateUnloadMaterialPackCode,
+    resolveReplacementCorrectState,
+    findRowBySlotIdno,
+    updateRowInGrid,
+    showError,
+    clearNormalScanState,
+    focusMaterialInput,
+    persistNow,
+    handleUserSwitchTrigger,
+    enterIpqcMode: () => enterIpqcMode(),
+    enterUnloadMode: (type) => enterUnloadMode(type),
+  })
+
+  const {
+    spliceMaterialValue,
+    spliceSlotValue,
+    spliceMaterialInput,
+    spliceSlotInput,
+    focusSpliceMaterialInput,
+    enterSpliceMode,
+    exitSpliceMode,
+    handleModeTriggerFromSpliceInput,
+    handleSpliceCurrentScan,
+    handleSpliceNewScan,
+    handleSpliceSlotSubmit,
+  } = splice
 
   // ── Mode transition dispatch ──────────────────────────────────────────────
 
@@ -356,57 +357,6 @@ export function useMounterOperationFlowsCore(
     return false
   }
 
-  function handleModeTriggerFromSpliceInput(code: string): boolean {
-    if (handleUserSwitchTrigger(code)) { exitSpliceMode(); return true }
-    if (code === MATERIAL_SPLICE_TRIGGER) {
-      exitSpliceMode()
-      return true
-    }
-    if (code === MATERIAL_UNLOAD_TRIGGER) {
-      exitSpliceMode(); enterUnloadMode("pack_auto_slot"); return true
-    }
-    if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-      exitSpliceMode(); enterUnloadMode("force_single_slot"); return true
-    }
-    if (code === MATERIAL_IPQC_TRIGGER) {
-      exitSpliceMode(); enterIpqcMode(); return true
-    }
-    return false
-  }
-
-  async function handleSpliceCurrentScan(barcode: string) {
-    const resolved = findUniqueUnloadSlotByPackCode(barcode)
-    if (!resolved.ok) {
-      showError(resolved.error ?? "找不到對應槽位")
-      focusSpliceMaterialInput()
-      return
-    }
-    const row = resolved.row
-    const slotIdno = adapter.toRowSlotIdno(row)
-
-    if (row.spliceMaterialInventoryIdno) {
-      showError(`此站位已有接料條碼，請先卸料後再接料`)
-      focusSpliceMaterialInput()
-      return
-    }
-
-    spliceSavedCorrectState.value = { rowKey: adapter.toRowKey(row), correct: row.correct }
-    row.correct = CORRECT_STATE.UNLOADED
-    updateRowInGrid(row)
-    machine.onSpliceCurrentScanned(slotIdno)
-    focusSpliceMaterialInput()
-  }
-
-  async function handleSpliceNewScan(barcode: string) {
-    const isValid = await validateUnloadMaterialPackCode(barcode)
-    if (!isValid) {
-      focusSpliceMaterialInput()
-      return
-    }
-    machine.onSpliceNewScanned(barcode)
-    focusSpliceSlotInput()
-  }
-
   async function handleBeforeMaterialScan(barcode: string) {
     const normalized = barcode.trim().toUpperCase()
 
@@ -434,44 +384,6 @@ export function useMounterOperationFlowsCore(
       return false
     }
     return true
-  }
-
-  async function handleSpliceSlotSubmit(slotIdno: string) {
-    const targetSlotIdno = spliceSlotIdno.value.trim()
-    const newPackCode    = spliceNewPackCode.value.trim()
-
-    if (!adapter.slotsMatch(slotIdno, targetSlotIdno)) {
-      showError(`請掃描原接料站位 ${targetSlotIdno}`)
-      return
-    }
-
-    const correctState = await resolveReplacementCorrectState(newPackCode, targetSlotIdno)
-    if (!correctState) return
-
-    const row = findRowBySlotIdno(targetSlotIdno)
-    if (!row) {
-      showError(`找不到槽位 ${targetSlotIdno}`)
-      machine.exitToNormal()
-      return
-    }
-
-    row.spliceMaterialInventoryIdno = newPackCode
-    row.correct = correctState
-    row.operatorIdno = currentUsername.value || null
-    row.operationTime = new Date().toISOString()
-    updateRowInGrid(row)
-
-    pushSpliceRecord(adapter.buildSpliceRecord(row, {
-      materialPackCode: newPackCode,
-      correctState,
-      operationTime: new Date().toISOString(),
-    }))
-    persistNow()
-
-    machine.onSpliceSlotSubmitted()
-    spliceSavedCorrectState.value = null
-    spliceSlotValue.value = ""
-    focusSpliceMaterialInput()
   }
 
   function handleSpliceMaterialEnter() {
