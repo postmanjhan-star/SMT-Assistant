@@ -1,5 +1,4 @@
-import { computed, nextTick, ref } from "vue"
-import { CheckMaterialMatchEnum } from "@/client"
+import { computed } from "vue"
 import {
   MATERIAL_SPLICE_TRIGGER,
   MATERIAL_FORCE_UNLOAD_TRIGGER,
@@ -17,6 +16,7 @@ import { CORRECT_STATE, createMaterialPackCodeHelpers } from "./flows/materialPa
 import { createMaterialValidator } from "./flows/materialValidator"
 import { createIpqcCoordinator } from "./flows/ipqcCoordinator"
 import { createSpliceCoordinator } from "./flows/spliceCoordinator"
+import { createUnloadReplaceCoordinator } from "./flows/unloadReplaceCoordinator"
 
 export { CORRECT_STATE }
 
@@ -57,18 +57,6 @@ export function useMounterOperationFlowsCore(
     spliceNewPackCode,
   } = machine
 
-  const replacementCorrectState = ref<string | null>(null)
-
-  // ── Input values（v-model） ──────────────────────────────────────────────
-
-  const unloadMaterialValue  = ref("")
-  const unloadSlotValue      = ref("")
-
-  // ── Input DOM refs（:ref binding） ──────────────────────────────────────
-
-  const unloadMaterialInput = ref<HTMLInputElement | null>(null)
-  const unloadSlotInput     = ref<HTMLInputElement | null>(null)
-
   // ── Material pack code helpers ────────────────────────────────────────────
 
   const {
@@ -84,7 +72,7 @@ export function useMounterOperationFlowsCore(
     toRowSlotIdno: adapter.toRowSlotIdno,
   })
 
-  // ── UI helper computeds ───────────────────────────────────────────────────
+  // ── Operation mode name (top-level UI computed) ──────────────────────────
 
   const operationModeName = computed(() => {
     if (isUnloadMode.value) {
@@ -97,44 +85,6 @@ export function useMounterOperationFlowsCore(
     return MATERIAL_LOAD_MODE_NAME
   })
 
-  const unloadMaterialLabel = computed(() => {
-    if (isUnloadScanPhase.value) return "卸除捲號（自動定位）"
-    if (isReplaceMaterialPhase.value) return "更換捲號"
-    return "更換捲號（待掃站位）"
-  })
-
-  const unloadMaterialPlaceholder = computed(() => {
-    if (isUnloadScanPhase.value) return "請掃描要卸除的捲號"
-    if (isForceUnloadSlotPhase.value) return "請先掃描站位進行強制卸除"
-    if (isReplaceMaterialPhase.value) return "請掃描要更換的捲號"
-    return replacementMaterialPackCode.value
-  })
-
-  const hasUnloadMaterial = computed(() => {
-    if (isReplaceSlotPhase.value) return replacementMaterialPackCode.value.trim().length > 0
-    return unloadMaterialValue.value.trim().length > 0
-  })
-
-  const isUnloadMaterialInputDisabled = computed(
-    () => isReplaceSlotPhase.value || isForceUnloadSlotPhase.value
-  )
-
-  const isUnloadSlotInputDisabled = computed(() => {
-    if (isForceUnloadSlotPhase.value) return false
-    if (isReplaceSlotPhase.value) return !hasUnloadMaterial.value
-    return true
-  })
-
-  const unloadSlotLabel = computed(() =>
-    isForceUnloadSlotPhase.value ? "卸除站位" : "站位編號"
-  )
-
-  const unloadSlotPlaceholder = computed(() => {
-    if (isForceUnloadSlotPhase.value) return "請掃描要卸除的站位"
-    if (isReplaceSlotPhase.value) return `請掃描原卸料站位 ${resolvedUnloadSlotIdno.value || ""}`
-    return "請先掃描更換捲號"
-  })
-
   // ── Grid helpers ──────────────────────────────────────────────────────────
 
   function updateRowInGrid(row: any) {
@@ -145,72 +95,10 @@ export function useMounterOperationFlowsCore(
     }
   }
 
-  function applyUnloadToRow(row: any, materialPackCode: string) {
-    const loadedPackCode = getLoadedPackCode(row)
-    const splicePackCode = getSplicePackCode(row)
-
-    if (splicePackCode && splicePackCode === materialPackCode) {
-      row.spliceMaterialInventoryIdno = ""
-      row.correct = loadedPackCode ? CORRECT_STATE.MATCHED : CORRECT_STATE.UNLOADED
-    } else if (splicePackCode) {
-      row.appendedMaterialInventoryIdno = row.spliceMaterialInventoryIdno
-      row.spliceMaterialInventoryIdno = ""
-      row.correct = CORRECT_STATE.MATCHED
-    } else {
-      row.appendedMaterialInventoryIdno = ""
-      row.correct = CORRECT_STATE.UNLOADED
-    }
-    updateRowInGrid(row)
-  }
-
   // ── Row search helpers ────────────────────────────────────────────────────
 
   function findRowBySlotIdno(slotIdno: string): any | null {
     return adapter.findRowBySlotInput(slotIdno, rowData.value)
-  }
-
-  // ── Focus helpers ─────────────────────────────────────────────────────────
-
-  function focusUnloadMaterialInput() {
-    nextTick(() => { unloadMaterialInput.value?.focus() })
-  }
-
-  function focusUnloadSlotInput() {
-    nextTick(() => { unloadSlotInput.value?.focus() })
-  }
-
-  function focusByCurrentPhase() {
-    if (isForceUnloadSlotPhase.value || isReplaceSlotPhase.value) {
-      focusUnloadSlotInput()
-    } else {
-      focusUnloadMaterialInput()
-    }
-  }
-
-  // ── Mode control ──────────────────────────────────────────────────────────
-
-  function enterUnloadMode(modeType: Parameters<typeof machine.enterUnloadMode>[0]) {
-    machine.enterUnloadMode(modeType)
-    replacementCorrectState.value = null
-    unloadMaterialValue.value = ""
-    unloadSlotValue.value = ""
-    clearNormalScanState()
-    nextTick(() => {
-      if (modeType === "force_single_slot") {
-        focusUnloadSlotInput()
-      } else {
-        focusUnloadMaterialInput()
-      }
-    })
-  }
-
-  function exitUnloadMode() {
-    machine.exitToNormal()
-    replacementCorrectState.value = null
-    unloadMaterialValue.value = ""
-    unloadSlotValue.value = ""
-    clearNormalScanState()
-    focusMaterialInput()
   }
 
   // ── Validation ────────────────────────────────────────────────────────────
@@ -226,6 +114,58 @@ export function useMounterOperationFlowsCore(
     showError,
     findRowBySlotIdno,
   })
+
+  // ── Unload-replace coordinator ───────────────────────────────────────────
+
+  const unloadCoord = createUnloadReplaceCoordinator({
+    machine,
+    adapter,
+    rowData,
+    currentUsername,
+    pendingUnloadRecords,
+    pendingSpliceRecords,
+    isUnloadMode,
+    isUnloadScanPhase,
+    isForceUnloadSlotPhase,
+    isReplaceMaterialPhase,
+    isReplaceSlotPhase,
+    unloadModeType,
+    resolvedUnloadSlotIdno,
+    replacementMaterialPackCode,
+    getLoadedPackCode,
+    getSplicePackCode,
+    getForceUnloadPackCode,
+    findUniqueUnloadSlotByPackCode,
+    resolveReplacementCorrectState,
+    findRowBySlotIdno,
+    updateRowInGrid,
+    showError,
+    clearNormalScanState,
+    focusMaterialInput,
+    persistNow,
+    enterIpqcMode: () => enterIpqcMode(),
+    enterSpliceMode: () => enterSpliceMode(),
+  })
+
+  const {
+    unloadMaterialValue,
+    unloadSlotValue,
+    unloadMaterialInput,
+    unloadSlotInput,
+    unloadMaterialLabel,
+    unloadMaterialPlaceholder,
+    hasUnloadMaterial,
+    isUnloadMaterialInputDisabled,
+    isUnloadSlotInputDisabled,
+    unloadSlotLabel,
+    unloadSlotPlaceholder,
+    focusByCurrentPhase,
+    enterUnloadMode,
+    exitUnloadMode,
+    handleUnloadMaterialEnter,
+    handleUnloadSlotSubmit,
+    onUnloadUploaded,
+  } = unloadCoord
 
   // ── IPQC coordinator ──────────────────────────────────────────────────────
 
@@ -325,38 +265,6 @@ export function useMounterOperationFlowsCore(
     return false
   }
 
-  function handleModeTriggerFromUnloadInput(code: string): boolean {
-    if (code === MATERIAL_UNLOAD_TRIGGER) {
-      if (unloadModeType.value === "pack_auto_slot") {
-        exitUnloadMode()
-      } else {
-        exitUnloadMode()
-        enterUnloadMode("pack_auto_slot")
-      }
-      return true
-    }
-    if (code === MATERIAL_FORCE_UNLOAD_TRIGGER) {
-      if (unloadModeType.value === "force_single_slot") {
-        exitUnloadMode()
-      } else {
-        exitUnloadMode()
-        enterUnloadMode("force_single_slot")
-      }
-      return true
-    }
-    if (code === MATERIAL_IPQC_TRIGGER) {
-      exitUnloadMode()
-      enterIpqcMode()
-      return true
-    }
-    if (code === MATERIAL_SPLICE_TRIGGER) {
-      exitUnloadMode()
-      enterSpliceMode()
-      return true
-    }
-    return false
-  }
-
   async function handleBeforeMaterialScan(barcode: string) {
     const normalized = barcode.trim().toUpperCase()
 
@@ -411,204 +319,6 @@ export function useMounterOperationFlowsCore(
       return false
     }
     return !handleModeTriggerFromNormalInput(normalized)
-  }
-
-  // ── Unload workflow ───────────────────────────────────────────────────────
-
-  function pushUnloadRecord(record: unknown) {
-    pendingUnloadRecords.value = [...pendingUnloadRecords.value, record]
-    persistNow()
-  }
-
-  function pushSpliceRecord(record: unknown) {
-    pendingSpliceRecords.value = [...pendingSpliceRecords.value, record]
-  }
-
-  async function handleUnloadMaterialSubmit(materialPackCode: string) {
-    const resolved = findUniqueUnloadSlotByPackCode(materialPackCode)
-    if (!resolved.ok) {
-      showError(resolved.error ?? "找不到對應槽位")
-      unloadMaterialValue.value = ""
-      focusUnloadMaterialInput()
-      return
-    }
-
-    // UNFEED 不查 ERP：沿用同 barcode 的 splice record correctState，否則用 row.correct
-    const spliceRecord = (pendingSpliceRecords.value as Array<{ materialPackCode: string; correctState: string }>)
-      .find((r) => r.materialPackCode === materialPackCode)
-    const checkPackCodeMatch = (
-      spliceRecord ? spliceRecord.correctState : resolved.row.correct
-    ) as CheckMaterialMatchEnum | null
-
-    if (!checkPackCodeMatch) {
-      showError("找不到對應物料驗證狀態，請重新確認")
-      unloadMaterialValue.value = ""
-      focusUnloadMaterialInput()
-      return
-    }
-
-    pushUnloadRecord(adapter.buildUnloadRecord(resolved.row, {
-      materialPackCode,
-      unfeedReason:  "MATERIAL_FINISHED",
-      operationTime: new Date().toISOString(),
-      checkPackCodeMatch,
-    }))
-
-    applyUnloadToRow(resolved.row, materialPackCode)
-
-    unloadMaterialValue.value = ""
-    machine.onUnloadSubmitted(adapter.toRowSlotIdno(resolved.row))
-    focusUnloadMaterialInput()
-  }
-
-  async function handleForceUnloadSlotSubmit(slotIdno: string) {
-    const row = findRowBySlotIdno(slotIdno)
-    if (!row) {
-      showError(`找不到槽位 ${slotIdno}`)
-      unloadSlotValue.value = ""
-      focusUnloadSlotInput()
-      return
-    }
-
-    const materialPackCode = getForceUnloadPackCode(row)
-    if (!materialPackCode) {
-      showError(`槽位 ${slotIdno} 無可卸除料號`)
-      unloadSlotValue.value = ""
-      focusUnloadSlotInput()
-      return
-    }
-
-    // UNFEED 不查 ERP：沿用同 barcode 的 splice record correctState，否則用 row.correct
-    const spliceRecord = (pendingSpliceRecords.value as Array<{ materialPackCode: string; correctState: string }>)
-      .find((r) => r.materialPackCode === materialPackCode)
-    const checkPackCodeMatch = (
-      spliceRecord ? spliceRecord.correctState : row.correct
-    ) as CheckMaterialMatchEnum | null
-
-    if (!checkPackCodeMatch) {
-      showError("找不到對應物料驗證狀態，請重新確認")
-      unloadSlotValue.value = ""
-      focusUnloadSlotInput()
-      return
-    }
-
-    pushUnloadRecord(adapter.buildUnloadRecord(row, {
-      materialPackCode,
-      unfeedReason:  "WRONG_MATERIAL",
-      operationTime: new Date().toISOString(),
-      checkPackCodeMatch,
-    }))
-
-    applyUnloadToRow(row, materialPackCode)
-
-    unloadSlotValue.value = ""
-    machine.onForceUnloadSubmitted(adapter.toRowSlotIdno(row))
-    focusUnloadMaterialInput()
-  }
-
-  async function handleReplacementMaterialSubmit(materialPackCode: string) {
-    const targetSlotIdno = resolvedUnloadSlotIdno.value.trim()
-    if (!targetSlotIdno) {
-      showError("找不到卸料站位，請重新掃描")
-      machine.enterUnloadMode(unloadModeType.value)
-      unloadMaterialValue.value = ""
-      nextTick(() => {
-        if (isForceUnloadSlotPhase.value) focusUnloadSlotInput()
-        else focusUnloadMaterialInput()
-      })
-      return
-    }
-
-    const correctState = await resolveReplacementCorrectState(materialPackCode, targetSlotIdno)
-
-    unloadMaterialValue.value = ""
-    if (!correctState) {
-      focusUnloadMaterialInput()
-      return
-    }
-
-    replacementCorrectState.value = correctState
-    machine.onReplacementMaterialScanned(materialPackCode)
-    unloadSlotValue.value = ""
-    focusUnloadSlotInput()
-  }
-
-  function handleUnloadMaterialEnter() {
-    const material = unloadMaterialValue.value.trim()
-    unloadMaterialValue.value = material
-    if (!material) return
-
-    if (handleModeTriggerFromUnloadInput(material.toUpperCase())) return
-    if (isUnloadScanPhase.value)    { void handleUnloadMaterialSubmit(material); return }
-    if (isReplaceMaterialPhase.value) { void handleReplacementMaterialSubmit(material) }
-  }
-
-  async function handleUnloadSlotSubmit() {
-    if (!isUnloadMode.value) return
-
-    const slotIdno = unloadSlotValue.value.trim()
-    if (!slotIdno) { showError("請輸入站位"); focusUnloadSlotInput(); return }
-
-    if (handleModeTriggerFromUnloadInput(slotIdno.toUpperCase())) return
-    if (isForceUnloadSlotPhase.value) { void handleForceUnloadSlotSubmit(slotIdno); return }
-    if (!isReplaceSlotPhase.value)    { focusUnloadSlotInput(); return }
-
-    // ── Replace slot phase ──────────────────────────────────────────────────
-
-    const targetSlotIdno      = resolvedUnloadSlotIdno.value.trim()
-    const replacementPackCode = replacementMaterialPackCode.value.trim()
-    const correctState        = replacementCorrectState.value
-
-    if (!adapter.slotsMatch(slotIdno, targetSlotIdno)) {
-      showError(`請掃描原卸料站位 ${targetSlotIdno}`)
-      unloadSlotValue.value = ""
-      focusUnloadSlotInput()
-      return
-    }
-
-    if (!replacementPackCode || !correctState) {
-      showError("找不到更換捲號，請重新掃描")
-      machine.enterUnloadMode(unloadModeType.value)
-      focusUnloadMaterialInput()
-      return
-    }
-
-    const row = findRowBySlotIdno(targetSlotIdno)
-    if (!row) {
-      showError(`找不到槽位 ${targetSlotIdno}`)
-      machine.enterUnloadMode(unloadModeType.value)
-      focusUnloadMaterialInput()
-      return
-    }
-
-    row.appendedMaterialInventoryIdno = replacementPackCode
-    row.correct                       = correctState
-    row.operatorIdno          = currentUsername.value || null
-    row.operationTime         = new Date().toISOString()
-    if (correctState === CORRECT_STATE.TESTING) {
-      row.remark = "[測試模式綁定]"
-    }
-    updateRowInGrid(row)
-
-    pushSpliceRecord(adapter.buildSpliceRecord(row, {
-      materialPackCode: replacementPackCode,
-      correctState,
-      operationTime: new Date().toISOString(),
-    }))
-    persistNow()
-
-    unloadSlotValue.value = ""
-    machine.onReplaceSlotSubmitted()
-    replacementCorrectState.value = null
-    focusMaterialInput()
-  }
-
-  // ── Upload callbacks ──────────────────────────────────────────────────────
-
-  function onUnloadUploaded(ok: boolean) {
-    if (!ok) return
-    pendingUnloadRecords.value = []
-    persistNow()
   }
 
   // ── Return ────────────────────────────────────────────────────────────────
