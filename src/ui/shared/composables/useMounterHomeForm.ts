@@ -1,8 +1,8 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { ref, watch, nextTick, type Ref } from 'vue'
-import { type FormInst, type FormItemRule, type FormRules, useMessage } from 'naive-ui'
+import { type FormInst, type FormItemRule, type FormRules } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, StErpService } from '@/client'
+import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
 
 export interface MounterHomeFormBase {
     workOrderIdno: string
@@ -33,7 +33,7 @@ export const WORK_SHEET_SIDE_OPTIONS = [
 export function useMounterHomeForm<T extends MounterHomeFormBase>(config: MounterHomeFormConfig<T>) {
     const route = useRoute()
     const router = useRouter()
-    const message = useMessage()
+    const { info, notifyError, error: showError } = useUiNotifier()
 
     const isTestingMode = ref(route.query.testing_mode === '1')
     const autoFillProductIdno = ref(true)
@@ -65,7 +65,7 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
             delete newQuery.testing_product_idno
         }
         await router.replace({ query: newQuery })
-        message.info(val ? '🧪 試產生產模式已開啟' : '✅ 正式生產模式已開啟')
+        info(val ? '🧪 試產生產模式已開啟' : '✅ 正式生產模式已開啟')
     }
 
     watch(
@@ -128,7 +128,7 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
                 const stWorkOrder = await StErpService.getStWorkOrder({ workOrderIdno: newVal.trim() })
                 if (stWorkOrder?.product_idno) {
                     formValue.value.productIdno = stWorkOrder.product_idno
-                    message.success(`已自動帶入成品料號：${stWorkOrder.product_idno}`)
+                    info(`已自動帶入成品料號：${stWorkOrder.product_idno}`)
                 }
             } catch (error) {
                 console.error(error)
@@ -140,7 +140,7 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
         try {
             await formRef.value?.validate(async (error) => { if (error) throw error })
         } catch {
-            message.error('請輸入必填欄位')
+            notifyError('請輸入必填欄位')
             return false
         }
 
@@ -154,11 +154,11 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
             await config.submitAndNavigate(formValue.value, meta)
         } catch (error) {
             if (error instanceof ApiError && error.status === 404) {
-                message.error('查無資料')
+                showError('查無資料')
                 return false
             }
             if (error instanceof ApiError && error.status === 503) {
-                message.error('ERP 工單查詢失敗')
+                showError('ERP 工單查詢失敗')
                 return false
             }
         }

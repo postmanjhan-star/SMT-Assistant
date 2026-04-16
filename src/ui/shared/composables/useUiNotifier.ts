@@ -2,6 +2,8 @@ import { h } from 'vue'
 import * as Tone from 'tone'
 import { useMessage } from 'naive-ui'
 
+export type NotifierOptions = { keepAliveOnHover?: boolean; duration?: number }
+
 export function useUiNotifier() {
   const message = useMessage()
 
@@ -22,30 +24,30 @@ export function useUiNotifier() {
     synth.triggerAttackRelease('D4', '8n', now + 0.2)
   }
 
-  async function success(msg: string) {
+  async function success(msg: string, opts?: NotifierOptions) {
     try {
       await playSuccessTone()
     } catch {
       // ignore tone errors to ensure message still appears
     }
-    message.success(() => h('span', { 'data-testid': 'success-message' }, msg))
+    message.success(() => h('span', { 'data-testid': 'success-message' }, msg), opts)
   }
 
-  function warn(msg: string) {
-    message.warning(() => h('span', { 'data-testid': 'warning-message' }, msg))
+  function warn(msg: string, opts?: NotifierOptions) {
+    message.warning(() => h('span', { 'data-testid': 'warning-message' }, msg), opts)
   }
 
-  function info(msg: string) {
-    message.info(() => h('span', { 'data-testid': 'info-message' }, msg))
+  function info(msg: string, opts?: NotifierOptions) {
+    message.info(() => h('span', { 'data-testid': 'info-message' }, msg), opts)
   }
 
-  async function error(msg: string) {
-    message.error(() => h('span', { 'data-testid': 'error-message' }, msg))
+  async function error(msg: string, opts?: NotifierOptions) {
+    message.error(() => h('span', { 'data-testid': 'error-message' }, msg), opts)
     playErrorTone().catch(() => {})
   }
 
-  function notifyError(msg: string) {
-    message.error(() => h('span', { 'data-testid': 'error-message' }, msg))
+  function notifyError(msg: string, opts?: NotifierOptions) {
+    message.error(() => h('span', { 'data-testid': 'error-message' }, msg), opts)
   }
 
   function speak(text: string) {

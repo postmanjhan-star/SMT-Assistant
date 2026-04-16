@@ -1,15 +1,15 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import panasonicCsvExportOptions from '@/assets/panasonic_csv_export_options.png'
-import { FormInst, FormRules, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, NModal, NP, NSpace, NText, NUpload, NUploadDragger, UploadCustomRequestOptions, UploadFileInfo, useMessage } from 'naive-ui'
+import { FormInst, FormRules, NButton, NCard, NForm, NFormItem, NGi, NGrid, NInput, NModal, NP, NSpace, NText, NUpload, NUploadDragger, UploadCustomRequestOptions, UploadFileInfo } from 'naive-ui'
 import { FileInfo, UploadInst } from 'naive-ui/es/upload/src/interface'
 import { ref } from 'vue'
 import { useMeta } from 'vue-meta'
 import { ApiError, Body_upload_panasonic_mounter_csv, SmtService } from '../client'
+import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
 
 useMeta( { title: 'Panasonic Mounter Assistant' } );
 
-const message = useMessage()
+const { success, notifyError } = useUiNotifier()
 
 const formValue = ref<Body_upload_panasonic_mounter_csv>( { file: null, product_ver: null } )
 
@@ -27,7 +27,7 @@ function onFileListChange ( options: { fileList: UploadFileInfo[] } ) { disableU
 function onBeforeUpload ( data: { file: Required<FileInfo>, fileList: Required<FileInfo>[] } ) {
   const fileName = data.file.name.toLowerCase()
   if ( !fileName.endsWith( '.csv' ) && !fileName.endsWith( '.fst' ) ) {
-    message.error( '只能上傳 CSV 或 FST 格式的文件' )
+    notifyError( '只能上傳 CSV 或 FST 格式的文件' )
     return false
   }
   return true
@@ -58,17 +58,17 @@ async function customRequest (
   console.debug( file )
   try {
     await SmtService.uploadMounterFile( { formData: { file: file.file, product_ver: formValue.value.product_ver } } )
-    message.success( `${ file.name } 上傳成功`, { keepAliveOnHover: true } )
+    success( `${ file.name } 上傳成功`, { keepAliveOnHover: true } )
     uploadRef.value?.clear()
     formValue.value.product_ver = null
     onFinish()
   } catch ( error ) {
     if ( error instanceof ApiError && error.status === 409 ) {
-      message.error( '該檔案已生產，無法重複上傳(修改打件物料)', { keepAliveOnHover: true } )
+      notifyError( '該檔案已生產，無法重複上傳(修改打件物料)', { keepAliveOnHover: true } )
     } else if ( error instanceof ApiError && error.status === 422 ) {
-      message.error( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } )
+      notifyError( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } )
     }
-    else { message.error( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } ) }
+    else { notifyError( `${ file.name } 上傳失敗`, { keepAliveOnHover: true } ) }
     uploadRef.value?.clear()
     onError()
   } finally { disableUploadButton.value = true }
@@ -78,7 +78,7 @@ async function customRequest (
 function onClickUploadButton ( event: Event ) {
   formRef.value?.validate( async ( errors ) => {
     if ( errors ) {
-      message.error( '請輸入版次' )
+      notifyError( '請輸入版次' )
       return false
     } else { uploadRef.value?.submit() }
   } )

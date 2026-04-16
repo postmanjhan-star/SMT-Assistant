@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
-import { DataTableColumns, NCard, NDataTable, NSpace, NTag, useMessage } from 'naive-ui'
+import { DataTableColumns, NCard, NDataTable, NSpace, NTag } from 'naive-ui'
 import { ref, watch } from 'vue'
 import { PanasonicMounterFileItemRead, PanasonicMounterFileRead, SmtService } from '@/client'
 import { resolveMounterItemTargets } from '@/domain/file-manager/resolveMounterItemTargets'
+import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
 
 type PanasonicMounterFileItemRow = PanasonicMounterFileItemRead & {
     board_side: 'B' | 'T'
@@ -15,7 +15,7 @@ const props = defineProps<{
     idT?: number | null
 }>()
 
-const message = useMessage()
+const { notifyError } = useUiNotifier()
 
 const columns: DataTableColumns<PanasonicMounterFileItemRow> = [
     { title: 'PCB Side', key: 'board_side', resizable: true, width: 90 },
@@ -69,7 +69,7 @@ watch(
         }
         catch ( error ) {
             console.error( error )
-            message.error( '取得料件資料失敗' )
+            notifyError( '取得料件資料失敗' )
         }
         finally {
             tableLoading.value = false

@@ -1,19 +1,19 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
-import { NButton, NModal, NPopconfirm, NSpace, useMessage, NTabs, NTabPane } from 'naive-ui'
+import { NButton, NModal, NPopconfirm, NSpace, NTabs, NTabPane } from 'naive-ui'
 import { CellComponent, TabulatorFull as Tabulator } from 'tabulator-tables'
 import "tabulator-tables/dist/css/tabulator_bootstrap4.min.css"
 import { onMounted, ref, watch } from 'vue'
 import { useMeta } from 'vue-meta'
 import { useRouter } from 'vue-router'
 import { PanasonicMounterFileRead, FujiMounterFileRead, SmtService, ApiError } from '@/client'
+import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
 import { mergeMounterFiles, type MergedMounterFileRow } from '@/domain/file-manager/mergeMounterFiles'
 import PanasonicMounterFileItemBox from './panasonicMounter/PanasonicMounterFileItemBox.vue'
 import FujiMounterFileItemBox from './fujiMounter/FujiMounterFileItemBox.vue'
 
 useMeta( { title: 'Mounter File Manager' } )
 const router = useRouter()
-const message = useMessage()
+const { success, notifyError } = useUiNotifier()
 
 const currentTab = ref<string>( 'panasonic' )
 const mounterFileList = ref<MergedMounterFileRow[]>( [] )
@@ -86,7 +86,7 @@ async function fetchData() {
         }
     } catch ( error ) {
         console.error( error )
-        message.error( '取得資料失敗' )
+        notifyError( '取得資料失敗' )
     }
 }
 
@@ -129,17 +129,17 @@ async function onClickDeleteButton() {
             }
         }
 
-        message.success( '刪除成功' )
+        success( '刪除成功' )
         editButtonDisable.value = true
         deleteButtonDisable.value = true
         selectedRowData.value = null
         showModal.value = false
     } catch ( error ) {
         if ( error instanceof ApiError && error.status === 409 ) {
-            message.error( '檔案已被使用，無法刪除' )
+            notifyError( '檔案已被使用，無法刪除' )
         } else {
             console.error( error )
-            message.error( '刪除失敗' )
+            notifyError( '刪除失敗' )
         }
     } finally {
         await fetchData()

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3/5 */
 import { ref, watch, computed } from 'vue'
-import { NFormItem, NInput, useMessage, InputInst } from 'naive-ui'
-import * as Tone from 'tone'
+import { NFormItem, NInput, InputInst } from 'naive-ui'
 import { SmtMaterialInventory } from '@/client'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
 import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository';
@@ -13,6 +11,8 @@ import {
     decideMaterialScanAction,
 } from '@/domain/material/MaterialScanDecision'
 import { resolveMaterialLookupError } from '@/domain/material/MaterialLookupError'
+import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
+import { msg } from '@/ui/shared/messageCatalog'
 
 type SmtMaterialInventoryEx = SmtMaterialInventory & { remark?: string }
 type MatchedRow = unknown
@@ -50,7 +50,7 @@ const emit = defineEmits<{
 
 /* ================= state ================= */
 
-const message = useMessage()
+const { success, info, playSuccessTone } = useUiNotifier()
 const materialInventoryIdnoInput = ref<InputInst | null>(null)
 
 const formValue = ref({
@@ -70,40 +70,6 @@ const inputValue = computed({
         formValue.value.materialInventoryIdno = value
     },
 })
-/* ================= tone ================= */
-
-async function playSuccessTone() {
-    await Tone.start()
-    const synth = new Tone.Synth().toDestination()
-    const now = Tone.now()
-    synth.triggerAttackRelease('C4', '8n', now)
-    synth.triggerAttackRelease('G4', '8n', now + 0.1)
-}
-
-async function playErrorTone() {
-    await Tone.start()
-    const synth = new Tone.Synth().toDestination()
-    const now = Tone.now()
-    synth.triggerAttackRelease('D4', '8n', now)
-    synth.triggerAttackRelease('D4', '8n', now + 0.2)
-}
-
-async function safePlaySuccessTone() {
-    try {
-        await playSuccessTone()
-    } catch (error) {
-        console.warn('playSuccessTone failed', error)
-    }
-}
-
-async function safePlayErrorTone() {
-    try {
-        await playErrorTone()
-    } catch (error) {
-        console.warn('playErrorTone failed', error)
-    }
-}
-
 /* ================= main logic ================= */
 
 const scanUseCase = computed(() => {
@@ -133,7 +99,6 @@ async function onSubmit() {
             ? await props.scan(idno)
             : await scanUseCase.value.execute(idno)
     } catch (error) {
-        await safePlayErrorTone()
         emit('error', resolveMaterialLookupError(error))
         reset()
         return
@@ -147,25 +112,18 @@ async function onSubmit() {
     if (decision.action === 'matched') {
         emit('matched', decision.payload as MatchedPayload)
         if (decision.tone === 'success') {
-            await safePlaySuccessTone()
-            message.success(
-                props.isTestingMode
-                    ? '🧪 試產模式：物料匹配成功'
-                    : '✅ 正式生產模式：物料匹配成功'
-            )
+            await success(msg.materialScan.matchSuccess(props.isTestingMode))
         } else {
-            await safePlaySuccessTone()
+            await playSuccessTone().catch(() => {})
             const infoMessage =
                 decision.messageKey === 'virtual'
-                    ? '🧪 試產模式：使用虛擬物料'
-                    : '🧪 試產模式：物料匹配成功'
-            message.info(infoMessage)
+                    ? msg.materialScan.virtualMaterial
+                    : msg.materialScan.testingMatchSuccess
+            info(infoMessage)
         }
 
         return
     }
-
-    await safePlayErrorTone()
 
     if (decision.errorKind === 'no_match') {
         emit('error', '槽位不存在')

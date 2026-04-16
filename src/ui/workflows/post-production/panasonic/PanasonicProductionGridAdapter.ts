@@ -80,10 +80,10 @@ export function createPanasonicProductionGrid(): GridOptions<ProductionRowModel>
       { field: 'remark', headerName: '備註', flex: 3, minWidth: 120 },
     ],
     getBusinessKeyForNode: (node: RowNode<ProductionRowModel>) => {
-      return `${node.data.slotIdno}-${node.data.subSlotIdno}`
+      return `${node.data.slotIdno}-${node.data.subSlotIdno ?? ""}`
     },
     getRowId: (params: GetRowIdParams<ProductionRowModel>) => {
-      return `${params.data.slotIdno}-${params.data.subSlotIdno}`
+      return `${params.data.slotIdno}-${params.data.subSlotIdno ?? ""}`
     },
   }
 }

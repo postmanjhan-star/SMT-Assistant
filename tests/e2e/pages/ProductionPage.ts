@@ -58,6 +58,33 @@ export class ProductionPage {
     return this.page.getByTestId(testId).locator('input')
   }
 
+  get ipqcMaterialInput() {
+    const id =
+      this.machine === 'fuji' ? 'fuji-ipqc-material-input' : 'prod-ipqc-material-input'
+    return this.page.locator(`#${id}`)
+  }
+
+  get ipqcSlotInput() {
+    const id =
+      this.machine === 'fuji' ? 'fuji-ipqc-slot-input' : 'prod-ipqc-slot-input'
+    return this.page.locator(`#${id}`)
+  }
+
+  async enterIpqcMode() {
+    await this.materialInput.click()
+    await this.materialInput.fill('S5588')
+    await this.materialInput.press('Enter')
+    await this.ipqcMaterialInput.waitFor({ state: 'visible', timeout: 5000 })
+  }
+
+  async scanIpqcMaterialAndSlot(materialPackCode: string, slotIdno: string) {
+    await this.ipqcMaterialInput.fill(materialPackCode)
+    await this.ipqcMaterialInput.press('Enter')
+    await expect(this.ipqcSlotInput).toBeEnabled({ timeout: 5000 })
+    await this.ipqcSlotInput.fill(slotIdno)
+    await this.ipqcSlotInput.press('Enter')
+  }
+
   get unloadMaterialInput() {
     const testId =
       this.machine === 'fuji' ? 'fuji-unload-material-input' : 'unload-material-input'

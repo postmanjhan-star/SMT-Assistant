@@ -55,6 +55,14 @@ export const msg = {
     inspectionSuccess: (packCode: string, slotIdno: string) => `巡檢成功：${packCode} @ ${slotIdno}`,
   },
 
+  // 物料掃描類（MaterialInventoryBarcodeInput 共用元件）
+  materialScan: {
+    matchSuccess: (isTesting: boolean) =>
+      isTesting ? '🧪 試產模式：物料匹配成功' : '✅ 正式生產模式：物料匹配成功',
+    testingMatchSuccess: '🧪 試產模式：物料匹配成功',
+    virtualMaterial: '🧪 試產模式：使用虛擬物料',
+  },
+
   // 生產生命週期類
   production: {
     startedAndUploaded: "開始生產，資料已上傳",
