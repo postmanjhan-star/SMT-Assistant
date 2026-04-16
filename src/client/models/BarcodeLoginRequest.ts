@@ -4,7 +4,7 @@
 /* eslint-disable */
 
 export type BarcodeLoginRequest = {
-    work_id: number;
+    work_id: string;
     signature?: (string | null);
 };
 

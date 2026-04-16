@@ -772,7 +772,7 @@ export class SmtService {
         workIds,
         printer = 'weasyprint',
     }: {
-        workIds: Array<number>,
+        workIds: Array<string>,
         printer?: Printer,
     }): CancelablePromise<any | Blob> {
         return __request(OpenAPI, {

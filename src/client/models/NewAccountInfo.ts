@@ -4,7 +4,7 @@
 /* eslint-disable */
 
 export type NewAccountInfo = {
-    work_id: number;
+    work_id: string;
     username: string;
     uname: string;
     password: string;

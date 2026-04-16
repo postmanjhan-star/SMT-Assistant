@@ -5,7 +5,7 @@
 export const $BarcodeLoginRequest = {
     properties: {
         work_id: {
-            type: 'number',
+            type: 'string',
             isRequired: true,
         },
         signature: {

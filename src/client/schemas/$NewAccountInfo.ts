@@ -5,7 +5,7 @@
 export const $NewAccountInfo = {
     properties: {
         work_id: {
-            type: 'number',
+            type: 'string',
             isRequired: true,
         },
         username: {

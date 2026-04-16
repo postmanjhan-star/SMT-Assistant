@@ -40,21 +40,21 @@ export function useScanLoginModal(deps: ScanLoginDeps) {
     if (!raw) return
 
     const colonIndex = raw.indexOf(":")
-    let workId: number
+    let workId: string
     let signature: string | undefined
 
     if (colonIndex !== -1) {
       // 後端開啟憑證模式：work_id:signature
-      workId = parseInt(raw.slice(0, colonIndex), 10)
+      workId = raw.slice(0, colonIndex)
       signature = raw.slice(colonIndex + 1)
     } else {
       // 後端關閉憑證模式：只有 work_id
-      workId = parseInt(raw, 10)
+      workId = raw
       signature = undefined
     }
 
-    if (isNaN(workId)) {
-      loginError.value = "條碼格式錯誤，work_id 必須為數字"
+    if (!workId) {
+      loginError.value = "條碼格式錯誤，work_id 不可為空"
       loginInput.value = ""
       return
     }

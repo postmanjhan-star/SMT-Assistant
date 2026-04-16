@@ -9,7 +9,7 @@ export type SwitchUserResult = {
 }
 
 export type SwitchUserFn = (payload: {
-  work_id: number
+  work_id: string
   signature?: string
 }) => Promise<SwitchUserResult>
 

@@ -4,9 +4,9 @@ import { useAuthStore } from '@/stores/authStore'
 import { useScanLoginModal } from '@/ui/shared/composables/useScanLoginModal'
 import type { SwitchUserResult } from '@/ui/di/shared/createScanLoginDeps'
 
-function makeDeps(overrides: Partial<{ switchUser: (payload: { work_id: number; signature?: string }) => Promise<SwitchUserResult> }> = {}) {
+function makeDeps(overrides: Partial<{ switchUser: (payload: { work_id: string; signature?: string }) => Promise<SwitchUserResult> }> = {}) {
   return {
-    switchUser: vi.fn<[{ work_id: number; signature?: string }], Promise<SwitchUserResult>>(),
+    switchUser: vi.fn<[{ work_id: string; signature?: string }], Promise<SwitchUserResult>>(),
     ...overrides,
   }
 }
