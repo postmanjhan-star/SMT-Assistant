@@ -1,7 +1,7 @@
-import { SmtService, type FujiMounterItemStatRead, type FujiItemStatFeedLogRead } from '@/client'
+import { SmtService, type FujiMounterItemStatRead, type FujiItemStatFeedLogRead, type FujiFeedRecordCreate } from '@/client'
 
 export class FujiPostProductionRecordApi {
-  async uploadFeedRecord(payload: any) {
+  async uploadFeedRecord(payload: FujiFeedRecordCreate) {
     return SmtService.addFujiMounterItemStatRoll({ requestBody: payload })
   }
 

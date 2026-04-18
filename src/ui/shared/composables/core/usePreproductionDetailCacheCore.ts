@@ -1,13 +1,14 @@
 import { ref, watch } from "vue"
 import type {
   BaseCachePayload,
+  BaseCacheRow,
   PreproductionDetailCacheAdapter,
   PreproductionDetailCacheCoreOptions,
 } from "./PreproductionDetailCacheAdapter"
 
-export function usePreproductionDetailCacheCore(
-  options: PreproductionDetailCacheCoreOptions,
-  adapter: PreproductionDetailCacheAdapter,
+export function usePreproductionDetailCacheCore<TRow extends BaseCacheRow = BaseCacheRow>(
+  options: PreproductionDetailCacheCoreOptions<TRow>,
+  adapter: PreproductionDetailCacheAdapter<TRow>,
 ) {
   const {
     rowData, materialRef, materialInputValue, slotInputValue,
@@ -86,7 +87,7 @@ export function usePreproductionDetailCacheCore(
       if (altKey != null) cachedByAlt.set(altKey, r)
     }
 
-    const nextRows = (rowData.value ?? []).map((row: any) => {
+    const nextRows = (rowData.value ?? []).map((row) => {
       const cachedRow = cachedById.get(row.id) ?? cachedByAlt.get(adapter.toLiveRowAlternativeKey(row))
       if (!cachedRow) return row
       const next = { ...row }

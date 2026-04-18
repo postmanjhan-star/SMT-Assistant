@@ -7,7 +7,7 @@ import {
   MATERIAL_SPLICE_MODE_NAME,
 } from "@/domain/mounter/operationModes"
 import { useOperationModeStateMachine } from "@/ui/shared/composables/useOperationModeStateMachine"
-import type { MounterOperationFlowsAdapter, MounterOperationFlowsCoreOptions } from "./MounterOperationFlowsAdapter"
+import type { MounterOperationFlowsAdapter, MounterOperationFlowsCoreOptions, OperationFlowRow } from "./MounterOperationFlowsAdapter"
 import { CORRECT_STATE, createMaterialPackCodeHelpers } from "./flows/materialPackCodeHelpers"
 import { createMaterialValidator } from "./flows/materialValidator"
 import { createIpqcCoordinator } from "./flows/ipqcCoordinator"
@@ -21,9 +21,9 @@ export { CORRECT_STATE }
 // Core Composable
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useMounterOperationFlowsCore(
-  options: MounterOperationFlowsCoreOptions,
-  adapter: MounterOperationFlowsAdapter,
+export function useMounterOperationFlowsCore<TRow extends OperationFlowRow = OperationFlowRow>(
+  options: MounterOperationFlowsCoreOptions<TRow>,
+  adapter: MounterOperationFlowsAdapter<TRow>,
 ) {
   const {
     rowData, currentUsername, isTestingMode, isMockMode,
@@ -84,7 +84,7 @@ export function useMounterOperationFlowsCore(
 
   // ── Grid helpers ──────────────────────────────────────────────────────────
 
-  function updateRowInGrid(row: any) {
+  function updateRowInGrid(row: TRow) {
     try {
       adapter.applyGridTransaction([row])
     } catch {
@@ -94,7 +94,7 @@ export function useMounterOperationFlowsCore(
 
   // ── Row search helpers ────────────────────────────────────────────────────
 
-  function findRowBySlotIdno(slotIdno: string): any | null {
+  function findRowBySlotIdno(slotIdno: string): TRow | null {
     return adapter.findRowBySlotInput(slotIdno, rowData.value)
   }
 

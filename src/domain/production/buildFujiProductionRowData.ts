@@ -60,6 +60,7 @@ export type FujiProductionRowModel = {
   inspectTime?: string | null
   inspectMaterialPackCode?: string | null
   inspectCount?: number | null
+  inspectorIdno?: string | null
 }
 
 function normalizeStageLabel(stage: unknown): string {

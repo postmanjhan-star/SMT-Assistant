@@ -3,13 +3,14 @@ import { CheckMaterialMatchEnum } from "@/client"
 import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { CORRECT_STATE } from "./materialPackCodeHelpers"
+import type { OperationFlowRow } from "../MounterOperationFlowsAdapter"
 
 export type MaterialValidatorDeps = {
   isTestingMode: Ref<boolean>
   isMockMode: boolean
   fetchMaterialInventory: (id: string) => Promise<MaterialRepositoryResult>
   showError: (msg: string) => void
-  findRowBySlotIdno: (slotIdno: string) => any | null
+  findRowBySlotIdno: (slotIdno: string) => OperationFlowRow | null
 }
 
 export function createMaterialValidator(deps: MaterialValidatorDeps) {

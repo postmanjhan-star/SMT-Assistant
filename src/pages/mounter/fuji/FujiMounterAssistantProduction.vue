@@ -173,12 +173,12 @@ onMounted(() => {
 
 // ─── Input ref binders (for FujiProductionInputSection) ──────────────────────
 
-const bindUnloadMaterialInput = (el: any) => { unloadMaterialInputRef.value = el as HTMLInputElement | null }
-const bindUnloadSlotInput     = (el: any) => { unloadSlotInputRef.value = el as HTMLInputElement | null }
-const bindIpqcMaterialInput   = (el: any) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
-const bindIpqcSlotInput       = (el: any) => { ipqcSlotInput.value = el as HTMLInputElement | null }
-const bindSpliceMaterialInput = (el: any) => { spliceMaterialInput.value = el as HTMLInputElement | null }
-const bindSpliceSlotInput     = (el: any) => { spliceSlotInput.value = el as HTMLInputElement | null }
+const bindUnloadMaterialInput = (el: Element | null) => { unloadMaterialInputRef.value = el as HTMLInputElement | null }
+const bindUnloadSlotInput     = (el: Element | null) => { unloadSlotInputRef.value = el as HTMLInputElement | null }
+const bindIpqcMaterialInput   = (el: Element | null) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
+const bindIpqcSlotInput       = (el: Element | null) => { ipqcSlotInput.value = el as HTMLInputElement | null }
+const bindSpliceMaterialInput = (el: Element | null) => { spliceMaterialInput.value = el as HTMLInputElement | null }
+const bindSpliceSlotInput     = (el: Element | null) => { spliceSlotInput.value = el as HTMLInputElement | null }
 
 // ─── Grid ready ───────────────────────────────────────────────────────────────
 

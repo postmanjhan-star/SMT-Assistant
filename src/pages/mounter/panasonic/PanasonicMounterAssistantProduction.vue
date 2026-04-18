@@ -276,12 +276,12 @@ function onRollShortageModalUpdate(value: boolean) {
 
 // ─── Input ref binders (for PanasonicProductionInputSection) ──────────────────
 
-const bindUnloadMaterialInput = (el: any) => { unloadMaterialInput.value = el as HTMLInputElement | null }
-const bindUnloadSlotInput     = (el: any) => { unloadSlotInput.value = el as HTMLInputElement | null }
-const bindIpqcMaterialInput   = (el: any) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
-const bindIpqcSlotInput       = (el: any) => { ipqcSlotInput.value = el as HTMLInputElement | null }
-const bindSpliceMaterialInput = (el: any) => { spliceMaterialInput.value = el as HTMLInputElement | null }
-const bindSpliceSlotInput     = (el: any) => { spliceSlotInput.value = el as HTMLInputElement | null }
+const bindUnloadMaterialInput = (el: Element | null) => { unloadMaterialInput.value = el as HTMLInputElement | null }
+const bindUnloadSlotInput     = (el: Element | null) => { unloadSlotInput.value = el as HTMLInputElement | null }
+const bindIpqcMaterialInput   = (el: Element | null) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
+const bindIpqcSlotInput       = (el: Element | null) => { ipqcSlotInput.value = el as HTMLInputElement | null }
+const bindSpliceMaterialInput = (el: Element | null) => { spliceMaterialInput.value = el as HTMLInputElement | null }
+const bindSpliceSlotInput     = (el: Element | null) => { spliceSlotInput.value = el as HTMLInputElement | null }
 </script>
 
 <template>

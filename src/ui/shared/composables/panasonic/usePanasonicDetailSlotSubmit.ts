@@ -32,7 +32,7 @@ export type PanasonicDetailSlotSubmitOptions = {
     slotIdno: string
     slot: string
     subSlot: string
-  }) => Promise<any>
+  }) => Promise<unknown>
   persistNow: () => void
   suspendWrite: () => void
   resumeWrite: () => void
@@ -71,7 +71,7 @@ export function usePanasonicDetailSlotSubmit(options: PanasonicDetailSlotSubmitO
         if (hasFirst && !hasSplice && (row.correct as string) === "MATCHED_MATERIAL_PACK") {
           const rowKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
           saved.set(rowKey, row.correct as string)
-          ;(row as any).correct = "UNLOADED"
+          row.correct = "UNLOADED"
           options.updateRowInGrid(row)
         }
       }
@@ -124,7 +124,7 @@ export function usePanasonicDetailSlotSubmit(options: PanasonicDetailSlotSubmitO
       targetRow.operatorIdno = options.getCurrentUsername()
       targetRow.operationTime = new Date().toISOString()
       if (correctState === "TESTING_MATERIAL_PACK") targetRow.remark = "[測試模式接料]"
-      ;(targetRow as any).correct = correctState
+      targetRow.correct = correctState
       options.updateRowInGrid(targetRow)
 
       options.pendingSpliceRecords.value = [

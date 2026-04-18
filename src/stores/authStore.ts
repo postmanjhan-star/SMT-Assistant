@@ -6,8 +6,6 @@ import { ref, computed } from 'vue'
 interface HttpBasicValue {
   username: string
   password?: string
-  // 其他內部屬性可以設為 any 或更精確的型別
-  [key: string]: any
 }
 
 interface HttpBasic {
@@ -29,15 +27,13 @@ interface OAuth2PasswordBearer {
   schema: {
     flow: 'password'
     tokenUrl: string
-    scopes: Record<string, any>
+    scopes: Record<string, string>
     type: 'oauth2'
   }
   token: OAuth2Token | null
   username: string
   password?: string
   employee?: { idno: string; full_name: string }
-  // 其他屬性
-  [key:string]: any
 }
 
 /**
@@ -104,7 +100,7 @@ export const useAuthStore = defineStore('authorized', () => {
           scopes: {},
           type: 'oauth2'
         },
-        token: token as any,
+        token: token,
         username: employee?.full_name ?? ''
       }
     } else {

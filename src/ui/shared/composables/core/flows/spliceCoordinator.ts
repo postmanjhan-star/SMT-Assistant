@@ -5,10 +5,10 @@ import {
   MATERIAL_SPLICE_TRIGGER,
   MATERIAL_UNLOAD_TRIGGER,
 } from "@/domain/mounter/operationModes"
-import type { MounterOperationFlowsAdapter } from "../MounterOperationFlowsAdapter"
+import type { MounterOperationFlowsAdapter, OperationFlowRow } from "../MounterOperationFlowsAdapter"
 import { CORRECT_STATE } from "./materialPackCodeHelpers"
 
-export type SpliceCoordinatorDeps = {
+export type SpliceCoordinatorDeps<TRow extends OperationFlowRow = OperationFlowRow> = {
   machine: {
     enterSpliceMode: () => void
     exitToNormal: () => void
@@ -17,21 +17,21 @@ export type SpliceCoordinatorDeps = {
     onSpliceSlotSubmitted: () => void
   }
   adapter: Pick<
-    MounterOperationFlowsAdapter,
+    MounterOperationFlowsAdapter<TRow>,
     "toRowKey" | "toRowSlotIdno" | "slotsMatch" | "buildSpliceRecord"
   >
-  rowData: Ref<any[]>
+  rowData: Ref<TRow[]>
   currentUsername: Ref<string | null> | { value: string | null }
   pendingSpliceRecords: Ref<unknown[]>
   spliceSlotIdno: Ref<string>
   spliceNewPackCode: Ref<string>
   findUniqueUnloadSlotByPackCode: (
     code: string,
-  ) => { ok: true; row: any; slotIdno: string } | { ok: false; error: string }
+  ) => { ok: true; row: TRow; slotIdno: string } | { ok: false; error: string }
   validateUnloadMaterialPackCode: (code: string) => Promise<boolean>
   resolveReplacementCorrectState: (code: string, slot: string) => Promise<string | null>
-  findRowBySlotIdno: (slot: string) => any | null
-  updateRowInGrid: (row: any) => void
+  findRowBySlotIdno: (slot: string) => TRow | null
+  updateRowInGrid: (row: TRow) => void
   showError: (msg: string) => void
   clearNormalScanState: () => void
   focusMaterialInput: () => void
@@ -41,7 +41,7 @@ export type SpliceCoordinatorDeps = {
   enterUnloadMode: (type: "pack_auto_slot" | "force_single_slot") => void
 }
 
-export function createSpliceCoordinator(deps: SpliceCoordinatorDeps) {
+export function createSpliceCoordinator<TRow extends OperationFlowRow = OperationFlowRow>(deps: SpliceCoordinatorDeps<TRow>) {
   const {
     machine, adapter, rowData, currentUsername, pendingSpliceRecords,
     spliceSlotIdno, spliceNewPackCode,
@@ -51,7 +51,7 @@ export function createSpliceCoordinator(deps: SpliceCoordinatorDeps) {
     handleUserSwitchTrigger, enterIpqcMode, enterUnloadMode,
   } = deps
 
-  const spliceSavedCorrectState = ref<{ rowKey: string; correct: unknown } | null>(null)
+  const spliceSavedCorrectState = ref<{ rowKey: string; correct: string | null | undefined } | null>(null)
   const spliceMaterialValue = ref("")
   const spliceSlotValue     = ref("")
   const spliceMaterialInput = ref<HTMLInputElement | null>(null)
@@ -77,7 +77,7 @@ export function createSpliceCoordinator(deps: SpliceCoordinatorDeps) {
   function exitSpliceMode() {
     if (spliceSavedCorrectState.value) {
       const saved = spliceSavedCorrectState.value
-      const row = (rowData.value ?? []).find((r: any) => adapter.toRowKey(r) === saved.rowKey)
+      const row = (rowData.value ?? []).find((r) => adapter.toRowKey(r) === saved.rowKey)
       if (row) {
         row.correct = saved.correct
         updateRowInGrid(row)

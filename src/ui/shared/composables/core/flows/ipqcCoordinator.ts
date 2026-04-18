@@ -8,25 +8,25 @@ import {
   MATERIAL_UNLOAD_TRIGGER,
   USER_SWITCH_TRIGGER,
 } from "@/domain/mounter/operationModes"
-import type { MounterOperationFlowsAdapter } from "../MounterOperationFlowsAdapter"
+import type { MounterOperationFlowsAdapter, OperationFlowRow } from "../MounterOperationFlowsAdapter"
 import { CORRECT_STATE } from "./materialPackCodeHelpers"
 
-export type IpqcCoordinatorDeps = {
+export type IpqcCoordinatorDeps<TRow extends OperationFlowRow = OperationFlowRow> = {
   machine: {
     enterIpqcMode: () => void
     exitToNormal: () => void
   }
   adapter: Pick<
-    MounterOperationFlowsAdapter,
+    MounterOperationFlowsAdapter<TRow>,
     "setColumnVisible" | "toggleNormalColumnsForIpqc" | "toRowKey" | "buildIpqcRecord"
   >
-  rowData: Ref<any[]>
+  rowData: Ref<TRow[]>
   currentUsername: Ref<string | null> | { value: string | null }
   pendingIpqcRecords: Ref<IpqcInspectionRecord[]>
   resolveExistenceBasedCorrectState: (code: string) => Promise<CheckMaterialMatchEnum | null>
-  getCurrentPackCode: (row: any) => string
-  findRowBySlotIdno: (slot: string) => any | null
-  updateRowInGrid: (row: any) => void
+  getCurrentPackCode: (row: TRow) => string
+  findRowBySlotIdno: (slot: string) => TRow | null
+  updateRowInGrid: (row: TRow) => void
   showError: (msg: string) => void
   clearNormalScanState: () => void
   focusMaterialInput: () => void
@@ -36,7 +36,7 @@ export type IpqcCoordinatorDeps = {
   enterUnloadMode: (type: "pack_auto_slot" | "force_single_slot") => void
 }
 
-export function createIpqcCoordinator(deps: IpqcCoordinatorDeps) {
+export function createIpqcCoordinator<TRow extends OperationFlowRow = OperationFlowRow>(deps: IpqcCoordinatorDeps<TRow>) {
   const {
     machine, adapter, rowData, currentUsername, pendingIpqcRecords,
     resolveExistenceBasedCorrectState, getCurrentPackCode, findRowBySlotIdno,
@@ -49,7 +49,7 @@ export function createIpqcCoordinator(deps: IpqcCoordinatorDeps) {
   const ipqcSlotValue     = ref("")
   const ipqcMaterialInput = ref<HTMLInputElement | null>(null)
   const ipqcSlotInput     = ref<HTMLInputElement | null>(null)
-  const ipqcSavedCorrectStates = ref<Map<string, unknown>>(new Map())
+  const ipqcSavedCorrectStates = ref<Map<string, string | null | undefined>>(new Map())
 
   function showIpqcColumns(visible: boolean) {
     adapter.setColumnVisible("inspectMaterialPackCode", visible)
@@ -72,7 +72,7 @@ export function createIpqcCoordinator(deps: IpqcCoordinatorDeps) {
     ipqcCheckPackCodeMatch.value = null
     clearNormalScanState()
 
-    const saved = new Map<string, unknown>()
+    const saved = new Map<string, string | null | undefined>()
     for (const row of rowData.value) {
       const key = adapter.toRowKey(row)
       saved.set(key, row.correct)

@@ -2,6 +2,7 @@ import type { ComputedRef, Ref } from "vue"
 import type { ColumnApi, GridApi } from "ag-grid-community"
 import { type CheckMaterialMatchEnum } from "@/client"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
+import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData"
 import type { MounterProductionOperationFlowsAdapter } from "@/ui/shared/composables/core/MounterProductionOperationFlowsAdapter"
 import { useMounterProductionOperationFlowsCore } from "@/ui/shared/composables/core/useMounterProductionOperationFlowsCore"
 
@@ -15,7 +16,7 @@ type ColumnApiRef = Ref<Pick<ColumnApi, "setColumnVisible"> | null>
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type PanasonicProductionOperationFlowsOptions = {
-  rowData:         Ref<any[]>
+  rowData:         Ref<ProductionRowModel[]>
   gridApi:         GridApiRef
   columnApi:       ColumnApiRef
   currentUsername: ComputedRef<string | null>
@@ -66,7 +67,7 @@ function buildPanasonicProductionAdapter(
   gridApi:         GridApiRef,
   columnApi:       ColumnApiRef,
   inspectionUpload: PanasonicProductionOperationFlowsOptions["inspectionUpload"],
-): MounterProductionOperationFlowsAdapter {
+): MounterProductionOperationFlowsAdapter<ProductionRowModel> {
   return {
     // ── Row keying ───────────────────────────────────────────────────────
     toRowKey: (row) => `${row.slotIdno}-${row.subSlotIdno ?? ""}`,
@@ -77,7 +78,7 @@ function buildPanasonicProductionAdapter(
     },
 
     // ── Grid API ─────────────────────────────────────────────────────────
-    applyGridTransaction(update: any[]) {
+    applyGridTransaction(update) {
       try { gridApi.value?.applyTransaction?.({ update }) } catch { /* grid not ready */ }
     },
 
@@ -93,11 +94,11 @@ function buildPanasonicProductionAdapter(
     },
 
     // ── Slot parsing ─────────────────────────────────────────────────────
-    findRowBySlotInput(slotIdno: string, rowData: any[]): any | null {
+    findRowBySlotInput(slotIdno, rowData) {
       const parsed = parsePanasonicSlotIdno(slotIdno)
       if (!parsed) return null
       return rowData.find(
-        (row: any) =>
+        (row) =>
           String(row.slotIdno    ?? "").trim() === String(parsed.slot    ?? "").trim() &&
           String(row.subSlotIdno ?? "").trim() === String(parsed.subSlot ?? "").trim(),
       ) ?? null
@@ -110,7 +111,7 @@ function buildPanasonicProductionAdapter(
     },
 
     // ── IPQC 即時上傳 ────────────────────────────────────────────────────
-    async submitIpqcRow(row: any, materialPackCode: string, operatorIdno: string | null, checkPackCodeMatch?: CheckMaterialMatchEnum | null) {
+    async submitIpqcRow(row, materialPackCode, operatorIdno, checkPackCodeMatch) {
       if (!row.id) return
       try {
         await inspectionUpload({
@@ -127,7 +128,7 @@ function buildPanasonicProductionAdapter(
     },
 
     // Panasonic 特有：IPQC 後更新 row.remark
-    afterIpqcRowUpdate(row: any) {
+    afterIpqcRowUpdate(row) {
       row.remark = `巡檢 ${row.inspectCount ?? 1} 次`
     },
   }

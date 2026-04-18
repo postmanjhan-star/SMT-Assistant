@@ -3,7 +3,7 @@ import type { ColumnApi, GridApi } from "ag-grid-community"
 import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
 import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
-import type { MounterOperationFlowsAdapter } from "@/ui/shared/composables/core/MounterOperationFlowsAdapter"
+import type { MounterOperationFlowsAdapter, OperationFlowRow } from "@/ui/shared/composables/core/MounterOperationFlowsAdapter"
 import { useMounterOperationFlowsCore } from "@/ui/shared/composables/core/useMounterOperationFlowsCore"
 import type {
   FujiPreproductionUnloadRecord,
@@ -24,6 +24,8 @@ export type FujiPreproductionOperationFlowsOptions = {
   getGridApi:    () => FujiPreGridApi   | null
   getColumnApi:  () => FujiPreColumnApi | null
   // Data
+  // FujiProductionRow 無 slotIdno 屬性（用 stage/slot），無法滿足 OperationFlowRow 約束
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rowData:       Ref<any[]>
   mounterIdno:   ComputedRef<string>
   // User
@@ -53,18 +55,22 @@ function buildFujiPreproductionAdapter(
   getGridApi:   () => FujiPreGridApi   | null,
   getColumnApi: () => FujiPreColumnApi | null,
 ): MounterOperationFlowsAdapter {
+  type FujiRow = OperationFlowRow & { mounterIdno: string; stage: string; slot: number }
+
   return {
     // ── Row keying ────────────────────────────────────────────────────────
-    toRowKey(row: any): string {
-      return `${row.mounterIdno}-${row.stage}-${row.slot}`
+    toRowKey(row) {
+      const r = row as FujiRow
+      return `${r.mounterIdno}-${r.stage}-${r.slot}`
     },
 
-    toRowSlotIdno(row: any): string {
-      return `${row.mounterIdno}-${row.stage}-${row.slot}`
+    toRowSlotIdno(row) {
+      const r = row as FujiRow
+      return `${r.mounterIdno}-${r.stage}-${r.slot}`
     },
 
     // ── Grid API ──────────────────────────────────────────────────────────
-    applyGridTransaction(update: any[]) {
+    applyGridTransaction(update) {
       try { getGridApi()?.applyTransaction?.({ update }) } catch { /* grid not ready */ }
     },
 
@@ -80,13 +86,15 @@ function buildFujiPreproductionAdapter(
     },
 
     // ── Slot parsing ──────────────────────────────────────────────────────
-    findRowBySlotInput(slotIdno: string, rowData: any[]): any | null {
+    findRowBySlotInput(slotIdno, rowData) {
       const parsed = parseFujiSlotIdno(slotIdno)
       if (!parsed) return null
       return rowData.find(
-        (row: any) =>
-          Number(row.slot) === parsed.slot &&
-          String(row.stage).trim() === String(parsed.stage).trim(),
+        (row) => {
+          const r = row as FujiRow
+          return Number(r.slot) === parsed.slot &&
+            String(r.stage).trim() === String(parsed.stage).trim()
+        },
       ) ?? null
     },
 
@@ -97,10 +105,11 @@ function buildFujiPreproductionAdapter(
     },
 
     // ── Record 組裝 ───────────────────────────────────────────────────────
-    buildUnloadRecord(row: any, { materialPackCode, unfeedReason, operationTime, checkPackCodeMatch }): FujiPreproductionUnloadRecord {
+    buildUnloadRecord(row, { materialPackCode, unfeedReason, operationTime, checkPackCodeMatch }): FujiPreproductionUnloadRecord {
+      const r = row as FujiRow
       return {
-        slot:  row.slot  as number,
-        stage: row.stage as string,
+        slot:  r.slot,
+        stage: r.stage,
         materialPackCode,
         unfeedReason,
         operationTime,
@@ -108,17 +117,18 @@ function buildFujiPreproductionAdapter(
       }
     },
 
-    buildSpliceRecord(row: any, { materialPackCode, correctState, operationTime }): FujiPreproductionSpliceRecord {
+    buildSpliceRecord(row, { materialPackCode, correctState, operationTime }): FujiPreproductionSpliceRecord {
+      const r = row as FujiRow
       return {
-        slot:  row.slot  as number,
-        stage: row.stage as string,
+        slot:  r.slot,
+        stage: r.stage,
         materialPackCode,
         correctState: correctState as FujiPreproductionSpliceRecord["correctState"],
         operationTime,
       }
     },
 
-    buildIpqcRecord(_row: any, { slotIdno, materialPackCode, inspectorIdno, inspectionTime, checkPackCodeMatch }): IpqcInspectionRecord {
+    buildIpqcRecord(_row, { slotIdno, materialPackCode, inspectorIdno, inspectionTime, checkPackCodeMatch }): IpqcInspectionRecord {
       const parsed = parseFujiSlotIdno(slotIdno)
       return {
         slotIdno,

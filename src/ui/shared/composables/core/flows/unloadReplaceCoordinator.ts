@@ -6,10 +6,10 @@ import {
   MATERIAL_SPLICE_TRIGGER,
   MATERIAL_UNLOAD_TRIGGER,
 } from "@/domain/mounter/operationModes"
-import type { MounterOperationFlowsAdapter } from "../MounterOperationFlowsAdapter"
+import type { MounterOperationFlowsAdapter, OperationFlowRow } from "../MounterOperationFlowsAdapter"
 import { CORRECT_STATE } from "./materialPackCodeHelpers"
 
-export type UnloadReplaceCoordinatorDeps = {
+export type UnloadReplaceCoordinatorDeps<TRow extends OperationFlowRow = OperationFlowRow> = {
   machine: {
     enterUnloadMode: (type: "pack_auto_slot" | "force_single_slot") => void
     exitToNormal: () => void
@@ -28,23 +28,23 @@ export type UnloadReplaceCoordinatorDeps = {
   replacementMaterialPackCode: Ref<string>
 
   adapter: Pick<
-    MounterOperationFlowsAdapter,
+    MounterOperationFlowsAdapter<TRow>,
     "applyGridTransaction" | "toRowSlotIdno" | "slotsMatch" | "buildUnloadRecord" | "buildSpliceRecord"
   >
-  rowData: Ref<any[]>
+  rowData: Ref<TRow[]>
   currentUsername: Ref<string | null> | { value: string | null }
   pendingUnloadRecords: Ref<unknown[]>
   pendingSpliceRecords: Ref<unknown[]>
 
-  getLoadedPackCode: (row: any) => string
-  getSplicePackCode: (row: any) => string
-  getForceUnloadPackCode: (row: any) => string | null
+  getLoadedPackCode: (row: TRow) => string
+  getSplicePackCode: (row: TRow) => string
+  getForceUnloadPackCode: (row: TRow) => string | null
   findUniqueUnloadSlotByPackCode: (
     code: string,
-  ) => { ok: true; row: any; slotIdno: string } | { ok: false; error: string }
+  ) => { ok: true; row: TRow; slotIdno: string } | { ok: false; error: string }
   resolveReplacementCorrectState: (code: string, slot: string) => Promise<string | null>
-  findRowBySlotIdno: (slot: string) => any | null
-  updateRowInGrid: (row: any) => void
+  findRowBySlotIdno: (slot: string) => TRow | null
+  updateRowInGrid: (row: TRow) => void
   showError: (msg: string) => void
   clearNormalScanState: () => void
   focusMaterialInput: () => void
@@ -54,7 +54,7 @@ export type UnloadReplaceCoordinatorDeps = {
   enterSpliceMode: () => void
 }
 
-export function createUnloadReplaceCoordinator(deps: UnloadReplaceCoordinatorDeps) {
+export function createUnloadReplaceCoordinator<TRow extends OperationFlowRow = OperationFlowRow>(deps: UnloadReplaceCoordinatorDeps<TRow>) {
   const {
     machine, adapter, rowData, currentUsername,
     pendingUnloadRecords, pendingSpliceRecords,
@@ -136,7 +136,7 @@ export function createUnloadReplaceCoordinator(deps: UnloadReplaceCoordinatorDep
 
   // ── applyUnloadToRow ──────────────────────────────────────────────────────
 
-  function applyUnloadToRow(row: any, materialPackCode: string) {
+  function applyUnloadToRow(row: TRow, materialPackCode: string) {
     const loadedPackCode = getLoadedPackCode(row)
     const splicePackCode = getSplicePackCode(row)
 

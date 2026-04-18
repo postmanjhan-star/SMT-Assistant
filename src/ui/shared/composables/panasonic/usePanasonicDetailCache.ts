@@ -5,18 +5,27 @@ import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import type { PanasonicUnloadRecord, PanasonicSpliceRecord } from "./panasonicDetailTypes"
 import type {
   BaseCachePayload,
+  BaseCacheRow,
   PreproductionDetailCacheAdapter,
 } from "../core/PreproductionDetailCacheAdapter"
 import { usePreproductionDetailCacheCore } from "../core/usePreproductionDetailCacheCore"
 
-interface PanasonicDetailCacheOptions {
+type PanasonicCacheRow = BaseCacheRow & {
+  slotIdno?: string
+  subSlotIdno?: string | null
+  appendedMaterialInventoryIdno?: string
+  spliceMaterialInventoryIdno?: string | null
+  operationTime?: string | null
+}
+
+interface PanasonicDetailCacheOptions<TRow extends PanasonicCacheRow = PanasonicCacheRow> {
   isTestingMode: boolean
   workOrderIdno: ComputedRef<string | null>
   productIdno: ComputedRef<string | null>
   mounterIdno: ComputedRef<string | null>
   machineSideQuery: ComputedRef<string | null>
   workSheetSideQuery: ComputedRef<string | null>
-  rowData: Ref<any[]>
+  rowData: Ref<TRow[]>
   materialInventoryResult: Ref<SlotInputResult | null>
   materialInputValue: Ref<string>
   slotInputValue: Ref<string>
@@ -24,10 +33,10 @@ interface PanasonicDetailCacheOptions {
   pendingSpliceRecords: Ref<PanasonicSpliceRecord[]>
   pendingIpqcRecords: Ref<IpqcInspectionRecord[]>
   productionStarted: Ref<boolean>
-  onHydrateRows: (rows: any[]) => void
+  onHydrateRows: (rows: TRow[]) => void
 }
 
-export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
+export function usePanasonicDetailCache<TRow extends PanasonicCacheRow = PanasonicCacheRow>(options: PanasonicDetailCacheOptions<TRow>) {
   const {
     isTestingMode, workOrderIdno, productIdno, mounterIdno, machineSideQuery, workSheetSideQuery,
     rowData, materialInventoryResult, materialInputValue, slotInputValue,
@@ -35,7 +44,7 @@ export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
     onHydrateRows,
   } = options
 
-  const adapter: PreproductionDetailCacheAdapter = {
+  const adapter: PreproductionDetailCacheAdapter<TRow> = {
     storageKey: computed(() => {
       if (typeof window === "undefined") return ""
       const mode = isTestingMode ? "testing" : "normal"
@@ -50,7 +59,7 @@ export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
       ].join("|")
     }),
 
-    serializeRow(row: any) {
+    serializeRow(row) {
       return {
         id: row.id,
         slotIdno: row.slotIdno,
@@ -86,11 +95,11 @@ export function usePanasonicDetailCache(options: PanasonicDetailCacheOptions) {
       return `${slotIdno}-${(cachedRow.subSlotIdno as string | null | undefined) ?? ""}`
     },
 
-    toLiveRowAlternativeKey(row: any) {
+    toLiveRowAlternativeKey(row) {
       return `${row.slotIdno}-${row.subSlotIdno ?? ""}`
     },
 
-    hydrateExtraFields(next: any, cachedRow) {
+    hydrateExtraFields(next, cachedRow) {
       if ("appendedMaterialInventoryIdno" in cachedRow)
         next.appendedMaterialInventoryIdno = (cachedRow.appendedMaterialInventoryIdno as string | null | undefined) ?? ""
       if ("spliceMaterialInventoryIdno" in cachedRow)

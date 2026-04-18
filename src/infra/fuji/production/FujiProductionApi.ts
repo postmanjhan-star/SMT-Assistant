@@ -5,7 +5,7 @@ export type LoadFujiProductionSlotsParams = {
     workOrderIdno: string
     mounterIdno: string
     productIdno: string
-    boardSide: any
+    boardSide: 'TOP' | 'BOTTOM' | 'DUPLEX'
     testingMode: boolean
     testingProductIdno?: string | null
 }

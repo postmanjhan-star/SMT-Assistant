@@ -63,14 +63,14 @@ function buildFujiProductionAdapter(
   mounterData:   Ref<FujiMounterItemStatRead[]>,
   inspectionUpload: FujiOperationFlowsOptions["inspectionUpload"],
   applyInspectionUpdate: FujiOperationFlowsOptions["applyInspectionUpdate"],
-): MounterProductionOperationFlowsAdapter {
+): MounterProductionOperationFlowsAdapter<FujiProductionRowModel> {
   return {
     // ── Row keying ───────────────────────────────────────────────────────
     toRowKey: (row) => `${row.mounterIdno}-${row.stage}-${row.slot}`,
     toRowSlotIdno: (row) => `${row.mounterIdno}-${row.stage}-${row.slot}`,
 
     // ── Grid API ─────────────────────────────────────────────────────────
-    applyGridTransaction(update: any[]) {
+    applyGridTransaction(update) {
       try { getGridApi()?.applyTransaction?.({ update }) } catch { /* grid not ready */ }
     },
 
@@ -86,11 +86,11 @@ function buildFujiProductionAdapter(
     },
 
     // ── Slot parsing ─────────────────────────────────────────────────────
-    findRowBySlotInput(slotIdno: string, rowData: any[]): any | null {
+    findRowBySlotInput(slotIdno, rowData) {
       const parsed = parseFujiSlotIdno(slotIdno)
       if (!parsed) return null
       return rowData.find(
-        (row: any) =>
+        (row) =>
           Number(row.slot) === parsed.slot &&
           String(row.stage).trim() === String(parsed.stage).trim(),
       ) ?? null
@@ -103,7 +103,7 @@ function buildFujiProductionAdapter(
     },
 
     // ── IPQC 即時上傳 ────────────────────────────────────────────────────
-    async submitIpqcRow(row: any, materialPackCode: string, _operatorIdno: string | null, checkPackCodeMatch?: CheckMaterialMatchEnum | null) {
+    async submitIpqcRow(row, materialPackCode, _operatorIdno, checkPackCodeMatch) {
       const statItem = mounterData.value.find((s) =>
         isFujiStatSlotMatch(s, row.slot, row.stage)
       )

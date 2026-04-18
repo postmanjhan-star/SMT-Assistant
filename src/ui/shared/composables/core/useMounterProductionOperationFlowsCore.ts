@@ -17,6 +17,7 @@ import {
 import { useOperationModeStateMachine } from "@/ui/shared/composables/useOperationModeStateMachine"
 import { msg } from "@/ui/shared/messageCatalog"
 import type { MounterProductionOperationFlowsAdapter } from "./MounterProductionOperationFlowsAdapter"
+import type { OperationFlowRow } from "./MounterOperationFlowsAdapter"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // correct state 常數（生產模式對應後端 CheckMaterialMatchEnum 字串值）
@@ -31,8 +32,8 @@ const PRODUCTION_CORRECT = {
 // Options
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type MounterProductionFlowsCoreOptions = {
-  rowData: Ref<any[]>
+export type MounterProductionFlowsCoreOptions<TRow extends OperationFlowRow = OperationFlowRow> = {
+  rowData: Ref<TRow[]>
   currentUsername: ComputedRef<string | null>
   isTestingMode: Ref<boolean>
   isMockMode: boolean
@@ -57,9 +58,9 @@ export type MounterProductionFlowsCoreOptions = {
 // Core Composable
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useMounterProductionOperationFlowsCore(
-  options: MounterProductionFlowsCoreOptions,
-  adapter: MounterProductionOperationFlowsAdapter,
+export function useMounterProductionOperationFlowsCore<TRow extends OperationFlowRow = OperationFlowRow>(
+  options: MounterProductionFlowsCoreOptions<TRow>,
+  adapter: MounterProductionOperationFlowsAdapter<TRow>,
 ) {
   const {
     rowData, currentUsername, isTestingMode, isMockMode,
@@ -125,8 +126,8 @@ export function useMounterProductionOperationFlowsCore(
   const spliceMaterialInput = ref<HTMLInputElement | null>(null)
   const spliceSlotInput     = ref<HTMLInputElement | null>(null)
 
-  const ipqcSavedCorrectStates = ref<Map<string, unknown>>(new Map())
-  const spliceSavedCorrectState = ref<{ rowKey: string; correct: unknown } | null>(null)
+  const ipqcSavedCorrectStates = ref<Map<string, string | null | undefined>>(new Map())
+  const spliceSavedCorrectState = ref<{ rowKey: string; correct: string | null | undefined } | null>(null)
 
   // ── UI helper computeds ────────────────────────────────────────────────────
 
@@ -215,7 +216,7 @@ export function useMounterProductionOperationFlowsCore(
 
   // ── Grid helpers ───────────────────────────────────────────────────────────
 
-  function updateRowInGrid(row: any) {
+  function updateRowInGrid(row: TRow) {
     try { adapter.applyGridTransaction([row]) } catch { /* grid not ready */ }
   }
 
@@ -225,29 +226,29 @@ export function useMounterProductionOperationFlowsCore(
 
   // ── Row search helpers ─────────────────────────────────────────────────────
 
-  function findRowBySlotIdno(slotIdno: string): any | null {
+  function findRowBySlotIdno(slotIdno: string): TRow | null {
     return adapter.findRowBySlotInput(slotIdno, rowData.value)
   }
 
-  function getLoadedPackCode(row: any): string {
+  function getLoadedPackCode(row: TRow): string {
     const appended = String(row.appendedMaterialInventoryIdno ?? "").trim()
     if (appended) return appended
     if (!isIpqcMode.value && row.correct === PRODUCTION_CORRECT.UNLOADED) return ""
     return String(row.materialInventoryIdno ?? "").trim()
   }
 
-  function getSplicePackCode(row: any): string {
+  function getSplicePackCode(row: TRow): string {
     return String(row.spliceMaterialInventoryIdno ?? "").trim()
   }
 
-  function getCurrentPackCode(row: any): string {
+  function getCurrentPackCode(row: TRow): string {
     return getSplicePackCode(row) || getLoadedPackCode(row)
   }
 
   // ── Duplicate detection ────────────────────────────────────────────────────
 
   function isBarcodeAlreadyInGrid(barcode: string): boolean {
-    return rowData.value.some((row: any) => {
+    return rowData.value.some((row) => {
       if (getLoadedPackCode(row) === barcode) return true
       return getSplicePackCode(row) === barcode
     })
@@ -292,7 +293,7 @@ export function useMounterProductionOperationFlowsCore(
     ipqcCheckPackCodeMatch.value = null
     clearNormalScanState()
 
-    const saved = new Map<string, unknown>()
+    const saved = new Map<string, string | null | undefined>()
     for (const row of rowData.value) {
       const key = adapter.toRowKey(row)
       saved.set(key, row.correct)
@@ -345,7 +346,7 @@ export function useMounterProductionOperationFlowsCore(
   function exitSpliceMode() {
     if (spliceSavedCorrectState.value) {
       const saved = spliceSavedCorrectState.value
-      const row = (rowData.value ?? []).find((r: any) => adapter.toRowKey(r) === saved.rowKey)
+      const row = (rowData.value ?? []).find((r) => adapter.toRowKey(r) === saved.rowKey)
       if (row) {
         row.correct = saved.correct
         updateRowInGrid(row)

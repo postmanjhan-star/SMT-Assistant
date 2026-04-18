@@ -8,18 +8,28 @@ import type {
 } from "./fujiPreproductionDetailTypes"
 import type {
   BaseCachePayload,
+  BaseCacheRow,
   PreproductionDetailCacheAdapter,
 } from "../core/PreproductionDetailCacheAdapter"
 import { usePreproductionDetailCacheCore } from "../core/usePreproductionDetailCacheCore"
 
-interface FujiDetailCacheOptions {
+type FujiCacheRow = BaseCacheRow & {
+  mounterIdno: string
+  stage: string
+  slot: number
+  appendedMaterialInventoryIdno?: string
+  spliceMaterialInventoryIdno?: string | null
+  operationTime?: string | null
+}
+
+interface FujiDetailCacheOptions<TRow extends FujiCacheRow = FujiCacheRow> {
   isTestingMode: Ref<boolean>
   workOrderIdno: Ref<string>
   productIdno: Ref<string>
   mounterIdno: Ref<string>
   boardSideQuery: Ref<string>
   testingProductIdno: Ref<string>
-  rowData: Ref<any[]>
+  rowData: Ref<TRow[]>
   materialInventory: Ref<{ id?: number | null; idno: string; material_id?: number | null; material_idno: string; material_name?: string } | null>
   materialInputValue: Ref<string>
   slotInputValue: Ref<string>
@@ -27,10 +37,10 @@ interface FujiDetailCacheOptions {
   pendingSpliceRecords: Ref<FujiPreproductionSpliceRecord[]>
   pendingIpqcRecords: Ref<IpqcInspectionRecord[]>
   productionStarted: Ref<boolean>
-  onHydrateRows: (rows: any[]) => void
+  onHydrateRows: (rows: TRow[]) => void
 }
 
-export function useFujiDetailCache(options: FujiDetailCacheOptions) {
+export function useFujiDetailCache<TRow extends FujiCacheRow = FujiCacheRow>(options: FujiDetailCacheOptions<TRow>) {
   const {
     isTestingMode, workOrderIdno, productIdno, mounterIdno, boardSideQuery, testingProductIdno,
     rowData, materialInventory, materialInputValue, slotInputValue,
@@ -38,7 +48,7 @@ export function useFujiDetailCache(options: FujiDetailCacheOptions) {
     onHydrateRows,
   } = options
 
-  const adapter: PreproductionDetailCacheAdapter = {
+  const adapter: PreproductionDetailCacheAdapter<TRow> = {
     storageKey: computed(() => {
       if (typeof window === "undefined") return ""
       const mode = isTestingMode.value ? "testing" : "normal"
@@ -53,7 +63,7 @@ export function useFujiDetailCache(options: FujiDetailCacheOptions) {
       ].join("|")
     }),
 
-    serializeRow(row: any) {
+    serializeRow(row) {
       return {
         id: row.id,
         key: `${row.mounterIdno}-${row.stage}-${row.slot}`,
@@ -87,22 +97,22 @@ export function useFujiDetailCache(options: FujiDetailCacheOptions) {
       return typeof key === "string" ? key : null
     },
 
-    toLiveRowAlternativeKey(row: any) {
+    toLiveRowAlternativeKey(row) {
       return `${row.mounterIdno}-${row.stage}-${row.slot}`
     },
 
-    hydrateExtraFields(next: any, cachedRow) {
+    hydrateExtraFields(next, cachedRow) {
       if ("appendedMaterialInventoryIdno" in cachedRow)
-        next.appendedMaterialInventoryIdno = cachedRow.appendedMaterialInventoryIdno
+        next.appendedMaterialInventoryIdno = (cachedRow.appendedMaterialInventoryIdno as string | undefined) ?? ""
       if ("spliceMaterialInventoryIdno" in cachedRow)
-        next.spliceMaterialInventoryIdno = (cachedRow as any).spliceMaterialInventoryIdno ?? null
+        next.spliceMaterialInventoryIdno = (cachedRow.spliceMaterialInventoryIdno as string | null | undefined) ?? null
       if ("operationTime" in cachedRow)
-        next.operationTime = (cachedRow as any).operationTime ?? null
+        next.operationTime = (cachedRow.operationTime as string | null | undefined) ?? null
     },
 
     hydrateMaterial(payload: BaseCachePayload) {
       if (!("materialInventory" in payload)) return
-      const cached = (payload as any).materialInventory as FujiMaterialInventoryCache | null
+      const cached = payload.materialInventory as FujiMaterialInventoryCache | null
       materialInventory.value = cached
         ? {
             id: cached.id ?? null,

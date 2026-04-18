@@ -36,6 +36,7 @@ export type ProductionRowModel = {
     inspectMaterialPackCode?: string
     inspectTime?: string | null
     inspectCount?: number
+    inspectorIdno?: string | null
     remark?: string
 }
 

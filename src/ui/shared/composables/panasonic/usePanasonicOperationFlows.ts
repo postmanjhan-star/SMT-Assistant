@@ -6,7 +6,7 @@ import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import { appendMaterialCode } from "@/domain/production/PostProductionFeedRules"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import { useMounterOperationFlowsCore } from "@/ui/shared/composables/core/useMounterOperationFlowsCore"
-import type { MounterOperationFlowsAdapter } from "@/ui/shared/composables/core/MounterOperationFlowsAdapter"
+import type { MounterOperationFlowsAdapter, OperationFlowRow } from "@/ui/shared/composables/core/MounterOperationFlowsAdapter"
 import type { PanasonicUnloadRecord, PanasonicSpliceRecord } from "./panasonicDetailTypes"
 
 // Use only the public methods we actually call to avoid Vue's UnwrapRef stripping
@@ -18,8 +18,8 @@ type ColumnApiRef = Ref<Pick<ColumnApi, "setColumnVisible"> | null>
 // Options（外部 API 不變）
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface PanasonicOperationFlowsOptions {
-  rowData:         Ref<any[]>
+interface PanasonicOperationFlowsOptions<TRow extends OperationFlowRow = OperationFlowRow> {
+  rowData:         Ref<TRow[]>
   gridApi:         GridApiRef
   columnApi:       ColumnApiRef
   currentUsername: ComputedRef<string | null>
@@ -49,21 +49,21 @@ function toCanonicalPanasonicSlot(raw: string): string | null {
   return subSlot ? `${slot}-${subSlot}` : slot
 }
 
-function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): MounterOperationFlowsAdapter {
+function buildPanasonicAdapter<TRow extends OperationFlowRow>(gridApi: GridApiRef, columnApi: ColumnApiRef): MounterOperationFlowsAdapter<TRow> {
   return {
     // ── Row keying ──────────────────────────────────────────────────────────
-    toRowKey(row: any): string {
+    toRowKey(row) {
       return `${row.slotIdno}-${row.subSlotIdno ?? ""}`
     },
 
-    toRowSlotIdno(row: any): string {
+    toRowSlotIdno(row) {
       const slot    = String(row.slotIdno    ?? "").trim()
       const subSlot = String(row.subSlotIdno ?? "").trim()
       return subSlot ? `${slot}-${subSlot}` : slot
     },
 
     // ── Grid API ────────────────────────────────────────────────────────────
-    applyGridTransaction(update: any[]) {
+    applyGridTransaction(update) {
       try { gridApi.value?.applyTransaction?.({ update }) } catch { /* grid not ready */ }
     },
 
@@ -79,11 +79,11 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
     },
 
     // ── Slot parsing ────────────────────────────────────────────────────────
-    findRowBySlotInput(slotIdno: string, rowData: any[]): any | null {
+    findRowBySlotInput(slotIdno, rowData) {
       const parsed = parsePanasonicSlotIdno(slotIdno)
       if (!parsed) return null
       return rowData.find(
-        (row: any) =>
+        (row) =>
           String(row.slotIdno    ?? "").trim() === String(parsed.slot    ?? "").trim() &&
           String(row.subSlotIdno ?? "").trim() === String(parsed.subSlot ?? "").trim(),
       ) ?? null
@@ -96,7 +96,7 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
     },
 
     // ── Record builders ─────────────────────────────────────────────────────
-    buildUnloadRecord(row: any, { materialPackCode, unfeedReason, operationTime, checkPackCodeMatch }): PanasonicUnloadRecord {
+    buildUnloadRecord(row, { materialPackCode, unfeedReason, operationTime, checkPackCodeMatch }): PanasonicUnloadRecord {
       return {
         slotIdno:     row.slotIdno,
         subSlotIdno:  row.subSlotIdno ?? null,
@@ -107,7 +107,7 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
       }
     },
 
-    buildSpliceRecord(row: any, { materialPackCode, correctState, operationTime }): PanasonicSpliceRecord {
+    buildSpliceRecord(row, { materialPackCode, correctState, operationTime }): PanasonicSpliceRecord {
       return {
         slotIdno:     row.slotIdno,
         subSlotIdno:  row.subSlotIdno ?? null,
@@ -117,7 +117,7 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
       }
     },
 
-    buildIpqcRecord(_row: any, { slotIdno, materialPackCode, inspectorIdno, inspectionTime, checkPackCodeMatch }): IpqcInspectionRecord {
+    buildIpqcRecord(_row, { slotIdno, materialPackCode, inspectorIdno, inspectionTime, checkPackCodeMatch }): IpqcInspectionRecord {
       return {
         slotIdno:      _row.slotIdno,
         subSlotIdno:   _row.subSlotIdno ?? null,
@@ -134,13 +134,13 @@ function buildPanasonicAdapter(gridApi: GridApiRef, columnApi: ColumnApiRef): Mo
 // Thin wrapper
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function usePanasonicOperationFlows(options: PanasonicOperationFlowsOptions) {
+export function usePanasonicOperationFlows<TRow extends OperationFlowRow = OperationFlowRow>(options: PanasonicOperationFlowsOptions<TRow>) {
   const { gridApi, columnApi, isTestingMode: isTestingModeRaw, ...rest } = options
 
   // 正規化 plain boolean → Ref<boolean>
   const isTestingMode = computed(() => isTestingModeRaw)
 
-  const adapter = buildPanasonicAdapter(gridApi, columnApi)
+  const adapter = buildPanasonicAdapter<TRow>(gridApi, columnApi)
 
   const core = useMounterOperationFlowsCore(
     {

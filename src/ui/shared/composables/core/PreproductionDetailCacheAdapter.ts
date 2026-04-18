@@ -28,7 +28,7 @@ export interface BaseCachePayload {
  * 品牌特定序列化/反序列化介面。核心 composable 只透過此介面操作品牌邏輯，
  * 不直接 import 任何品牌 domain 型別。
  */
-export interface PreproductionDetailCacheAdapter {
+export interface PreproductionDetailCacheAdapter<TRow extends BaseCacheRow = BaseCacheRow> {
   /** localStorage 鍵值（computed），包含品牌 prefix 與所有查詢維度 */
   storageKey: ComputedRef<string>
 
@@ -37,7 +37,7 @@ export interface PreproductionDetailCacheAdapter {
    * Panasonic 含 slotIdno/subSlotIdno/operationTime；
    * Fuji 含 key（mounterIdno-stage-slot 三元組）。
    */
-  serializeRow(row: any): BaseCacheRow & Record<string, unknown>
+  serializeRow(row: TRow): BaseCacheRow & Record<string, unknown>
 
   /**
    * 序列化品牌 material 為 payload 欄位（spread 進 BaseCachePayload）。
@@ -59,14 +59,14 @@ export interface PreproductionDetailCacheAdapter {
    * Panasonic: `${row.slotIdno}-${row.subSlotIdno ?? ""}`；
    * Fuji: `${row.mounterIdno}-${row.stage}-${row.slot}`。
    */
-  toLiveRowAlternativeKey(row: any): string
+  toLiveRowAlternativeKey(row: TRow): string
 
   /**
    * hydrate 時合併品牌特有欄位（共用欄位由 core 負責）。
    * Panasonic 合併 appendedMaterialInventoryIdno（帶 fallback ""）與 operationTime；
    * Fuji 合併 appendedMaterialInventoryIdno（無 fallback）。
    */
-  hydrateExtraFields(next: any, cachedRow: BaseCacheRow & Record<string, unknown>): void
+  hydrateExtraFields(next: TRow, cachedRow: BaseCacheRow & Record<string, unknown>): void
 
   /**
    * 把 payload 內的 material 欄位寫回品牌特有的 Ref。
@@ -80,8 +80,8 @@ export interface PreproductionDetailCacheAdapter {
 // Core options（共用，品牌無關）
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface PreproductionDetailCacheCoreOptions {
-  rowData: Ref<any[]>
+export interface PreproductionDetailCacheCoreOptions<TRow extends BaseCacheRow = BaseCacheRow> {
+  rowData: Ref<TRow[]>
   /** 品牌的 material ref，作為 WatchSource 納入 persist watcher */
   materialRef: Ref<unknown>
   materialInputValue: Ref<string>
@@ -91,5 +91,5 @@ export interface PreproductionDetailCacheCoreOptions {
   pendingSpliceRecords: Ref<unknown[]>
   pendingIpqcRecords: Ref<IpqcInspectionRecord[]>
   productionStarted: Ref<boolean>
-  onHydrateRows: (rows: any[]) => void
+  onHydrateRows: (rows: TRow[]) => void
 }

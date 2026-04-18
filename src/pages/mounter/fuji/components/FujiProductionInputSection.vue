@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type RefBinder = (el: any) => void
+type RefBinder = (el: Element | null) => void
 
 const props = defineProps<{
   column: "material" | "slot"
