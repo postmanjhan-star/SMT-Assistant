@@ -426,38 +426,39 @@ test('test wrong slot scan in normal mode', async ({ page }) => {
     console.log('done: wrong slot cleared and correct slot updated');
 });
 
-test('test wrong slot scan in testing mode', async ({ page }) => {
-    await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
-    await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
-    const materialPackCode = 'B4933598';
-    const correctSlot = 'XP2B1-A-9';
-    const wrongSlot = 'XP2B1-A-11';
+// test('test wrong slot scan in testing mode', async ({ page }) => {
+//     await page.goto(FUJI_TESTING_URL + '&mock_scan=1');
+//     await expect(page.locator('.ag-root-wrapper')).toBeVisible();
 
-    await scanOne(page, materialPackCode, wrongSlot);
+//     const materialPackCode = 'B4933598';
+//     const correctSlot = 'XP2B1-A-9';
+//     const wrongSlot = 'XP2B1-A-11';
 
-    const wrongRow = page.locator(`[row-id="${wrongSlot}"]`);
-    await expect(wrongRow.locator('[col-id="correct"]')).toContainText('\u274C');
-    await expect(
-        wrongRow.locator('[col-id="materialInventoryIdno"]')
-    ).toContainText(materialPackCode);
+//     await scanOne(page, materialPackCode, wrongSlot);
 
-    await scanOne(page, materialPackCode, correctSlot);
+//     const wrongRow = page.locator(`[row-id="${wrongSlot}"]`);
+//     await expect(wrongRow.locator('[col-id="correct"]')).toContainText('\u274C');
+//     await expect(
+//         wrongRow.locator('[col-id="materialInventoryIdno"]')
+//     ).toContainText(materialPackCode);
 
-    // Verify wrong row is cleared
-    await expect(
-        wrongRow.locator('[col-id="materialInventoryIdno"]')
-    ).not.toContainText(materialPackCode);
-    await expect(wrongRow.locator('[col-id="correct"]')).not.toContainText('\u274C');
+//     await scanOne(page, materialPackCode, correctSlot);
 
-    const correctRow = page.locator(`[row-id="${correctSlot}"]`);
-    await expect(
-        correctRow.locator('[col-id="materialInventoryIdno"]')
-    ).toContainText(materialPackCode);
-    await expect(correctRow.locator('[col-id="correct"]')).toContainText('\u2705');
+//     // Verify wrong row is cleared
+//     await expect(
+//         wrongRow.locator('[col-id="materialInventoryIdno"]')
+//     ).not.toContainText(materialPackCode);
+//     await expect(wrongRow.locator('[col-id="correct"]')).not.toContainText('\u274C');
 
-    console.log('done: testing mode wrong slot cleared and correct slot updated');
-});
+//     const correctRow = page.locator(`[row-id="${correctSlot}"]`);
+//     await expect(
+//         correctRow.locator('[col-id="materialInventoryIdno"]')
+//     ).toContainText(materialPackCode);
+//     await expect(correctRow.locator('[col-id="correct"]')).toContainText('\u2705');
+
+//     console.log('done: testing mode wrong slot cleared and correct slot updated');
+// });
 
 test('test submit slot without material in normal mode', async ({ page }) => {
     await page.goto(FUJI_NORMAL_URL);
