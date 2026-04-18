@@ -13,6 +13,9 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./tests/unit/setup.ts'],
+    deps: {
+      inline: ['tone'],
+    },
     include: ['tests/unit/**/*.spec.ts'],
     exclude: [
       '**/node_modules/**',
