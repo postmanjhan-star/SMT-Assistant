@@ -6,26 +6,22 @@ import { useDialog } from "naive-ui"
 import {
   CheckMaterialMatchEnum,
   type BoardSideEnum,
-  type FujiMounterItemStatRead,
   type SmtMaterialInventory,
 } from "@/client"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
-import { usePostProductionFeedFlow } from "@/ui/shared/composables/usePostProductionFeedFlow"
 import type { MounterStatLike } from "@/application/post-production-feed/PostProductionFeedDeps"
 import type { PostProductionCorrectState } from "@/stores/postProductionFeedStore"
 import { MATERIAL_UNLOAD_TRIGGER } from "@/domain/mounter/operationModes"
 import { useFujiMaterialQueryState } from "@/ui/workflows/post-production/fuji/composables/useFujiMaterialQueryState"
-import type { StatLike } from "@/domain/production/PostProductionFeedRules"
+import { useFujiProductionState } from "@/ui/workflows/post-production/fuji/composables/useFujiProductionState"
 import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
 import {
-  buildFujiInspectionStats,
-  buildFujiProductionRowData,
   isFujiStatSlotMatch,
   type FujiProductionRowModel,
 } from "@/domain/production/buildFujiProductionRowData"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
-import { useUnloadReplaceFlow } from "@/ui/shared/composables/useUnloadReplaceFlow"
+import { useMounterPostProductionWorkflowCore } from "@/ui/workflows/post-production/shared/composables/useMounterPostProductionWorkflowCore"
 import { MODE_NAME_TESTING, MODE_NAME_NORMAL, msg } from "@/ui/shared/messageCatalog"
 import {
   createFujiPostproductionDeps,
@@ -77,11 +73,11 @@ export function useFujiProductionWorkflow(
   const boardSide = ref<BoardSideEnum | null>(null)
   const isTestingMode = ref(false)
   const productionUuid = ref("")
-  const productionStarted = ref(false)
 
-  const mounterData = ref<FujiMounterItemStatRead[]>([])
-  const inspectionStats = ref<StatLike[]>([])
-  const rowData = ref<FujiProductionRowModel[]>([])
+  const fujiUploader = createUploader()
+
+  const { mounterData, inspectionStats, rowData, productionStarted, load: loadProductionState } =
+    useFujiProductionState(productionUuid, fujiUploader)
 
   const materialFormValue = ref({ materialInventoryIdno: "" })
   const slotFormValue = ref({ slotIdno: "" })
@@ -93,7 +89,6 @@ export function useFujiProductionWorkflow(
   const unloadSlotValue = ref("")
 
   const gridApi = ref<GridApi | null>(null)
-  const showMaterialQueryModal = ref(false)
 
   function resolveUploadSlotByStatId(
     statId: number,
@@ -165,10 +160,6 @@ export function useFujiProductionWorkflow(
     getRowData: () => rowData.value,
   }
 
-  // ── Fuji uploader ──────────────────────────────────────────────────────────
-
-  const fujiUploader = createUploader()
-
   // ── Shared post-production feed flow ───────────────────────────────────────
 
   function getMounterDataForFeedFlow(): MounterStatLike[] {
@@ -191,30 +182,11 @@ export function useFujiProductionWorkflow(
     })
   }
 
-  const { submit: submitPostProductionFeed } = usePostProductionFeedFlow<FujiProductionRowModel>({
-    gridApi,
-    rowData,
-    ui: {
-      success: showSuccess,
-      warn: showWarn,
-      error: showError,
-      info,
-      notifyError,
-      playErrorTone,
-      resetSlotMaterialFormInputs: resetForms,
-    },
-    getMounterData: getMounterDataForFeedFlow,
-    isTestingMode: () => isTestingMode.value,
-    isProductionStarted: () => productionStarted.value,
-    resetMaterialScan: resetForms,
-    getOperatorIdno: () => currentUsername.value || null,
-    inspectionUpload,
-    appendedMaterialUpload,
-  })
-
-  // ── Shared unload/replace flow ─────────────────────────────────────────────
+  const materialQuery = useFujiMaterialQueryState(productionUuid)
 
   const {
+    submitPostProductionFeed,
+    fetchMaterialInventory,
     isUnloadMode,
     enterUnloadMode,
     exitUnloadMode,
@@ -226,18 +198,39 @@ export function useFujiProductionWorkflow(
     validateReplacementMaterialForSlot,
     submitReplace,
     submitSplice,
-  } = useUnloadReplaceFlow({
-    getGridApi: () => gridApi.value as GridApi | null,
-    slotStrategy: fujiSlotStrategy,
+    showMaterialQueryModal,
+    onMaterialQuery,
+    onClickBackArrow,
+    materialQueryRowData,
+    fetchMaterialQueryLogs,
+  } = useMounterPostProductionWorkflowCore<FujiProductionRowModel>({
+    rowData,
+    gridApi,
     uploader: fujiUploader,
-    getOperatorId: () => currentUsername.value || null,
+    slotStrategy: fujiSlotStrategy,
+    ui: {
+      success: showSuccess,
+      warn: showWarn,
+      error: showError,
+      info,
+      notifyError,
+      playErrorTone,
+      resetSlotMaterialFormInputs: resetForms,
+    },
+    getMounterData: getMounterDataForFeedFlow,
     isTestingMode: () => isTestingMode.value,
     isMockMode: () => options.isMockMode === true,
-    ui: { success: showSuccess, error: showError },
+    isProductionStarted: () => productionStarted.value,
+    getOperatorIdno: () => currentUsername.value || null,
+    resetMaterialScan: resetForms,
+    appendedMaterialUpload,
+    inspectionUpload,
     onEnterUnloadMode: resetForms,
     onAfterReplaceGridUpdate: (rowId, api, now) => {
       api.getRowNode(rowId)?.setDataValue("operationTime", now)
     },
+    materialQuery,
+    homePath: "/smt/fuji-mounter",
   })
 
   // ── Local helpers for upload (pre-production inspection/append) ────────────
@@ -300,10 +293,6 @@ export function useFujiProductionWorkflow(
       feedMaterialPackType: 'INSPECTION_MATERIAL_PACK',
       operatorId: currentUsername.value || null,
     })
-  }
-
-  function fetchMaterialInventory(code: string): Promise<unknown> {
-    return fujiUploader.fetchMaterialInventory(code)
   }
 
   // ── Inspection update ──────────────────────────────────────────────────────
@@ -449,33 +438,18 @@ export function useFujiProductionWorkflow(
     })
   }
 
-  // ── Material query ─────────────────────────────────────────────────────────
-
-  const { rowData: materialQueryRowData, load: fetchMaterialQueryLogs } = useFujiMaterialQueryState(productionUuid)
-
-  function onMaterialQuery() {
-    showMaterialQueryModal.value = true
-  }
-
-  function onClickBackArrow() {
-    router.push("/smt/fuji-mounter")
-  }
-
   // ── Mounted ────────────────────────────────────────────────────────────────
 
   onMounted(async () => {
+    productionUuid.value = String(route.params.productionUuid ?? "").trim()
     try {
-      productionUuid.value = String(route.params.productionUuid ?? "").trim()
-      mounterData.value = await fujiUploader.fetchProductionStats(productionUuid.value)
-
-      if (mounterData.value.length > 0) {
-        const firstRecord = mounterData.value[0]
-        workOrderIdno.value = String(firstRecord.work_order_no ?? "")
-        productIdno.value = String(firstRecord.product_idno ?? "")
-        mounterIdno.value = String(firstRecord.machine_idno ?? "")
-        boardSide.value = firstRecord.board_side
-        isTestingMode.value = firstRecord.produce_mode === 'TESTING_PRODUCE_MODE'
-        productionStarted.value = !firstRecord.production_end
+      const { firstStat } = await loadProductionState()
+      if (firstStat) {
+        workOrderIdno.value = String(firstStat.work_order_no ?? "")
+        productIdno.value = String(firstStat.product_idno ?? "")
+        mounterIdno.value = String(firstStat.machine_idno ?? "")
+        boardSide.value = firstStat.board_side
+        isTestingMode.value = firstStat.produce_mode === 'TESTING_PRODUCE_MODE'
       }
     } catch (error) {
       if ((error as any)?.status === 404) {
@@ -485,16 +459,6 @@ export function useFujiProductionWorkflow(
         console.error(error)
       }
     }
-
-    let logs: Awaited<ReturnType<typeof fujiUploader.fetchFeedLogs>> = []
-    try {
-      logs = await fujiUploader.fetchFeedLogs(productionUuid.value)
-    } catch (error) {
-      console.error("Failed to fetch logs", error)
-    }
-
-    inspectionStats.value = buildFujiInspectionStats(logs, mounterData.value)
-    rowData.value = buildFujiProductionRowData(mounterData.value, logs)
   })
 
   return {

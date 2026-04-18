@@ -15,7 +15,7 @@ import type { GridApi } from "ag-grid-community"
 
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { usePanasonicProductionState } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicProductionState"
-import { usePostProductionFeedFlow } from "@/ui/shared/composables/usePostProductionFeedFlow"
+import { usePanasonicMaterialQueryState } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicMaterialQueryState"
 import { useRollShortageForm } from "@/ui/shared/composables/useRollShortageForm"
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
@@ -28,7 +28,7 @@ import {
   PANASONIC_HOME_PATH,
   PANASONIC_NOT_FOUND_PATH,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
-import { useUnloadReplaceFlow } from "@/ui/shared/composables/useUnloadReplaceFlow"
+import { useMounterPostProductionWorkflowCore } from "@/ui/workflows/post-production/shared/composables/useMounterPostProductionWorkflowCore"
 import { msg } from "@/ui/shared/messageCatalog"
 
 export type PanasonicProductionWorkflowOptions = {
@@ -118,17 +118,13 @@ export function usePanasonicProductionWorkflow(
     })
   }
 
-  function fetchMaterialInventory(code: string): Promise<unknown> {
-    return recordUploader.fetchMaterialInventory(code)
-  }
-
-  const appendedMaterialUpload = (params: {
+  const appendedMaterialUpload = async (params: {
     stat_id: number
     inputSlot: string
     inputSubSlot: string
     materialInventory?: { idno: string } | null
     correctState?: "true" | "false" | "warning" | null
-  }) => {
+  }): Promise<void> => {
     const materialPackCode = params.materialInventory?.idno
     if (!materialPackCode) {
       throw new Error("materialInventory is required")
@@ -140,7 +136,7 @@ export function usePanasonicProductionWorkflow(
       : params.correctState === 'warning' ? CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
       : null
 
-    return recordUploader.uploadAppend({
+    await recordUploader.uploadAppend({
       statId: params.stat_id,
       slotIdno: params.inputSlot,
       subSlotIdno: params.inputSubSlot,
@@ -157,44 +153,6 @@ export function usePanasonicProductionWorkflow(
   const gridApi = ref<GridApi | null>(null)
   const onGridReady = (params: { api: GridApi }) => {
     gridApi.value = params.api
-  }
-
-  const { submit: submitPostProductionFeed } = usePostProductionFeedFlow<ProductionRowModel>({
-    gridApi,
-    rowData,
-    ui: {
-      success: ui.success,
-      warn: ui.warn,
-      info: ui.info,
-      error: ui.error,
-      notifyError: ui.notifyError,
-      playErrorTone: ui.playErrorTone,
-      resetSlotMaterialFormInputs: options.onResetInputs,
-    },
-    getMounterData: () => mounterData.value,
-    isTestingMode: () => isTestingMode.value,
-    isProductionStarted: () => productionStarted.value,
-    resetMaterialScan: options.onResetInputs,
-    getOperatorIdno: () => currentUsername.value || null,
-    inspectionUpload,
-    appendedMaterialUpload,
-  })
-
-  const handleSlotSubmit = async ({
-    slot,
-    subSlot,
-    slotIdno,
-  }: {
-    slot: string
-    subSlot: string
-    slotIdno: string
-  }) => {
-    return submitPostProductionFeed({
-      slot,
-      subSlot,
-      slotIdno,
-      result: postProductionFeedStore.materialResult,
-    })
   }
 
   // ── Panasonic slot strategy ────────────────────────────────────────────────
@@ -282,10 +240,17 @@ export function usePanasonicProductionWorkflow(
     getRowData: () => rowData.value,
   }
 
-  // ── Shared unload/replace flow ─────────────────────────────────────────────
+  // ── Shared core (feed flow + unload/replace + material query + back nav) ──
+
+  const materialQuery = usePanasonicMaterialQueryState(productionUuid)
 
   const {
+    submitPostProductionFeed,
+    fetchMaterialInventory,
     isUnloadMode,
+    enterUnloadMode: _enterUnloadMode,
+    exitUnloadMode: _exitUnloadMode,
+    toggleUnloadMode: _toggleUnloadMode,
     submitUnload,
     submitForceUnloadBySlot,
     findUniqueUnloadSlotByPackCode,
@@ -293,18 +258,59 @@ export function usePanasonicProductionWorkflow(
     validateReplacementMaterialForSlot,
     submitReplace,
     submitSplice,
-  } = useUnloadReplaceFlow({
-    getGridApi: () => gridApi.value as GridApi | null,
-    slotStrategy: panasonicSlotStrategy,
+    showMaterialQueryModal,
+    onClickBackArrow,
+    materialQueryRowData,
+    fetchMaterialQueryLogs,
+  } = useMounterPostProductionWorkflowCore<ProductionRowModel>({
+    rowData,
+    gridApi,
     uploader: recordUploader,
-    getOperatorId: () => currentUsername.value || null,
+    slotStrategy: panasonicSlotStrategy,
+    ui: {
+      success: ui.success,
+      warn: ui.warn,
+      info: ui.info,
+      error: ui.error,
+      notifyError: ui.notifyError,
+      playErrorTone: ui.playErrorTone,
+      resetSlotMaterialFormInputs: options.onResetInputs,
+    },
+    getMounterData: () => mounterData.value,
     isTestingMode: () => isTestingMode.value,
     isMockMode: () => options.isMockMode === true,
-    ui: { success: ui.success, error: ui.error },
+    isProductionStarted: () => productionStarted.value,
+    getOperatorIdno: () => currentUsername.value || null,
+    resetMaterialScan: options.onResetInputs,
+    appendedMaterialUpload,
+    inspectionUpload,
     onAfterReplaceGridUpdate: (rowId, api) => {
       api.getRowNode(rowId)?.setDataValue("operatorIdno", currentUsername.value || "")
     },
+    materialQuery,
+    homePath: PANASONIC_HOME_PATH,
   })
+
+  void _enterUnloadMode
+  void _exitUnloadMode
+  void _toggleUnloadMode
+
+  const handleSlotSubmit = async ({
+    slot,
+    subSlot,
+    slotIdno,
+  }: {
+    slot: string
+    subSlot: string
+    slotIdno: string
+  }) => {
+    return submitPostProductionFeed({
+      slot,
+      subSlot,
+      slotIdno,
+      result: postProductionFeedStore.materialResult,
+    })
+  }
 
   // ── Roll shortage ──────────────────────────────────────────────────────────
 
@@ -346,18 +352,12 @@ export function usePanasonicProductionWorkflow(
 
   // ── Material query ─────────────────────────────────────────────────────────
 
-  const showMaterialQueryModal = ref(false)
-
   const onMaterialQuery = () => {
     if (!productionUuid.value) {
       ui.error("尚未取得生產 UUID")
       return
     }
     showMaterialQueryModal.value = true
-  }
-
-  const onClickBackArrow = () => {
-    router.push(PANASONIC_HOME_PATH)
   }
 
   // ── Production start/stop ──────────────────────────────────────────────────
@@ -511,6 +511,8 @@ export function usePanasonicProductionWorkflow(
     showMaterialQueryModal,
     onMaterialQuery,
     onClickBackArrow,
+    materialQueryRowData,
+    fetchMaterialQueryLogs,
     ui,
   }
 }
