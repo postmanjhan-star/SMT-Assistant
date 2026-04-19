@@ -1,4 +1,5 @@
 import type {
+  PanasonicFeedRecordCreate,
   PanasonicMounterFileRead,
   PanasonicMounterItemStatCreate,
   PanasonicMounterItemStatRead,
@@ -32,8 +33,8 @@ export type PanasonicFetchSlotsParams = {
   workOrderIdno: string
   mounterIdno: string
   productIdno: string
-  boardSide: string
-  machineSide: string
+  boardSide: "TOP" | "BOTTOM" | "DUPLEX"
+  machineSide: "1" | "2" | "1+2" | null
   testingMode: boolean
   testingProductIdno?: string | null
 }
@@ -48,10 +49,22 @@ export type PreproductionPanasonicDeps = {
   stopProduction: (uuid: string) => Promise<unknown>
   fetchSlots: (params: PanasonicFetchSlotsParams) => Promise<PanasonicMounterFileRead>
   startProduction: (payload: PanasonicMounterItemStatCreate[]) => Promise<PanasonicMounterItemStatRead[]>
+  uploadItemStatRoll: (payload: PanasonicFeedRecordCreate) => Promise<unknown>
+}
+
+export type InspectionUploadPayload = {
+  statId: number
+  slotIdno: string
+  subSlotIdno: string | null
+  materialPackCode: string
+  operatorIdno: string | null
+  checkPackCodeMatch?: string | null
 }
 
 export type PostproductionPanasonicDeps = {
   createRecordApi: () => RecordApiPort
   createRecordUploader: (api: RecordApiPort) => PostProductionRecordUploader
   startPanasonicProduction: (payload: PanasonicMounterItemStatCreate[]) => Promise<unknown>
+  stopProduction: (uuid: string) => Promise<unknown>
+  inspectionUpload: (payload: InspectionUploadPayload) => Promise<void>
 }

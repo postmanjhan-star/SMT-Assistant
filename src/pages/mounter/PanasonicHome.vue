@@ -1,13 +1,13 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { type FormItemRule, type FormRules, NButton, NCheckbox, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, NSwitch, NSelect } from 'naive-ui'
 import { useMeta } from 'vue-meta'
 import { useRouter } from 'vue-router'
-import { SmtService } from '@/client'
 import { useMounterHomeForm } from '@/ui/shared/composables/useMounterHomeForm'
+import { createPanasonicHomeDeps } from '@/ui/di/panasonic/createPanasonicHomeDeps'
 
 useMeta({ title: 'Panasonic Mounter Assistant' })
 const router = useRouter()
+const homeDeps = createPanasonicHomeDeps()
 
 const machineSideOptions = [
     { label: '機台前面', value: '1' },
@@ -42,10 +42,10 @@ const { isTestingMode, autoFillProductIdno, formRef, formValue, mounterOptions, 
             machineSide: '1+2',
         },
         extraRules: panasonicExtraRules,
-        findMounterIdnosByProductIdno: (productIdno) =>
-            SmtService.findPanasonicMounterIdnosByProductIdno({ productIdno }),
+        findMounterIdnosByProductIdno: homeDeps.findMounterIdnosByProductIdno,
+        getStWorkOrder: homeDeps.getStWorkOrder,
         submitAndNavigate: async (fv, meta) => {
-            await SmtService.getPanasonicMounterMaterialSlotPairs({
+            await homeDeps.getMounterMaterialSlotPairs({
                 workOrderIdno: fv.workOrderIdno.trim(),
                 productIdno: fv.productIdno.trim(),
                 mounterIdno: fv.mounterIdno.trim(),

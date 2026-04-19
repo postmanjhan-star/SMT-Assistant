@@ -53,6 +53,7 @@ export function useFujiDetailPage(options: FujiDetailPageOptions = {}) {
     onIpqcUploaded: options.onIpqcUploaded,
     startProduction: fujiPreDeps.startProduction,
     stopProduction: fujiPreDeps.stopProduction,
+    uploadItemStatRoll: fujiPreDeps.uploadItemStatRoll,
     getOperatorId: () => currentUsername.value || null,
   })
 

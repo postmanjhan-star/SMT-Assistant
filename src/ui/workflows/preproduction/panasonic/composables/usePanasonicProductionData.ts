@@ -1,7 +1,6 @@
-﻿/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
-import { ref } from "vue"
+﻿import { ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import type { PanasonicMounterFileRead } from "@/client"
+import type { PanasonicMounterFileRead } from "@/application/preproduction/clientTypes"
 import type { PanasonicFetchSlotsParams } from "@/application/panasonic/di/PanasonicWorkflowDeps"
 import { PanasonicProductionRowBuilder } from "@/domain/production/PanasonicProductionRowBuilder"
 import type { ProductionRowModel } from "@/pages/mounter/panasonic/types/production"

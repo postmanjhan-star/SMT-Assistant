@@ -5,11 +5,15 @@ import "tabulator-tables/dist/css/tabulator_bootstrap4.min.css"
 import { onMounted, ref, watch } from 'vue'
 import { useMeta } from 'vue-meta'
 import { useRouter } from 'vue-router'
-import { PanasonicMounterFileRead, FujiMounterFileRead, SmtService, ApiError } from '@/client'
+import type { PanasonicMounterFileRead, FujiMounterFileRead } from '@/application/preproduction/clientTypes'
+import { ApiError } from '@/application/shared/clientTypes'
 import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
 import { mergeMounterFiles, type MergedMounterFileRow } from '@/domain/file-manager/mergeMounterFiles'
 import PanasonicMounterFileItemBox from './panasonicMounter/PanasonicMounterFileItemBox.vue'
 import FujiMounterFileItemBox from './fujiMounter/FujiMounterFileItemBox.vue'
+import { createMounterFileManagerDeps } from '@/ui/di/shared/createMounterFileManagerDeps'
+
+const fileManagerDeps = createMounterFileManagerDeps()
 
 useMeta( { title: 'Mounter File Manager' } )
 const router = useRouter()
@@ -63,9 +67,9 @@ async function fetchData() {
     try {
         let data: Array<PanasonicMounterFileRead | FujiMounterFileRead> = []
         if ( currentTab.value === 'panasonic' ) {
-            data = await SmtService.getPanasonicMounterFileList( {} )
+            data = await fileManagerDeps.getPanasonicFileList()
         } else {
-            data = await SmtService.getFujiMounterFileList( {} )
+            data = await fileManagerDeps.getFujiFileList()
         }
 
         const formattedData = data.map( ( value ) => ( {
@@ -92,9 +96,9 @@ async function fetchData() {
 
 async function deleteMounterFileById( id: number ) {
     if ( currentTab.value === 'panasonic' ) {
-        return SmtService.deletePanasonicMounterFile( { id } )
+        return fileManagerDeps.deletePanasonicFile( id )
     }
-    return SmtService.deleteFujiMounterFile( { id } )
+    return fileManagerDeps.deleteFujiFile( id )
 }
 
 async function onClickDeleteButton() {

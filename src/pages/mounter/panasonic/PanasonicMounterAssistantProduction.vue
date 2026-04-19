@@ -1,5 +1,4 @@
 ﻿<script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
@@ -33,9 +32,9 @@ import {
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import type { InputComponentHandle, MaterialMatchedPayload } from "./types/production"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
-import { SmtService } from "@/client"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
 import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
+import { createPostproductionPanasonicDeps } from "@/ui/di/panasonic/createPanasonicWorkflowDeps"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import { usePanasonicProductionOperationFlows } from "@/ui/shared/composables/panasonic/usePanasonicProductionOperationFlows"
 import PanasonicProductionInputSection from "@/pages/mounter/panasonic/components/PanasonicProductionInputSection.vue"
@@ -45,6 +44,7 @@ useMeta({ title: "Panasonic Mounter Assistant" })
 const route = useRoute()
 const isMockMode = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === '1')
 const mockScan = isMockMode ? createMockScan() : undefined
+const panasonicDeps = createPostproductionPanasonicDeps()
 
 const slotIdnoInput = ref<InputComponentHandle | null>(null)
 const materialInventoryInput = ref<InputComponentHandle | null>(null)
@@ -223,22 +223,7 @@ const {
   submitReplace,
   submitSplice,
   fetchMaterialInventory,
-  inspectionUpload: async ({ statId, slotIdno, subSlotIdno, materialPackCode, operatorIdno, checkPackCodeMatch }) => {
-    await SmtService.addPanasonicMounterItemStatRoll({
-      requestBody: {
-        stat_item_id: statId,
-        operator_id: operatorIdno,
-        operation_time: new Date().toISOString(),
-        slot_idno: slotIdno,
-        sub_slot_idno: subSlotIdno,
-        material_pack_code: materialPackCode,
-        operation_type: "FEED" as any,
-        feed_material_pack_type: "INSPECTION_MATERIAL_PACK" as any,
-        check_pack_code_match: (checkPackCodeMatch ?? "MATCHED_MATERIAL_PACK") as any,
-        unfeed_reason: null,
-      },
-    })
-  },
+  inspectionUpload: panasonicDeps.inspectionUpload,
 })
 
 function handleMaterialMatched(payload: {
@@ -363,6 +348,7 @@ const bindSpliceSlotInput     = (el: Element | null) => { spliceSlotInput.value 
                 <StopProductionButton
                   v-else
                   :uuid="productionUuid"
+                  :stop-production="panasonicDeps.stopProduction"
                   @stopped="handleProductionStopped"
                   @error="ui.error"
                 />

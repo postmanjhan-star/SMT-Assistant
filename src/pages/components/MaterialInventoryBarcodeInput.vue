@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { NFormItem, NInput, InputInst } from 'naive-ui'
-import { SmtMaterialInventory } from '@/client'
+import { SmtMaterialInventory } from '@/application/shared/clientTypes'
 import { BarcodeScanUseCase } from '@/application/barcode-scan/BarcodeScanUseCase';
-import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository';
+import { createBarcodeScanDeps } from '@/ui/di/shared/createBarcodeScanDeps'
 import { SimpleBarcodeValidator } from '@/domain/material/BarcodeValidator'
 import { BarcodeScanDeps } from '@/application/barcode-scan/BarcodeScanDeps'
 import {
@@ -72,10 +72,12 @@ const inputValue = computed({
 })
 /* ================= main logic ================= */
 
+const barcodeScanDeps = createBarcodeScanDeps()
+
 const scanUseCase = computed(() => {
     const deps: BarcodeScanDeps<MatchedRow> = {
         validator: new SimpleBarcodeValidator(),
-        materialRepository: new ApiMaterialRepository(),
+        materialRepository: barcodeScanDeps.createMaterialRepository(),
         isTestingMode: props.isTestingMode,
         getMaterialMatchedRows: props.getMaterialMatchedRows,
     }

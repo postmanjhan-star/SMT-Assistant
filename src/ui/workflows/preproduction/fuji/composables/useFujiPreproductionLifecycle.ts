@@ -1,20 +1,21 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { ref, type Ref } from "vue"
 import { useDialog } from "naive-ui"
 import { useRouter } from "vue-router"
 import { useProductionLifecycleUi } from "@/ui/shared/composables/useProductionLifecycleUi"
+import { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import {
-  CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
   MaterialOperationTypeEnum,
   UnfeedMaterialTypeEnum,
   ProduceTypeEnum,
-  SmtService,
-  type BoardSideEnum,
-  type FujiMounterItemStatCreate,
-  type FujiMounterItemStatRead,
-  type UnfeedReasonEnum,
-} from "@/client"
+} from "@/application/preproduction/clientTypes"
+import type {
+  BoardSideEnum,
+  FujiFeedRecordCreate,
+  FujiMounterItemStatCreate,
+  FujiMounterItemStatRead,
+  UnfeedReasonEnum,
+} from "@/application/preproduction/clientTypes"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { ProductionLifecycleUseCase } from "@/application/preproduction/ProductionLifecycleUseCase"
 import { StartProductionStatsUseCase } from "@/application/preproduction/StartProductionStatsUseCase"
@@ -52,6 +53,7 @@ export type UseFujiPreproductionLifecycleOptions = {
   onIpqcUploaded?: (ok: boolean) => void
   startProduction: (payload: FujiMounterItemStatCreate[]) => Promise<FujiMounterItemStatRead[]>
   stopProduction: (uuid: string) => Promise<unknown>
+  uploadItemStatRoll: (payload: FujiFeedRecordCreate) => Promise<unknown>
   getOperatorId?: () => string | null
 }
 
@@ -128,55 +130,49 @@ export function useFujiPreproductionLifecycle(
     uploadUnload: async (record, statItemMap) => {
       const id = statItemMap.get(`${record.slot}-${record.stage}`)
       if (id === undefined) return
-      await SmtService.addFujiMounterItemStatRoll({
-        requestBody: {
-          stat_item_id: id,
-          operator_id: options.getOperatorId?.() ?? null,
-          operation_time: record.operationTime,
-          slot_idno: String(record.slot),
-          sub_slot_idno: record.stage,
-          material_pack_code: record.materialPackCode,
-          operation_type: MaterialOperationTypeEnum.UNFEED,
-          unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
-          unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
-          check_pack_code_match: record.checkPackCodeMatch ?? null,
-        },
+      await options.uploadItemStatRoll({
+        stat_item_id: id,
+        operator_id: options.getOperatorId?.() ?? null,
+        operation_time: record.operationTime,
+        slot_idno: String(record.slot),
+        sub_slot_idno: record.stage,
+        material_pack_code: record.materialPackCode,
+        operation_type: MaterialOperationTypeEnum.UNFEED,
+        unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
+        unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
+        check_pack_code_match: record.checkPackCodeMatch ?? null,
       })
     },
     uploadSplice: async (record, statItemMap) => {
       const id = statItemMap.get(`${record.slot}-${record.stage}`)
       if (id === undefined) return
-      await SmtService.addFujiMounterItemStatRoll({
-        requestBody: {
-          stat_item_id: id,
-          operator_id: options.getOperatorId?.() ?? null,
-          operation_time: record.operationTime,
-          slot_idno: String(record.slot),
-          sub_slot_idno: record.stage,
-          material_pack_code: record.materialPackCode,
-          operation_type: MaterialOperationTypeEnum.FEED,
-          feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-          check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
-          unfeed_reason: null,
-        },
+      await options.uploadItemStatRoll({
+        stat_item_id: id,
+        operator_id: options.getOperatorId?.() ?? null,
+        operation_time: record.operationTime,
+        slot_idno: String(record.slot),
+        sub_slot_idno: record.stage,
+        material_pack_code: record.materialPackCode,
+        operation_type: MaterialOperationTypeEnum.FEED,
+        feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+        check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
+        unfeed_reason: null,
       })
     },
     uploadIpqc: async (record, statItemMap) => {
       const id = statItemMap.get(`${record.slot}-${record.stage}`)
       if (id === undefined) return
-      await SmtService.addFujiMounterItemStatRoll({
-        requestBody: {
-          stat_item_id: id,
-          operator_id: record.inspectorIdno || null,
-          operation_time: record.inspectionTime,
-          slot_idno: String(record.slot!),
-          sub_slot_idno: record.stage!,
-          material_pack_code: record.materialPackCode,
-          operation_type: MaterialOperationTypeEnum.FEED,
-          feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
-          check_pack_code_match: record.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
-          unfeed_reason: null,
-        },
+      await options.uploadItemStatRoll({
+        stat_item_id: id,
+        operator_id: record.inspectorIdno || null,
+        operation_time: record.inspectionTime,
+        slot_idno: String(record.slot!),
+        sub_slot_idno: record.stage!,
+        material_pack_code: record.materialPackCode,
+        operation_type: MaterialOperationTypeEnum.FEED,
+        feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
+        check_pack_code_match: (record.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK) as CheckMaterialMatchEnum,
+        unfeed_reason: null,
       })
     },
   })

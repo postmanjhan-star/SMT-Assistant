@@ -1,5 +1,5 @@
 import type { ComputedRef, Ref } from "vue"
-import type { CheckMaterialMatchEnum } from "@/client"
+import type { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 

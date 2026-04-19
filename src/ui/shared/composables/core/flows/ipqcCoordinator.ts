@@ -1,5 +1,5 @@
 import { nextTick, ref, type Ref } from "vue"
-import type { CheckMaterialMatchEnum } from "@/client"
+import type { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import {
   MATERIAL_FORCE_UNLOAD_TRIGGER,

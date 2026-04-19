@@ -1,6 +1,6 @@
 import type { ComputedRef, Ref } from "vue"
 import type { ColumnApi, GridApi } from "ag-grid-community"
-import { type CheckMaterialMatchEnum } from "@/client"
+import { type CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
 import type { ProductionRowModel } from "@/domain/production/buildPanasonicRowData"
 import type { MounterProductionOperationFlowsAdapter } from "@/ui/shared/composables/core/MounterProductionOperationFlowsAdapter"

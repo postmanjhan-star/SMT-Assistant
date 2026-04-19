@@ -1,4 +1,4 @@
-import type { CheckMaterialMatchEnum } from "@/client"
+import type { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 
 export type PanasonicUnloadRecord = {

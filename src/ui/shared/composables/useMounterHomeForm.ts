@@ -1,7 +1,7 @@
 import { ref, watch, nextTick, type Ref } from 'vue'
 import { type FormInst, type FormItemRule, type FormRules } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
-import { ApiError, StErpService } from '@/client'
+import { ApiError } from '@/application/shared/clientTypes'
 import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
 
 export interface MounterHomeFormBase {
@@ -17,6 +17,8 @@ export interface MounterHomeFormConfig<T extends MounterHomeFormBase> {
     /** 品牌特有的額外驗證規則（Panasonic 傳入 machineSide rule） */
     extraRules?: FormRules
     findMounterIdnosByProductIdno: (productIdno: string) => Promise<string[]>
+    /** 取得 ST ERP 工單以自動帶入成品料號 */
+    getStWorkOrder: (workOrderIdno: string) => Promise<{ product_idno?: string | null } | null>
     /** 呼叫品牌 API 並跳轉頁面；ApiError 404/503 由 composable 統一 catch */
     submitAndNavigate: (
         formValue: T,
@@ -125,7 +127,7 @@ export function useMounterHomeForm<T extends MounterHomeFormBase>(config: Mounte
         async (newVal) => {
             if (isTestingMode.value || !autoFillProductIdno.value || !newVal) return
             try {
-                const stWorkOrder = await StErpService.getStWorkOrder({ workOrderIdno: newVal.trim() })
+                const stWorkOrder = await config.getStWorkOrder(newVal.trim())
                 if (stWorkOrder?.product_idno) {
                     formValue.value.productIdno = stWorkOrder.product_idno
                     info(`已自動帶入成品料號：${stWorkOrder.product_idno}`)

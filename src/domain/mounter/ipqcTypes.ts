@@ -1,4 +1,8 @@
-import type { CheckMaterialMatchEnum } from "@/client"
+export type CheckMaterialMatchValue =
+  | "MATCHED_MATERIAL_PACK"
+  | "TESTING_MATERIAL_PACK"
+  | "UNMATCHED_MATERIAL_PACK"
+  | "UNCHECKED_MATERIAL_PACK"
 
 export type IpqcInspectionRecord = {
   slotIdno: string
@@ -8,5 +12,5 @@ export type IpqcInspectionRecord = {
   materialPackCode: string
   inspectorIdno: string
   inspectionTime: string
-  checkPackCodeMatch?: CheckMaterialMatchEnum | null
+  checkPackCodeMatch?: CheckMaterialMatchValue | null
 }

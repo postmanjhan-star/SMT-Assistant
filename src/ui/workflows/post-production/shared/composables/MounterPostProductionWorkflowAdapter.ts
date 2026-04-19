@@ -1,7 +1,6 @@
 import type { Ref } from "vue"
 import type { GridApi } from "ag-grid-community"
-// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] @/client enum type needed for inspection upload params
-import type { CheckMaterialMatchEnum } from "@/client"
+import type { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import type { MaterialInventoryLike } from "@/application/post-production-feed/PostProductionFeedContext"
 import type { MounterStatLike } from "@/application/post-production-feed/PostProductionFeedDeps"
 import type { RowModelBase } from "@/application/post-production-feed/PostProductionFeedTypes"

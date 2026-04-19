@@ -1,6 +1,5 @@
-﻿/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
-import { ref } from 'vue'
-import type { FujiMounterFileRead } from '@/client'
+﻿import { ref } from 'vue'
+import type { FujiMounterFileRead } from '@/application/preproduction/clientTypes'
 import { FujiProductionRowBuilder, type FujiProductionRow } from '@/domain/production/FujiProductionRowBuilder'
 
 export function useFujiProductionState() {

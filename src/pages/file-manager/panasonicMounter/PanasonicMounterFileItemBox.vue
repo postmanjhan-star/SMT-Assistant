@@ -1,9 +1,12 @@
 <script lang="ts" setup>
 import { DataTableColumns, NCard, NDataTable, NSpace, NTag } from 'naive-ui'
 import { ref, watch } from 'vue'
-import { PanasonicMounterFileItemRead, PanasonicMounterFileRead, SmtService } from '@/client'
+import type { PanasonicMounterFileItemRead, PanasonicMounterFileRead } from '@/application/preproduction/clientTypes'
 import { resolveMounterItemTargets } from '@/domain/file-manager/resolveMounterItemTargets'
 import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
+import { createMounterFileManagerDeps } from '@/ui/di/shared/createMounterFileManagerDeps'
+
+const fileManagerDeps = createMounterFileManagerDeps()
 
 type PanasonicMounterFileItemRow = PanasonicMounterFileItemRead & {
     board_side: 'B' | 'T'
@@ -57,7 +60,7 @@ watch(
         tableLoading.value = true
         try {
             const responses = await Promise.all(
-                targets.map( ( target ) => SmtService.getPanasonicMounterFileItemList( { id: target.id } ) )
+                targets.map( ( target ) => fileManagerDeps.getPanasonicFileItemList( target.id ) )
             )
 
             data.value = responses.flatMap( ( rows, index ) =>

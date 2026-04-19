@@ -1,8 +1,7 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { storeToRefs } from "pinia"
 import { ref } from "vue"
 import type { FormInst } from "naive-ui"
-import type { PanasonicMounterItemStatRead } from "@/client"
+import type { PanasonicMounterItemStatRead } from "@/application/preproduction/clientTypes"
 import {
   MODE_NAME_TESTING,
 } from "@/application/post-production-feed/PostProductionFeedConstants"

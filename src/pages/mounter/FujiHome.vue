@@ -1,13 +1,13 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { NButton, NCheckbox, NForm, NFormItemGi, NGi, NGrid, NH1, NInput, NRadioButton, NRadioGroup, NSpace, NSwitch, NSelect } from 'naive-ui'
 import { useMeta } from 'vue-meta'
 import { useRouter } from 'vue-router'
-import { SmtService } from '@/client'
 import { useMounterHomeForm } from '@/ui/shared/composables/useMounterHomeForm'
+import { createFujiHomeDeps } from '@/ui/di/fuji/createFujiHomeDeps'
 
 useMeta({ title: 'Fuji Mounter Assistant' })
 const router = useRouter()
+const homeDeps = createFujiHomeDeps()
 
 const { isTestingMode, autoFillProductIdno, formRef, formValue, mounterOptions, rules,
     workSheetSideOptions, onToggleTestingMode, onClickSubmitButton } =
@@ -24,10 +24,10 @@ const { isTestingMode, autoFillProductIdno, formRef, formValue, mounterOptions, 
             mounterIdno: 'XP2B1',
             workSheetSide: 'TOP',
         },
-        findMounterIdnosByProductIdno: (productIdno) =>
-            SmtService.findFujiMounterIdnosByProductIdno({ productIdno }),
+        findMounterIdnosByProductIdno: homeDeps.findMounterIdnosByProductIdno,
+        getStWorkOrder: homeDeps.getStWorkOrder,
         submitAndNavigate: async (fv, meta) => {
-            await SmtService.getFujiMounterMaterialSlotPairs({
+            await homeDeps.getMounterMaterialSlotPairs({
                 workOrderIdno: fv.workOrderIdno.trim(),
                 boardSide: fv.workSheetSide!,
                 productIdno: fv.productIdno.trim(),

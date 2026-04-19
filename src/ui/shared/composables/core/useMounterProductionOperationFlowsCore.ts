@@ -1,6 +1,6 @@
 import { computed, nextTick, ref } from "vue"
 import type { ComputedRef, Ref } from "vue"
-import { CheckMaterialMatchEnum } from "@/client"
+import { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import {
   MATERIAL_UNLOAD_TRIGGER,

@@ -1,9 +1,12 @@
 <script lang="ts" setup>
 import { DataTableColumns, NCard, NDataTable, NSpace, NTag } from 'naive-ui'
 import { ref, watch } from 'vue'
-import { FujiMounterFileItemRead, FujiMounterFileRead, SmtService } from '@/client'
+import type { FujiMounterFileItemRead, FujiMounterFileRead } from '@/application/preproduction/clientTypes'
 import { resolveMounterItemTargets } from '@/domain/file-manager/resolveMounterItemTargets'
 import { useUiNotifier } from '@/ui/shared/composables/useUiNotifier'
+import { createMounterFileManagerDeps } from '@/ui/di/shared/createMounterFileManagerDeps'
+
+const fileManagerDeps = createMounterFileManagerDeps()
 
 type FujiMounterFileItemRow = FujiMounterFileItemRead & {
     board_side: 'B' | 'T'
@@ -51,7 +54,7 @@ watch(
         tableLoading.value = true
         try {
             const responses = await Promise.all(
-                targets.map( ( target ) => SmtService.getFujiMounterFileItemList( { id: target.id } ) )
+                targets.map( ( target ) => fileManagerDeps.getFujiFileItemList( target.id ) )
             )
 
             data.value = responses.flatMap( ( rows, index ) =>

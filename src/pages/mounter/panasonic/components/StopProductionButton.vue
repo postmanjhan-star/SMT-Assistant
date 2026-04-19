@@ -1,10 +1,9 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { useDialog } from 'naive-ui'
-import { stopPanasonicProductionStats as stopPanasonicProduction } from '@/infra/panasonic/production/PanasonicProductionApi'
 
 const props = defineProps<{
     uuid: string
+    stopProduction: (uuid: string) => Promise<unknown>
 }>()
 
 const emit = defineEmits<{
@@ -14,7 +13,7 @@ const emit = defineEmits<{
 
 const dialog = useDialog()
 
-async function stopProduction() {
+async function onClickStop() {
     dialog.warning({
         title: '結束生產確認',
         content: '確定要結束生產嗎？',
@@ -22,7 +21,7 @@ async function stopProduction() {
         negativeText: '取消',
         onPositiveClick: async () => {
             try {
-                await uploadEndProductionTime(props.uuid)
+                await props.stopProduction(props.uuid)
                 emit('stopped')
             } catch (err) {
                 emit('error', '結束生產失敗')
@@ -30,14 +29,10 @@ async function stopProduction() {
         }
     })
 }
-
-async function uploadEndProductionTime(uuid: string) {
-    await stopPanasonicProduction({ uuid, endTime: new Date().toISOString() })
-}
 </script>
 
 <template>
-    <n-button type="error" size="small" @click="stopProduction">
+    <n-button type="error" size="small" @click="onClickStop">
         🛑 結束生產
     </n-button>
 </template>

@@ -19,21 +19,33 @@
 
 ---
 
-## Wave 2 基線（P0–P5，2026-03-30 建立）
+## Wave 2 基線（P0–P5，2026-03-30 建立；P2 完成 2026-04-19）
 
 用途：重構期間每次 PR 的比較基準，KPI 數字只能降不能升。
 
 自動化檢查：`npm run check:kpi`
 
-| KPI | Wave 2 基線 (2026-03-30) | P0–P5 目標終態 |
-|---|---|---|
-| Pages/UI → client 違規檔案數 | **27** | 0 |
-| Pages/UI → infra 違規檔案數 | **3** | 0 |
-| Domain → client/infra 違規 | **2** | 0 |
-| Phase-1 whitelist 標記數 | **30** | 0 |
-| 超過 500 行的檔案數（含 SmtService.ts） | **8** | ≤3（排除 generated） |
-| Unit spec 檔案數 | **30** | ↑ 增加 |
-| E2E spec 檔案數 | **8** | ↑ 增加 |
+| KPI | Wave 2 基線 (2026-03-30) | P2 完成後 (2026-04-19) | P0–P5 目標終態 |
+|---|---|---|---|
+| Pages/UI → client 違規檔案數 | **27** | **0** ✅ | 0 |
+| Pages/UI → infra 違規檔案數 | **3** | **0** ✅ | 0 |
+| Domain → client/infra 違規 | **2** | **0** ✅ | 0 |
+| Phase-1 whitelist 標記數 | **30** | **0** ✅ | 0 |
+| 超過 500 行的檔案數（含 SmtService.ts） | **8** | **7** | ≤3（排除 generated） |
+| Unit spec 檔案數 | **30** | **41** | ↑ 增加 |
+| E2E spec 檔案數 | **8** | **16** | ↑ 增加 |
+
+### P2 達成方式
+
+雙軌策略：
+1. **型別 façade re-export**（最低成本）：在 `src/application/<domain>/clientTypes.ts` 集中再匯出 `@/client` enum/型別，UI/Pages 改 import façade。Application 層本就允許 import `@/client`，這些 façade 檔僅做 re-export。
+2. **DI runtime 包裝**（runtime 行為）：將 `SmtService.*` / `WorkflowService.*` 等 runtime 呼叫包入 `src/ui/di/**/create*Deps.ts` factory（DI 層已 override eslint 規則）。新增 / 擴充：
+   - `createWorkflowSummaryDeps`（給 TaskManager）
+   - `createBarcodeScanDeps`（給 MaterialInventoryBarcodeInput）
+   - `createMounterFileManagerDeps`（給 file-manager 群）
+   - `createFujiHomeDeps` / `createPanasonicHomeDeps`（給 *Home.vue）
+   - `createPostproductionPanasonicDeps.inspectionUpload` / `stopProduction`（給 PanasonicMounterAssistantProduction、StopProductionButton 走 props 注入）
+3. **Domain 切斷 @/client**：`src/domain/mounter/ipqcTypes.ts` 改用 domain-local string-literal union（`CheckMaterialMatchValue`）。
 
 ---
 
@@ -173,14 +185,14 @@ grep -r "Phase-1 whitelist" src/ | wc -l
 
 ---
 
-## 禁止退步聲明（Wave 2）
+## 禁止退步聲明（Wave 2，P2 完成後更新）
 
 每次 PR 合併前必須確認（`npm run check:kpi` 自動執行）：
 
-1. Phase-1 whitelist 標記數 ≤ 30（逐步減少，不得增加）
-2. src/ 下 >500 行檔案數 ≤ 8（逐步減少，不得增加）
-3. Unit spec 檔案數 ≥ 22（只增不減）
-4. E2E spec 檔案數 ≥ 8（只增不減）
-5. Domain → client/infra 違規 ≤ 2（不得增加）
+1. Phase-1 whitelist 標記數 = **0**（已歸零，任何新違規即 fail）
+2. src/ 下 >500 行檔案數 ≤ 8（逐步減少，不得增加；目前 7）
+3. Unit spec 檔案數 ≥ 22（只增不減；目前 41）
+4. E2E spec 檔案數 ≥ 8（只增不減；目前 16）
+5. Domain → client/infra 違規 = **0**（已歸零）
 
 降低閾值後，請同步更新 `scripts/check-kpi.sh` 中的對應常數。

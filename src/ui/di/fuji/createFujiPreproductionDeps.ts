@@ -2,6 +2,8 @@ import { startFujiProductionStats } from '@/infra/fuji/production/FujiProduction
 import { stopFujiProductionStats } from '@/infra/fuji/production/FujiProductionApi'
 import { fetchFujiProductionSlots } from '@/infra/fuji/production/FujiProductionApi'
 import { ApiMaterialRepository } from '@/infra/material/ApiMaterialRepository'
+import { SmtService } from '@/client'
+import type { FujiFeedRecordCreate } from '@/client'
 import type { MaterialRepository, MaterialRepositoryResult } from '@/application/barcode-scan/BarcodeScanDeps'
 
 export type FujiPreproductionDeps = {
@@ -10,6 +12,7 @@ export type FujiPreproductionDeps = {
   fetchSlots: typeof fetchFujiProductionSlots
   createMaterialRepository: () => MaterialRepository
   fetchMaterialInventory: (idno: string) => Promise<MaterialRepositoryResult>
+  uploadItemStatRoll: (payload: FujiFeedRecordCreate) => Promise<unknown>
 }
 
 export function createFujiPreproductionDeps(
@@ -21,6 +24,8 @@ export function createFujiPreproductionDeps(
     fetchSlots: fetchFujiProductionSlots,
     createMaterialRepository: () => new ApiMaterialRepository(),
     fetchMaterialInventory: (idno) => new ApiMaterialRepository().fetchByBarcode(idno),
+    uploadItemStatRoll: (payload) =>
+      SmtService.addFujiMounterItemStatRoll({ requestBody: payload }),
     ...overrides,
   }
 }

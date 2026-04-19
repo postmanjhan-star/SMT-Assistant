@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-restricted-imports -- DI 層允許 client import
 import { SmtService } from "@/client"
 
 export type SwitchUserResult = {

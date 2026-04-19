@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-PHASE1_WHITELIST_MAX=30
+PHASE1_WHITELIST_MAX=0
 LARGE_FILES_MAX=8
 UNIT_SPEC_MIN=22
 E2E_SPEC_MIN=8
@@ -46,7 +46,8 @@ check_min() {
 # ── counts ───────────────────────────────────────────────────────────────────
 
 # Phase-1 whitelist: eslint-disable lines tagged with "Phase-1 whitelist"
-phase1_count=$(grep -r "Phase-1 whitelist" src/ 2>/dev/null | wc -l | tr -d ' ')
+phase1_count=$(grep -r "Phase-1 whitelist" src/ 2>/dev/null | wc -l | tr -d ' ' || true)
+phase1_count=${phase1_count:-0}
 
 # Files >500 lines in src/ (*.ts and *.vue, exclude node_modules)
 large_files_count=$(

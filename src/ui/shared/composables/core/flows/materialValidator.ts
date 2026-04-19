@@ -1,5 +1,5 @@
 import type { Ref } from "vue"
-import { CheckMaterialMatchEnum } from "@/client"
+import { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import type { MaterialRepositoryResult } from "@/application/barcode-scan/BarcodeScanDeps"
 import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { CORRECT_STATE } from "./materialPackCodeHelpers"

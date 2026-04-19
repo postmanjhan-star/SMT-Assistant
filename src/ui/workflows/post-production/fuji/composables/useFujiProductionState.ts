@@ -1,6 +1,8 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { ref, type Ref } from "vue"
-import type { FujiItemStatFeedLogRead, FujiMounterItemStatRead } from "@/client"
+import type {
+  FujiItemStatFeedLogRead,
+  FujiMounterItemStatRead,
+} from "@/application/preproduction/clientTypes"
 import type { StatLike } from "@/domain/production/PostProductionFeedRules"
 import {
   buildFujiInspectionStats,

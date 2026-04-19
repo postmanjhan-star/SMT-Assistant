@@ -1,15 +1,16 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { computed, onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
+import { ApiError } from "@/application/shared/clientTypes"
+import { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import {
-  ApiError,
-  CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
   MachineSideEnum,
-  PanasonicMounterItemStatCreate,
   ProduceTypeEnum,
-  type BoardSideEnum,
-} from "@/client"
+} from "@/application/preproduction/clientTypes"
+import type {
+  BoardSideEnum,
+  PanasonicMounterItemStatCreate,
+} from "@/application/preproduction/clientTypes"
 import { useDialog, type FormRules } from "naive-ui"
 import type { GridApi } from "ag-grid-community"
 

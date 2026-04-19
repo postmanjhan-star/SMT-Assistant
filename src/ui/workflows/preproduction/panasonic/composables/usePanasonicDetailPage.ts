@@ -129,6 +129,7 @@ export function usePanasonicDetailPage(options: PanasonicDetailPageOptions) {
     onIpqcUploaded: options.onIpqcUploaded,
     startProduction: deps.startProduction,
     stopProduction: deps.stopProduction,
+    uploadItemStatRoll: deps.uploadItemStatRoll,
   })
 
   const {

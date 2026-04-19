@@ -1,5 +1,4 @@
-﻿// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3
-import type { SmtMaterialInventory } from "@/client"
+﻿import type { SmtMaterialInventory } from "@/application/shared/clientTypes"
 import type { SlotCandidate } from "@/domain/slot/SlotBindingRules"
 
 export type CorrectState = "true" | "false" | "warning" | "unloaded"

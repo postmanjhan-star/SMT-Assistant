@@ -1,7 +1,9 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { ref, type Ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { type BoardSideEnum, type FujiMounterFileRead } from "@/client"
+import type {
+  BoardSideEnum,
+  FujiMounterFileRead,
+} from "@/application/preproduction/clientTypes"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { normalizeRouteValue } from "@/ui/shared/route/normalizeRouteValue"
 import { usePreproductionLoader } from "@/ui/shared/composables/usePreproductionLoader"

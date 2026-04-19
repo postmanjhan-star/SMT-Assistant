@@ -1,19 +1,20 @@
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { ref, type Ref } from "vue"
 import { useDialog } from "naive-ui"
+import { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import {
-  CheckMaterialMatchEnum,
   FeedMaterialTypeEnum,
   MaterialOperationTypeEnum,
   UnfeedMaterialTypeEnum,
   ProduceTypeEnum,
-  SmtService,
-  type BoardSideEnum,
-  type MachineSideEnum,
-  type PanasonicMounterItemStatCreate,
-  type PanasonicMounterItemStatRead,
-  type UnfeedReasonEnum,
-} from "@/client"
+} from "@/application/preproduction/clientTypes"
+import type {
+  BoardSideEnum,
+  MachineSideEnum,
+  PanasonicFeedRecordCreate,
+  PanasonicMounterItemStatCreate,
+  PanasonicMounterItemStatRead,
+  UnfeedReasonEnum,
+} from "@/application/preproduction/clientTypes"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { ProductionLifecycleUseCase } from "@/application/preproduction/ProductionLifecycleUseCase"
 import { StartProductionStatsUseCase } from "@/application/preproduction/StartProductionStatsUseCase"
@@ -43,6 +44,7 @@ export type UsePanasonicPreproductionLifecycleOptions = {
   onIpqcUploaded?: (ok: boolean) => void
   startProduction: (payload: PanasonicMounterItemStatCreate[]) => Promise<PanasonicMounterItemStatRead[]>
   stopProduction: (uuid: string) => Promise<unknown>
+  uploadItemStatRoll: (payload: PanasonicFeedRecordCreate) => Promise<unknown>
 }
 
 type PanasonicStartStatPayload = PanasonicMounterItemStatCreate & {
@@ -135,55 +137,49 @@ export function usePanasonicPreproductionLifecycle(
     uploadUnload: async (record, statItemMap) => {
       const id = statItemMap.get(makeSlotKey(record.slotIdno, record.subSlotIdno))
       if (id === undefined) return
-      await SmtService.addPanasonicMounterItemStatRoll({
-        requestBody: {
-          stat_item_id: id,
-          operator_id: null,
-          operation_time: record.operationTime,
-          slot_idno: record.slotIdno,
-          sub_slot_idno: record.subSlotIdno ?? null,
-          material_pack_code: record.materialPackCode,
-          operation_type: MaterialOperationTypeEnum.UNFEED,
-          unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
-          unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
-          check_pack_code_match: record.checkPackCodeMatch ?? null,
-        },
+      await options.uploadItemStatRoll({
+        stat_item_id: id,
+        operator_id: null,
+        operation_time: record.operationTime,
+        slot_idno: record.slotIdno,
+        sub_slot_idno: record.subSlotIdno ?? null,
+        material_pack_code: record.materialPackCode,
+        operation_type: MaterialOperationTypeEnum.UNFEED,
+        unfeed_material_pack_type: UnfeedMaterialTypeEnum.PARTIAL_UNFEED,
+        unfeed_reason: (record.unfeedReason as UnfeedReasonEnum) ?? null,
+        check_pack_code_match: record.checkPackCodeMatch ?? null,
       })
     },
     uploadSplice: async (record, statItemMap) => {
       const id = statItemMap.get(makeSlotKey(record.slotIdno, record.subSlotIdno))
       if (id === undefined) return
-      await SmtService.addPanasonicMounterItemStatRoll({
-        requestBody: {
-          stat_item_id: id,
-          operator_id: null,
-          operation_time: record.operationTime,
-          slot_idno: record.slotIdno,
-          sub_slot_idno: record.subSlotIdno ?? null,
-          material_pack_code: record.materialPackCode,
-          operation_type: MaterialOperationTypeEnum.FEED,
-          feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
-          check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
-          unfeed_reason: null,
-        },
+      await options.uploadItemStatRoll({
+        stat_item_id: id,
+        operator_id: null,
+        operation_time: record.operationTime,
+        slot_idno: record.slotIdno,
+        sub_slot_idno: record.subSlotIdno ?? null,
+        material_pack_code: record.materialPackCode,
+        operation_type: MaterialOperationTypeEnum.FEED,
+        feed_material_pack_type: FeedMaterialTypeEnum.NEW_MATERIAL_PACK,
+        check_pack_code_match: record.correctState as CheckMaterialMatchEnum,
+        unfeed_reason: null,
       })
     },
     uploadIpqc: async (record, statItemMap) => {
       const id = statItemMap.get(makeSlotKey(record.slotIdno, record.subSlotIdno))
       if (id === undefined) return
-      await SmtService.addPanasonicMounterItemStatRoll({
-        requestBody: {
-          stat_item_id: id,
-          operator_id: record.inspectorIdno || null,
-          operation_time: record.inspectionTime,
-          slot_idno: record.slotIdno,
-          sub_slot_idno: record.subSlotIdno ?? null,
-          material_pack_code: record.materialPackCode,
-          operation_type: MaterialOperationTypeEnum.FEED,
-          feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
-          check_pack_code_match: record.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
-          unfeed_reason: null,
-        },
+      await options.uploadItemStatRoll({
+        stat_item_id: id,
+        operator_id: record.inspectorIdno || null,
+        operation_time: record.inspectionTime,
+        slot_idno: record.slotIdno,
+        sub_slot_idno: record.subSlotIdno ?? null,
+        material_pack_code: record.materialPackCode,
+        operation_type: MaterialOperationTypeEnum.FEED,
+        feed_material_pack_type: FeedMaterialTypeEnum.INSPECTION_MATERIAL_PACK,
+        check_pack_code_match: (record.checkPackCodeMatch ?? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK) as CheckMaterialMatchEnum,
+        unfeed_reason: null,
       })
     },
   })

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/* eslint-disable no-restricted-imports -- [Phase-1 whitelist] tracked in REFACTORING_BASELINE.md, fix in Phase 3 */
 import { GetRowIdParams, GridOptions, RowNode } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css"; // Core grid CSS, always needed
 import "ag-grid-community/styles/ag-theme-balham.css"; // Optional theme CSS
@@ -8,12 +7,10 @@ import { onMounted, ref, watch } from 'vue';
 import { useMeta } from 'vue-meta';
 import { useRoute, useRouter } from 'vue-router';
 
-import {
-    ApiError,
-    WorkflowSummaryRead,
-    WorkflowService
-} from '@/client';
 import { useDateFormatter } from "@/ui/shared/composables/useDateFormatter";
+import { createWorkflowSummaryDeps } from "@/ui/di/shared/createWorkflowSummaryDeps";
+
+const workflowDeps = createWorkflowSummaryDeps();
 
 const router = useRouter();
 
@@ -121,7 +118,7 @@ async function fetchWorkflows() {
         const skip = (currentPage.value - 1) * pageSize.value
         const limit = pageSize.value
 
-        const data = await WorkflowService.getSummariesOfWorkflows({
+        const data = await workflowDeps.getSummaries({
             skip,
             limit
         })

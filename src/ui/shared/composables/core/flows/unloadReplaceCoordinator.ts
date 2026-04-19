@@ -1,5 +1,5 @@
 import { computed, nextTick, ref, type ComputedRef, type Ref } from "vue"
-import { CheckMaterialMatchEnum } from "@/client"
+import { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
 import {
   MATERIAL_FORCE_UNLOAD_TRIGGER,
   MATERIAL_IPQC_TRIGGER,

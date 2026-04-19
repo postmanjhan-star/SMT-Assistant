@@ -2,12 +2,9 @@ import { onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { type GridApi, type GridReadyEvent } from "ag-grid-community"
 import { useDialog } from "naive-ui"
-// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] @/client type imports，Phase 3 移除目標
-import {
-  CheckMaterialMatchEnum,
-  type BoardSideEnum,
-  type SmtMaterialInventory,
-} from "@/client"
+import { CheckMaterialMatchEnum } from "@/application/post-production-feed/clientTypes"
+import type { BoardSideEnum } from "@/application/preproduction/clientTypes"
+import type { SmtMaterialInventory } from "@/application/shared/clientTypes"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
 import type { MounterStatLike } from "@/application/post-production-feed/PostProductionFeedDeps"

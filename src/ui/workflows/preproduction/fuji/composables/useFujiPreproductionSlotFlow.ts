@@ -1,6 +1,5 @@
 import { computed, ref, watch, type Ref, type ShallowRef } from "vue"
-// eslint-disable-next-line no-restricted-imports -- [Phase-1 whitelist] @/client type import，Phase 3 移除目標
-import type { SmtMaterialInventory } from "@/client"
+import type { SmtMaterialInventory } from "@/application/shared/clientTypes"
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { SlotSubmissionRunner } from "@/application/slot-submit/SlotSubmissionRunner"
 import { createSlotSubmitStrategy } from "@/application/slot-submit/createSlotSubmitStrategy"
