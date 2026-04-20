@@ -2,11 +2,9 @@
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
-import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
-import { computed, nextTick, ref, onMounted } from "vue"
+import { computed, onMounted } from "vue"
 import { useRoute } from "vue-router"
-import { storeToRefs } from "pinia"
 import { useMeta } from "vue-meta"
 
 import MounterMaterialQueryModal, { type MaterialQueryRowModel } from "@/pages/components/shared/MounterMaterialQueryModal.vue"
@@ -18,19 +16,10 @@ import PanasonicRollShortageModal from "@/pages/components/panasonic/PanasonicRo
 import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import ScanLoginModal from "@/pages/components/shared/ScanLoginModal.vue"
 import MounterInfoBar from "@/pages/components/shared/MounterInfoBar.vue"
-import {
-  usePostProductionFeedStore,
-  type PostProductionMaterialResult,
-} from "@/stores/postProductionFeedStore"
-import { useSlotInputSelection } from "@/ui/shared/composables/useSlotInputSelection"
 import { usePanasonicProductionPage } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicProductionPage"
+import { usePanasonicProductionPageSetup } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicProductionPageSetup"
 import { createPanasonicProductionGrid } from "@/ui/workflows/post-production/panasonic/PanasonicProductionGridAdapter"
-import { usePanasonicInputReset } from "@/ui/shared/composables/panasonic/usePanasonicInputReset"
-import {
-  PANASONIC_MODE_NAME_NORMAL,
-  PANASONIC_MODE_NAME_TESTING,
-} from "@/ui/shared/composables/panasonic/usePanasonicConstants"
-import type { InputComponentHandle, MaterialMatchedPayload } from "./types/production"
+import type { MaterialMatchedPayload } from "./types/production"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
 import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
@@ -46,23 +35,17 @@ const isMockMode = import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock
 const mockScan = isMockMode ? createMockScan() : undefined
 const panasonicDeps = createPostproductionPanasonicDeps()
 
-const slotIdnoInput = ref<InputComponentHandle | null>(null)
-const materialInventoryInput = ref<InputComponentHandle | null>(null)
-
-const store = usePostProductionFeedStore()
-const { materialResult } = storeToRefs(store)
-
-const inputs = useSlotInputSelection<PostProductionMaterialResult>({
-  materialResult,
-  focusSlotInput: () => slotIdnoInput.value?.focus(),
-})
-
-const { resetInputsAfterSlotSubmit } = usePanasonicInputReset({
-  clearMaterialResult: () => store.clearMaterialResult(),
-  bumpResetKeys: () => inputs.bumpResetKeys(),
-  materialInputRef: materialInventoryInput,
-  slotInputRef: slotIdnoInput,
-})
+const setup = usePanasonicProductionPageSetup()
+const {
+  slotIdnoInput,
+  materialInventoryInput,
+  inputs,
+  resetInputsAfterSlotSubmit,
+  localGridApi,
+  localColumnApi,
+  focusMaterialInventoryInput,
+  clearNormalScanState,
+} = setup
 
 const {
   productionUuid,
@@ -109,38 +92,11 @@ const {
 const { rowData: materialQueryRawData, load: loadMaterialQuery } = usePanasonicMaterialQueryState(productionUuid)
 const materialQueryRows = computed(() => materialQueryRawData.value as MaterialQueryRowModel[])
 
-const localGridApi = ref<GridApi | null>(null)
-const localColumnApi = ref<ColumnApi | null>(null)
-
-function onGridReadyWithIpqc(e: GridReadyEvent) {
-  localGridApi.value = e.api
-  localColumnApi.value = e.columnApi
-  onGridReady(e)
-}
+const onGridReadyWithIpqc = setup.makeGridReadyHandler(onGridReady)
+const { productionModeName, productionModeType } = setup.makeProductionModeComputeds(isTestingMode)
 
 const gridOptions = createPanasonicProductionGrid()
 const rollShortageBindings = { formRef: rollShortageFormRef }
-
-const productionModeName = computed(() =>
-  isTestingMode.value ? PANASONIC_MODE_NAME_TESTING : PANASONIC_MODE_NAME_NORMAL
-)
-
-const productionModeType = computed<"warning" | "success">(() =>
-  isTestingMode.value ? "warning" : "success"
-)
-
-function focusMaterialInventoryInput() {
-  nextTick(() => {
-    materialInventoryInput.value?.focus()
-  })
-}
-
-function clearNormalScanState() {
-  store.clearMaterialResult()
-  inputs.bumpResetKeys()
-  materialInventoryInput.value?.clear?.()
-  slotIdnoInput.value?.clear?.()
-}
 
 // ── Scan Login ──────────────────────────────────────────────────────────────
 
@@ -259,14 +215,21 @@ function onRollShortageModalUpdate(value: boolean) {
   if (!value) closeRollShortage()
 }
 
-// ─── Input ref binders (for PanasonicProductionInputSection) ──────────────────
-
-const bindUnloadMaterialInput = (el: Element | null) => { unloadMaterialInput.value = el as HTMLInputElement | null }
-const bindUnloadSlotInput     = (el: Element | null) => { unloadSlotInput.value = el as HTMLInputElement | null }
-const bindIpqcMaterialInput   = (el: Element | null) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
-const bindIpqcSlotInput       = (el: Element | null) => { ipqcSlotInput.value = el as HTMLInputElement | null }
-const bindSpliceMaterialInput = (el: Element | null) => { spliceMaterialInput.value = el as HTMLInputElement | null }
-const bindSpliceSlotInput     = (el: Element | null) => { spliceSlotInput.value = el as HTMLInputElement | null }
+const {
+  bindUnloadMaterialInput,
+  bindUnloadSlotInput,
+  bindIpqcMaterialInput,
+  bindIpqcSlotInput,
+  bindSpliceMaterialInput,
+  bindSpliceSlotInput,
+} = setup.makeInputBinders({
+  unloadMaterialInput,
+  unloadSlotInput,
+  ipqcMaterialInput,
+  ipqcSlotInput,
+  spliceMaterialInput,
+  spliceSlotInput,
+})
 </script>
 
 <template>
