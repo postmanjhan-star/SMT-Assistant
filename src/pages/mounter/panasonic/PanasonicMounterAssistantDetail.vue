@@ -2,9 +2,8 @@
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-balham.css"
 import { AgGridVue } from "ag-grid-vue3"
-import type { ColumnApi, GridApi, GridReadyEvent } from "ag-grid-community"
 import { NButton, NGi, NPageHeader, NSpace, NTag } from "naive-ui"
-import { computed, nextTick, onMounted, ref } from "vue"
+import { computed, onMounted } from "vue"
 import { useMeta } from "vue-meta"
 import { useRoute } from "vue-router"
 
@@ -17,20 +16,17 @@ import MounterLayout from "@/pages/components/shared/MounterLayout.vue"
 import ScanLoginModal from "@/pages/components/shared/ScanLoginModal.vue"
 import MounterInfoBar from "@/pages/components/shared/MounterInfoBar.vue"
 
-import type { InputComponentHandle, MaterialMatchedPayload, SlotInputResult } from "./types/production"
+import type { MaterialMatchedPayload } from "./types/production"
 import { createProductionGridOptions } from "@/ui/workflows/preproduction/panasonic/createProductionGridOptions"
-import { useSlotInputSelection } from "@/ui/shared/composables/useSlotInputSelection"
 import { parsePanasonicSlotIdno } from "@/domain/slot/PanasonicSlotParser"
-import { usePanasonicInputReset } from "@/ui/shared/composables/panasonic/usePanasonicInputReset"
 import { usePanasonicDetailPage } from "@/ui/workflows/preproduction/panasonic/composables/usePanasonicDetailPage"
+import { usePanasonicDetailPageSetup } from "@/ui/workflows/preproduction/panasonic/composables/usePanasonicDetailPageSetup"
 import { PANASONIC_MODE_NAME_NORMAL, PANASONIC_MODE_NAME_TESTING } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import { createMockScan, MOCK_SCAN_ENABLED } from "@/dev/createMockScan"
 import { useScanLoginModal } from "@/ui/shared/composables/useScanLoginModal"
 import { createDefaultScanLoginDeps } from "@/ui/di/shared/createScanLoginDeps"
-import type { IpqcInspectionRecord } from "@/domain/mounter/ipqcTypes"
 import { usePanasonicDetailCache } from "@/ui/shared/composables/panasonic/usePanasonicDetailCache"
 import { usePanasonicOperationFlows } from "@/ui/shared/composables/panasonic/usePanasonicOperationFlows"
-import type { PanasonicUnloadRecord, PanasonicSpliceRecord } from "@/ui/shared/composables/panasonic/panasonicDetailTypes"
 import { usePanasonicDetailSlotSubmit } from "@/ui/shared/composables/panasonic/usePanasonicDetailSlotSubmit"
 import PanasonicDetailInputSection from "@/pages/mounter/panasonic/components/PanasonicDetailInputSection.vue"
 
@@ -41,40 +37,23 @@ const isMockMode =
   import.meta.env.DEV && (MOCK_SCAN_ENABLED || route.query.mock_scan === "1")
 const mockScan = isMockMode ? createMockScan() : undefined
 
-const slotIdnoInput = ref<InputComponentHandle | null>(null)
-const materialInventoryInput = ref<InputComponentHandle | null>(null)
-const materialInputValue = ref("")
-const slotInputValue = ref("")
-const gridApi = ref<GridApi | null>(null)
-const columnApi = ref<ColumnApi | null>(null)
-const pendingGridSync = ref(false)
-
-const materialInventoryResult = ref<SlotInputResult | null>(null)
-
-const inputs = useSlotInputSelection<SlotInputResult>({
-  materialResult: materialInventoryResult,
-  focusSlotInput: () => slotIdnoInput.value?.focus(),
-})
-
-const { resetInputsAfterSlotSubmit } = usePanasonicInputReset({
-  clearMaterialResult: () => {
-    materialInventoryResult.value = null
-    restoreSplicePreview()
-  },
-  bumpResetKeys: () => inputs.bumpResetKeys(),
-  materialInputRef: materialInventoryInput,
-  slotInputRef: slotIdnoInput,
-})
-
-// ─── Pending Records ─────────────────────────────────────────────────────────
-
-const pendingUnloadRecords = ref<PanasonicUnloadRecord[]>([])
-const pendingSpliceRecords = ref<PanasonicSpliceRecord[]>([])
-const pendingIpqcRecords = ref<IpqcInspectionRecord[]>([])
-
-const splicePreviewCorrectStates = ref(new Map<string, string | null>())
-
-// ─── Detail Page ─────────────────────────────────────────────────────────────
+const setup = usePanasonicDetailPageSetup()
+const {
+  slotIdnoInput,
+  materialInventoryInput,
+  materialInputValue,
+  slotInputValue,
+  gridApi,
+  columnApi,
+  materialInventoryResult,
+  pendingUnloadRecords,
+  pendingSpliceRecords,
+  pendingIpqcRecords,
+  splicePreviewCorrectStates,
+  inputs,
+  focusMaterialInput,
+  syncGridRows,
+} = setup
 
 const {
   isTestingMode,
@@ -109,7 +88,7 @@ const {
   fetchMaterialInventory,
   showError,
 } = usePanasonicDetailPage({
-  onResetInputs: resetInputsAfterSlotSubmit,
+  onResetInputs: () => resetInputsAfterSlotSubmit(),
   getSlotInputResult: () => materialInventoryResult.value,
   getPendingUnloadRecords: () => pendingUnloadRecords.value,
   onUnloadUploaded: (ok) => {
@@ -128,8 +107,6 @@ const {
   },
   isMockMode,
 })
-
-// ─── Scan Login ──────────────────────────────────────────────────────────────
 
 const {
   showLoginModal,
@@ -154,45 +131,6 @@ const materialQueryRows = computed(() => materialQueryRawData.value as MaterialQ
 const gridOptions = createProductionGridOptions(rowData)
 const rollShortageBindings = { formRef: rollShortageFormRef }
 
-// ─── Shared Callbacks ────────────────────────────────────────────────────────
-
-function focusMaterialInput() {
-  nextTick(() => {
-    materialInventoryInput.value?.focus?.()
-  })
-}
-
-function restoreSplicePreview() {
-  if (splicePreviewCorrectStates.value.size === 0) return
-  for (const row of rowData.value) {
-    const rowKey = `${row.slotIdno}-${row.subSlotIdno ?? ""}`
-    const saved = splicePreviewCorrectStates.value.get(rowKey)
-    if (saved !== undefined) {
-      row.correct = saved as any
-      updateRowInGrid(row)
-    }
-  }
-  splicePreviewCorrectStates.value = new Map()
-}
-
-function clearNormalScanState() {
-  restoreSplicePreview()
-  materialInventoryResult.value = null
-  inputs.bumpResetKeys()
-  materialInventoryInput.value?.clear?.()
-  slotIdnoInput.value?.clear?.()
-}
-
-function syncGridRows(rows: unknown[]) {
-  if (!gridApi.value) {
-    pendingGridSync.value = true
-    return
-  }
-  gridApi.value.setRowData(rows as any)
-}
-
-// ─── Cache ───────────────────────────────────────────────────────────────────
-
 const { persistNow, suspendWrite, resumeWrite } = usePanasonicDetailCache({
   isTestingMode,
   workOrderIdno,
@@ -210,8 +148,6 @@ const { persistNow, suspendWrite, resumeWrite } = usePanasonicDetailCache({
   productionStarted,
   onHydrateRows: syncGridRows,
 })
-
-// ─── Operation Flows ─────────────────────────────────────────────────────────
 
 const {
   isUnloadMode,
@@ -263,7 +199,7 @@ const {
   fetchMaterialInventory,
   showError,
   handleUserSwitchTrigger,
-  clearNormalScanState,
+  clearNormalScanState: () => clearNormalScanState(),
   focusMaterialInput,
   persistNow,
   pendingUnloadRecords,
@@ -271,7 +207,25 @@ const {
   pendingIpqcRecords,
 })
 
-// ─── Material + Slot Submit ───────────────────────────────────────────────────
+const restoreSplicePreview = setup.makeRestoreSplicePreview(rowData, updateRowInGrid)
+const clearNormalScanState = setup.makeClearNormalScanState(restoreSplicePreview)
+const { resetInputsAfterSlotSubmit } = setup.makeInputReset(restoreSplicePreview)
+const onGridReadyWithCache = setup.makeGridReadyHandler(onGridReady, rowData)
+const {
+  bindUnloadMaterialInput,
+  bindUnloadSlotInput,
+  bindIpqcMaterialInput,
+  bindIpqcSlotInput,
+  bindSpliceMaterialInput,
+  bindSpliceSlotInput,
+} = setup.makeInputBinders({
+  unloadMaterialInput,
+  unloadSlotInput,
+  ipqcMaterialInput,
+  ipqcSlotInput,
+  spliceMaterialInput,
+  spliceSlotInput,
+})
 
 const { handleMaterialMatched, onSlotSubmit } = usePanasonicDetailSlotSubmit({
   splicePreviewCorrectStates,
@@ -299,30 +253,9 @@ const { handleMaterialMatched, onSlotSubmit } = usePanasonicDetailSlotSubmit({
   pendingSpliceRecords,
 })
 
-// ─── Input ref binders (for PanasonicDetailInputSection) ─────────────────────
-
-const bindUnloadMaterialInput = (el: Element | null) => { unloadMaterialInput.value = el as HTMLInputElement | null }
-const bindUnloadSlotInput     = (el: Element | null) => { unloadSlotInput.value = el as HTMLInputElement | null }
-const bindIpqcMaterialInput   = (el: Element | null) => { ipqcMaterialInput.value = el as HTMLInputElement | null }
-const bindIpqcSlotInput       = (el: Element | null) => { ipqcSlotInput.value = el as HTMLInputElement | null }
-const bindSpliceMaterialInput = (el: Element | null) => { spliceMaterialInput.value = el as HTMLInputElement | null }
-const bindSpliceSlotInput     = (el: Element | null) => { spliceSlotInput.value = el as HTMLInputElement | null }
-
 async function onSubmitShortageWithPersist() {
   await onSubmitShortage()
   persistNow()
-}
-
-// ─── Grid ─────────────────────────────────────────────────────────────────────
-
-function onGridReadyWithCache(e: GridReadyEvent) {
-  gridApi.value = e.api
-  columnApi.value = e.columnApi
-  onGridReady(e)
-  if (pendingGridSync.value) {
-    pendingGridSync.value = false
-    syncGridRows(rowData.value)
-  }
 }
 </script>
 
