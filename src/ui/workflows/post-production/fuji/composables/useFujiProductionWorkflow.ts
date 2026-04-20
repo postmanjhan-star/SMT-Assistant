@@ -9,16 +9,16 @@ import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { useCurrentUsername } from "@/ui/shared/composables/useCurrentUsername"
 import type { MounterStatLike } from "@/application/post-production-feed/PostProductionFeedDeps"
 import type { PostProductionCorrectState } from "@/stores/postProductionFeedStore"
-import { MATERIAL_UNLOAD_TRIGGER } from "@/domain/mounter/operationModes"
 import { useFujiMaterialQueryState } from "@/ui/workflows/post-production/fuji/composables/useFujiMaterialQueryState"
 import { useFujiProductionState } from "@/ui/workflows/post-production/fuji/composables/useFujiProductionState"
+import { useFujiProductionScanHandlers } from "@/ui/workflows/post-production/fuji/composables/useFujiProductionScanHandlers"
 import { parseFujiSlotIdno } from "@/domain/slot/FujiSlotParser"
 import {
   isFujiStatSlotMatch,
   type FujiProductionRowModel,
 } from "@/domain/production/buildFujiProductionRowData"
-import { resolveMaterialLookupError } from "@/domain/material/MaterialLookupError"
 import { useMounterPostProductionWorkflowCore } from "@/ui/workflows/post-production/shared/composables/useMounterPostProductionWorkflowCore"
+import { mapCorrectStateToEnum } from "@/ui/workflows/post-production/shared/composables/productionWorkflowHelpers"
 import { MODE_NAME_TESTING, MODE_NAME_NORMAL, msg } from "@/ui/shared/messageCatalog"
 import {
   createFujiPostproductionDeps,
@@ -243,11 +243,7 @@ export function useFujiProductionWorkflow(
     if (!material) throw new Error("materialInventory is required")
 
     const now = new Date().toISOString()
-    const enumCorrectState =
-        params.correctState === 'true' ? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-      : params.correctState === 'false' ? CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK
-      : params.correctState === 'warning' ? CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
-      : null
+    const enumCorrectState = mapCorrectStateToEnum(params.correctState)
 
     await fujiUploader.uploadAppend({
       statId: params.stat_id,
@@ -329,87 +325,21 @@ export function useFujiProductionWorkflow(
     }
   }
 
-  // ── Material inventory form ────────────────────────────────────────────────
+  // ── Scan form handlers (material + slot) ───────────────────────────────────
 
-  async function onSubmitMaterialInventoryForm() {
-    const idno = materialFormValue.value.materialInventoryIdno.trim()
-    if (!idno) return showWarn("請輸入物料條碼")
-
-    if (idno.toUpperCase() === MATERIAL_UNLOAD_TRIGGER) {
-      toggleUnloadMode()
-      materialFormValue.value.materialInventoryIdno = ""
-      return
-    }
-
-    try {
-      materialInventoryFromScan.value = await fujiUploader.fetchMaterialInventory(idno)
-    } catch (error) {
-      if (isTestingMode.value && (error as any)?.status === 404) {
-        info(`${MODE_NAME_TESTING}：使用測試物料 ${idno}`)
-        materialInventoryFromScan.value = {
-          idno,
-          material_idno: `TEST-${idno}`,
-          material_id: 0,
-          material_name: "Testing Material",
-        } as unknown as SmtMaterialInventory
-      } else {
-        showError(resolveMaterialLookupError(error))
-        resetForms()
-        return
-      }
-    }
-
-    const material = materialInventoryFromScan.value
-    if (!material) {
-      showError("物料查詢失敗")
-      resetForms()
-      return
-    }
-
-    const matchedRows = getMaterialMatchedRows(material.material_idno)
-    if (matchedRows.length === 0) {
-      if (!isTestingMode.value) {
-        showError("查無可綁定槽位")
-        resetForms()
-        return
-      }
-
-      info("查無可綁定槽位，請直接掃描槽位進行測試綁定")
-    } else {
-      showSuccess(`物料已匹配：${material.material_idno}`)
-    }
-
-    slotInputRef.value?.focus()
-  }
-
-  // ── Slot form ──────────────────────────────────────────────────────────────
-
-  async function onSubmitSlotForm() {
-    const inputSlotIdno = slotFormValue.value.slotIdno.trim()
-    if (!inputSlotIdno) return showWarn("請輸入槽位")
-    if (!materialInventoryFromScan.value) return showError("請先掃描物料條碼")
-
-    const parsed = parseFujiSlotIdno(inputSlotIdno)
-    if (!parsed) return showError("槽位格式錯誤")
-
-    const { stage, slot } = parsed
-    const material = materialInventoryFromScan.value
-    const matchedRows = getMaterialMatchedRows(material.material_idno).map(row => ({
-      slotIdno: String(row.slot),
-      subSlotIdno: row.stage,
-    }))
-
-    await submitPostProductionFeed({
-      slot: String(slot),
-      subSlot: stage,
-      slotIdno: `${stage}-${slot}`,
-      result: {
-        success: true,
-        materialInventory: material,
-        matchedRows,
-      },
-    })
-  }
+  const { onSubmitMaterialInventoryForm, onSubmitSlotForm } = useFujiProductionScanHandlers({
+    ui: { success: showSuccess, warn: showWarn, error: showError, info },
+    isTestingMode,
+    fujiUploader,
+    materialFormValue,
+    slotFormValue,
+    slotInputRef,
+    materialInventoryFromScan,
+    getMaterialMatchedRows,
+    resetForms,
+    toggleUnloadMode,
+    submitPostProductionFeed,
+  })
 
   // ── Stop production ────────────────────────────────────────────────────────
 

@@ -7,15 +7,13 @@ import {
   MachineSideEnum,
   ProduceTypeEnum,
 } from "@/application/preproduction/clientTypes"
-import type {
-  BoardSideEnum,
-  PanasonicMounterItemStatCreate,
-} from "@/application/preproduction/clientTypes"
+import type { BoardSideEnum } from "@/application/preproduction/clientTypes"
 import { useDialog, type FormRules } from "naive-ui"
 import type { GridApi } from "ag-grid-community"
 
 import { useUiNotifier } from "@/ui/shared/composables/useUiNotifier"
 import { usePanasonicProductionState } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicProductionState"
+import { usePanasonicProductionStart } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicProductionStart"
 import { usePanasonicMaterialQueryState } from "@/ui/workflows/post-production/panasonic/composables/usePanasonicMaterialQueryState"
 import { useRollShortageForm } from "@/ui/shared/composables/useRollShortageForm"
 import { usePostProductionFeedStore } from "@/stores/postProductionFeedStore"
@@ -30,21 +28,19 @@ import {
   PANASONIC_NOT_FOUND_PATH,
 } from "@/ui/shared/composables/panasonic/usePanasonicConstants"
 import { useMounterPostProductionWorkflowCore } from "@/ui/workflows/post-production/shared/composables/useMounterPostProductionWorkflowCore"
+import {
+  mapCorrectStateToEnum,
+  mapTestingModeToProduceType,
+  normalizeRoute,
+} from "@/ui/workflows/post-production/shared/composables/productionWorkflowHelpers"
 import { msg } from "@/ui/shared/messageCatalog"
+
+export { mapTestingModeToProduceType }
 
 export type PanasonicProductionWorkflowOptions = {
   onResetInputs: () => void
   isMockMode?: boolean
   deps?: Partial<PostproductionPanasonicDeps>
-}
-
-export const mapTestingModeToProduceType = (
-  value: boolean | null
-): ProduceTypeEnum | null => {
-  if (value == null) return null
-  return value
-    ? ProduceTypeEnum.TESTING_PRODUCE_MODE
-    : ProduceTypeEnum.NORMAL_PRODUCE_MODE
 }
 
 export function usePanasonicProductionWorkflow(
@@ -56,8 +52,6 @@ export function usePanasonicProductionWorkflow(
   const ui = useUiNotifier()
   const deps = createPostproductionPanasonicDeps(options.deps)
   const { currentUsername, currentOperatorIdno } = useCurrentUsername()
-
-  const normalizeRoute = (val: unknown) => String(val ?? "").trim()
 
   const productionUuid = ref("")
   const isTestingMode = ref(route.query.testing_mode === "1")
@@ -131,11 +125,7 @@ export function usePanasonicProductionWorkflow(
       throw new Error("materialInventory is required")
     }
 
-    const enumCorrectState =
-        params.correctState === 'true' ? CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-      : params.correctState === 'false' ? CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK
-      : params.correctState === 'warning' ? CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
-      : null
+    const enumCorrectState = mapCorrectStateToEnum(params.correctState)
 
     await recordUploader.uploadAppend({
       statId: params.stat_id,
@@ -363,81 +353,19 @@ export function usePanasonicProductionWorkflow(
 
   // ── Production start/stop ──────────────────────────────────────────────────
 
-  const convertBoardSide = (value: string | null): BoardSideEnum | null =>
-    value as unknown as BoardSideEnum
-
-  const onProduction = () => {
-    const invalid = rowData.value.filter((row) => {
-      if (row.correct === CheckMaterialMatchEnum.UNMATCHED_MATERIAL_PACK) return true
-      if (row.correct === "UNLOADED_MATERIAL_PACK") return true
-      if (!isTestingMode.value && row.correct == null) return true
-      return false
-    })
-
-    if (invalid.length > 0) {
-      return ui.error("尚有槽位未綁定或錯誤，無法開始生產")
-    }
-
-    dialog.warning({
-      title: "開始生產確認",
-      content: "確定要開始生產嗎？",
-      positiveText: "確定",
-      negativeText: "取消",
-      onPositiveClick: () => startProductionUpload(isTestingMode.value),
-      onNegativeClick: () => {},
-    })
-  }
-
-  const startProductionUpload = async (testing: boolean) => {
-    const machineSideValue = normalizeRoute(route.query.machine_side)
-    machineSide.value =
-      machineSideValue === "1"
-        ? MachineSideEnum.FRONT
-        : machineSideValue === "2"
-          ? MachineSideEnum.BACK
-          : null
-
-    boardSide.value = convertBoardSide(
-      normalizeRoute(route.query.work_sheet_side ?? null)
-    )
-
-    try {
-      const payload: PanasonicMounterItemStatCreate[] = rowData.value.map((row) => ({
-        operator_id: null,
-        operation_time: row.operationTime
-          ? new Date(row.operationTime).toISOString()
-          : new Date().toISOString(),
-        production_start: new Date().toISOString(),
-        work_order_no: normalizeRoute(route.params.workOrderIdno ?? null),
-        product_idno: normalizeRoute(route.query.product_idno),
-        machine_idno: mounterIdno.value,
-        machine_side: machineSide.value,
-        board_side: boardSide.value,
-        slot_idno: row.slotIdno,
-        sub_slot_idno: row.subSlotIdno ?? null,
-        material_idno: row.materialIdno ?? null,
-        material_pack_code: row.materialInventoryIdno ?? null,
-        produce_mode: mapTestingModeToProduceType(testing),
-        check_pack_code_match:
-          row.correct === "UNLOADED_MATERIAL_PACK" ? null : row.correct,
-      }))
-
-      await deps.startPanasonicProduction(payload)
-
-      ui.success(msg.production.startedAndUploaded)
-      productionStarted.value = true
-
-      router.replace({
-        path: route.path,
-        query: {
-          ...route.query,
-        },
-      })
-    } catch (err) {
-      console.error("upload failed: ", err)
-      ui.error("上傳失敗")
-    }
-  }
+  const { onProduction } = usePanasonicProductionStart({
+    route,
+    router,
+    dialog,
+    ui: { success: ui.success, error: ui.error },
+    rowData,
+    productionStarted,
+    isTestingMode,
+    machineSide,
+    boardSide,
+    mounterIdno,
+    startPanasonicProduction: deps.startPanasonicProduction,
+  })
 
   const handleProductionStopped = () => {
     productionStarted.value = false
