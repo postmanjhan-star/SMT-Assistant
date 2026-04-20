@@ -1,117 +1,30 @@
 import { ref } from 'vue'
-import { type GridApi } from 'ag-grid-community'
-import { CheckMaterialMatchEnum } from '@/application/post-production-feed/clientTypes'
-import { appendMaterialCode, removeMaterialCode } from '@/domain/production/PostProductionFeedRules'
 import { resolveMaterialLookupError } from '@/domain/material/MaterialLookupError'
 import { msg } from '@/ui/shared/messageCatalog'
+import {
+  getCurrentLoadedPackCode,
+  getCurrentSplicePackCode,
+  isSlotResolveFailure,
+  type UnloadReplaceRowBase,
+  type UseUnloadReplaceFlowOptions,
+} from './unloadReplaceFlow/types'
+import { createUnloadSubmitter } from './unloadReplaceFlow/unloadSubmitter'
+import { createReplaceSpliceSubmitter } from './unloadReplaceFlow/replaceSpliceSubmitter'
 
-// ── Row base type ────────────────────────────────────────────────────────────
-
-export type UnloadReplaceRowBase = {
-  id: number
-  materialIdno: string
-  materialInventoryIdno: string | null
-  appendedMaterialInventoryIdno?: string | null
-  spliceMaterialInventoryIdno?: string | null
-  correct: string | null
-  operationTime?: string | null
-}
-
-// ── Strategy: machine-specific slot resolution ───────────────────────────────
-
-export type SlotResolveFailure = { ok: false; error: string }
-export type SlotResolveSuccess<TRow> = {
-  ok: true
-  row: TRow
-  statId: number
-  uploadSlotIdno: string
-  uploadSubSlotIdno: string | null
-  displaySlotIdno: string
-  rowId: string
-}
-export type SlotResolveResult<TRow> = SlotResolveFailure | SlotResolveSuccess<TRow>
-
-function isSlotResolveFailure<TRow>(
-  result: SlotResolveResult<TRow>
-): result is SlotResolveFailure {
-  return result.ok === false
-}
-
-export type UnloadReplaceSlotStrategy<TRow extends UnloadReplaceRowBase> = {
-  resolveSlot: (slotIdno: string) => SlotResolveResult<TRow>
-  toDisplaySlotIdno: (row: TRow) => string
-  toRowId: (row: TRow) => string
-  getRowData: () => TRow[]
-}
-
-// ── Uploader: machine-specific API calls ─────────────────────────────────────
-
-export type UnloadReplaceUploader = {
-  uploadUnfeed: (params: {
-    statId: number
-    slotIdno: string
-    subSlotIdno: string | null
-    materialPackCode: string
-    unfeedReason?: string | null
-    operatorId?: string | null
-    checkPackCodeMatch?: CheckMaterialMatchEnum | null
-  }) => Promise<void>
-  uploadAppend: (params: {
-    statId: number
-    slotIdno: string
-    subSlotIdno: string | null
-    materialPackCode: string
-    operatorId?: string | null
-    correctState?: CheckMaterialMatchEnum | null  // CheckMaterialMatchEnum matches PostProductionFeedUploader's param type
-  }) => Promise<void>
-  fetchMaterialInventory: (code: string) => Promise<{ material_idno?: string }>
-}
-
-// ── Options ──────────────────────────────────────────────────────────────────
-
-export type UseUnloadReplaceFlowOptions<TRow extends UnloadReplaceRowBase> = {
-  getGridApi: () => GridApi | null
-  slotStrategy: UnloadReplaceSlotStrategy<TRow>
-  uploader: UnloadReplaceUploader
-  getOperatorId: () => string | null
-  isTestingMode: () => boolean
-  isMockMode?: () => boolean
-  ui: {
-    success: (msg: string) => void
-    error: (msg: string) => void
-  }
-  /** Called after enterUnloadMode (e.g. Fuji needs resetForms) */
-  onEnterUnloadMode?: () => void
-  /** Called after submitReplace grid update for machine-specific extra fields */
-  onAfterReplaceGridUpdate?: (rowId: string, gridApi: GridApi, now: string) => void
-}
-
-// ── Composable ────────────────────────────────────────────────────────────────
+export type {
+  UnloadReplaceRowBase,
+  SlotResolveFailure,
+  SlotResolveSuccess,
+  SlotResolveResult,
+  UnloadReplaceSlotStrategy,
+  UnloadReplaceUploader,
+  UseUnloadReplaceFlowOptions,
+} from './unloadReplaceFlow/types'
 
 export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
   options: UseUnloadReplaceFlowOptions<TRow>
 ) {
   const { getGridApi, slotStrategy, uploader, getOperatorId, ui } = options
-
-  // ── ERP 查詢分類（FEED 類：S5566 接料使用） ────────────────────────────────
-
-  async function resolveExistenceCorrectState(
-    materialPackCode: string,
-  ): Promise<CheckMaterialMatchEnum | null> {
-    if (options.isMockMode?.() && !options.isTestingMode()) {
-      return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-    }
-    try {
-      await uploader.fetchMaterialInventory(materialPackCode.trim())
-      return CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-    } catch (error) {
-      if (options.isTestingMode()) return CheckMaterialMatchEnum.TESTING_MATERIAL_PACK
-      ui.error(resolveMaterialLookupError(error))
-      return null
-    }
-  }
-
-  // ── Unload mode state ──────────────────────────────────────────────────────
 
   const isUnloadMode = ref(false)
 
@@ -131,32 +44,6 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       enterUnloadMode()
     }
   }
-
-  // ── Utilities ──────────────────────────────────────────────────────────────
-
-  function getCurrentLoadedPackCode(row: TRow): string {
-    return String(row.appendedMaterialInventoryIdno ?? '').trim()
-  }
-
-  function getCurrentSplicePackCode(row: TRow): string {
-    return String(row.spliceMaterialInventoryIdno ?? '').trim()
-  }
-
-  function safeGridUpdate(rowId: string, updates: Record<string, unknown>) {
-    try {
-      const api = getGridApi()
-      if (!api) return
-      const rowNode = api.getRowNode?.(rowId)
-      if (!rowNode) return
-      Object.entries(updates).forEach(([key, value]) => {
-        rowNode.setDataValue(key, value)
-      })
-    } catch {
-      // Grid may be unmounted (e.g. in unload mode).
-    }
-  }
-
-  // ── findUniqueUnloadSlotByPackCode ─────────────────────────────────────────
 
   function findUniqueUnloadSlotByPackCode(materialPackCode: string):
     | { ok: false; error: string }
@@ -189,8 +76,6 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     }
   }
 
-  // ── validateUnloadMaterialPackCode ─────────────────────────────────────────
-
   async function validateUnloadMaterialPackCode(materialPackCode: string): Promise<boolean> {
     const trimmed = materialPackCode.trim()
     if (!trimmed) {
@@ -206,8 +91,6 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
       return false
     }
   }
-
-  // ── validateReplacementMaterialForSlot ─────────────────────────────────────
 
   async function validateReplacementMaterialForSlot(params: {
     materialPackCode: string
@@ -242,269 +125,20 @@ export function useUnloadReplaceFlow<TRow extends UnloadReplaceRowBase>(
     }
   }
 
-  // ── submitUnload ───────────────────────────────────────────────────────────
+  const { submitUnload, submitForceUnloadBySlot } = createUnloadSubmitter<TRow>({
+    getGridApi, slotStrategy, uploader, getOperatorId, ui,
+  })
 
-  async function submitUnload(params: {
-    materialPackCode: string
-    slotIdno: string
-    unfeedReason?: string | null
-    checkPackCodeMatch?: CheckMaterialMatchEnum | null
-  }): Promise<boolean> {
-    const materialPackCode = params.materialPackCode.trim()
-    const slotIdno = params.slotIdno.trim()
-
-    if (!materialPackCode) {
-      ui.error(msg.input.materialRequired)
-      return false
-    }
-
-    const resolved = slotStrategy.resolveSlot(slotIdno)
-    if (isSlotResolveFailure(resolved)) {
-      ui.error(resolved.error)
-      return false
-    }
-
-    const { row, statId, uploadSlotIdno, uploadSubSlotIdno, displaySlotIdno, rowId } = resolved
-
-    const currentLoadedPackCode = getCurrentLoadedPackCode(row)
-    const currentSplicePackCode = getCurrentSplicePackCode(row)
-    const unloadsLoadedPack = currentLoadedPackCode === materialPackCode
-    const unloadsSplicePack = currentSplicePackCode === materialPackCode
-
-    if (!unloadsLoadedPack && !unloadsSplicePack) {
-      ui.error(msg.material.packCodeNotInSlotList(materialPackCode, displaySlotIdno))
-      return false
-    }
-
-    // UNFEED 不查 ERP：沿用呼叫端傳入的 checkPackCodeMatch（來自 row.correct）
-    const checkPackCodeMatch = params.checkPackCodeMatch ?? (row.correct as CheckMaterialMatchEnum | null)
-
-    try {
-      await uploader.uploadUnfeed({
-        statId,
-        slotIdno: uploadSlotIdno,
-        subSlotIdno: uploadSubSlotIdno,
-        materialPackCode,
-        unfeedReason: params.unfeedReason ?? 'MATERIAL_FINISHED',
-        operatorId: getOperatorId(),
-        checkPackCodeMatch,
-      })
-
-      let nextAppended = currentLoadedPackCode
-      let nextSplice = currentSplicePackCode
-      let nextCorrect = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK as string
-
-      if (unloadsSplicePack) {
-        nextSplice = ''
-        if (!nextAppended) nextCorrect = 'UNLOADED_MATERIAL_PACK'
-      } else if (currentSplicePackCode) {
-        nextAppended = currentSplicePackCode
-        nextSplice = ''
-      } else {
-        nextAppended = removeMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
-        nextCorrect = 'UNLOADED_MATERIAL_PACK'
-      }
-
-      row.appendedMaterialInventoryIdno = nextAppended
-      row.spliceMaterialInventoryIdno = nextSplice || null
-      row.correct = nextCorrect
-
-      const gridUpdates: Record<string, unknown> = {
-        appendedMaterialInventoryIdno: nextAppended,
-        spliceMaterialInventoryIdno: nextSplice || null,
-        correct: nextCorrect,
-      }
-      safeGridUpdate(rowId, gridUpdates)
-
-      ui.success(msg.unload.success(materialPackCode, displaySlotIdno))
-      return true
-    } catch (error) {
-      ui.error(msg.unload.uploadFailed)
-      console.error(error)
-      return false
-    }
-  }
-
-  // ── submitForceUnloadBySlot ────────────────────────────────────────────────
-
-  async function submitForceUnloadBySlot(params: {
-    slotIdno: string
-    unfeedReason?: string | null
-  }): Promise<{ ok: boolean; slotIdno?: string; materialPackCode?: string }> {
-    const slotIdno = params.slotIdno.trim()
-    if (!slotIdno) {
-      ui.error(msg.input.stationRequired)
-      return { ok: false }
-    }
-
-    const resolved = slotStrategy.resolveSlot(slotIdno)
-    if (isSlotResolveFailure(resolved)) {
-      ui.error(resolved.error)
-      return { ok: false }
-    }
-
-    const { row } = resolved
-    const splicePackCode = getCurrentSplicePackCode(row)
-    const loadedPackCode = getCurrentLoadedPackCode(row)
-    const legacyMainPackCode = String(row.materialInventoryIdno ?? '').trim()
-    const materialPackCode = splicePackCode || loadedPackCode || legacyMainPackCode
-
-    if (!materialPackCode) {
-      ui.error(msg.slot.noMaterialToUnload(slotIdno))
-      return { ok: false }
-    }
-
-    // UNFEED 不查 ERP：直接用 row.correct（與同 barcode 的上料/接料紀錄一致）
-    const checkPackCodeMatch = row.correct as CheckMaterialMatchEnum | null
-
-    const success = await submitUnload({
-      materialPackCode,
-      slotIdno,
-      unfeedReason: params.unfeedReason ?? 'WRONG_MATERIAL',
-      checkPackCodeMatch,
-    })
-
-    if (!success) {
-      return { ok: false }
-    }
-
-    return {
-      ok: true,
-      slotIdno: slotStrategy.toDisplaySlotIdno(row),
-      materialPackCode,
-    }
-  }
-
-  // ── submitReplace ──────────────────────────────────────────────────────────
-
-  async function submitReplace(params: {
-    materialPackCode: string
-    slotIdno: string
-  }): Promise<boolean> {
-    const materialPackCode = params.materialPackCode.trim()
-    const slotIdno = params.slotIdno.trim()
-    if (!materialPackCode) {
-      ui.error(msg.input.materialRequired)
-      return false
-    }
-
-    const resolved = slotStrategy.resolveSlot(slotIdno)
-    if (isSlotResolveFailure(resolved)) {
-      ui.error(resolved.error)
-      return false
-    }
-
-    const { row, statId, uploadSlotIdno, uploadSubSlotIdno, displaySlotIdno, rowId } = resolved
-
-    try {
-      await uploader.uploadAppend({
-        statId,
-        slotIdno: uploadSlotIdno,
-        subSlotIdno: uploadSubSlotIdno,
-        materialPackCode,
-        operatorId: getOperatorId(),
-      })
-
-      const now = new Date().toISOString()
-      const currentLoadedPackCode = getCurrentLoadedPackCode(row)
-
-      row.correct = CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK
-      row.operationTime = now
-
-      if (currentLoadedPackCode) {
-        // 站位仍有上料（卸除的是接料條碼或接料晉升後仍有上料）→ 新捲號填入接料位置
-        row.spliceMaterialInventoryIdno = materialPackCode
-        safeGridUpdate(rowId, {
-          spliceMaterialInventoryIdno: materialPackCode,
-          correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
-          operationTime: now,
-        })
-      } else {
-        // 站位已空（卸除的是上料且無接料）→ 新捲號填入上料位置
-        const nextAppended = appendMaterialCode(row.appendedMaterialInventoryIdno, materialPackCode)
-        row.appendedMaterialInventoryIdno = nextAppended
-        row.spliceMaterialInventoryIdno = null
-        safeGridUpdate(rowId, {
-          appendedMaterialInventoryIdno: nextAppended,
-          spliceMaterialInventoryIdno: null,
-          correct: CheckMaterialMatchEnum.MATCHED_MATERIAL_PACK,
-          operationTime: now,
-        })
-      }
-
-      const api = getGridApi()
-      if (options.onAfterReplaceGridUpdate && api) {
-        options.onAfterReplaceGridUpdate(rowId, api, now)
-      }
-
-      ui.success(msg.feed.success(materialPackCode, displaySlotIdno))
-      return true
-    } catch (error) {
-      ui.error(msg.feed.uploadFailed)
-      console.error(error)
-      return false
-    }
-  }
-
-  async function submitSplice(params: {
-    materialPackCode: string
-    slotIdno: string
-  }): Promise<boolean> {
-    const materialPackCode = params.materialPackCode.trim()
-    const slotIdno = params.slotIdno.trim()
-    if (!materialPackCode) {
-      ui.error(msg.input.materialRequired)
-      return false
-    }
-
-    const resolved = slotStrategy.resolveSlot(slotIdno)
-    if (isSlotResolveFailure(resolved)) {
-      ui.error(resolved.error)
-      return false
-    }
-
-    const { row, statId, uploadSlotIdno, uploadSubSlotIdno, displaySlotIdno, rowId } = resolved
-
-    // S5566 FEED：查 ERP 決定 check_pack_code_match
-    const checkPackCodeMatch = await resolveExistenceCorrectState(materialPackCode)
-    if (checkPackCodeMatch === null) return false
-
-    try {
-      await uploader.uploadAppend({
-        statId,
-        slotIdno: uploadSlotIdno,
-        subSlotIdno: uploadSubSlotIdno,
-        materialPackCode,
-        operatorId: getOperatorId(),
-        correctState: checkPackCodeMatch,
-      })
-
-      const now = new Date().toISOString()
-      row.spliceMaterialInventoryIdno = materialPackCode
-      row.correct = checkPackCodeMatch
-      row.operationTime = now
-
-      safeGridUpdate(rowId, {
-        spliceMaterialInventoryIdno: materialPackCode,
-        correct: checkPackCodeMatch,
-        operationTime: now,
-      })
-
-      const api = getGridApi()
-      if (options.onAfterReplaceGridUpdate && api) {
-        options.onAfterReplaceGridUpdate(rowId, api, now)
-      }
-
-      ui.success(msg.feed.success(materialPackCode, displaySlotIdno))
-      return true
-    } catch (error) {
-      ui.error(msg.feed.uploadFailed)
-      console.error(error)
-      return false
-    }
-  }
-
-  // ── Return ─────────────────────────────────────────────────────────────────
+  const { submitReplace, submitSplice } = createReplaceSpliceSubmitter<TRow>({
+    getGridApi,
+    slotStrategy,
+    uploader,
+    getOperatorId,
+    isTestingMode: options.isTestingMode,
+    isMockMode: options.isMockMode,
+    ui,
+    onAfterReplaceGridUpdate: options.onAfterReplaceGridUpdate,
+  })
 
   return {
     isUnloadMode,
