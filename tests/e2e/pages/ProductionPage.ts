@@ -109,6 +109,22 @@ export class ProductionPage {
     return this.page.getByTestId(testId)
   }
 
+  get spliceMaterialInput() {
+    const testId =
+      this.machine === 'fuji'
+        ? 'fuji-production-splice-material-input'
+        : 'panasonic-splice-material-input'
+    return this.page.getByTestId(testId)
+  }
+
+  get spliceSlotInput() {
+    const testId =
+      this.machine === 'fuji'
+        ? 'fuji-production-splice-slot-input'
+        : 'panasonic-splice-slot-input'
+    return this.page.getByTestId(testId)
+  }
+
   row(rowId: string) {
     return this.page.locator(`[row-id="${rowId}"]`)
   }
@@ -120,5 +136,19 @@ export class ProductionPage {
     await expect(this.slotInput).toBeFocused({ timeout: 10000 }).catch(() => {})
     await this.slotInput.fill(slotIdno)
     await this.slotInput.press('Enter')
+  }
+
+  async enterSpliceMode() {
+    await this.materialInput.click()
+    await this.materialInput.fill('S5566')
+    await this.materialInput.press('Enter')
+    await this.spliceMaterialInput.waitFor({ state: 'visible', timeout: 5000 })
+  }
+
+  async enterUnloadMode() {
+    await this.materialInput.click()
+    await this.materialInput.fill('S5555')
+    await this.materialInput.press('Enter')
+    await this.unloadMaterialInput.waitFor({ state: 'visible', timeout: 5000 })
   }
 }
